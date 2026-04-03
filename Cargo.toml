@@ -4,16 +4,41 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-clap = { version = "4", features = ["derive"] }
-ratatui = "0.29"
-crossterm = "0.28"
+clap = { version = "4.5", features = ["derive"] }
+tokio = { version = "1", features = ["rt", "macros"] }
 thiserror = "2"
 anyhow = "1"
 reqwest = { version = "0.12", features = ["blocking", "json"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+serde_yaml = "0.9"
 url = "2"
 dirs = "6"
+toml = "0.8"
+flate2 = "1"
+tar = "0.4"
+sha2 = "0.10"
+hex = "0.4"
+redb = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+chrono = { version = "0.4", features = ["clock"] }
+indicatif = "0.17"
+walkdir = "2"
+pubgrub = "0.3"
+semver = "1.0.27"
+toml_edit = "0.25.10"
+petgraph = "0.8.3"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+keyring = { version = "3", features = ["apple-native"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+keyring = { version = "3", features = ["linux-native"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+keyring = { version = "3", features = ["windows-native"] }
 
 [dev-dependencies]
 tempfile = "3"
+serial_test = "3"

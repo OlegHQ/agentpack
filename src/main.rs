@@ -1,12 +1,15 @@
-mod cache;
-mod cli;
-mod db;
-mod error;
-mod github;
-mod installers;
-mod skill;
+use agentpack::{run, Cli};
+use clap::Parser;
+use tracing_subscriber::EnvFilter;
 
-fn main() {
-    println!("2");
-    println!("Hello, world!");
+fn main() -> anyhow::Result<()> {
+    let cli = Cli::parse();
+    let filter = if cli.quiet {
+        EnvFilter::new("warn")
+    } else {
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"))
+    };
+    tracing_subscriber::fmt().with_env_filter(filter).init();
+
+    run(cli)
 }

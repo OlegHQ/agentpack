@@ -1,0 +1,183 @@
+use std::env;
+use std::fs;
+use std::path::{Path, PathBuf};
+
+use crate::error::{AgentpackError, Result};
+use sha2::{Digest, Sha256};
+
+pub const LOCKFILE_NAME: &str = "pack.lock";
+
+pub const MANIFEST_NAME: &str = "agentpack.toml";
+
+/// Merged Claude `--plugin-dir` folder name; same id is used for the staged Cursor plugin tree.
+pub const STAGED_AGENTPACK_BUNDLE_NAME: &str = "agentpack-bundle";
+
+fn lockfile_name() -> &'static str {
+    LOCKFILE_NAME
+}
+
+pub fn manifest_path(project_root: &Path) -> PathBuf {
+    project_root.join(MANIFEST_NAME)
+}
+
+/// User-level store root: **`AGENTPACK_HOME`**, else XDG data dir (Unix) or **`LOCALAPPDATA\\agentpack`** (Windows).
+pub fn user_agentpack_home() -> Result<PathBuf> {
+    if let Ok(p) = env::var("AGENTPACK_HOME") {
+        let p = p.trim();
+        if !p.is_empty() {
+            return Ok(PathBuf::from(p));
+        }
+    }
+    #[cfg(windows)]
+    {
+        dirs::data_local_dir()
+            .map(|d| d.join("agentpack"))
+            .ok_or_else(|| AgentpackError::Cache("cannot resolve LOCALAPPDATA".into()))
+    }
+    #[cfg(not(windows))]
+    {
+        let data_home = env::var_os("XDG_DATA_HOME")
+            .filter(|s| !s.is_empty())
+            .map(PathBuf::from)
+            .or_else(|| dirs::home_dir().map(|h| h.join(".local/share")))
+            .ok_or_else(|| AgentpackError::Cache("cannot resolve XDG data home".into()))?;
+        Ok(data_home.join("agentpack"))
+    }
+}
+
+/// Create **`cache/`**, **`local/`**, **`projects/`** under the user agentpack home.
+pub fn ensure_user_agentpack_layout() -> Result<PathBuf> {
+    let root = user_agentpack_home()?;
+    for sub in ["cache", "local", "projects"] {
+        let p = root.join(sub);
+        fs::create_dir_all(&p).map_err(|e| AgentpackError::io(&p, e))?;
+    }
+    Ok(root)
+}
+
+pub fn cache_dir() -> Result<PathBuf> {
+    Ok(user_agentpack_home()?.join("cache"))
+}
+
+pub fn cache_db_path() -> Result<PathBuf> {
+    Ok(cache_dir()?.join("db.reddb"))
+}
+
+/// `local/anthropics/skills/foo` layout for golden-spec mirrors.
+pub fn local_registry_root() -> Result<PathBuf> {
+    Ok(user_agentpack_home()?.join("local"))
+}
+
+pub fn local_mirror_path_from_shorthand(spec: &str) -> Result<PathBuf> {
+    Ok(local_registry_root()?.join(spec))
+}
+
+pub fn project_state_dir(project_root: &Path) -> Result<PathBuf> {
+    let hash = project_path_hash(project_root)?;
+    Ok(user_agentpack_home()?.join("projects").join(hash))
+}
+
+pub fn cursor_overlay_manifest_path(project_root: &Path) -> Result<PathBuf> {
+    Ok(project_state_dir(project_root)?.join("cursor-overlay.manifest"))
+}
+
+/// Resolve project root by walking ancestors until **`agentpack.toml`** or **`pack.lock`** is found.
+pub fn find_project_root(start: &Path) -> Result<PathBuf> {
+    for dir in start.ancestors() {
+        if dir.join(MANIFEST_NAME).is_file() || dir.join(lockfile_name()).is_file() {
+            return Ok(dir.to_path_buf());
+        }
+    }
+    Err(AgentpackError::NoPackLock(start.to_path_buf()))
+}
+
+/// Discover root: explicit `--project-root`, or walk from cwd.
+pub fn resolve_project_root(explicit: Option<&Path>) -> Result<PathBuf> {
+    if let Some(p) = explicit {
+        let p = p.canonicalize().map_err(|e| AgentpackError::io(p, e))?;
+        if p.join(MANIFEST_NAME).is_file() || p.join(lockfile_name()).is_file() {
+            return Ok(p);
+        }
+        return Err(AgentpackError::NoPackLock(p));
+    }
+    let cwd = env::current_dir().map_err(|e| AgentpackError::io(PathBuf::from("."), e))?;
+    find_project_root(&cwd)
+}
+
+pub fn lock_path(project_root: &Path) -> PathBuf {
+    project_root.join(lockfile_name())
+}
+
+/// Stable short hash of canonical project root for staging directory name.
+pub fn project_path_hash(project_root: &Path) -> Result<String> {
+    let canon = project_root
+        .canonicalize()
+        .map_err(|e| AgentpackError::io(project_root, e))?;
+    let mut h = Sha256::new();
+    h.update(canon.as_os_str().as_encoded_bytes());
+    let full = h.finalize();
+    Ok(hex::encode(&full[..8]))
+}
+
+/// Staging root: `std::env::temp_dir()/agentpack-<hash>` unless `AGENTPACK_STAGING_ROOT` is set.
+pub fn staging_root(project_root: &Path) -> Result<PathBuf> {
+    if let Ok(override_path) = env::var("AGENTPACK_STAGING_ROOT") {
+        return Ok(PathBuf::from(override_path));
+    }
+    let hash = project_path_hash(project_root)?;
+    Ok(env::temp_dir().join(format!("agentpack-{hash}")))
+}
+
+/// Per-project plugin staging: each skill becomes a minimal plugin tree here.
+pub fn staging_plugins_dir(project_root: &Path) -> Result<PathBuf> {
+    Ok(staging_root(project_root)?.join("plugins"))
+}
+
+pub fn staging_opencode_dir(project_root: &Path) -> Result<PathBuf> {
+    Ok(staging_root(project_root)?.join("opencode"))
+}
+
+pub fn staging_codex_home_dir(project_root: &Path) -> Result<PathBuf> {
+    Ok(staging_root(project_root)?.join("codex-home"))
+}
+
+pub fn staging_cursor_bundle_dir(project_root: &Path) -> Result<PathBuf> {
+    Ok(staging_root(project_root)?.join("cursor"))
+}
+
+/// Staged Cursor plugin root: **`$STAGING/cursor/<bundle>/`** with **`.cursor-plugin/plugin.json`**, sibling to **`$STAGING/cursor/.cursor-plugin/marketplace.json`** (Cursor multi-plugin repo layout).
+pub fn staging_cursor_pack_plugin_dir(project_root: &Path) -> Result<PathBuf> {
+    Ok(staging_cursor_bundle_dir(project_root)?.join(STAGED_AGENTPACK_BUNDLE_NAME))
+}
+
+/// Fake **`$HOME`** for **`agentpack agent`**: contains **`.cursor/`** with symlinks to pack content and to your real Cursor auth/session files.
+pub fn staging_cursor_home_dir(project_root: &Path) -> Result<PathBuf> {
+    Ok(staging_root(project_root)?.join("cursor-home"))
+}
+
+pub fn cursor_workspace_dir(project_root: &Path) -> PathBuf {
+    project_root.join(".cursor")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::tempdir;
+
+    #[test]
+    fn walk_up_finds_pack_lock() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        fs::write(root.join(MANIFEST_NAME), "name = \"t\"\nversion = \"1\"\n").unwrap();
+        fs::write(
+            root.join(LOCKFILE_NAME),
+            "lockfile-version = 2\n[meta]\nname = \"t\"\nversion = \"1\"\n",
+        )
+        .unwrap();
+        let nested = root.join("deep/nested");
+        fs::create_dir_all(&nested).unwrap();
+        let found = find_project_root(&nested).unwrap();
+        assert_eq!(found.canonicalize().unwrap(), root.canonicalize().unwrap());
+    }
+}

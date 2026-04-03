@@ -1,4 +1,8 @@
 /target
+rust_out
+.cursor
+.claude
+.codex
 
 
 # Added by cargo
@@ -6,3 +10,4 @@
 # already existing elements were commented out
 
 #/target
+
