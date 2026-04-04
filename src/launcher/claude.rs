@@ -12,7 +12,7 @@ pub fn run_claude(
     passthrough: Vec<String>,
     ui: &Ui,
 ) -> anyhow::Result<()> {
-    sync_for_launch(project_root, ui).map_err(|e| anyhow::anyhow!("{e}"))?;
+    sync_for_launch(project_root, ui)?;
 
     let plugin_dirs: Vec<PathBuf> = if let Ok(env) = std::env::var("AGENTPACK_PLUGIN_DIRS") {
         env.split(':')
@@ -20,7 +20,7 @@ pub fn run_claude(
             .map(PathBuf::from)
             .collect()
     } else {
-        staging::list_plugin_dirs(project_root).map_err(|e| anyhow::anyhow!("{e}"))?
+        staging::list_plugin_dirs(project_root)?
     };
     if !plugin_dirs.is_empty() {
         let rendered = plugin_dirs

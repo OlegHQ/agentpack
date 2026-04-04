@@ -8,11 +8,11 @@ pub fn run_codex(
     passthrough: Vec<String>,
     ui: &Ui,
 ) -> anyhow::Result<()> {
-    sync_for_launch(project_root, ui).map_err(|e| anyhow::anyhow!("{e}"))?;
+    sync_for_launch(project_root, ui)?;
 
     let codex_home = single_dir_override(
         "AGENTPACK_CODEX_HOME",
-        &paths::staging_codex_home_dir(project_root).map_err(|e| anyhow::anyhow!("{e}"))?,
+        &paths::staging_codex_home_dir(project_root)?,
     );
     ui.message(format!(
         "Codex home: {}",

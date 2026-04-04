@@ -38,10 +38,8 @@ pub fn run(cli: Cli) -> anyhow::Result<()> {
                 .unwrap_or("project");
             let n = name.unwrap_or_else(|| dirname.to_string());
             let v = version.unwrap_or_else(|| "0.0.1".to_string());
-            manifest::AgentpackManifest::write_stub(&root, &n, &v)
-                .map_err(|e| anyhow::anyhow!("{e}"))?;
-            lockfile::init_lockfile(&root, Some(n.clone()), Some(v))
-                .map_err(|e| anyhow::anyhow!("{e}"))?;
+            manifest::AgentpackManifest::write_stub(&root, &n, &v)?;
+            lockfile::init_lockfile(&root, Some(n.clone()), Some(v))?;
             ui.message(format!(
                 "Created {} and {}",
                 paths::manifest_path(&root).display(),
@@ -50,51 +48,47 @@ pub fn run(cli: Cli) -> anyhow::Result<()> {
             Ok(())
         }
         Command::Lock => {
-            let root = paths::resolve_project_root(cli.project_root.as_deref())
-                .map_err(|e| anyhow::anyhow!("{e}"))?;
-            sync::run_lock(&root, &ui).map_err(|e| anyhow::anyhow!("{e}"))
+            let root = paths::resolve_project_root(cli.project_root.as_deref())?;
+            sync::run_lock(&root, &ui)?;
+            Ok(())
         }
         Command::Migrate => {
-            let root = paths::resolve_project_root(cli.project_root.as_deref())
-                .map_err(|e| anyhow::anyhow!("{e}"))?;
-            sync::run_migrate(&root, &ui).map_err(|e| anyhow::anyhow!("{e}"))
+            let root = paths::resolve_project_root(cli.project_root.as_deref())?;
+            sync::run_migrate(&root, &ui)?;
+            Ok(())
         }
         Command::Add { spec, no_sync } => {
-            let root = paths::resolve_project_root(cli.project_root.as_deref())
-                .map_err(|e| anyhow::anyhow!("{e}"))?;
-            sync::run_add(&root, &spec, no_sync, &ui).map_err(|e| anyhow::anyhow!("{e}"))
+            let root = paths::resolve_project_root(cli.project_root.as_deref())?;
+            sync::run_add(&root, &spec, no_sync, &ui)?;
+            Ok(())
         }
         Command::Remove { spec, no_sync } => {
-            let root = paths::resolve_project_root(cli.project_root.as_deref())
-                .map_err(|e| anyhow::anyhow!("{e}"))?;
-            sync::run_remove(&root, &spec, no_sync, &ui).map_err(|e| anyhow::anyhow!("{e}"))
+            let root = paths::resolve_project_root(cli.project_root.as_deref())?;
+            sync::run_remove(&root, &spec, no_sync, &ui)?;
+            Ok(())
         }
         Command::Sync {
             dry_run,
             verify_only,
         } => {
-            let root = paths::resolve_project_root(cli.project_root.as_deref())
-                .map_err(|e| anyhow::anyhow!("{e}"))?;
-            sync::run_sync(&root, dry_run, verify_only, &ui).map_err(|e| anyhow::anyhow!("{e}"))
+            let root = paths::resolve_project_root(cli.project_root.as_deref())?;
+            sync::run_sync(&root, dry_run, verify_only, &ui)?;
+            Ok(())
         }
         Command::Claude { args } => {
-            let root = paths::resolve_project_root(cli.project_root.as_deref())
-                .map_err(|e| anyhow::anyhow!("{e}"))?;
+            let root = paths::resolve_project_root(cli.project_root.as_deref())?;
             launcher::run_claude(&root, args, &ui)
         }
         Command::Opencode { args } => {
-            let root = paths::resolve_project_root(cli.project_root.as_deref())
-                .map_err(|e| anyhow::anyhow!("{e}"))?;
+            let root = paths::resolve_project_root(cli.project_root.as_deref())?;
             launcher::run_opencode(&root, args, &ui)
         }
         Command::Codex { args } => {
-            let root = paths::resolve_project_root(cli.project_root.as_deref())
-                .map_err(|e| anyhow::anyhow!("{e}"))?;
+            let root = paths::resolve_project_root(cli.project_root.as_deref())?;
             launcher::run_codex(&root, args, &ui)
         }
         Command::Agent { args } => {
-            let root = paths::resolve_project_root(cli.project_root.as_deref())
-                .map_err(|e| anyhow::anyhow!("{e}"))?;
+            let root = paths::resolve_project_root(cli.project_root.as_deref())?;
             launcher::run_agent(&root, args, &ui)
         }
     }

@@ -8,11 +8,11 @@ pub fn run_opencode(
     passthrough: Vec<String>,
     ui: &Ui,
 ) -> anyhow::Result<()> {
-    sync_for_launch(project_root, ui).map_err(|e| anyhow::anyhow!("{e}"))?;
+    sync_for_launch(project_root, ui)?;
 
     let config_dir = single_dir_override(
         "AGENTPACK_OPENCODE_CONFIG_DIR",
-        &paths::staging_opencode_dir(project_root).map_err(|e| anyhow::anyhow!("{e}"))?,
+        &paths::staging_opencode_dir(project_root)?,
     );
     ui.message(format!(
         "OpenCode config dir: {}",
