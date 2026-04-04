@@ -1,16 +1,50 @@
 //! Detect overlaps between the merged `agentpack-bundle` and the user's `~/.claude/` extension
 //! dirs. Claude loads both, which produces duplicate slash commands (e.g. `/code-tutor` and
-//! `/agentpack-bundle:code-tutor`).
+//! `/agentpack-bundle:code-tutor`). By default we drop the staged pack copy and keep `~/.claude`.
 
 use std::collections::HashSet;
 use std::env;
 use std::fs;
+use std::io::{self, ErrorKind, IsTerminal};
 use std::path::Path;
+
+use walkdir::WalkDir;
 
 use crate::error::{AgentpackError, Result};
 
-/// Skip the bundle-vs-user collision check (not recommended).
+/// Skip stripping pack copies when both exist (duplicated slash UX remains).
 const IGNORE_ENV: &str = "AGENTPACK_IGNORE_USER_BUNDLE_COLLISION";
+
+/// Lowercase skill slugs removed from staged harness trees so `verify_staging` can skip them.
+pub struct StagingCollisionRemoval {
+    pub skill_slugs_lower: HashSet<String>,
+}
+
+fn remove_path_any(path: &Path) -> Result<()> {
+    let meta = match fs::symlink_metadata(path) {
+        Ok(meta) => meta,
+        Err(err) if err.kind() == ErrorKind::NotFound => return Ok(()),
+        Err(err) => return Err(AgentpackError::io(path, err)),
+    };
+
+    if meta.file_type().is_symlink() || meta.is_file() {
+        fs::remove_file(path).map_err(|err| AgentpackError::io(path, err))?;
+    } else if meta.is_dir() {
+        fs::remove_dir_all(path).map_err(|err| AgentpackError::io(path, err))?;
+    } else {
+        fs::remove_file(path).map_err(|err| AgentpackError::io(path, err))?;
+    }
+
+    Ok(())
+}
+
+fn eprint_collision_warning(line: &str) {
+    if io::stderr().is_terminal() {
+        eprintln!("\x1b[33m⚠ {line}\x1b[0m");
+    } else {
+        eprintln!("warning: {line}");
+    }
+}
 
 fn collect_skill_slugs(skills_dir: &Path, out: &mut HashSet<String>) -> Result<()> {
     if !skills_dir.is_dir() {
@@ -54,14 +88,75 @@ fn collect_md_stems_recursive(dir: &Path, out: &mut HashSet<String>) -> Result<(
     Ok(())
 }
 
-fn verify_inner(bundle: &Path, home: Option<&Path>) -> Result<()> {
-    if env::var(IGNORE_ENV).ok().as_deref() == Some("1") {
-        tracing::warn!("skipping bundle vs ~/.claude collision check ({IGNORE_ENV}=1)");
+fn remove_skill_slug_dir(skills_root: &Path, slug_lower: &str) -> Result<()> {
+    if !skills_root.is_dir() {
         return Ok(());
     }
+    for e in fs::read_dir(skills_root).map_err(|e| AgentpackError::io(skills_root, e))? {
+        let e = e.map_err(|e| AgentpackError::io(skills_root, e))?;
+        let p = e.path();
+        if p.is_dir() {
+            if let Some(name) = p.file_name().and_then(|s| s.to_str()) {
+                if name.to_lowercase() == slug_lower {
+                    remove_path_any(&p)?;
+                }
+            }
+        }
+    }
+    Ok(())
+}
 
-    let Some(home) = home else {
+fn remove_md_stems_under_tree(root: &Path, stem_lower: &str) -> Result<()> {
+    if !root.is_dir() {
         return Ok(());
+    }
+    for entry in WalkDir::new(root).follow_links(false).contents_first(true) {
+        let entry = entry.map_err(|e| AgentpackError::Staging(e.to_string()))?;
+        let p = entry.path();
+        if !p.is_file() {
+            continue;
+        }
+        if !p
+            .extension()
+            .map(|ext| ext.eq_ignore_ascii_case("md"))
+            .unwrap_or(false)
+        {
+            continue;
+        }
+        let lower = p
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .map(|s| s.to_lowercase());
+        if lower.as_deref() != Some(stem_lower) {
+            continue;
+        }
+        remove_path_any(p)?;
+    }
+    Ok(())
+}
+
+/// Like **[`resolve_user_claude_bundle_collisions`]** but uses **`home_dir`** as the user profile
+/// root (directory that contains **`.claude`**). **`None`** skips resolution (same as missing real home).
+pub(crate) fn resolve_user_claude_bundle_collisions_with_home(
+    bundle: &Path,
+    opencode: &Path,
+    codex: &Path,
+    cursor_pack: &Path,
+    home_dir: Option<&Path>,
+) -> Result<StagingCollisionRemoval> {
+    let mut removed_skills = HashSet::new();
+
+    if env::var(IGNORE_ENV).ok().as_deref() == Some("1") {
+        tracing::warn!("skipping bundle vs ~/.claude collision handling ({IGNORE_ENV}=1)");
+        return Ok(StagingCollisionRemoval {
+            skill_slugs_lower: removed_skills,
+        });
+    }
+
+    let Some(home) = home_dir else {
+        return Ok(StagingCollisionRemoval {
+            skill_slugs_lower: removed_skills,
+        });
     };
     let uc = home.join(".claude");
 
@@ -73,7 +168,9 @@ fn verify_inner(bundle: &Path, home: Option<&Path>) -> Result<()> {
     collect_md_stems_under(&uc.join("agents"), &mut user_agents)?;
 
     if user_skills.is_empty() && user_cmd.is_empty() && user_agents.is_empty() {
-        return Ok(());
+        return Ok(StagingCollisionRemoval {
+            skill_slugs_lower: removed_skills,
+        });
     }
 
     let mut bundle_skills = HashSet::new();
@@ -83,42 +180,62 @@ fn verify_inner(bundle: &Path, home: Option<&Path>) -> Result<()> {
     let mut bundle_agents = HashSet::new();
     collect_md_stems_under(&bundle.join("agents"), &mut bundle_agents)?;
 
-    let mut problems: Vec<String> = Vec::new();
-    for k in user_skills.intersection(&bundle_skills) {
-        problems.push(format!(
-            "skill `{k}` exists in both ~/.claude/skills and agentpack-bundle (duplicate slash entries)"
+    let mut skill_keys: Vec<&String> = user_skills.intersection(&bundle_skills).collect();
+    skill_keys.sort();
+    for k in skill_keys {
+        removed_skills.insert(k.clone());
+        eprint_collision_warning(&format!(
+            "Using ~/.claude skill `{k}`; omitted pack duplicate from staged bundle (and other harness trees)"
         ));
-    }
-    for k in user_cmd.intersection(&bundle_cmd) {
-        problems.push(format!(
-            "command `{k}` exists in both ~/.claude/commands and agentpack-bundle/commands"
-        ));
-    }
-    for k in user_agents.intersection(&bundle_agents) {
-        problems.push(format!(
-            "agent `{k}` exists in both ~/.claude/agents and agentpack-bundle/agents"
-        ));
+        remove_skill_slug_dir(&bundle.join("skills"), k)?;
+        remove_skill_slug_dir(&opencode.join("skills"), k)?;
+        remove_skill_slug_dir(&codex.join("skills"), k)?;
+        remove_skill_slug_dir(&cursor_pack.join("skills"), k)?;
     }
 
-    if problems.is_empty() {
-        return Ok(());
+    let mut cmd_keys: Vec<&String> = user_cmd.intersection(&bundle_cmd).collect();
+    cmd_keys.sort();
+    for k in cmd_keys {
+        eprint_collision_warning(&format!(
+            "Using ~/.claude command `{k}`; omitted pack duplicate from staged bundle (and other harness trees)"
+        ));
+        remove_md_stems_under_tree(&bundle.join("commands"), k)?;
+        remove_md_stems_under_tree(&opencode.join("commands"), k)?;
+        remove_md_stems_under_tree(&cursor_pack.join("commands"), k)?;
     }
 
-    problems.sort();
-    let hint = format!(
-        "Resolve by removing the item from pack.lock, deleting or renaming it under ~/.claude, or set {IGNORE_ENV}=1 to skip this check."
-    );
-    Err(AgentpackError::Staging(format!(
-        "bundle conflicts with user ~/.claude extension dirs:\n{}\n\n{}",
-        problems.join("\n"),
-        hint
-    )))
+    let mut agent_keys: Vec<&String> = user_agents.intersection(&bundle_agents).collect();
+    agent_keys.sort();
+    for k in agent_keys {
+        eprint_collision_warning(&format!(
+            "Using ~/.claude agent `{k}`; omitted pack duplicate from staged bundle (and other harness trees)"
+        ));
+        remove_md_stems_under_tree(&bundle.join("agents"), k)?;
+        remove_md_stems_under_tree(&opencode.join("agents"), k)?;
+        remove_md_stems_under_tree(&cursor_pack.join("agents"), k)?;
+    }
+
+    Ok(StagingCollisionRemoval {
+        skill_slugs_lower: removed_skills,
+    })
 }
 
-/// Fail if the bundle exposes the same skill slugs or `.md` stems under `commands/` / `agents/`
-/// as `~/.claude`, which almost always means duplicated slash UX.
-pub fn verify_bundle_disjoint_from_user_claude(bundle: &Path) -> Result<()> {
-    verify_inner(bundle, dirs::home_dir().as_deref())
+/// Remove staged pack copies that duplicate `~/.claude` skills / commands / agents so the user
+/// install wins. Prints yellow warnings to stderr. When **`IGNORE_ENV=1`**, does nothing (duplicates
+/// remain). Returns lowercase skill slugs removed from **`skills/`** for staging verification.
+pub fn resolve_user_claude_bundle_collisions(
+    bundle: &Path,
+    opencode: &Path,
+    codex: &Path,
+    cursor_pack: &Path,
+) -> Result<StagingCollisionRemoval> {
+    resolve_user_claude_bundle_collisions_with_home(
+        bundle,
+        opencode,
+        codex,
+        cursor_pack,
+        dirs::home_dir().as_deref(),
+    )
 }
 
 #[cfg(test)]
@@ -128,23 +245,67 @@ mod tests {
 
     #[test]
     fn no_user_dirs_no_op() {
-        let b = tempdir().unwrap();
-        verify_inner(b.path(), Some(b.path())).unwrap();
+        let t = tempdir().unwrap();
+        fs::create_dir_all(t.path().join(".claude/skills")).unwrap();
+        let b = t.path().join("b");
+        fs::create_dir_all(&b).unwrap();
+        assert!(
+            super::resolve_user_claude_bundle_collisions_with_home(
+                &b, &b, &b, &b, Some(t.path()),
+            )
+            .unwrap()
+            .skill_slugs_lower
+            .is_empty()
+        );
     }
 
     #[test]
-    fn collision_detected() {
+    fn collision_removes_pack_skill() {
         let t = tempdir().unwrap();
         let uc = t.path().join(".claude/skills/code-tutor");
         fs::create_dir_all(&uc).unwrap();
         fs::write(uc.join("SKILL.md"), "---\nname: x\n---\n").unwrap();
-        let bundle_root = t.path().join("bundle");
-        let bundle_skill = bundle_root.join("skills/code-tutor");
+        let bundle = t.path().join("bundle");
+        let bundle_skill = bundle.join("skills/code-tutor");
         fs::create_dir_all(&bundle_skill).unwrap();
         fs::write(bundle_skill.join("SKILL.md"), "---\n---\n").unwrap();
+        let op = t.path().join("op");
+        fs::create_dir_all(op.join("skills/code-tutor")).unwrap();
+        fs::write(op.join("skills/code-tutor/SKILL.md"), "x").unwrap();
 
-        let err = verify_inner(&bundle_root, Some(t.path())).unwrap_err();
-        let s = err.to_string();
-        assert!(s.contains("code-tutor"), "{s}");
+        let r = super::resolve_user_claude_bundle_collisions_with_home(
+            &bundle,
+            &op,
+            &op,
+            &op,
+            Some(t.path()),
+        )
+        .unwrap();
+        assert!(r.skill_slugs_lower.contains("code-tutor"));
+        assert!(!bundle_skill.join("SKILL.md").exists());
+        assert!(!op.join("skills/code-tutor/SKILL.md").exists());
+        assert!(uc.join("SKILL.md").is_file());
+    }
+
+    #[test]
+    fn collision_removes_pack_agent_md() {
+        let t = tempdir().unwrap();
+        let user_ag = t.path().join(".claude/agents/foo.md");
+        fs::create_dir_all(user_ag.parent().unwrap()).unwrap();
+        fs::write(&user_ag, "---\n---\n").unwrap();
+        let bundle = t.path().join("bundle");
+        fs::create_dir_all(bundle.join("agents")).unwrap();
+        fs::write(bundle.join("agents/foo.md"), "---\n---\n").unwrap();
+
+        super::resolve_user_claude_bundle_collisions_with_home(
+            &bundle,
+            &bundle,
+            &bundle,
+            &bundle,
+            Some(t.path()),
+        )
+        .unwrap();
+        assert!(!bundle.join("agents/foo.md").exists());
+        assert!(user_ag.is_file());
     }
 }

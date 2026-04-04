@@ -1182,6 +1182,9 @@ pub fn verify_staging(project_root: &Path, lock: &PackLock) -> Result<()> {
         }
     }
 
+    let collision_removed =
+        collision::resolve_user_claude_bundle_collisions(bundle, &opencode_root, &codex_home, &cursor_pack)?;
+
     for skill in &lock.skills {
         if skill_disabled_in_config(lock, skill) {
             continue;
@@ -1197,6 +1200,12 @@ pub fn verify_staging(project_root: &Path, lock: &PackLock) -> Result<()> {
             continue;
         }
         let name = skill_folder_name(skill);
+        if collision_removed
+            .skill_slugs_lower
+            .contains(&name.to_lowercase())
+        {
+            continue;
+        }
         let bundled = bundle.join("skills").join(&name).join("SKILL.md");
         if !bundled.is_file() {
             return Err(AgentpackError::Staging(format!(
@@ -1227,7 +1236,6 @@ pub fn verify_staging(project_root: &Path, lock: &PackLock) -> Result<()> {
         }
     }
 
-    collision::verify_bundle_disjoint_from_user_claude(bundle)?;
     Ok(())
 }
 
