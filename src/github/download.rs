@@ -182,6 +182,7 @@ pub fn extract_tarball_with_prefix(
 }
 
 /// Download a repo tarball and extract a subtree. Pass **`blob_target_file`** when `path_prefix` points at a single file in the repo: the archive is scanned and the deepest enclosing **package root** (`.claude-plugin`, `.cursor-plugin`, `SKILL.md`, or `agentpack.toml`) is extracted instead.
+#[allow(clippy::too_many_arguments)]
 pub fn download_and_extract(
     client: &Client,
     owner: &str,

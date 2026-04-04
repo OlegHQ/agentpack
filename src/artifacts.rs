@@ -13,6 +13,88 @@ pub enum HarnessTarget {
     Cursor,
 }
 
+/// Portable plugin subtrees copied verbatim from cached plugins (per harness).
+impl HarnessTarget {
+    pub fn raw_plugin_subdirs(self) -> &'static [&'static str] {
+        match self {
+            HarnessTarget::Claude => &["hooks", "matchers", "core", "examples", "utils"],
+            HarnessTarget::Cursor => &["hooks", "assets", "scripts"],
+            HarnessTarget::OpenCode | HarnessTarget::Codex => &[],
+        }
+    }
+
+    pub fn stages_plugin_root_mcp_json(self) -> bool {
+        matches!(self, HarnessTarget::Cursor)
+    }
+
+    /// How **`commands/*.md`** YAML is seeded before merging allowed extra keys.
+    fn seed_command_frontmatter(self, m: &mut Mapping, name: &str, description: &str) {
+        match self {
+            HarnessTarget::Cursor => {
+                insert_string(m, "name", name);
+                insert_string(m, "description", description);
+            }
+            HarnessTarget::Claude => {
+                insert_string(m, "description", description);
+                insert_string(m, "name", name);
+            }
+            HarnessTarget::OpenCode | HarnessTarget::Codex => {
+                insert_string(m, "description", description);
+            }
+        }
+    }
+
+    fn command_allowed_extra_frontmatter_keys(self) -> &'static [&'static str] {
+        match self {
+            HarnessTarget::Cursor => &[
+                "agent",
+                "allowed-tools",
+                "context",
+                "disable-model-invocation",
+                "model",
+                "permission",
+                "subtask",
+            ],
+            _ => &[
+                "agent",
+                "allowed-tools",
+                "context",
+                "disable-model-invocation",
+                "model",
+                "subtask",
+            ],
+        }
+    }
+
+    /// Staged artifact kind after target-specific folding (e.g. Codex skills, Cursor rules).
+    fn rendered_artifact_kind(self, source: ArtifactKind) -> ArtifactKind {
+        match (source, self) {
+            (ArtifactKind::Skill, _) => ArtifactKind::Skill,
+            (ArtifactKind::Command, HarnessTarget::Codex) => ArtifactKind::Skill,
+            (ArtifactKind::Agent, HarnessTarget::Codex) => ArtifactKind::Skill,
+            (ArtifactKind::Rule, HarnessTarget::Cursor) => ArtifactKind::Rule,
+            (ArtifactKind::Rule, _) => ArtifactKind::Skill,
+            (kind, _) => kind,
+        }
+    }
+
+    /// Default **`disable-model-invocation`** for staged skills when the source artifact did not set it.
+    fn disables_model_invocation_for_kind(self, kind: ArtifactKind) -> bool {
+        matches!(
+            (kind, self),
+            (ArtifactKind::Command, _)
+                | (ArtifactKind::Rule, HarnessTarget::Claude)
+                | (ArtifactKind::Rule, HarnessTarget::OpenCode)
+                | (ArtifactKind::Rule, HarnessTarget::Codex)
+        )
+    }
+
+    /// Cursor keeps **`.mdc`** rules; other harnesses fold rules into skills with an optional scope preamble.
+    fn folds_cursor_rules_into_skills(self) -> bool {
+        !matches!(self, HarnessTarget::Cursor)
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ArtifactKind {
     Skill,
@@ -107,22 +189,11 @@ pub fn staged_skill_support_path(
 
 impl MarkdownArtifact {
     pub fn render(&self, target: HarnessTarget) -> RenderedArtifact {
-        match self.render_kind(target) {
+        match target.rendered_artifact_kind(self.kind) {
             ArtifactKind::Skill => self.render_skill(target),
             ArtifactKind::Command => self.render_command(target),
             ArtifactKind::Agent => self.render_agent(target),
             ArtifactKind::Rule => self.render_rule(),
-        }
-    }
-
-    fn render_kind(&self, target: HarnessTarget) -> ArtifactKind {
-        match (self.kind, target) {
-            (ArtifactKind::Skill, _) => ArtifactKind::Skill,
-            (ArtifactKind::Command, HarnessTarget::Codex) => ArtifactKind::Skill,
-            (ArtifactKind::Agent, HarnessTarget::Codex) => ArtifactKind::Skill,
-            (ArtifactKind::Rule, HarnessTarget::Cursor) => ArtifactKind::Rule,
-            (ArtifactKind::Rule, _) => ArtifactKind::Skill,
-            (kind, _) => kind,
         }
     }
 
@@ -161,47 +232,13 @@ impl MarkdownArtifact {
 
     fn render_command(&self, target: HarnessTarget) -> RenderedArtifact {
         let relative_path = PathBuf::from("commands").join(&self.tail_path);
-        if target == HarnessTarget::Cursor {
-            let mut frontmatter = Mapping::new();
-            insert_string(&mut frontmatter, "name", &self.name);
-            insert_string(&mut frontmatter, "description", &self.description);
-            merge_allowed_frontmatter(
-                &mut frontmatter,
-                &self.extra_frontmatter,
-                &[
-                    "agent",
-                    "allowed-tools",
-                    "context",
-                    "disable-model-invocation",
-                    "model",
-                    "permission",
-                    "subtask",
-                ],
-            );
-            return RenderedArtifact {
-                relative_path,
-                contents: render_markdown(&frontmatter, &self.body),
-            };
-        }
-
         let mut frontmatter = Mapping::new();
-        insert_string(&mut frontmatter, "description", &self.description);
-        if target == HarnessTarget::Claude {
-            insert_string(&mut frontmatter, "name", &self.name);
-        }
+        target.seed_command_frontmatter(&mut frontmatter, &self.name, &self.description);
         merge_allowed_frontmatter(
             &mut frontmatter,
             &self.extra_frontmatter,
-            &[
-                "agent",
-                "allowed-tools",
-                "context",
-                "disable-model-invocation",
-                "model",
-                "subtask",
-            ],
+            target.command_allowed_extra_frontmatter_keys(),
         );
-
         RenderedArtifact {
             relative_path,
             contents: render_markdown(&frontmatter, &self.body),
@@ -255,17 +292,11 @@ impl MarkdownArtifact {
         if self.disable_model_invocation {
             return true;
         }
-        matches!(
-            (self.kind, target),
-            (ArtifactKind::Command, _)
-                | (ArtifactKind::Rule, HarnessTarget::Claude)
-                | (ArtifactKind::Rule, HarnessTarget::OpenCode)
-                | (ArtifactKind::Rule, HarnessTarget::Codex)
-        )
+        target.disables_model_invocation_for_kind(self.kind)
     }
 
     fn skill_body(&self, target: HarnessTarget) -> String {
-        if self.kind != ArtifactKind::Rule || target == HarnessTarget::Cursor {
+        if self.kind != ArtifactKind::Rule || !target.folds_cursor_rules_into_skills() {
             return self.body.clone();
         }
         if self.globs.is_empty() && !self.always_apply {
@@ -340,7 +371,7 @@ fn parse_command_file(
     Ok(Some(MarkdownArtifact {
         kind: ArtifactKind::Command,
         source_variant,
-        name: frontmatter.name.unwrap_or_else(|| name),
+        name: frontmatter.name.unwrap_or(name),
         description,
         body,
         disable_model_invocation: true,
@@ -366,7 +397,7 @@ fn parse_agent_file(
     Ok(Some(MarkdownArtifact {
         kind: ArtifactKind::Agent,
         source_variant: SourceVariant::AgentFrontmatter,
-        name: frontmatter.name.unwrap_or_else(|| name),
+        name: frontmatter.name.unwrap_or(name),
         description,
         body,
         disable_model_invocation: false,
@@ -392,7 +423,7 @@ fn parse_rule_file(
     Ok(Some(MarkdownArtifact {
         kind: ArtifactKind::Rule,
         source_variant: SourceVariant::CursorRule,
-        name: frontmatter.name.unwrap_or_else(|| name),
+        name: frontmatter.name.unwrap_or(name),
         description,
         body,
         disable_model_invocation: false,

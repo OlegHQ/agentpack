@@ -12,6 +12,14 @@ pub const MANIFEST_NAME: &str = "agentpack.toml";
 /// Merged Claude `--plugin-dir` folder name; same id is used for the staged Cursor plugin tree.
 pub const STAGED_AGENTPACK_BUNDLE_NAME: &str = "agentpack-bundle";
 
+/// Project-local [dot-agents](https://github.com/dot-agents/dot-agents)-style config tree merged into
+/// harness staging trees on **`sync`** (rules, skills, per-tool overlays; see `staging::stage_dot_agents_overlay`).
+pub const DOT_AGENTS_DIR: &str = ".agents";
+
+pub fn project_dot_agents_dir(project_root: &Path) -> PathBuf {
+    project_root.join(DOT_AGENTS_DIR)
+}
+
 fn lockfile_name() -> &'static str {
     LOCKFILE_NAME
 }

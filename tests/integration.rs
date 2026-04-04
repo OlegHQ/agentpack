@@ -3,9 +3,9 @@ use std::path::{Path, PathBuf};
 
 use agentpack::lockfile::{LockPlugin, LockSkill, PackLock};
 use agentpack::paths::{
-    cache_dir, cursor_workspace_dir, staging_codex_home_dir, staging_cursor_bundle_dir,
-    staging_cursor_home_dir, staging_cursor_pack_plugin_dir, staging_opencode_dir,
-    staging_plugins_dir,
+    cache_dir, cursor_workspace_dir, project_dot_agents_dir, staging_codex_home_dir,
+    staging_cursor_bundle_dir, staging_cursor_home_dir, staging_cursor_pack_plugin_dir,
+    staging_opencode_dir, staging_plugins_dir,
 };
 use agentpack::{run, Cli, Command};
 use serial_test::serial;
@@ -25,6 +25,7 @@ fn init_writes_pack_lock_and_agentpack_dir() {
         project_root: Some(root.clone()),
         quiet: true,
         no_progress: true,
+        yolo: false,
         command: Command::Init {
             name: Some("myproj".into()),
             version: Some("0.0.1".into()),
@@ -46,6 +47,7 @@ fn init_refuses_existing_lock() {
         project_root: Some(root.clone()),
         quiet: true,
         no_progress: true,
+        yolo: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -56,6 +58,7 @@ fn init_refuses_existing_lock() {
         project_root: Some(root.clone()),
         quiet: true,
         no_progress: true,
+        yolo: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -75,6 +78,7 @@ fn sync_stages_full_plugin_and_shadows_contained_skill() {
         project_root: Some(root.clone()),
         quiet: true,
         no_progress: true,
+        yolo: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -123,6 +127,7 @@ fn sync_stages_full_plugin_and_shadows_contained_skill() {
         project_root: Some(root.clone()),
         quiet: true,
         no_progress: true,
+        yolo: false,
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
@@ -197,6 +202,7 @@ fn sync_stages_bare_skills_for_all_launchers() {
         project_root: Some(root.clone()),
         quiet: true,
         no_progress: true,
+        yolo: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -225,6 +231,7 @@ fn sync_stages_bare_skills_for_all_launchers() {
         project_root: Some(root.clone()),
         quiet: true,
         no_progress: true,
+        yolo: false,
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
@@ -269,6 +276,7 @@ fn sync_converts_markdown_artifacts_per_target_harness() {
         project_root: Some(root.clone()),
         quiet: true,
         no_progress: true,
+        yolo: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -329,6 +337,7 @@ fn sync_converts_markdown_artifacts_per_target_harness() {
         project_root: Some(root.clone()),
         quiet: true,
         no_progress: true,
+        yolo: false,
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
@@ -369,7 +378,9 @@ fn sync_converts_markdown_artifacts_per_target_harness() {
         "cursor pack commands must not be written into the project workspace"
     );
     assert!(
-        cursor_workspace_dir(&root).join("agents/reviewer.md").is_file(),
+        cursor_workspace_dir(&root)
+            .join("agents/reviewer.md")
+            .is_file(),
         "cursor subagents symlink ./.cursor/agents -> pack agents"
     );
 
@@ -393,6 +404,7 @@ fn sync_leaves_project_cursor_files_alone_when_pack_overlaps_names() {
         project_root: Some(root.clone()),
         quiet: true,
         no_progress: true,
+        yolo: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -439,6 +451,7 @@ fn sync_leaves_project_cursor_files_alone_when_pack_overlaps_names() {
         project_root: Some(root.clone()),
         quiet: true,
         no_progress: true,
+        yolo: false,
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
@@ -470,6 +483,7 @@ fn sync_does_not_remove_user_cursor_files_when_pack_entries_removed() {
         project_root: Some(root.clone()),
         quiet: true,
         no_progress: true,
+        yolo: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -509,6 +523,7 @@ fn sync_does_not_remove_user_cursor_files_when_pack_entries_removed() {
         project_root: Some(root.clone()),
         quiet: true,
         no_progress: true,
+        yolo: false,
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
@@ -529,6 +544,7 @@ fn sync_does_not_remove_user_cursor_files_when_pack_entries_removed() {
         project_root: Some(root.clone()),
         quiet: true,
         no_progress: true,
+        yolo: false,
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
@@ -550,6 +566,92 @@ fn sync_does_not_remove_user_cursor_files_when_pack_entries_removed() {
 
 #[test]
 #[serial]
+fn sync_merges_dot_agents_into_staging() {
+    let dir = tempdir().unwrap();
+    let root: PathBuf = dir.path().to_path_buf();
+    prep_store(&root);
+    run(Cli {
+        project_root: Some(root.clone()),
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        command: Command::Init {
+            name: None,
+            version: None,
+        },
+    })
+    .unwrap();
+
+    let da = project_dot_agents_dir(&root);
+    fs::create_dir_all(da.join("rules/nested")).unwrap();
+    fs::write(
+        da.join("rules/nested/standards.mdc"),
+        "---\nalwaysApply: true\n---\n\n# Dot agents rule\n",
+    )
+    .unwrap();
+    fs::create_dir_all(da.join("agents")).unwrap();
+    fs::write(da.join("agents/local-sub.md"), "# Local subagent\n").unwrap();
+    fs::create_dir_all(da.join("skills/dot-skill")).unwrap();
+    fs::write(
+        da.join("skills/dot-skill/SKILL.md"),
+        "---\nname: dot-skill\ndescription: from dot agents\n---\n",
+    )
+    .unwrap();
+    fs::write(da.join("AGENTS.md"), "# Codex agents from dot\n").unwrap();
+    fs::write(da.join("CLAUDE.md"), "# Claude project from dot\n").unwrap();
+
+    run(Cli {
+        project_root: Some(root.clone()),
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        command: Command::Sync {
+            dry_run: false,
+            verify_only: false,
+        },
+    })
+    .unwrap();
+
+    let bundle = staging_plugins_dir(&root).unwrap().join("agentpack-bundle");
+    assert!(
+        bundle
+            .join("rules/dot-agents--nested--standards.mdc")
+            .is_file(),
+        "claude bundle should include flattened dot-agents rules"
+    );
+    assert!(bundle.join("agents/local-sub.md").is_file());
+    assert!(bundle.join("skills/dot-skill/SKILL.md").is_file());
+    assert!(fs::read_to_string(bundle.join("CLAUDE.md"))
+        .unwrap()
+        .contains("Claude project from dot"));
+
+    let opencode_root = staging_opencode_dir(&root).unwrap();
+    assert!(opencode_root
+        .join("rules/dot-agents--nested--standards.mdc")
+        .is_file());
+
+    let codex_home = staging_codex_home_dir(&root).unwrap();
+    assert!(fs::read_to_string(codex_home.join("AGENTS.md"))
+        .unwrap()
+        .contains("Codex agents from dot"));
+    assert!(codex_home.join("skills/dot-skill/SKILL.md").is_file());
+
+    let cursor_pack = staging_cursor_pack_plugin_dir(&root).unwrap();
+    assert!(cursor_pack
+        .join("rules/dot-agents--nested--standards.mdc")
+        .is_file());
+    assert!(cursor_pack.join("agents/local-sub.md").is_file());
+
+    assert!(
+        cursor_workspace_dir(&root)
+            .join("agents/local-sub.md")
+            .is_file(),
+        "workspace .cursor/agents should expose dot-agents markdown merged into staged agents"
+    );
+}
+
+#[test]
+#[serial]
 #[ignore = "network: resolves GitHub API and downloads tarball"]
 fn add_real_github_skill() {
     let _ = tracing_subscriber::fmt::try_init();
@@ -560,6 +662,7 @@ fn add_real_github_skill() {
         project_root: Some(root.clone()),
         quiet: false,
         no_progress: true,
+        yolo: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -570,6 +673,7 @@ fn add_real_github_skill() {
         project_root: Some(root.clone()),
         quiet: false,
         no_progress: true,
+        yolo: false,
         command: Command::Add {
             spec: "https://github.com/anthropics/skills/tree/main/skills/canvas-design".into(),
             no_sync: false,

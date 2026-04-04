@@ -3,6 +3,7 @@ rust_out
 .cursor
 .claude
 .codex
+.envrc
 
 
 # Added by cargo

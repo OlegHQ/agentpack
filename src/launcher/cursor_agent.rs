@@ -1,7 +1,7 @@
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
-use crate::launcher::common::{exec_with_env, single_dir_override};
+use crate::launcher::common::{apply_yolo_cursor_agent, exec_with_env, single_dir_override};
 use crate::paths;
 use crate::sync::sync_for_launch;
 use crate::ui::Ui;
@@ -61,6 +61,7 @@ fn normalize_path(path: &Path) -> PathBuf {
 pub fn run_agent(
     project_root: &std::path::Path,
     passthrough: Vec<String>,
+    yolo: bool,
     ui: &Ui,
 ) -> anyhow::Result<()> {
     sync_for_launch(project_root, ui)?;
@@ -78,7 +79,10 @@ pub fn run_agent(
         None => {
             args.splice(
                 0..0,
-                ["--workspace".to_string(), project_norm.display().to_string()],
+                [
+                    "--workspace".to_string(),
+                    project_norm.display().to_string(),
+                ],
             );
             project_norm.clone()
         }
@@ -140,6 +144,9 @@ pub fn run_agent(
     }
     if injected_cursor_data_dir {
         msg.push_str("\nCURSOR_DATA_DIR: real ~/.cursor (workspace trust + projects; avoids ephemeral staging)");
+    }
+    if yolo {
+        apply_yolo_cursor_agent(&mut args);
     }
     prepend_trust_if_configured(&mut args);
     ui.message(msg);

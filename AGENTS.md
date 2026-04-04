@@ -54,13 +54,9 @@ Duplicate content for the same **`owner` / `repo` / in-repo `path` / commit** hi
 
 ### Lockfile v2 and **`sync`**
 
-- **`pack.lock`** with **`lockfile-version = 2`** stores **`[[packages]]`** (canonical). For compatibility, legacy **`[[skills]]`** / **`[[plugins]]`** rows may still appear in a file; if **`[[packages]]`** is **empty**, those rows are kept. If **`[[packages]]`** is **non-empty**, it becomes the source of truth for in-memory **`skills`** / **`plugins`** used by **`sync`**.
+- **`pack.lock`** with **`lockfile-version = 2`** stores **`[[packages]]`** only. Legacy **`[[skills]]`** / **`[[plugins]]`** sections are rejected. In-memory **`skills`** / **`plugins`** are derived views rebuilt from canonical packages after load.
 - **`sync`** refreshes **`pack.lock`** from **`agentpack.toml`** only when **`[dependencies]`** is **non-empty**. With an **empty** dependency table, **`sync`** treats the existing lock as authoritative (manual edits, tests, or hybrid workflows).
 - Run **`agentpack lock`** to force a full resolve from the manifest (requires **`agentpack.toml`**).
-
-### **`migrate`**
-
-Converts a **legacy** lock (mostly **`[[skills]]`** / **`[[plugins]]`**, no canonical packages) into **`agentpack.toml`** (derived direct keys) and a **v2** **`pack.lock`** with **`[[packages]]`**. Fails if **`agentpack.toml`** already exists.
 
 ## Harness launch research summary
 
@@ -95,6 +91,8 @@ The Cursor CLI also reads workspace **`.cursor/`** for some features; behavior m
 
 **Cursor `agent` subagents —** The bundled **`agent`** CLI resolves [subagents](https://cursor.com/docs/subagents) from **`resolve(--workspace)/.cursor/agents`** only (not from fake **`$HOME/.cursor/agents`** for that list). **`sync`** therefore creates **`./.cursor/agents`** as a **symlink** into **`$STAGING/cursor/agentpack-bundle/agents`** when the pack exposes agent markdown, and records the path in **`cursor-overlay.manifest`** under **`$AGENTPACK_HOME/projects/<hash>/`** so the next **`sync`** can replace the symlink safely. If **`./.cursor/agents`** already exists as a **directory** or **file**, **`sync`** leaves it alone and logs a warning. Add **`./.cursor/agents`** (or **`.cursor/agents`**) to **`.gitignore`** if you do not want the symlink in version control.
 
+**Project `./.agents/` ([dot-agents](https://github.com/dot-agents/dot-agents)-style)** — Optional. After pack content is staged, **`sync`** merges **`./.agents/`** into each harness tree under **`$STAGING`** (Claude bundle, OpenCode root, Codex home, Cursor **`agentpack-bundle`**): shared **`rules/**/*.mdc`** (hard-linked into staged **`rules/`** when possible—Cursor often ignores symlinked rule files), **`skills/`**, **`agents/`**, **`commands/`**, **`hooks/`**, Cursor **`assets/`** / **`scripts/`**, top-level **`AGENTS.md`** (Codex), **`CLAUDE.md`** (Claude bundle), **`mcp.json`**, and optional subtrees **`claude/`**, **`opencode/`**, **`codex/`**, **`cursor/`** that mirror each harness layout. Your repo can stay the single source of truth for project-local agent config; the only workspace pointer **`agentpack`** may still add is **`./.cursor/agents`** → merged staged **`agents/`** (Cursor subagent discovery). Set **`AGENTPACK_DOT_AGENTS=0`** to skip.
+
 1. **Cache** — **`add`**, **`lock`**, and **`sync`** populate **`$AGENTPACK_HOME/cache/<cache_key>/`**.  
 2. **Index** — **`$AGENTPACK_HOME/cache/db.reddb`** stores metadata (`kind`: `skill` | `plugin`) and shorthand **aliases** → `cache_key`.  
 3. **Artifact conversion** — **`sync`** parses supported markdown artifacts from cached pack content and re-renders them per target harness instead of copying frontmatter blindly:
@@ -125,7 +123,7 @@ The Cursor CLI also reads workspace **`.cursor/`** for some features; behavior m
 
 After staging, **`sync`** verifies that **skill directory names** under **`bundle/skills/`** and **`.md` file stems** under **`bundle/commands/`** and **`bundle/agents/`** do not **also** appear under **`~/.claude/skills`**, **`commands`**, or **`agents`**. If they do, sync **fails** with a clear message (Claude would list both **`/foo`** and **`/agentpack-bundle:foo`**). Override with **`AGENTPACK_IGNORE_USER_BUNDLE_COLLISION=1`** if you accept the duplication.
 
-Overlay order for staged roots: optional **user config copies** first, then **plugins** (by `cache_key`), then **bare skills**, so **pack content wins** on the same relative path inside `agents`, `commands`, `skills`, etc.
+Overlay order for staged roots: optional **user config copies** first, then **plugins** (by `cache_key`), then **bare skills**, then **project `./.agents/`** when present — **later layers win** on the same relative path inside `agents`, `commands`, `skills`, etc.
 
 **`~/.claude.json`**, **`~/.config/opencode/opencode.json`**, **`~/.codex/config.toml`**, **`~/.codex/auth.json`**, and files under **`~/.cursor`** may contain sensitive settings or session state. Copying them into a temp staging directory may widen exposure (including a **materialized** Codex **`auth.json`** when bridging from the keychain). Turn off these seed copies with **`AGENTPACK_BUNDLE_USER_SETTINGS=0`** if you only want pack content in staged roots.
 
@@ -149,6 +147,7 @@ A full plugin at repo path **`P`** (same **`owner` / `repo` / `commit`**) shadow
 | **`CURSOR_DATA_DIR`** | If **unset** when **`agentpack agent`** runs, set to **real `~/.cursor`** so workspace trust files under **`projects/`** are not stored under ephemeral staging. Override explicitly if you use a non-default Cursor data root. |
 | **`AGENTPACK_CURSOR_AGENT_TRUST`** | **`0`**: never prepend **`--trust`**. Unset: prepend **`--trust`** only when args include **`--print`**, **`-p`**, or **`--output-format`** (Cursor requires that combo). |
 | **`AGENTPACK_IGNORE_USER_BUNDLE_COLLISION`** | **`1`** — skip the **`sync`** check that errors when a skill slug or **`commands`/`agents` `.md`** stem exists under **both** **`~/.claude/`** and **`agentpack-bundle`** (duplicated slash UX). Default: enforce. |
+| **`AGENTPACK_DOT_AGENTS`** | **`0`** — do not merge **`./.agents/`** into staged harness trees. Default: merge when the [dot-agents](https://github.com/dot-agents/dot-agents)-style directory exists. |
 | **`CLAUDE_CODE_PATH`** | Path to the **`claude`** binary. |
 | **`OPENCODE_PATH`** | Path to the **`opencode`** binary. |
 | **`CODEX_PATH`** | Path to the **`codex`** binary. |
@@ -162,7 +161,6 @@ A full plugin at repo path **`P`** (same **`owner` / `repo` / `commit`**) shadow
 
 - **`init`** — write stub **`agentpack.toml`**, **v2** **`pack.lock`**, and ensure **`AGENTPACK_HOME`**. Fails if **`agentpack.toml`** already exists.
 - **`lock`** — resolve **`agentpack.toml`** and overwrite **`pack.lock`** with all packages (direct + transitive).
-- **`migrate`** — **`pack.lock`** (legacy) → **`agentpack.toml`** + v2 **`pack.lock`**.
 - **`add <spec>`** — append module to **`[dependencies]`**, resolve, save **`pack.lock`**, then **`sync`** unless **`--no-sync`** (requires manifest; see golden rules).
 - **`remove <spec>`** — remove matching **`[dependencies]`** key (and **`[overrides]`** for that module), resolve, save **`pack.lock`**, then **`sync`** unless **`--no-sync`**. Accepts the same shapes as **`add`** where sensible (module id, **`owner/repo/path`**, GitHub **`tree`/`blob`** URL); picks the **`[dependencies]`** entry by walking parent paths for blob file URLs, like **`add`**.
 - **`sync`** — ensure cache + rebuild staging; recomputes **`pack.lock`** from the manifest when **`[dependencies]`** is non-empty.

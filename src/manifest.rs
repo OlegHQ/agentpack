@@ -67,6 +67,20 @@ pub struct AgentpackManifest {
     pub overrides: BTreeMap<String, OverrideTable>,
 }
 
+fn with_manifest_document_mut(
+    project_root: &Path,
+    f: impl FnOnce(&mut toml_edit::DocumentMut) -> Result<()>,
+) -> Result<()> {
+    let p = manifest_path(project_root);
+    let src = fs::read_to_string(&p).map_err(|e| AgentpackError::io(&p, e))?;
+    let mut doc: toml_edit::DocumentMut = src
+        .parse()
+        .map_err(|e| AgentpackError::LockfileParse(format!("agentpack.toml: {e}")))?;
+    f(&mut doc)?;
+    fs::write(&p, doc.to_string()).map_err(|e| AgentpackError::io(&p, e))?;
+    Ok(())
+}
+
 impl AgentpackManifest {
     pub fn disable_paths_for_module(&self, module: &str) -> Vec<String> {
         self.overrides
@@ -125,51 +139,44 @@ impl AgentpackManifest {
     }
 
     pub fn append_dependency_key(project_root: &Path, module_key: &str) -> Result<()> {
-        use std::fs;
-        let p = manifest_path(project_root);
-        let src = fs::read_to_string(&p).map_err(|e| AgentpackError::io(&p, e))?;
-        let mut doc: toml_edit::DocumentMut = src
-            .parse()
-            .map_err(|e| AgentpackError::LockfileParse(format!("agentpack.toml: {e}")))?;
-        let deps = doc
-            .entry("dependencies")
-            .or_insert(toml_edit::Item::Table(toml_edit::Table::new()));
-        let tab = deps.as_table_mut().ok_or_else(|| {
-            AgentpackError::LockfileParse("[dependencies] must be a table".into())
-        })?;
-        // Logical key only — `toml_edit` quotes the key in output when needed (dots/slashes).
-        // Do not wrap in `\"…\"` here: that would make the key *include* quote characters and
-        // break `serde`/resolver (`got "\"github.com/…\""`).
-        if tab.get(module_key).is_some() {
-            return Ok(());
-        }
-        tab.insert(
-            module_key,
-            toml_edit::Item::Value(toml_edit::Value::InlineTable(toml_edit::InlineTable::new())),
-        );
-        fs::write(&p, doc.to_string()).map_err(|e| AgentpackError::io(&p, e))?;
-        Ok(())
+        with_manifest_document_mut(project_root, |doc| {
+            let deps = doc
+                .entry("dependencies")
+                .or_insert(toml_edit::Item::Table(toml_edit::Table::new()));
+            let tab = deps.as_table_mut().ok_or_else(|| {
+                AgentpackError::LockfileParse("[dependencies] must be a table".into())
+            })?;
+            // Logical key only — `toml_edit` quotes the key in output when needed (dots/slashes).
+            // Do not wrap in `\"…\"` here: that would make the key *include* quote characters and
+            // break `serde`/resolver (`got "\"github.com/…\""`).
+            if tab.get(module_key).is_some() {
+                return Ok(());
+            }
+            tab.insert(
+                module_key,
+                toml_edit::Item::Value(
+                    toml_edit::Value::InlineTable(toml_edit::InlineTable::new()),
+                ),
+            );
+            Ok(())
+        })
     }
 
     /// Remove **`module_key`** from **`[dependencies]`** and **`[overrides]`** (if present).
     pub fn remove_dependency_entry(project_root: &Path, module_key: &str) -> Result<()> {
-        let p = manifest_path(project_root);
-        let src = fs::read_to_string(&p).map_err(|e| AgentpackError::io(&p, e))?;
-        let mut doc: toml_edit::DocumentMut = src
-            .parse()
-            .map_err(|e| AgentpackError::LockfileParse(format!("agentpack.toml: {e}")))?;
-        if let Some(deps) = doc.get_mut("dependencies") {
-            if let Some(tab) = deps.as_table_mut() {
-                tab.remove(module_key);
+        with_manifest_document_mut(project_root, |doc| {
+            if let Some(deps) = doc.get_mut("dependencies") {
+                if let Some(tab) = deps.as_table_mut() {
+                    tab.remove(module_key);
+                }
             }
-        }
-        if let Some(ov) = doc.get_mut("overrides") {
-            if let Some(tab) = ov.as_table_mut() {
-                tab.remove(module_key);
+            if let Some(ov) = doc.get_mut("overrides") {
+                if let Some(tab) = ov.as_table_mut() {
+                    tab.remove(module_key);
+                }
             }
-        }
-        fs::write(&p, doc.to_string()).map_err(|e| AgentpackError::io(&p, e))?;
-        Ok(())
+            Ok(())
+        })
     }
 
     pub fn write_stub(project_root: &Path, name: &str, version: &str) -> Result<()> {

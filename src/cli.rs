@@ -21,6 +21,10 @@ pub struct Cli {
     #[arg(long, global = true)]
     pub no_progress: bool,
 
+    /// Forward each harness's "skip permission prompts" / full-access mode (Claude/OpenCode: `--dangerously-skip-permissions`; Codex: `--dangerously-bypass-approvals-and-sandbox`; Cursor `agent`: `--force`)
+    #[arg(long, global = true)]
+    pub yolo: bool,
+
     #[command(subcommand)]
     pub command: Command,
 }
@@ -36,8 +40,6 @@ pub enum Command {
     },
     /// Resolve **agentpack.toml** and refresh **pack.lock** (direct + transitive packages)
     Lock,
-    /// Convert legacy **pack.lock** (skills/plugins only) to **agentpack.toml** + v2 lock
-    Migrate,
     /// Resolve a package spec and append its module id under **[dependencies]** in `agentpack.toml` (requires manifest); then resolve and sync unless `--no-sync`
     Add {
         spec: String,

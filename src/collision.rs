@@ -5,12 +5,13 @@
 use std::collections::HashSet;
 use std::env;
 use std::fs;
-use std::io::{self, ErrorKind, IsTerminal};
+use std::io::{self, IsTerminal};
 use std::path::Path;
 
 use walkdir::WalkDir;
 
 use crate::error::{AgentpackError, Result};
+use crate::fs_util::remove_path_any;
 
 /// Skip stripping pack copies when both exist (duplicated slash UX remains).
 const IGNORE_ENV: &str = "AGENTPACK_IGNORE_USER_BUNDLE_COLLISION";
@@ -18,24 +19,6 @@ const IGNORE_ENV: &str = "AGENTPACK_IGNORE_USER_BUNDLE_COLLISION";
 /// Lowercase skill slugs removed from staged harness trees so `verify_staging` can skip them.
 pub struct StagingCollisionRemoval {
     pub skill_slugs_lower: HashSet<String>,
-}
-
-fn remove_path_any(path: &Path) -> Result<()> {
-    let meta = match fs::symlink_metadata(path) {
-        Ok(meta) => meta,
-        Err(err) if err.kind() == ErrorKind::NotFound => return Ok(()),
-        Err(err) => return Err(AgentpackError::io(path, err)),
-    };
-
-    if meta.file_type().is_symlink() || meta.is_file() {
-        fs::remove_file(path).map_err(|err| AgentpackError::io(path, err))?;
-    } else if meta.is_dir() {
-        fs::remove_dir_all(path).map_err(|err| AgentpackError::io(path, err))?;
-    } else {
-        fs::remove_file(path).map_err(|err| AgentpackError::io(path, err))?;
-    }
-
-    Ok(())
 }
 
 fn eprint_collision_warning(line: &str) {
@@ -249,14 +232,16 @@ mod tests {
         fs::create_dir_all(t.path().join(".claude/skills")).unwrap();
         let b = t.path().join("b");
         fs::create_dir_all(&b).unwrap();
-        assert!(
-            super::resolve_user_claude_bundle_collisions_with_home(
-                &b, &b, &b, &b, Some(t.path()),
-            )
-            .unwrap()
-            .skill_slugs_lower
-            .is_empty()
-        );
+        assert!(super::resolve_user_claude_bundle_collisions_with_home(
+            &b,
+            &b,
+            &b,
+            &b,
+            Some(t.path()),
+        )
+        .unwrap()
+        .skill_slugs_lower
+        .is_empty());
     }
 
     #[test]

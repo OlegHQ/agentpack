@@ -1,0 +1,156 @@
+use crate::cache::blob_path_parent_prefixes;
+use crate::error::{AgentpackError, Result};
+use crate::github::{parse_github_url, path_in_repo_looks_like_file, GitHubSource};
+use crate::manifest::AgentpackManifest;
+use crate::module_id::{split_module_at_ref, ModuleId};
+
+fn module_key_candidates_from_github_source(src: &GitHubSource) -> Vec<String> {
+    let owner = src.owner.to_lowercase();
+    let repo = src.repo.to_lowercase();
+    if path_in_repo_looks_like_file(&src.path) {
+        blob_path_parent_prefixes(&src.path)
+            .into_iter()
+            .map(|p| {
+                ModuleId::from_owner_repo_path(&owner, &repo, &p)
+                    .as_str()
+                    .to_string()
+            })
+            .collect()
+    } else {
+        vec![ModuleId::from_owner_repo_path(&owner, &repo, &src.path)
+            .as_str()
+            .to_string()]
+    }
+}
+
+pub(super) fn resolve_remove_spec_to_key(
+    spec: &str,
+    manifest: &AgentpackManifest,
+) -> Result<String> {
+    let spec = spec.trim();
+    if spec.is_empty() {
+        return Err(AgentpackError::Cache("empty remove spec".into()));
+    }
+
+    if spec.starts_with("http://") || spec.starts_with("https://") {
+        let src = parse_github_url(spec)?;
+        for k in module_key_candidates_from_github_source(&src) {
+            if manifest.dependencies.contains_key(&k) {
+                return Ok(k);
+            }
+        }
+        return Err(AgentpackError::DependencyNotFound(spec.to_string()));
+    }
+
+    let parts: Vec<&str> = spec.split('/').filter(|s| !s.is_empty()).collect();
+    if parts.len() == 1 {
+        let tail = parts[0].to_lowercase();
+        for k in manifest.dependencies.keys() {
+            let kl = k.to_lowercase();
+            if kl == tail || kl.ends_with(&format!("/{tail}")) {
+                return Ok(k.clone());
+            }
+        }
+    }
+
+    let (base, _) = split_module_at_ref(spec);
+    if parts.len() >= 2 && parts[0] != "github.com" {
+        let owner = parts[0].to_lowercase();
+        let repo = parts[1].to_lowercase();
+        let path = parts[2..].join("/");
+        let candidates: Vec<String> = if path_in_repo_looks_like_file(&path) {
+            blob_path_parent_prefixes(&path)
+                .into_iter()
+                .map(|p| {
+                    ModuleId::from_owner_repo_path(&owner, &repo, &p)
+                        .as_str()
+                        .to_string()
+                })
+                .collect()
+        } else {
+            vec![ModuleId::from_owner_repo_path(&owner, &repo, &path)
+                .as_str()
+                .to_string()]
+        };
+        for k in candidates {
+            if manifest.dependencies.contains_key(&k) {
+                return Ok(k);
+            }
+        }
+        return Err(AgentpackError::DependencyNotFound(spec.to_string()));
+    }
+
+    let id = ModuleId::parse(base)?;
+    let (owner, repo, path) = id.owner_repo_path_parts();
+    let candidates: Vec<String> = if path_in_repo_looks_like_file(&path) {
+        blob_path_parent_prefixes(&path)
+            .into_iter()
+            .map(|p| {
+                ModuleId::from_owner_repo_path(&owner, &repo, &p)
+                    .as_str()
+                    .to_string()
+            })
+            .collect()
+    } else {
+        vec![id.as_str().to_string()]
+    };
+    for k in candidates {
+        if manifest.dependencies.contains_key(&k) {
+            return Ok(k);
+        }
+    }
+
+    Err(AgentpackError::DependencyNotFound(spec.to_string()))
+}
+
+#[cfg(test)]
+mod remove_spec_tests {
+    use std::collections::BTreeMap;
+
+    use super::*;
+    use crate::manifest::DepSpecToml;
+
+    fn man_with(dep_keys: &[&str]) -> AgentpackManifest {
+        let mut deps = BTreeMap::new();
+        for k in dep_keys {
+            deps.insert(k.to_string(), DepSpecToml::Short(String::new()));
+        }
+        AgentpackManifest {
+            name: "t".into(),
+            version: "1".into(),
+            description: String::new(),
+            dependencies: deps,
+            overrides: BTreeMap::new(),
+        }
+    }
+
+    #[test]
+    fn remove_key_from_owner_repo_shorthand() {
+        let m =
+            man_with(&["github.com/anthropics/claude-plugins-official/plugins/code-simplifier"]);
+        let k = resolve_remove_spec_to_key(
+            "anthropics/claude-plugins-official/plugins/code-simplifier",
+            &m,
+        )
+        .unwrap();
+        assert_eq!(
+            k,
+            "github.com/anthropics/claude-plugins-official/plugins/code-simplifier"
+        );
+    }
+
+    #[test]
+    fn remove_key_from_blob_file_url() {
+        let m =
+            man_with(&["github.com/anthropics/claude-plugins-official/plugins/code-simplifier"]);
+        let k = resolve_remove_spec_to_key(
+            "https://github.com/anthropics/claude-plugins-official/blob/main/plugins/code-simplifier/agents/code-simplifier.md",
+            &m,
+        )
+        .unwrap();
+        assert_eq!(
+            k,
+            "github.com/anthropics/claude-plugins-official/plugins/code-simplifier"
+        );
+    }
+}

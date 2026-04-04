@@ -5,7 +5,7 @@ use std::collections::{BTreeMap, HashSet, VecDeque};
 use reqwest::blocking::Client;
 use semver::VersionReq;
 
-use crate::cache::{cache_entry_dir, materialize_github_tree, FetchedGithubAsset};
+use crate::cache::{cache_entry_dir, materialize_github_tree};
 use crate::error::{AgentpackError, Result};
 use crate::github::{canonical_github_tree_url, list_tags, resolve_ref_to_sha};
 use crate::lockfile::{LockPackage, Meta, PackLock};
@@ -179,36 +179,6 @@ fn constraints_from_dep(dep: &DepSpecToml, key_ref: Option<&str>) -> Result<Modu
     }
 }
 
-fn package_from_skill(s: &crate::lockfile::LockSkill, module: &str, direct: bool) -> LockPackage {
-    LockPackage {
-        module: module.to_string(),
-        direct,
-        kind: "skill".into(),
-        url: s.url.clone(),
-        owner: s.owner.clone(),
-        repo: s.repo.clone(),
-        path: s.path.clone(),
-        commit: s.commit.clone(),
-        cache_key: s.cache_key.clone(),
-        name: String::new(),
-    }
-}
-
-fn package_from_plugin(p: &crate::lockfile::LockPlugin, module: &str, direct: bool) -> LockPackage {
-    LockPackage {
-        module: module.to_string(),
-        direct,
-        kind: "plugin".into(),
-        url: p.url.clone(),
-        owner: p.owner.clone(),
-        repo: p.repo.clone(),
-        path: p.path.clone(),
-        commit: p.commit.clone(),
-        cache_key: p.cache_key.clone(),
-        name: p.name.clone(),
-    }
-}
-
 /// Regenerate **`pack.lock`** from **`agentpack.toml`** (transitive via nested manifests).
 pub fn resolve_lock_from_manifest(
     manifest: &AgentpackManifest,
@@ -224,7 +194,7 @@ pub fn resolve_lock_from_manifest(
             },
             ..Default::default()
         };
-        lock.hydrate_slices_from_packages();
+        lock.sync_views_from_packages();
         return Ok(lock);
     }
 
@@ -259,21 +229,11 @@ pub fn resolve_lock_from_manifest(
         let source = mid.to_github_source(&git_ref);
         let display = canonical_github_tree_url(&source);
         let fetched = materialize_github_tree(client, &source, &display, ui)?;
-        let pkg = match &fetched {
-            FetchedGithubAsset::Skill(s) => {
-                package_from_skill(s, mid.as_str(), direct_ids.contains(&mid))
-            }
-            FetchedGithubAsset::Plugin(p) => {
-                package_from_plugin(p, mid.as_str(), direct_ids.contains(&mid))
-            }
-        };
+        let pkg = fetched.to_lock_package(mid.as_str(), direct_ids.contains(&mid));
         resolved.insert(mid.clone(), pkg);
 
         if let Some(deps) =
-            AgentpackManifest::load_nested_dependencies(&cache_entry_dir(match &fetched {
-                FetchedGithubAsset::Skill(s) => &s.cache_key,
-                FetchedGithubAsset::Plugin(p) => &p.cache_key,
-            })?)?
+            AgentpackManifest::load_nested_dependencies(&cache_entry_dir(fetched.cache_key())?)?
         {
             for (k, dep) in deps {
                 let (base, key_ref) = split_module_at_ref(&k);
@@ -320,7 +280,7 @@ pub fn resolve_lock_from_manifest(
         packages,
         ..Default::default()
     };
-    lock.hydrate_slices_from_packages();
+    lock.sync_views_from_packages();
     Ok(lock)
 }
 

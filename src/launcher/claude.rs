@@ -1,18 +1,22 @@
 use std::path::PathBuf;
 use std::process::Command;
 
-use anyhow::Context;
-
+use crate::launcher::common::exec_inherit;
 use crate::staging;
 use crate::sync::sync_for_launch;
 use crate::ui::Ui;
 
 pub fn run_claude(
     project_root: &std::path::Path,
-    passthrough: Vec<String>,
+    mut passthrough: Vec<String>,
+    yolo: bool,
     ui: &Ui,
 ) -> anyhow::Result<()> {
     sync_for_launch(project_root, ui)?;
+
+    if yolo {
+        crate::launcher::common::apply_yolo_claude_opencode(&mut passthrough);
+    }
 
     let plugin_dirs: Vec<PathBuf> = if let Ok(env) = std::env::var("AGENTPACK_PLUGIN_DIRS") {
         env.split(':')
@@ -38,19 +42,5 @@ pub fn run_claude(
         cmd.arg("--plugin-dir").arg(d);
     }
     cmd.args(passthrough);
-
-    #[cfg(unix)]
-    {
-        use std::os::unix::process::CommandExt;
-        let err = cmd.exec();
-        Err(anyhow::Error::new(err)).with_context(|| format!("failed to exec {claude}"))
-    }
-
-    #[cfg(not(unix))]
-    {
-        let status = cmd
-            .status()
-            .with_context(|| format!("failed to run {claude}"))?;
-        std::process::exit(status.code().unwrap_or(1));
-    }
+    exec_inherit(cmd)
 }

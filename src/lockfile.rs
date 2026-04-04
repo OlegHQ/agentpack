@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 
@@ -16,8 +17,9 @@ fn is_zero(v: &u32) -> bool {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct PackLock {
-    /// `2` = canonical `[[packages]]` lockfile; `0` = legacy `skills` / `plugins` only.
+    /// Canonical lockfile version. Pre-release but `2` is the only supported on-disk schema.
     #[serde(default, skip_serializing_if = "is_zero")]
     pub lockfile_version: u32,
     pub meta: Meta,
@@ -25,14 +27,12 @@ pub struct PackLock {
     pub config: Config,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub packages: Vec<LockPackage>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    /// Derived read-models for command code; never serialized or parsed from disk.
+    #[serde(skip)]
     pub skills: Vec<LockSkill>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    /// Derived read-models for command code; never serialized or parsed from disk.
+    #[serde(skip)]
     pub plugins: Vec<LockPlugin>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub agents: Vec<LockAgent>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub rules: Vec<LockRule>,
 }
 
 /// Single locked package (v2 lockfile). Kind is **`skill`** or **`plugin`**.
@@ -78,15 +78,6 @@ impl LockPackage {
             cache_key: self.cache_key.clone(),
         }
     }
-
-    pub fn needs_backfill(&self) -> bool {
-        self.kind == "plugin"
-            && !self.url.is_empty()
-            && (self.cache_key.is_empty()
-                || self.commit.is_empty()
-                || self.owner.is_empty()
-                || self.repo.is_empty())
-    }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -103,43 +94,32 @@ pub struct Config {
     pub disabled_plugins: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct LockSkill {
-    #[serde(default)]
     pub module: String,
     pub url: String,
     pub owner: String,
     pub repo: String,
-    #[serde(default)]
     pub path: String,
     pub commit: String,
     pub cache_key: String,
 }
 
-/// GitHub-pinned Claude plugin root (directory containing `.claude-plugin/plugin.json`).
-/// Legacy rows may only set `name` + `url`; `sync` backfills `owner`/`repo`/…/`cache_key`.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+/// GitHub-pinned plugin read-model derived from canonical packages or network fetches.
+#[derive(Debug, Clone)]
 pub struct LockPlugin {
-    #[serde(default)]
     pub module: String,
-    #[serde(default)]
     pub name: String,
-    #[serde(default)]
     pub url: String,
-    #[serde(default)]
     pub owner: String,
-    #[serde(default)]
     pub repo: String,
-    #[serde(default)]
     pub path: String,
-    #[serde(default)]
     pub commit: String,
-    #[serde(default)]
     pub cache_key: String,
 }
 
 impl LockPlugin {
-    /// True when lockfile row still needs network resolution (e.g. old `[[plugins]]` with only `url`).
+    /// True when a plugin row is only partially populated and still needs network resolution.
     pub fn needs_backfill(&self) -> bool {
         !self.url.is_empty()
             && (self.cache_key.is_empty()
@@ -149,22 +129,12 @@ impl LockPlugin {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LockAgent {
-    pub name: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LockRule {
-    pub name: String,
-}
-
 impl PackLock {
     pub fn load_from_path(p: &Path) -> Result<Self> {
         let raw = fs::read_to_string(p).map_err(|e| AgentpackError::io(p, e))?;
         let mut lock: PackLock =
             toml::from_str(&raw).map_err(|e| AgentpackError::LockfileParse(e.to_string()))?;
-        lock.hydrate_slices_from_packages();
+        lock.sync_views_from_packages();
         Ok(lock)
     }
 
@@ -172,14 +142,8 @@ impl PackLock {
         Self::load_from_path(&lock_path(project_root))
     }
 
-    /// When **`[[packages]]`** is present, it is the source of truth: refill **`skills`** / **`plugins`**.
-    ///
-    /// If **`packages`** is empty (e.g. v2 **`lockfile-version`** with only legacy **`[[plugins]]`** rows),
-    /// keep the vectors produced by serde.
-    pub fn hydrate_slices_from_packages(&mut self) {
-        if self.packages.is_empty() {
-            return;
-        }
+    /// Facade read-models: `packages` is canonical, `skills/plugins` are derived for the rest of the codebase.
+    pub fn sync_views_from_packages(&mut self) {
         self.skills.clear();
         self.plugins.clear();
         let mut pkgs = self.packages.clone();
@@ -193,75 +157,74 @@ impl PackLock {
         }
     }
 
-    /// Build v2 **`packages`** from legacy rows (for `migrate`).
-    pub fn packages_from_legacy(&self) -> Vec<LockPackage> {
-        let mut out = Vec::new();
-        for s in &self.skills {
-            let module = if !s.module.is_empty() {
-                s.module.clone()
-            } else {
-                legacy_module_id(&s.owner, &s.repo, &s.path)
-            };
-            out.push(LockPackage {
-                module,
-                direct: true,
+    fn sync_packages_from_views(&mut self) {
+        let existing_direct: HashMap<(String, String, String), bool> = self
+            .packages
+            .iter()
+            .map(|package| {
+                (
+                    (
+                        package.kind.clone(),
+                        package.module.clone(),
+                        package.cache_key.clone(),
+                    ),
+                    package.direct,
+                )
+            })
+            .collect();
+
+        let mut packages = Vec::with_capacity(self.skills.len() + self.plugins.len());
+        for skill in &self.skills {
+            let key = (
+                "skill".to_string(),
+                skill.module.clone(),
+                skill.cache_key.clone(),
+            );
+            packages.push(LockPackage {
+                module: skill.module.clone(),
+                direct: existing_direct.get(&key).copied().unwrap_or(true),
                 kind: "skill".into(),
-                url: s.url.clone(),
-                owner: s.owner.clone(),
-                repo: s.repo.clone(),
-                path: s.path.clone(),
-                commit: s.commit.clone(),
-                cache_key: s.cache_key.clone(),
+                url: skill.url.clone(),
+                owner: skill.owner.clone(),
+                repo: skill.repo.clone(),
+                path: skill.path.clone(),
+                commit: skill.commit.clone(),
+                cache_key: skill.cache_key.clone(),
                 name: String::new(),
             });
         }
-        for p in &self.plugins {
-            let module = if !p.module.is_empty() {
-                p.module.clone()
-            } else {
-                legacy_module_id(&p.owner, &p.repo, &p.path)
-            };
-            out.push(LockPackage {
-                module,
-                direct: true,
+        for plugin in &self.plugins {
+            let key = (
+                "plugin".to_string(),
+                plugin.module.clone(),
+                plugin.cache_key.clone(),
+            );
+            packages.push(LockPackage {
+                module: plugin.module.clone(),
+                direct: existing_direct.get(&key).copied().unwrap_or(true),
                 kind: "plugin".into(),
-                url: p.url.clone(),
-                owner: p.owner.clone(),
-                repo: p.repo.clone(),
-                path: p.path.clone(),
-                commit: p.commit.clone(),
-                cache_key: p.cache_key.clone(),
-                name: p.name.clone(),
+                url: plugin.url.clone(),
+                owner: plugin.owner.clone(),
+                repo: plugin.repo.clone(),
+                path: plugin.path.clone(),
+                commit: plugin.commit.clone(),
+                cache_key: plugin.cache_key.clone(),
+                name: plugin.name.clone(),
             });
         }
-        out.sort_by(|a, b| a.module.cmp(&b.module));
-        out
+        packages.sort_by(|a, b| a.module.cmp(&b.module));
+        self.packages = packages;
     }
 
     pub fn save(&self, project_root: &Path) -> Result<()> {
+        let mut snapshot = self.clone();
+        snapshot.sync_packages_from_views();
+        snapshot.sync_views_from_packages();
         let p = lock_path(project_root);
-        let raw = toml::to_string_pretty(self)
+        let raw = toml::to_string_pretty(&snapshot)
             .map_err(|e| AgentpackError::LockfileParse(e.to_string()))?;
         fs::write(&p, raw).map_err(|e| AgentpackError::io(&p, e))?;
         Ok(())
-    }
-}
-
-fn legacy_module_id(owner: &str, repo: &str, path: &str) -> String {
-    let path = path.trim_matches('/');
-    if path.is_empty() {
-        format!(
-            "github.com/{}/{}",
-            owner.to_lowercase(),
-            repo.to_lowercase()
-        )
-    } else {
-        format!(
-            "github.com/{}/{}/{}",
-            owner.to_lowercase(),
-            repo.to_lowercase(),
-            path
-        )
     }
 }
 
@@ -308,8 +271,6 @@ mod tests {
         let raw = toml::to_string_pretty(&p).unwrap();
         assert!(!raw.contains("skills = []"));
         assert!(!raw.contains("plugins = []"));
-        assert!(!raw.contains("agents = []"));
-        assert!(!raw.contains("rules = []"));
         assert!(!raw.contains("[config]"));
         let q: PackLock = toml::from_str(&raw).unwrap();
         assert!(q.skills.is_empty());
@@ -318,7 +279,7 @@ mod tests {
     }
 
     #[test]
-    fn v2_lock_with_empty_packages_keeps_legacy_plugins_from_toml() {
+    fn legacy_lock_sections_are_rejected() {
         let dir = tempdir().unwrap();
         let root = dir.path();
         let raw = r#"lockfile-version = 2
@@ -334,12 +295,10 @@ repo = "r"
 path = ""
 commit = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 cache_key = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-"#;
+        "#;
         fs::write(lock_path(root), raw).unwrap();
-        let lock = PackLock::load(root).unwrap();
-        assert!(lock.packages.is_empty());
-        assert_eq!(lock.plugins.len(), 1);
-        assert_eq!(lock.skills.len(), 0);
+        let error = PackLock::load(root).unwrap_err();
+        assert!(matches!(error, AgentpackError::LockfileParse(_)));
     }
 
     #[test]
@@ -366,5 +325,6 @@ cache_key = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         let q = PackLock::load(root).unwrap();
         assert_eq!(q.skills.len(), 1);
         assert_eq!(q.skills[0].cache_key, p.skills[0].cache_key);
+        assert_eq!(q.packages.len(), 1);
     }
 }

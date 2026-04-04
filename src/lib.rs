@@ -4,6 +4,7 @@ mod cli;
 mod codex_auth;
 mod collision;
 mod error;
+mod fs_util;
 mod github;
 mod index;
 pub mod launcher;
@@ -52,11 +53,6 @@ pub fn run(cli: Cli) -> anyhow::Result<()> {
             sync::run_lock(&root, &ui)?;
             Ok(())
         }
-        Command::Migrate => {
-            let root = paths::resolve_project_root(cli.project_root.as_deref())?;
-            sync::run_migrate(&root, &ui)?;
-            Ok(())
-        }
         Command::Add { spec, no_sync } => {
             let root = paths::resolve_project_root(cli.project_root.as_deref())?;
             sync::run_add(&root, &spec, no_sync, &ui)?;
@@ -77,19 +73,19 @@ pub fn run(cli: Cli) -> anyhow::Result<()> {
         }
         Command::Claude { args } => {
             let root = paths::resolve_project_root(cli.project_root.as_deref())?;
-            launcher::run_claude(&root, args, &ui)
+            launcher::run_claude(&root, args, cli.yolo, &ui)
         }
         Command::Opencode { args } => {
             let root = paths::resolve_project_root(cli.project_root.as_deref())?;
-            launcher::run_opencode(&root, args, &ui)
+            launcher::run_opencode(&root, args, cli.yolo, &ui)
         }
         Command::Codex { args } => {
             let root = paths::resolve_project_root(cli.project_root.as_deref())?;
-            launcher::run_codex(&root, args, &ui)
+            launcher::run_codex(&root, args, cli.yolo, &ui)
         }
         Command::Agent { args } => {
             let root = paths::resolve_project_root(cli.project_root.as_deref())?;
-            launcher::run_agent(&root, args, &ui)
+            launcher::run_agent(&root, args, cli.yolo, &ui)
         }
     }
 }
