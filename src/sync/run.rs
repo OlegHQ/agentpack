@@ -2,13 +2,19 @@ use std::path::Path;
 
 use reqwest::blocking::Client;
 
+use crate::cache::verify_lock_cache_integrity;
 use crate::error::{AgentpackError, Result};
-use crate::github::check_rate_limit_hint;
 use crate::lockfile::PackLock;
 use crate::manifest::AgentpackManifest;
-use crate::paths::{self};
+use crate::paths;
 use crate::resolve::resolve_lock_from_manifest;
+use crate::staging;
 use crate::ui::Ui;
+
+use super::launch_fingerprint::{
+    compute_launch_sync_digest, launch_full_sync_forced, read_stored_launch_digest,
+    write_launch_sync_state,
+};
 
 use super::add_fetch::{
     http_client, resolve_add_spec, resolve_existing_path_for_add, upsert_fetched_index,
@@ -16,9 +22,7 @@ use super::add_fetch::{
 use super::remove::resolve_remove_spec_to_key;
 
 fn sync_client() -> Result<Client> {
-    let client = http_client()?;
-    check_rate_limit_hint(&client);
-    Ok(client)
+    http_client()
 }
 
 fn require_manifest(project_root: &Path) -> Result<AgentpackManifest> {
@@ -103,7 +107,36 @@ pub fn run_lock(project_root: &Path, ui: &Ui) -> Result<()> {
     Ok(())
 }
 
-/// Used by binary `claude` to resolve project root then sync + exec.
+/// Used by launcher commands (`claude`, `agent`, `opencode`, `codex`) to sync before exec.
+///
+/// When inputs are unchanged, skips full resolve/stage and reuses existing cache + staging after
+/// integrity checks. Set **`AGENTPACK_LAUNCH_FULL_SYNC=1`** to always run a full sync.
 pub fn sync_for_launch(project_root: &Path, ui: &Ui) -> Result<()> {
-    super::run_sync(project_root, false, false, ui)
+    paths::ensure_user_agentpack_layout()?;
+
+    if !launch_full_sync_forced() {
+        if let Some(stored) = read_stored_launch_digest(project_root)? {
+            let current = compute_launch_sync_digest(project_root)?;
+            if stored == current {
+                let lock = PackLock::load(project_root)?;
+                match verify_lock_cache_integrity(&lock) {
+                    Ok(()) => match staging::verify_staging(project_root, &lock) {
+                        Ok(()) => {
+                            ui.debug_message(
+                                "Launch sync skipped — manifest, lock, cache, and staging look unchanged.",
+                            );
+                            return Ok(());
+                        }
+                        Err(e) => tracing::debug!(%e, "launch fast path: verify_staging failed"),
+                    },
+                    Err(e) => tracing::debug!(%e, "launch fast path: cache integrity failed"),
+                }
+            }
+        }
+    }
+
+    super::run_sync(project_root, false, false, ui)?;
+    let digest = compute_launch_sync_digest(project_root)?;
+    write_launch_sync_state(project_root, &digest)?;
+    Ok(())
 }

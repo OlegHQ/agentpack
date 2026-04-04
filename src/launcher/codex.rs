@@ -19,7 +19,7 @@ pub fn run_codex(
         "AGENTPACK_CODEX_HOME",
         &paths::staging_codex_home_dir(project_root)?,
     );
-    ui.message(format!(
+    ui.debug_message(format!(
         "Codex home: {}",
         std::path::Path::new(&codex_home).display()
     ));

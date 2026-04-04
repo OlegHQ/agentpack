@@ -1,14 +1,14 @@
 use crate::cache::blob_path_parent_prefixes;
 use crate::error::{AgentpackError, Result};
-use crate::github::{parse_github_url, path_in_repo_looks_like_file, GitHubSource};
+use crate::github::{parse_github_url, path_in_repo_looks_like_file};
 use crate::manifest::AgentpackManifest;
 use crate::module_id::{split_module_at_ref, ModuleId};
 
-fn module_key_candidates_from_github_source(src: &GitHubSource) -> Vec<String> {
-    let owner = src.owner.to_lowercase();
-    let repo = src.repo.to_lowercase();
-    if path_in_repo_looks_like_file(&src.path) {
-        blob_path_parent_prefixes(&src.path)
+fn module_key_candidates(owner: &str, repo: &str, path: &str) -> Vec<String> {
+    let owner = owner.to_lowercase();
+    let repo = repo.to_lowercase();
+    if path_in_repo_looks_like_file(path) {
+        blob_path_parent_prefixes(path)
             .into_iter()
             .map(|p| {
                 ModuleId::from_owner_repo_path(&owner, &repo, &p)
@@ -17,7 +17,7 @@ fn module_key_candidates_from_github_source(src: &GitHubSource) -> Vec<String> {
             })
             .collect()
     } else {
-        vec![ModuleId::from_owner_repo_path(&owner, &repo, &src.path)
+        vec![ModuleId::from_owner_repo_path(&owner, &repo, path)
             .as_str()
             .to_string()]
     }
@@ -34,7 +34,7 @@ pub(super) fn resolve_remove_spec_to_key(
 
     if spec.starts_with("http://") || spec.starts_with("https://") {
         let src = parse_github_url(spec)?;
-        for k in module_key_candidates_from_github_source(&src) {
+        for k in module_key_candidates(&src.owner, &src.repo, &src.path) {
             if manifest.dependencies.contains_key(&k) {
                 return Ok(k);
             }
@@ -55,24 +55,8 @@ pub(super) fn resolve_remove_spec_to_key(
 
     let (base, _) = split_module_at_ref(spec);
     if parts.len() >= 2 && parts[0] != "github.com" {
-        let owner = parts[0].to_lowercase();
-        let repo = parts[1].to_lowercase();
         let path = parts[2..].join("/");
-        let candidates: Vec<String> = if path_in_repo_looks_like_file(&path) {
-            blob_path_parent_prefixes(&path)
-                .into_iter()
-                .map(|p| {
-                    ModuleId::from_owner_repo_path(&owner, &repo, &p)
-                        .as_str()
-                        .to_string()
-                })
-                .collect()
-        } else {
-            vec![ModuleId::from_owner_repo_path(&owner, &repo, &path)
-                .as_str()
-                .to_string()]
-        };
-        for k in candidates {
+        for k in module_key_candidates(parts[0], parts[1], &path) {
             if manifest.dependencies.contains_key(&k) {
                 return Ok(k);
             }
@@ -82,19 +66,7 @@ pub(super) fn resolve_remove_spec_to_key(
 
     let id = ModuleId::parse(base)?;
     let (owner, repo, path) = id.owner_repo_path_parts();
-    let candidates: Vec<String> = if path_in_repo_looks_like_file(&path) {
-        blob_path_parent_prefixes(&path)
-            .into_iter()
-            .map(|p| {
-                ModuleId::from_owner_repo_path(&owner, &repo, &p)
-                    .as_str()
-                    .to_string()
-            })
-            .collect()
-    } else {
-        vec![id.as_str().to_string()]
-    };
-    for k in candidates {
+    for k in module_key_candidates(&owner, &repo, &path) {
         if manifest.dependencies.contains_key(&k) {
             return Ok(k);
         }

@@ -2,11 +2,11 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use serde_json::Value;
 use sha2::{Digest, Sha256};
 use walkdir::WalkDir;
 
 use crate::error::{AgentpackError, Result};
+use crate::fs_util::{read_json_value, truncate_str, write_json_value};
 use crate::manifest::AgentpackManifest;
 use crate::paths;
 
@@ -104,23 +104,11 @@ pub fn hash_directory_contents(root: &Path) -> Result<String> {
     }
 
     let full = hex::encode(hash.finalize());
-    Ok(full.chars().take(40).collect())
-}
-
-fn read_json(path: &Path) -> Result<Value> {
-    let raw = fs::read_to_string(path).map_err(|err| AgentpackError::io(path, err))?;
-    serde_json::from_str(&raw)
-        .map_err(|err| AgentpackError::Cache(format!("{}: {err}", path.display())))
-}
-
-fn write_pretty_json(path: &Path, value: &Value) -> Result<()> {
-    let raw = serde_json::to_string_pretty(value)
-        .map_err(|err| AgentpackError::Cache(err.to_string()))?;
-    fs::write(path, raw).map_err(|err| AgentpackError::io(path, err))
+    Ok(truncate_str(&full, 40))
 }
 
 fn synthesize_cursor_manifest_from_claude(cache_root: &Path, claude_manifest: &Path) -> Result<()> {
-    let value = read_json(claude_manifest)?;
+    let value = read_json_value(claude_manifest)?;
     let cursor_dir = cache_root.join(".cursor-plugin");
     fs::create_dir_all(&cursor_dir).map_err(|err| AgentpackError::io(&cursor_dir, err))?;
     let name = value["name"].as_str().unwrap_or("plugin");
@@ -130,11 +118,11 @@ fn synthesize_cursor_manifest_from_claude(cache_root: &Path, claude_manifest: &P
         "version": value.get("version").and_then(|x| x.as_str()).unwrap_or("1.0.0"),
         "description": value.get("description").and_then(|x| x.as_str()).unwrap_or(""),
     });
-    write_pretty_json(&cursor_dir.join("plugin.json"), &stub)
+    write_json_value(&cursor_dir.join("plugin.json"), &stub)
 }
 
 fn synthesize_claude_manifest_from_cursor(cache_root: &Path, cursor_manifest: &Path) -> Result<()> {
-    let value = read_json(cursor_manifest)?;
+    let value = read_json_value(cursor_manifest)?;
     let claude_dir = cache_root.join(".claude-plugin");
     fs::create_dir_all(&claude_dir).map_err(|err| AgentpackError::io(&claude_dir, err))?;
     let name = value["name"].as_str().unwrap_or("plugin");
@@ -143,7 +131,7 @@ fn synthesize_claude_manifest_from_cursor(cache_root: &Path, cursor_manifest: &P
         "version": value.get("version").and_then(|x| x.as_str()).unwrap_or("1.0.0"),
         "description": value.get("description").or_else(|| value.get("displayName")).and_then(|x| x.as_str()).unwrap_or(""),
     });
-    write_pretty_json(&claude_dir.join("plugin.json"), &stub)
+    write_json_value(&claude_dir.join("plugin.json"), &stub)
 }
 
 fn synthesize_plugin_manifests_from_agentpack_manifest(cache_root: &Path) -> Result<()> {
@@ -158,7 +146,7 @@ fn synthesize_plugin_manifests_from_agentpack_manifest(cache_root: &Path) -> Res
         "version": manifest.version,
         "description": manifest.description,
     });
-    write_pretty_json(&claude_dir.join("plugin.json"), &claude_stub)?;
+    write_json_value(&claude_dir.join("plugin.json"), &claude_stub)?;
 
     let cursor_dir = cache_root.join(".cursor-plugin");
     fs::create_dir_all(&cursor_dir).map_err(|err| AgentpackError::io(&cursor_dir, err))?;
@@ -168,7 +156,7 @@ fn synthesize_plugin_manifests_from_agentpack_manifest(cache_root: &Path) -> Res
         "version": manifest.version,
         "description": manifest.description,
     });
-    write_pretty_json(&cursor_dir.join("plugin.json"), &cursor_stub)
+    write_json_value(&cursor_dir.join("plugin.json"), &cursor_stub)
 }
 
 /// Ensure both `.claude-plugin` and `.cursor-plugin` exist when one side is present.

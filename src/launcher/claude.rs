@@ -32,7 +32,7 @@ pub fn run_claude(
             .map(|dir| format!("  {}", dir.display()))
             .collect::<Vec<_>>()
             .join("\n");
-        ui.message(format!("Claude plugin dirs:\n{rendered}"));
+        ui.debug_message(format!("Claude plugin dirs:\n{rendered}"));
     }
 
     let claude = std::env::var("CLAUDE_CODE_PATH").unwrap_or_else(|_| "claude".to_string());

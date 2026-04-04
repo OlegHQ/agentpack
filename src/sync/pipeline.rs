@@ -7,11 +7,10 @@ use crate::cache::{
     backfill_plugin_lock_entry, ensure_lock_plugin_cached, ensure_lock_skill_cached,
 };
 use crate::error::Result;
-use crate::github::check_rate_limit_hint;
 use crate::index::{list_keys, upsert_entry, CacheEntryRecord};
-use crate::lockfile::{LockPlugin, LockSkill, PackLock};
+use crate::lockfile::{LockPlugin, LockSkill, PackLock, PackageKind};
 use crate::manifest::AgentpackManifest;
-use crate::paths::{self};
+use crate::paths;
 use crate::resolve::resolve_lock_from_manifest;
 use crate::staging::{self, skill_is_shadowed};
 use crate::ui::Ui;
@@ -56,7 +55,6 @@ impl<'a> SyncSession<'a> {
     fn prepare(project_root: &'a Path, mode: SyncMode, ui: &'a Ui) -> Result<Self> {
         paths::ensure_user_agentpack_layout()?;
         let client = http_client()?;
-        check_rate_limit_hint(&client);
 
         let manifest = AgentpackManifest::load(project_root)?;
         if !mode.dry_run {
@@ -120,7 +118,7 @@ impl<'a> SyncEntry<'a> {
     fn index_record(&self, fetched_at_unix: i64) -> CacheEntryRecord {
         match self {
             Self::Plugin(plugin) => CacheEntryRecord {
-                kind: "plugin".into(),
+                kind: PackageKind::Plugin,
                 source_url: plugin.url.clone(),
                 owner: plugin.owner.clone(),
                 repo: plugin.repo.clone(),
@@ -129,7 +127,7 @@ impl<'a> SyncEntry<'a> {
                 fetched_at_unix,
             },
             Self::Skill(skill) => CacheEntryRecord {
-                kind: "skill".into(),
+                kind: PackageKind::Skill,
                 source_url: skill.url.clone(),
                 owner: skill.owner.clone(),
                 repo: skill.repo.clone(),
@@ -175,7 +173,7 @@ impl<'a> SyncEntry<'a> {
         format!(
             "{} {} ({}): cache missing and source unavailable — omitted from staging",
             self.kind_label(),
-            self.cache_key().chars().take(12).collect::<String>(),
+            crate::fs_util::truncate_str(self.cache_key(), 12),
             self.url()
         )
     }

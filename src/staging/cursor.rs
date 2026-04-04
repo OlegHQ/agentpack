@@ -6,7 +6,7 @@ use serde_json::Value;
 
 use crate::artifacts::HarnessTarget;
 use crate::error::{AgentpackError, Result};
-use crate::fs_util::remove_path_any;
+use crate::fs_util::{remove_path_any, write_json_value, write_text_file};
 use crate::lockfile::PackLock;
 use crate::manifest::AgentpackManifest;
 use crate::paths::{
@@ -18,7 +18,6 @@ use super::constants::{
     CURSOR_FAKE_HOME_CREDENTIAL_FILES, CURSOR_FAKE_HOME_PACK_SUBDIRS,
     CURSOR_USER_SUBDIRS_IN_FAKE_HOME, CURSOR_WORKSPACE_AGENTS_OVERLAY,
 };
-use super::json_local::{write_json_file, write_text_file};
 use super::pack_overlay::{stage_pack_plugins_for_target, stage_pack_skills_for_target};
 use super::seed::seed_cursor_root;
 #[cfg(windows)]
@@ -53,66 +52,53 @@ fn symlink_or_copy_into_fake_home(src: &Path, dst: &Path, as_dir: bool) -> Resul
     }
 }
 
-/// Symlink Cursor’s **Electron user-data** tree into the fake HOME. With **`HOME=$STAGING/cursor-home`**, macOS would otherwise use an empty
-/// **`~/Library/Application Support/Cursor`** and the CLI would not see your login (state DB, cookies, **`machineid`**, etc.).
-///
-/// macOS also needs **`~/Library/Keychains`**: the bundled agent reads OAuth tokens from the login keychain via **`/usr/bin/security`**,
-/// which resolves the default keychain using **`$HOME/Library/Keychains`**. Without this symlink, **`agent whoami`** and login storage see “not logged in”.
+/// Symlink **src** dir → **dst** if src exists, creating parent directories as needed.
+fn symlink_dir_if_present(src: &Path, dst: &Path) -> Result<()> {
+    if !src.is_dir() {
+        return Ok(());
+    }
+    if let Some(parent) = dst.parent() {
+        fs::create_dir_all(parent).map_err(|e| AgentpackError::io(parent, e))?;
+    }
+    symlink_or_copy_into_fake_home(src, dst, true)
+}
+
+/// Symlink Cursor’s **Electron user-data** tree into the fake HOME.
 fn materialize_cursor_platform_user_data(fake_home: &Path, real_home: &Path) -> Result<()> {
     #[cfg(target_os = "macos")]
     {
-        let real_keychains = real_home.join("Library/Keychains");
-        if real_keychains.is_dir() {
-            let dst = fake_home.join("Library/Keychains");
-            if let Some(parent) = dst.parent() {
-                fs::create_dir_all(parent).map_err(|e| AgentpackError::io(parent, e))?;
-            }
-            symlink_or_copy_into_fake_home(&real_keychains, &dst, true)?;
-        }
-        let real = real_home.join("Library/Application Support/Cursor");
-        if real.is_dir() {
-            let dst = fake_home.join("Library/Application Support/Cursor");
-            if let Some(parent) = dst.parent() {
-                fs::create_dir_all(parent).map_err(|e| AgentpackError::io(parent, e))?;
-            }
-            symlink_or_copy_into_fake_home(&real, &dst, true)?;
-        }
+        symlink_dir_if_present(
+            &real_home.join("Library/Keychains"),
+            &fake_home.join("Library/Keychains"),
+        )?;
+        symlink_dir_if_present(
+            &real_home.join("Library/Application Support/Cursor"),
+            &fake_home.join("Library/Application Support/Cursor"),
+        )?;
     }
     #[cfg(target_os = "linux")]
     {
         let config_base = std::env::var_os("XDG_CONFIG_HOME")
             .map(PathBuf::from)
             .unwrap_or_else(|| real_home.join(".config"));
-        let real = config_base.join("Cursor");
-        if real.is_dir() {
-            let fake_cfg_root = fake_home.join(".config");
-            fs::create_dir_all(&fake_cfg_root)
-                .map_err(|e| AgentpackError::io(&fake_cfg_root, e))?;
-            let dst = fake_cfg_root.join("Cursor");
-            symlink_or_copy_into_fake_home(&real, &dst, true)?;
-        }
+        symlink_dir_if_present(
+            &config_base.join("Cursor"),
+            &fake_home.join(".config/Cursor"),
+        )?;
         let data_base = std::env::var_os("XDG_DATA_HOME")
             .map(PathBuf::from)
             .unwrap_or_else(|| real_home.join(".local/share"));
-        let real_share = data_base.join("Cursor");
-        if real_share.is_dir() {
-            let fake_data_root = fake_home.join(".local/share");
-            fs::create_dir_all(&fake_data_root)
-                .map_err(|e| AgentpackError::io(&fake_data_root, e))?;
-            let dst = fake_data_root.join("Cursor");
-            symlink_or_copy_into_fake_home(&real_share, &dst, true)?;
-        }
+        symlink_dir_if_present(
+            &data_base.join("Cursor"),
+            &fake_home.join(".local/share/Cursor"),
+        )?;
     }
     #[cfg(target_os = "windows")]
     {
-        let real = real_home.join("AppData").join("Roaming").join("Cursor");
-        if real.is_dir() {
-            let dst = fake_home.join("AppData").join("Roaming").join("Cursor");
-            if let Some(parent) = dst.parent() {
-                fs::create_dir_all(parent).map_err(|e| AgentpackError::io(parent, e))?;
-            }
-            symlink_or_copy_into_fake_home(&real, &dst, true)?;
-        }
+        symlink_dir_if_present(
+            &real_home.join("AppData/Roaming/Cursor"),
+            &fake_home.join("AppData/Roaming/Cursor"),
+        )?;
     }
     Ok(())
 }
@@ -163,6 +149,21 @@ fn cursor_user_storage_src(real_home: &Path, dot_cursor: &Path, leaf: &str) -> R
     Ok(electron_leaf)
 }
 
+/// Symlink each entry from **src_base** into **dst_base**, auto-detecting file vs dir.
+fn symlink_entries_into(src_base: &Path, dst_base: &Path, names: &[&str]) -> Result<()> {
+    for name in names {
+        let src = src_base.join(name);
+        if !src.exists() {
+            continue;
+        }
+        let as_dir = fs::metadata(&src)
+            .map(|m| m.is_dir())
+            .map_err(|e| AgentpackError::io(&src, e))?;
+        symlink_or_copy_into_fake_home(&src, &dst_base.join(name), as_dir)?;
+    }
+    Ok(())
+}
+
 /// **`$STAGING/cursor-home`**: **`HOME`** for **`agentpack agent`**, with **`.cursor`** blending pack symlinks and real **`~/.cursor`** credential paths.
 fn materialize_cursor_fake_home(project_root: &Path) -> Result<()> {
     let fake_home = staging_cursor_home_dir(project_root)?;
@@ -173,16 +174,7 @@ fn materialize_cursor_fake_home(project_root: &Path) -> Result<()> {
     fs::create_dir_all(&fake_cursor).map_err(|e| AgentpackError::io(&fake_cursor, e))?;
 
     let pack = staging_cursor_pack_plugin_dir(project_root)?;
-    for sub in CURSOR_FAKE_HOME_PACK_SUBDIRS {
-        let src = pack.join(sub);
-        if !src.exists() {
-            continue;
-        }
-        let as_dir = fs::metadata(&src)
-            .map(|m| m.is_dir())
-            .map_err(|e| AgentpackError::io(&src, e))?;
-        symlink_or_copy_into_fake_home(&src, &fake_cursor.join(sub), as_dir)?;
-    }
+    symlink_entries_into(&pack, &fake_cursor, CURSOR_FAKE_HOME_PACK_SUBDIRS)?;
 
     let real_home = dirs::home_dir();
     let real_cursor = real_home.as_ref().map(|h| h.join(".cursor"));
@@ -199,16 +191,7 @@ fn materialize_cursor_fake_home(project_root: &Path) -> Result<()> {
 
     if let Some(ref rc) = real_cursor {
         if rc.is_dir() {
-            for name in CURSOR_FAKE_HOME_CREDENTIAL_FILES {
-                let src = rc.join(name);
-                if !src.exists() {
-                    continue;
-                }
-                let as_dir = fs::metadata(&src)
-                    .map(|m| m.is_dir())
-                    .map_err(|e| AgentpackError::io(&src, e))?;
-                symlink_or_copy_into_fake_home(&src, &fake_cursor.join(name), as_dir)?;
-            }
+            symlink_entries_into(rc, &fake_cursor, CURSOR_FAKE_HOME_CREDENTIAL_FILES)?;
         }
     }
 
@@ -371,7 +354,7 @@ fn write_cursor_pack_plugin_manifests(cursor_root: &Path) -> Result<()> {
             "description": "Merged pack.lock content staged by agentpack"
         }]
     });
-    write_json_file(&marketplace_dir.join("marketplace.json"), &marketplace)?;
+    write_json_value(&marketplace_dir.join("marketplace.json"), &marketplace)?;
 
     let plugin_json: Value = serde_json::json!({
         "name": STAGED_AGENTPACK_BUNDLE_NAME,
@@ -382,7 +365,7 @@ fn write_cursor_pack_plugin_manifests(cursor_root: &Path) -> Result<()> {
         "license": "MIT",
         "keywords": ["agentpack", "pack.lock"]
     });
-    write_json_file(&plugin_manifest_dir.join("plugin.json"), &plugin_json)?;
+    write_json_value(&plugin_manifest_dir.join("plugin.json"), &plugin_json)?;
     Ok(())
 }
 
@@ -413,20 +396,8 @@ pub(super) fn rebuild_cursor_staging_without_finalize(
     let pack_plugin = staging_cursor_pack_plugin_dir(project_root)?;
     fs::create_dir_all(&pack_plugin).map_err(|e| AgentpackError::io(&pack_plugin, e))?;
     write_cursor_pack_plugin_manifests(&root)?;
-    stage_pack_plugins_for_target(
-        project_root,
-        lock,
-        &pack_plugin,
-        HarnessTarget::Cursor,
-        manifest,
-    )?;
-    stage_pack_skills_for_target(
-        project_root,
-        lock,
-        &pack_plugin,
-        HarnessTarget::Cursor,
-        manifest,
-    )?;
+    stage_pack_plugins_for_target(lock, &pack_plugin, HarnessTarget::Cursor, manifest)?;
+    stage_pack_skills_for_target(lock, &pack_plugin, HarnessTarget::Cursor, manifest)?;
     write_cursor_pack_plugin_readme(&pack_plugin)?;
     Ok(())
 }

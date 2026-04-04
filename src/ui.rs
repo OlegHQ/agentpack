@@ -8,14 +8,16 @@ use indicatif::{HumanBytes, ProgressBar, ProgressDrawTarget, ProgressStyle};
 pub struct Ui {
     pub show_progress: bool,
     pub quiet: bool,
+    pub debug: bool,
 }
 
 impl Ui {
-    pub fn new(quiet: bool, no_progress: bool) -> Self {
+    pub fn new(quiet: bool, no_progress: bool, debug: bool) -> Self {
         let tty = io::stdout().is_terminal();
         Self {
             show_progress: tty && !no_progress && !quiet,
             quiet,
+            debug,
         }
     }
 
@@ -24,11 +26,20 @@ impl Ui {
         Self {
             show_progress: false,
             quiet: true,
+            debug: false,
         }
     }
 
     pub fn message(&self, msg: impl AsRef<str>) {
         if self.quiet {
+            return;
+        }
+        println!("{}", msg.as_ref());
+    }
+
+    /// Verbose launcher diagnostics (only with **`--debug`**, suppressed when **`--quiet`**).
+    pub fn debug_message(&self, msg: impl AsRef<str>) {
+        if self.quiet || !self.debug {
             return;
         }
         println!("{}", msg.as_ref());

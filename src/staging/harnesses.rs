@@ -105,7 +105,6 @@ impl<'a> StagingPipeline<'a> {
             stage.stage(&self.ctx)?;
         }
 
-        // Template Method: the common pipeline applies dot-agents once all harness trees exist.
         stage_dot_agents_overlay(self.ctx.project_root())?;
 
         for stage in harness_stagers() {
@@ -122,6 +121,7 @@ impl<'a> StagingPipeline<'a> {
         Ok(())
     }
 
+    /// Delegate path accessors through to `StagingContext` for callers in `staging/mod.rs`.
     pub(super) fn opencode_root(&self) -> Result<PathBuf> {
         self.ctx.opencode_root()
     }
@@ -172,14 +172,14 @@ fn harness_stagers() -> [&'static dyn HarnessStager; 4] {
 }
 
 fn stage_target_tree(ctx: &StagingContext<'_>, root: &Path, target: HarnessTarget) -> Result<()> {
-    stage_pack_plugins_for_target(ctx.project_root(), ctx.lock(), root, target, ctx.manifest())?;
-    stage_pack_skills_for_target(ctx.project_root(), ctx.lock(), root, target, ctx.manifest())?;
+    stage_pack_plugins_for_target(ctx.lock(), root, target, ctx.manifest())?;
+    stage_pack_skills_for_target(ctx.lock(), root, target, ctx.manifest())?;
     Ok(())
 }
 
-fn staging_require(cond: bool, message: String) -> Result<()> {
+fn staging_require(cond: bool, message: impl FnOnce() -> String) -> Result<()> {
     if !cond {
-        return Err(AgentpackError::Staging(message));
+        return Err(AgentpackError::Staging(message()));
     }
     Ok(())
 }
@@ -211,10 +211,9 @@ impl HarnessStager for ClaudeBundleStager {
 
     fn verify(&self, ctx: &StagingContext<'_>) -> Result<()> {
         let bundle = ctx.claude_bundle_dir()?;
-        staging_require(
-            bundle.join(".claude-plugin/plugin.json").is_file(),
-            format!("bundle missing manifest {}", bundle.display()),
-        )
+        staging_require(bundle.join(".claude-plugin/plugin.json").is_file(), || {
+            format!("bundle missing manifest {}", bundle.display())
+        })
     }
 }
 
@@ -232,10 +231,9 @@ impl HarnessStager for OpenCodeStager {
 
     fn verify(&self, ctx: &StagingContext<'_>) -> Result<()> {
         let root = ctx.opencode_root()?;
-        staging_require(
-            root.is_dir(),
-            format!("opencode staging missing {}", root.display()),
-        )
+        staging_require(root.is_dir(), || {
+            format!("opencode staging missing {}", root.display())
+        })
     }
 }
 
@@ -253,10 +251,9 @@ impl HarnessStager for CodexHomeStager {
 
     fn verify(&self, ctx: &StagingContext<'_>) -> Result<()> {
         let root = ctx.codex_home()?;
-        staging_require(
-            root.is_dir(),
-            format!("codex home staging missing {}", root.display()),
-        )
+        staging_require(root.is_dir(), || {
+            format!("codex home staging missing {}", root.display())
+        })
     }
 }
 
@@ -278,32 +275,34 @@ impl HarnessStager for CursorStager {
         let pack_plugin = ctx.cursor_pack_plugin_dir()?;
         let home = ctx.cursor_home()?;
 
-        staging_require(
-            bundle_root.is_dir(),
-            format!("cursor staging missing {}", bundle_root.display()),
-        )?;
+        staging_require(bundle_root.is_dir(), || {
+            format!("cursor staging missing {}", bundle_root.display())
+        })?;
         staging_require(
             pack_plugin.join(".cursor-plugin/plugin.json").is_file(),
-            format!(
-                "cursor pack plugin missing {}",
-                pack_plugin.join(".cursor-plugin/plugin.json").display()
-            ),
+            || {
+                format!(
+                    "cursor pack plugin missing {}",
+                    pack_plugin.join(".cursor-plugin/plugin.json").display()
+                )
+            },
         )?;
         staging_require(
             bundle_root
                 .join(".cursor-plugin/marketplace.json")
                 .is_file(),
-            format!(
-                "cursor staging missing {}",
-                bundle_root
-                    .join(".cursor-plugin/marketplace.json")
-                    .display()
-            ),
+            || {
+                format!(
+                    "cursor staging missing {}",
+                    bundle_root
+                        .join(".cursor-plugin/marketplace.json")
+                        .display()
+                )
+            },
         )?;
-        staging_require(
-            home.join(".cursor").is_dir(),
-            format!("cursor fake home missing .cursor/ under {}", home.display()),
-        )?;
+        staging_require(home.join(".cursor").is_dir(), || {
+            format!("cursor fake home missing .cursor/ under {}", home.display())
+        })?;
 
         for rel in read_cursor_overlay_manifest(ctx.project_root())? {
             let tracked = cursor_workspace_dir(ctx.project_root()).join(&rel);

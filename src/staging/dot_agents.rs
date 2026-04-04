@@ -124,33 +124,25 @@ pub(crate) fn stage_dot_agents_overlay(project_root: &Path) -> Result<()> {
         }
     }
 
-    merge_dot_agents_subdir_into_dest_roots(
-        &dot_agents,
-        "skills",
-        &[
-            bundle.as_path(),
-            opencode.as_path(),
-            codex.as_path(),
-            cursor_pack.as_path(),
-        ],
-    )?;
-    merge_dot_agents_subdir_into_dest_roots(
-        &dot_agents,
-        "agents",
-        &[bundle.as_path(), opencode.as_path(), cursor_pack.as_path()],
-    )?;
-    merge_dot_agents_subdir_into_dest_roots(
-        &dot_agents,
-        "commands",
-        &[bundle.as_path(), opencode.as_path(), cursor_pack.as_path()],
-    )?;
-    merge_dot_agents_subdir_into_dest_roots(
-        &dot_agents,
-        "hooks",
-        &[bundle.as_path(), cursor_pack.as_path()],
-    )?;
-    merge_dot_agents_subdir_into_dest_roots(&dot_agents, "assets", &[cursor_pack.as_path()])?;
-    merge_dot_agents_subdir_into_dest_roots(&dot_agents, "scripts", &[cursor_pack.as_path()])?;
+    // Subdir routing: each tuple is (subdir, indices into all_roots).
+    let all_roots: [&Path; 4] = [
+        bundle.as_path(),
+        opencode.as_path(),
+        codex.as_path(),
+        cursor_pack.as_path(),
+    ];
+    const SUBDIR_ROUTES: &[(&str, &[usize])] = &[
+        ("skills", &[0, 1, 2, 3]),
+        ("agents", &[0, 1, 3]),
+        ("commands", &[0, 1, 3]),
+        ("hooks", &[0, 3]),
+        ("assets", &[3]),
+        ("scripts", &[3]),
+    ];
+    for &(sub, indices) in SUBDIR_ROUTES {
+        let dests: Vec<&Path> = indices.iter().map(|&i| all_roots[i]).collect();
+        merge_dot_agents_subdir_into_dest_roots(&dot_agents, sub, &dests)?;
+    }
 
     let agents_md = dot_agents.join("AGENTS.md");
     if agents_md.is_file() {

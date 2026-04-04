@@ -1,12 +1,30 @@
 use std::collections::HashMap;
+use std::fmt;
 use std::fs;
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
-use toml;
 
 use crate::error::{AgentpackError, Result};
 use crate::paths::lock_path;
+
+/// Whether a locked entry is a bare skill or a full plugin directory.
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PackageKind {
+    #[default]
+    Skill,
+    Plugin,
+}
+
+impl fmt::Display for PackageKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Skill => f.write_str("skill"),
+            Self::Plugin => f.write_str("plugin"),
+        }
+    }
+}
 
 fn is_default_config(c: &Config) -> bool {
     c.disabled_plugins.is_empty()
@@ -41,7 +59,7 @@ pub struct LockPackage {
     pub module: String,
     #[serde(default)]
     pub direct: bool,
-    pub kind: String,
+    pub kind: PackageKind,
     pub url: String,
     pub owner: String,
     pub repo: String,
@@ -149,22 +167,21 @@ impl PackLock {
         let mut pkgs = self.packages.clone();
         pkgs.sort_by(|a, b| a.module.cmp(&b.module));
         for p in pkgs {
-            if p.kind == "plugin" {
-                self.plugins.push(p.to_lock_plugin());
-            } else {
-                self.skills.push(p.to_lock_skill());
+            match p.kind {
+                PackageKind::Plugin => self.plugins.push(p.to_lock_plugin()),
+                PackageKind::Skill => self.skills.push(p.to_lock_skill()),
             }
         }
     }
 
     fn sync_packages_from_views(&mut self) {
-        let existing_direct: HashMap<(String, String, String), bool> = self
+        let existing_direct: HashMap<(PackageKind, String, String), bool> = self
             .packages
             .iter()
             .map(|package| {
                 (
                     (
-                        package.kind.clone(),
+                        package.kind,
                         package.module.clone(),
                         package.cache_key.clone(),
                     ),
@@ -176,14 +193,14 @@ impl PackLock {
         let mut packages = Vec::with_capacity(self.skills.len() + self.plugins.len());
         for skill in &self.skills {
             let key = (
-                "skill".to_string(),
+                PackageKind::Skill,
                 skill.module.clone(),
                 skill.cache_key.clone(),
             );
             packages.push(LockPackage {
                 module: skill.module.clone(),
                 direct: existing_direct.get(&key).copied().unwrap_or(true),
-                kind: "skill".into(),
+                kind: PackageKind::Skill,
                 url: skill.url.clone(),
                 owner: skill.owner.clone(),
                 repo: skill.repo.clone(),
@@ -195,14 +212,14 @@ impl PackLock {
         }
         for plugin in &self.plugins {
             let key = (
-                "plugin".to_string(),
+                PackageKind::Plugin,
                 plugin.module.clone(),
                 plugin.cache_key.clone(),
             );
             packages.push(LockPackage {
                 module: plugin.module.clone(),
                 direct: existing_direct.get(&key).copied().unwrap_or(true),
-                kind: "plugin".into(),
+                kind: PackageKind::Plugin,
                 url: plugin.url.clone(),
                 owner: plugin.owner.clone(),
                 repo: plugin.repo.clone(),

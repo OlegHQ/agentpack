@@ -179,6 +179,29 @@ fn constraints_from_dep(dep: &DepSpecToml, key_ref: Option<&str>) -> Result<Modu
     }
 }
 
+/// Verify that a previously resolved transitive dependency still matches after merging new constraints.
+fn check_transitive_pin_conflict(
+    child: &ModuleId,
+    pkg: &LockPackage,
+    merged: &BTreeMap<ModuleId, ModuleConstraints>,
+    client: &Client,
+) -> Result<()> {
+    let (co, cr, _) = child.owner_repo_path_parts();
+    let cmc = merged.get(child).unwrap().clone();
+    let want_ref = cmc.pick_git_ref(client, &co, &cr)?;
+    let want_sha = resolve_ref_to_sha(client, &co, &cr, &want_ref)?;
+    if want_sha != pkg.commit {
+        return Err(AgentpackError::Cache(format!(
+            "transitive dependency `{}` was already pinned at {}; merged requirements resolve to {} (ref {})",
+            child.as_str(),
+            pkg.commit,
+            want_sha,
+            want_ref
+        )));
+    }
+    Ok(())
+}
+
 /// Regenerate **`pack.lock`** from **`agentpack.toml`** (transitive via nested manifests).
 pub fn resolve_lock_from_manifest(
     manifest: &AgentpackManifest,
@@ -245,19 +268,7 @@ pub fn resolve_lock_from_manifest(
                     .merge(cnew.clone())?;
 
                 if let Some(pkg) = resolved.get(&child) {
-                    let (co, cr, _) = child.owner_repo_path_parts();
-                    let cmc = merged.get(&child).unwrap().clone();
-                    let want_ref = cmc.pick_git_ref(client, &co, &cr)?;
-                    let want_sha = resolve_ref_to_sha(client, &co, &cr, &want_ref)?;
-                    if want_sha != pkg.commit {
-                        return Err(AgentpackError::Cache(format!(
-                            "transitive dependency `{}` was already pinned at {}; merged requirements resolve to {} (ref {})",
-                            child.as_str(),
-                            pkg.commit,
-                            want_sha,
-                            want_ref
-                        )));
-                    }
+                    check_transitive_pin_conflict(&child, pkg, &merged, client)?;
                     continue;
                 }
 

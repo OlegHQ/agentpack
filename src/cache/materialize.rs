@@ -50,6 +50,10 @@ fn github_prefix_cache_ready(owner: &str, repo: &str, commit: &str, path_prefix:
         || out.join(crate::paths::MANIFEST_NAME).is_file()
 }
 
+fn git_ref_is_full_commit_sha(git_ref: &str) -> bool {
+    git_ref.len() == 40 && git_ref.chars().all(|c| c.is_ascii_hexdigit())
+}
+
 /// Pin ref, download if needed, detect full plugin vs skill at cache root.
 pub fn materialize_github_tree(
     client: &Client,
@@ -58,12 +62,17 @@ pub fn materialize_github_tree(
     ui: &Ui,
 ) -> Result<FetchedGithubAsset> {
     paths::ensure_user_agentpack_layout()?;
-    let spinner = ui.spinner("Resolve Git ref → commit SHA");
-    let commit = resolve_ref_to_sha(client, &source.owner, &source.repo, &source.git_ref)?;
-    Ui::finish_spinner(
-        spinner.as_ref(),
-        format!("Pinned {}…{}", &commit[..4], &commit[commit.len() - 4..]),
-    );
+    let commit = if git_ref_is_full_commit_sha(&source.git_ref) {
+        source.git_ref.to_lowercase()
+    } else {
+        let spinner = ui.spinner("Resolve Git ref → commit SHA");
+        let c = resolve_ref_to_sha(client, &source.owner, &source.repo, &source.git_ref)?;
+        Ui::finish_spinner(
+            spinner.as_ref(),
+            format!("Pinned {}…{}", &c[..4], &c[c.len() - 4..]),
+        );
+        c
+    };
 
     let blob_file = display_url.contains("/blob/") && path_in_repo_looks_like_file(&source.path);
 
@@ -128,4 +137,20 @@ pub fn fetch_github_asset_from_url(
 ) -> Result<FetchedGithubAsset> {
     let parsed = parse_github_url(raw_url)?;
     materialize_github_tree(client, &parsed, raw_url, ui)
+}
+
+#[cfg(test)]
+mod commit_ref_tests {
+    use super::git_ref_is_full_commit_sha;
+
+    #[test]
+    fn full_commit_sha_detection() {
+        assert!(git_ref_is_full_commit_sha(&"a".repeat(40)));
+        assert!(git_ref_is_full_commit_sha(
+            "0000000000000000000000000000000000000000"
+        ));
+        assert!(!git_ref_is_full_commit_sha("main"));
+        assert!(!git_ref_is_full_commit_sha(&"a".repeat(39)));
+        assert!(!git_ref_is_full_commit_sha(&"g".repeat(40)));
+    }
 }

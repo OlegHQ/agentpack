@@ -15,7 +15,7 @@ All downloaded trees, the RedDB index, and your **`local/`** mirror live under a
 | Path | Purpose |
 | --- | --- |
 | **`$AGENTPACK_HOME/cache/<cache_key>/`** | Content-addressed package trees (GitHub tarball, or **copies** from filesystem / `local/`). |
-| **`$AGENTPACK_HOME/cache/db.reddb`** | Metadata + alias map for fast repeat **`add`**. |
+| **`$AGENTPACK_HOME/cache/db.reddb`** | Metadata + alias map for fast repeat **`add`**, plus cached GitHub ref/tag lookups to reduce API calls. |
 | **`$AGENTPACK_HOME/local/<owner>/<repo>/…`** | Optional offline mirror; same slash layout as **`owner/repo/…`** specs. |
 | **`$AGENTPACK_HOME/projects/<hash>/cursor-overlay.manifest`** | Per-project Cursor overlay bookkeeping (not stored in the repo). |
 
@@ -48,6 +48,8 @@ Resolution order (network/local):
 3. **`owner/repo/p1/p2/...`** — tries **`local/…/full/slash/spec`** first; else **GitHub** with in-repo path **`p1/p2/...`**.
 4. **Single segment** **`name`** — **`local/<name>`** only, or **alias** in RedDB to reuse a **`cache_key`** without network.
 
+Repeat **`owner/repo`** and **`owner/repo/path`** adds also consult the RedDB alias/index after checking **`local/`**, so previously fetched GitHub packages are reused before any new GitHub request is made.
+
 **Not automatic:** a bare **filesystem path** is not passed to **`add`** — put a **`file:`** (or path) dependency in **`agentpack.toml`** yourself if you need a directory pin; **`sync`** will warn on other machines if the path is missing and the cache slot is empty.
 
 Duplicate content for the same **`owner` / `repo` / in-repo `path` / commit** hits the same **`cache_key`**. Plugins may expose **`.claude-plugin`**, **`.cursor-plugin`**, or both; layouts are normalized after fetch.
@@ -57,6 +59,9 @@ Duplicate content for the same **`owner` / `repo` / in-repo `path` / commit** hi
 - **`pack.lock`** with **`lockfile-version = 2`** stores **`[[packages]]`** only. Legacy **`[[skills]]`** / **`[[plugins]]`** sections are rejected. In-memory **`skills`** / **`plugins`** are derived views rebuilt from canonical packages after load.
 - **`sync`** refreshes **`pack.lock`** from **`agentpack.toml`** only when **`[dependencies]`** is **non-empty**. With an **empty** dependency table, **`sync`** treats the existing lock as authoritative (manual edits, tests, or hybrid workflows).
 - Run **`agentpack lock`** to force a full resolve from the manifest (requires **`agentpack.toml`**).
+- Harness launchers (**`agentpack claude`**, **`opencode`**, **`codex`**, **`agent`**) run a **fast pre-sync** when **`agentpack.toml`**, **`pack.lock`**, **`./.agents/`**, and the env vars that affect staging (see **`AGENTPACK_LAUNCH_FULL_SYNC`**) are unchanged since the last successful launch sync: they verify cache + staging integrity and **skip** full lock resolve, re-download, and staging rebuild. Floating pins (branch / floating semver) therefore **do not advance** on launch alone — run **`agentpack sync`** or **`agentpack lock`** when you need **`pack.lock`** refreshed from the manifest.
+- GitHub **ref → commit** and **tag list** lookups are cached in **`db.reddb`** and reused across **`add`**, **`lock`**, and **`sync`**. Fresh cached metadata avoids repeat API calls; exact tag-name ref lookups also reuse the cached tag list directly.
+- When GitHub REST ref/tag lookups fail, agentpack falls back to the Git protocol via embedded **`gix`** `ls-refs` against **`https://github.com/<owner>/<repo>.git`** before using stale cached metadata. This removes the hard dependency on the throttled REST API for ref and tag resolution.
 
 ## Harness launch research summary
 
@@ -137,6 +142,7 @@ A full plugin at repo path **`P`** (same **`owner` / `repo` / `commit`**) shadow
 | --- | --- |
 | **`AGENTPACK_HOME`** | User agentpack root (`cache/`, `local/`, `projects/`, `db.reddb`). Overrides XDG / OS defaults. |
 | **`AGENTPACK_STAGING_ROOT`** | Staging root override (default: `temp_dir()/agentpack-<hash>`). |
+| **`AGENTPACK_LAUNCH_FULL_SYNC`** | **`1`**, **`true`**, or **`yes`** — on **`claude` / `opencode` / `codex` / `agent`**, always run a full **`sync`** before exec (disables the launch fast path). Default: use the fast path when inputs match the last successful launcher sync. |
 | **`AGENTPACK_BUNDLE_USER_SETTINGS`** | **`0`** — do not seed staged harness roots from **`~/.claude`**, **`~/.config/opencode`**, **`~/.codex`**, or **`~/.cursor`**. Default: copy compatible user config files when they exist. |
 | **`AGENTPACK_BUNDLE_USER_CLAUDE`** | Legacy alias for **`AGENTPACK_BUNDLE_USER_SETTINGS`**. |
 | **`AGENTPACK_PLUGIN_DIRS`** | Colon-separated plugin roots; **`claude`** uses these instead of staging. |
@@ -164,7 +170,7 @@ A full plugin at repo path **`P`** (same **`owner` / `repo` / `commit`**) shadow
 - **`add <spec>`** — append module to **`[dependencies]`**, resolve, save **`pack.lock`**, then **`sync`** unless **`--no-sync`** (requires manifest; see golden rules).
 - **`remove <spec>`** — remove matching **`[dependencies]`** key (and **`[overrides]`** for that module), resolve, save **`pack.lock`**, then **`sync`** unless **`--no-sync`**. Accepts the same shapes as **`add`** where sensible (module id, **`owner/repo/path`**, GitHub **`tree`/`blob`** URL); picks the **`[dependencies]`** entry by walking parent paths for blob file URLs, like **`add`**.
 - **`sync`** — ensure cache + rebuild staging; recomputes **`pack.lock`** from the manifest when **`[dependencies]`** is non-empty.
-- **`claude`**, **`opencode`**, **`codex`**, **`agent`** — **`sync`** then exec with the staged harness roots (see Launchers).
+- **`claude`**, **`opencode`**, **`codex`**, **`agent`** — refresh staging via **`sync`** (fast path when nothing changed; see **`AGENTPACK_LAUNCH_FULL_SYNC`**) then exec with the staged harness roots (see Launchers).
 
 ### `agentpack.toml` sketch
 

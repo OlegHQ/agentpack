@@ -19,8 +19,8 @@ use crate::github::{
 use crate::index::{
     aliases_for_github_entry, get_entry, lookup_alias, upsert_entry, CacheEntryRecord,
 };
-use crate::lockfile::{LockPlugin, LockSkill};
-use crate::paths::{self};
+use crate::lockfile::{LockPlugin, LockSkill, PackageKind};
+use crate::paths;
 use crate::ui::Ui;
 
 pub(super) fn http_client() -> Result<Client> {
@@ -63,7 +63,7 @@ fn record_and_aliases(fetched: &FetchedGithubAsset) -> Result<(CacheEntryRecord,
     match fetched {
         FetchedGithubAsset::Skill(s) => {
             let rec = CacheEntryRecord {
-                kind: "skill".into(),
+                kind: PackageKind::Skill,
                 source_url: s.url.clone(),
                 owner: s.owner.clone(),
                 repo: s.repo.clone(),
@@ -79,7 +79,7 @@ fn record_and_aliases(fetched: &FetchedGithubAsset) -> Result<(CacheEntryRecord,
             let cache_root = cache_entry_dir(&p.cache_key)?;
             let pkg = read_plugin_package_name(&cache_root);
             let rec = CacheEntryRecord {
-                kind: "plugin".into(),
+                kind: PackageKind::Plugin,
                 source_url: p.url.clone(),
                 owner: p.owner.clone(),
                 repo: p.repo.clone(),
@@ -155,6 +155,11 @@ fn add_two_segment(
     if mirror.is_dir() {
         return add_from_local_mirror(&spec, owner, repo, "", ui);
     }
+    if let Some(ck) = lookup_alias(&spec)? {
+        if let Some(rec) = get_entry(&ck)? {
+            return recreate_fetched_from_record(client, &rec, &ck, ui);
+        }
+    }
     let source = github_source_from_segments(owner, repo, "");
     let display = canonical_github_tree_url(&source);
     materialize_github_tree(client, &source, &display, ui)
@@ -168,6 +173,11 @@ fn add_multi_segment(client: &Client, parts: &[&str], ui: &Ui) -> Result<Fetched
     let mirror = paths::local_mirror_path_from_shorthand(&spec)?;
     if mirror.is_dir() {
         return add_from_local_mirror(&spec, owner, repo, &in_path, ui);
+    }
+    if let Some(ck) = lookup_alias(&spec)? {
+        if let Some(rec) = get_entry(&ck)? {
+            return recreate_fetched_from_record(client, &rec, &ck, ui);
+        }
     }
     let source = github_source_from_segments(owner, repo, &in_path);
     let display = canonical_github_tree_url(&source);
@@ -210,7 +220,7 @@ fn recreate_fetched_from_record(
                 "cache for {cache_key} is empty and local/path sources are unavailable here"
             )));
         }
-        if rec.kind == "plugin" {
+        if rec.kind == PackageKind::Plugin {
             let plugin = LockPlugin {
                 module: String::new(),
                 name: String::new(),
@@ -308,4 +318,54 @@ pub(super) fn upsert_fetched_index(
 /// Used by `run_add` to reject bare paths early (manual manifest flow).
 pub(super) fn resolve_existing_path_for_add(spec: &str) -> Option<PathBuf> {
     resolve_existing_path(spec.trim())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use chrono::Utc;
+    use reqwest::blocking::Client;
+    use serial_test::serial;
+    use tempfile::tempdir;
+
+    use crate::index::{upsert_entry, CacheEntryRecord};
+    use crate::lockfile::PackageKind;
+    use crate::ui::Ui;
+
+    use super::resolve_add_spec;
+
+    #[test]
+    #[serial]
+    fn resolve_add_spec_reuses_cached_slash_alias() {
+        let dir = tempdir().unwrap();
+        std::env::set_var("AGENTPACK_HOME", dir.path());
+
+        let cache_key = "cached-owner-repo-path";
+        let cache_root = dir.path().join("cache").join(cache_key);
+        fs::create_dir_all(&cache_root).unwrap();
+        fs::write(cache_root.join("SKILL.md"), "# skill\n").unwrap();
+
+        upsert_entry(
+            cache_key,
+            &CacheEntryRecord {
+                kind: PackageKind::Skill,
+                source_url: "https://github.com/owner/repo/tree/main/skills/reuse-me".into(),
+                owner: "owner".into(),
+                repo: "repo".into(),
+                path: "skills/reuse-me".into(),
+                commit: "a".repeat(40),
+                fetched_at_unix: Utc::now().timestamp(),
+            },
+            &["owner/repo/skills/reuse-me".to_string()],
+        )
+        .unwrap();
+
+        let client = Client::builder().build().unwrap();
+        let (fetched, shorthand) =
+            resolve_add_spec(&client, "owner/repo/skills/reuse-me", &Ui::test_stub()).unwrap();
+
+        assert_eq!(fetched.cache_key(), cache_key);
+        assert_eq!(shorthand.as_deref(), Some("owner/repo/skills/reuse-me"));
+    }
 }

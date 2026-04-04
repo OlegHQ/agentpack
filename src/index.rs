@@ -2,14 +2,15 @@ use redb::{Database, ReadableTable, TableDefinition};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{AgentpackError, Result};
-use crate::paths::{self};
+use crate::lockfile::PackageKind;
+use crate::paths;
 
 const ENTRIES: TableDefinition<&str, &[u8]> = TableDefinition::new("cache_entries");
 const ALIASES: TableDefinition<&str, &str> = TableDefinition::new("aliases");
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CacheEntryRecord {
-    pub kind: String,
+    pub kind: PackageKind,
     pub source_url: String,
     pub owner: String,
     pub repo: String,
@@ -162,14 +163,16 @@ pub fn aliases_for_github_entry(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
     use tempfile::tempdir;
 
     #[test]
+    #[serial]
     fn redb_roundtrip() {
         let dir = tempdir().unwrap();
         std::env::set_var("AGENTPACK_HOME", dir.path());
         let rec = CacheEntryRecord {
-            kind: "skill".into(),
+            kind: PackageKind::Skill,
             source_url: "https://example.com".into(),
             owner: "o".into(),
             repo: "r".into(),

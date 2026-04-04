@@ -17,7 +17,7 @@ use crate::error::{AgentpackError, Result};
 const CODEX_AUTH_KEYRING_SERVICE: &str = "Codex Auth";
 
 /// Matches `compute_store_key` in `openai/codex` (`codex-rs/login/src/auth/storage.rs`).
-pub(crate) fn codex_cli_keyring_account(codex_home: &Path) -> String {
+pub(super) fn codex_cli_keyring_account(codex_home: &Path) -> String {
     let canonical = codex_home
         .canonicalize()
         .unwrap_or_else(|_| codex_home.to_path_buf());
@@ -33,7 +33,7 @@ pub(crate) fn codex_cli_keyring_account(codex_home: &Path) -> String {
 /// If the user stores credentials in the OS keychain under their real `~/.codex` home, copy the
 /// serialized auth blob into **`staging_root`/auth.json** so the CLI can load it when combined with
 /// [`patch_staged_codex_keyring_config_to_file`] if needed.
-pub(crate) fn try_materialize_codex_auth_json_from_user_keyring(
+pub(super) fn try_materialize_codex_auth_json_from_user_keyring(
     user_codex_home: &Path,
     staging_root: &Path,
 ) -> Result<bool> {
@@ -93,7 +93,7 @@ pub(crate) fn try_materialize_codex_auth_json_from_user_keyring(
 /// When the **staged** copy of `config.toml` sets `cli_auth_credentials_store = "keyring"`, Codex
 /// would look up the keychain using the **staging** path and find nothing. Rewrite **only the
 /// staged file** to `"file"` so `auth.json` in the same tree is used.
-pub(crate) fn patch_staged_codex_keyring_config_to_file(staging_root: &Path) -> Result<()> {
+pub(super) fn patch_staged_codex_keyring_config_to_file(staging_root: &Path) -> Result<()> {
     let path = staging_root.join("config.toml");
     if !path.is_file() {
         return Ok(());

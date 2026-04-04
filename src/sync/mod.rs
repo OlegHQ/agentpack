@@ -1,4 +1,5 @@
 mod add_fetch;
+pub mod launch_fingerprint;
 mod pipeline;
 mod remove;
 mod run;

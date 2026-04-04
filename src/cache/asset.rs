@@ -4,7 +4,7 @@ use reqwest::blocking::Client;
 
 use crate::error::{AgentpackError, Result};
 use crate::github::GitHubSource;
-use crate::lockfile::{LockPackage, LockPlugin, LockSkill};
+use crate::lockfile::{LockPackage, LockPlugin, LockSkill, PackageKind};
 use crate::ui::Ui;
 
 use super::layout::{
@@ -42,7 +42,7 @@ impl FetchedGithubAsset {
             Self::Skill(skill) => LockPackage {
                 module: module.to_string(),
                 direct,
-                kind: "skill".into(),
+                kind: PackageKind::Skill,
                 url: skill.url.clone(),
                 owner: skill.owner.clone(),
                 repo: skill.repo.clone(),
@@ -54,7 +54,7 @@ impl FetchedGithubAsset {
             Self::Plugin(plugin) => LockPackage {
                 module: module.to_string(),
                 direct,
-                kind: "plugin".into(),
+                kind: PackageKind::Plugin,
                 url: plugin.url.clone(),
                 owner: plugin.owner.clone(),
                 repo: plugin.repo.clone(),

@@ -20,10 +20,6 @@ pub fn project_dot_agents_dir(project_root: &Path) -> PathBuf {
     project_root.join(DOT_AGENTS_DIR)
 }
 
-fn lockfile_name() -> &'static str {
-    LOCKFILE_NAME
-}
-
 pub fn manifest_path(project_root: &Path) -> PathBuf {
     project_root.join(MANIFEST_NAME)
 }
@@ -92,7 +88,7 @@ pub fn cursor_overlay_manifest_path(project_root: &Path) -> Result<PathBuf> {
 /// Resolve project root by walking ancestors until **`agentpack.toml`** or **`pack.lock`** is found.
 pub fn find_project_root(start: &Path) -> Result<PathBuf> {
     for dir in start.ancestors() {
-        if dir.join(MANIFEST_NAME).is_file() || dir.join(lockfile_name()).is_file() {
+        if dir.join(MANIFEST_NAME).is_file() || dir.join(LOCKFILE_NAME).is_file() {
             return Ok(dir.to_path_buf());
         }
     }
@@ -103,7 +99,7 @@ pub fn find_project_root(start: &Path) -> Result<PathBuf> {
 pub fn resolve_project_root(explicit: Option<&Path>) -> Result<PathBuf> {
     if let Some(p) = explicit {
         let p = p.canonicalize().map_err(|e| AgentpackError::io(p, e))?;
-        if p.join(MANIFEST_NAME).is_file() || p.join(lockfile_name()).is_file() {
+        if p.join(MANIFEST_NAME).is_file() || p.join(LOCKFILE_NAME).is_file() {
             return Ok(p);
         }
         return Err(AgentpackError::NoPackLock(p));
@@ -113,7 +109,7 @@ pub fn resolve_project_root(explicit: Option<&Path>) -> Result<PathBuf> {
 }
 
 pub fn lock_path(project_root: &Path) -> PathBuf {
-    project_root.join(lockfile_name())
+    project_root.join(LOCKFILE_NAME)
 }
 
 /// Stable short hash of canonical project root for staging directory name.

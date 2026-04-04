@@ -1,5 +1,7 @@
 mod download;
+mod git_protocol;
 mod list_tags;
+mod metadata_cache;
 mod parse_url;
 mod resolve_ref;
 
@@ -13,4 +15,4 @@ pub use parse_url::{
     canonical_github_tree_url, github_source_from_segments, normalized_identity, parse_github_url,
     GitHubSource,
 };
-pub use resolve_ref::{check_rate_limit_hint, resolve_ref_to_sha};
+pub use resolve_ref::resolve_ref_to_sha;

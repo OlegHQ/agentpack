@@ -1,10 +1,11 @@
 //! Staging: merge pack.lock trees into per-harness directories under `$STAGING`.
 
+mod codex_auth;
+mod collision;
 mod constants;
 mod cursor;
 mod dot_agents;
 mod harnesses;
-mod json_local;
 mod pack_overlay;
 mod seed;
 mod tree;
@@ -13,7 +14,6 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::cache::{cache_entry_dir, cache_has_plugin_manifest};
-use crate::collision;
 use crate::error::{AgentpackError, Result};
 use crate::lockfile::PackLock;
 use crate::manifest::AgentpackManifest;
@@ -54,26 +54,18 @@ pub fn list_plugin_dirs(project_root: &Path) -> Result<Vec<PathBuf>> {
     Ok(dirs)
 }
 
-fn staging_require(cond: bool, message: String) -> Result<()> {
-    if !cond {
-        return Err(AgentpackError::Staging(message));
-    }
-    Ok(())
-}
-
 /// Ensure staging layout: exactly one bundle and cache integrity for lockfile entries.
 pub fn verify_staging(project_root: &Path, lock: &PackLock) -> Result<()> {
     let pipeline = StagingPipeline::new(project_root, lock, None);
     pipeline.verify()?;
 
     let dirs = list_plugin_dirs(project_root)?;
-    staging_require(
-        dirs.len() == 1,
-        format!(
+    if dirs.len() != 1 {
+        return Err(AgentpackError::Staging(format!(
             "expected exactly one merged plugin dir (agentpack-bundle), got {}",
             dirs.len()
-        ),
-    )?;
+        )));
+    }
     let bundle = &dirs[0];
     let opencode_root = pipeline.opencode_root()?;
     let codex_home = pipeline.codex_home()?;

@@ -5,7 +5,7 @@ use reqwest::blocking::Client;
 
 use crate::error::{AgentpackError, Result};
 use crate::github::{download_and_extract, path_in_repo_looks_like_file};
-use crate::lockfile::{LockPlugin, LockSkill};
+use crate::lockfile::{LockPlugin, LockSkill, PackLock};
 use crate::paths;
 use crate::ui::Ui;
 
@@ -182,4 +182,37 @@ pub fn ensure_lock_skill_cached(client: &Client, skill: &LockSkill, ui: &Ui) -> 
 
 pub fn ensure_lock_plugin_cached(client: &Client, plugin: &LockPlugin, ui: &Ui) -> Result<bool> {
     CachedLockEntry::Plugin(plugin).ensure_cached(client, ui)
+}
+
+/// Validate cache trees for every lock entry that [`crate::sync::pipeline`] would pass to [`ensure_lock_plugin_cached`] / [`ensure_lock_skill_cached`].
+pub fn verify_lock_cache_integrity(lock: &PackLock) -> Result<()> {
+    for plugin in &lock.plugins {
+        if plugin.cache_key.is_empty() {
+            continue;
+        }
+        let out = cache_entry_dir(&plugin.cache_key)?;
+        normalize_plugin_cache_layout(&out)?;
+        if !cache_has_plugin_manifest(&out) {
+            return Err(AgentpackError::Cache(format!(
+                "plugin cache not ready for {}",
+                plugin.cache_key
+            )));
+        }
+    }
+    for skill in &lock.skills {
+        if skill.cache_key.is_empty() {
+            continue;
+        }
+        let out = cache_entry_dir(&skill.cache_key)?;
+        let ok = out.join("SKILL.md").is_file()
+            || cache_has_plugin_manifest(&out)
+            || out.join(crate::paths::MANIFEST_NAME).is_file();
+        if !ok {
+            return Err(AgentpackError::Cache(format!(
+                "skill cache not ready for {}",
+                skill.cache_key
+            )));
+        }
+    }
+    Ok(())
 }

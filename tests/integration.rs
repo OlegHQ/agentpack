@@ -7,6 +7,9 @@ use agentpack::paths::{
     staging_cursor_bundle_dir, staging_cursor_home_dir, staging_cursor_pack_plugin_dir,
     staging_opencode_dir, staging_plugins_dir,
 };
+use agentpack::sync::launch_fingerprint::{
+    compute_launch_sync_digest, read_stored_launch_digest, write_launch_sync_state,
+};
 use agentpack::{run, Cli, Command};
 use serial_test::serial;
 use tempfile::tempdir;
@@ -26,6 +29,7 @@ fn init_writes_pack_lock_and_agentpack_dir() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        debug: false,
         command: Command::Init {
             name: Some("myproj".into()),
             version: Some("0.0.1".into()),
@@ -48,6 +52,7 @@ fn init_refuses_existing_lock() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        debug: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -59,6 +64,7 @@ fn init_refuses_existing_lock() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        debug: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -66,6 +72,32 @@ fn init_refuses_existing_lock() {
     })
     .unwrap_err();
     assert!(e.to_string().contains("agentpack.toml"));
+}
+
+#[test]
+#[serial]
+fn launch_sync_state_roundtrip_under_isolated_home() {
+    let dir = tempdir().unwrap();
+    let root: PathBuf = dir.path().to_path_buf();
+    prep_store(&root);
+    fs::write(
+        root.join("agentpack.toml"),
+        "name = \"t\"\nversion = \"1\"\n",
+    )
+    .unwrap();
+    fs::write(
+        root.join("pack.lock"),
+        "lockfile-version = 2\n\n[meta]\nname = \"t\"\nversion = \"1\"\n",
+    )
+    .unwrap();
+
+    let d = compute_launch_sync_digest(&root).unwrap();
+    assert!(read_stored_launch_digest(&root).unwrap().is_none());
+    write_launch_sync_state(&root, &d).unwrap();
+    assert_eq!(
+        read_stored_launch_digest(&root).unwrap().as_deref(),
+        Some(d.as_str())
+    );
 }
 
 #[test]
@@ -79,6 +111,7 @@ fn sync_stages_full_plugin_and_shadows_contained_skill() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        debug: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -128,6 +161,7 @@ fn sync_stages_full_plugin_and_shadows_contained_skill() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        debug: false,
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
@@ -203,6 +237,7 @@ fn sync_stages_bare_skills_for_all_launchers() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        debug: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -232,6 +267,7 @@ fn sync_stages_bare_skills_for_all_launchers() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        debug: false,
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
@@ -277,6 +313,7 @@ fn sync_converts_markdown_artifacts_per_target_harness() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        debug: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -338,6 +375,7 @@ fn sync_converts_markdown_artifacts_per_target_harness() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        debug: false,
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
@@ -405,6 +443,7 @@ fn sync_leaves_project_cursor_files_alone_when_pack_overlaps_names() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        debug: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -452,6 +491,7 @@ fn sync_leaves_project_cursor_files_alone_when_pack_overlaps_names() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        debug: false,
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
@@ -484,6 +524,7 @@ fn sync_does_not_remove_user_cursor_files_when_pack_entries_removed() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        debug: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -524,6 +565,7 @@ fn sync_does_not_remove_user_cursor_files_when_pack_entries_removed() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        debug: false,
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
@@ -545,6 +587,7 @@ fn sync_does_not_remove_user_cursor_files_when_pack_entries_removed() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        debug: false,
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
@@ -575,6 +618,7 @@ fn sync_merges_dot_agents_into_staging() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        debug: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -605,6 +649,7 @@ fn sync_merges_dot_agents_into_staging() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        debug: false,
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
@@ -663,6 +708,7 @@ fn add_real_github_skill() {
         quiet: false,
         no_progress: true,
         yolo: false,
+        debug: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -674,6 +720,7 @@ fn add_real_github_skill() {
         quiet: false,
         no_progress: true,
         yolo: false,
+        debug: false,
         command: Command::Add {
             spec: "https://github.com/anthropics/skills/tree/main/skills/canvas-design".into(),
             no_sync: false,

@@ -17,7 +17,7 @@ use crate::fs_util::remove_path_any;
 const IGNORE_ENV: &str = "AGENTPACK_IGNORE_USER_BUNDLE_COLLISION";
 
 /// Lowercase skill slugs removed from staged harness trees so `verify_staging` can skip them.
-pub struct StagingCollisionRemoval {
+pub(super) struct StagingCollisionRemoval {
     pub skill_slugs_lower: HashSet<String>,
 }
 
@@ -45,14 +45,10 @@ fn collect_skill_slugs(skills_dir: &Path, out: &mut HashSet<String>) -> Result<(
     Ok(())
 }
 
-fn collect_md_stems_under(dir: &Path, out: &mut HashSet<String>) -> Result<()> {
+fn collect_md_stems_recursive(dir: &Path, out: &mut HashSet<String>) -> Result<()> {
     if !dir.is_dir() {
         return Ok(());
     }
-    collect_md_stems_recursive(dir, out)
-}
-
-fn collect_md_stems_recursive(dir: &Path, out: &mut HashSet<String>) -> Result<()> {
     for e in fs::read_dir(dir).map_err(|e| AgentpackError::io(dir, e))? {
         let e = e.map_err(|e| AgentpackError::io(dir, e))?;
         let p = e.path();
@@ -120,49 +116,49 @@ fn remove_md_stems_under_tree(root: &Path, stem_lower: &str) -> Result<()> {
 
 /// Like **[`resolve_user_claude_bundle_collisions`]** but uses **`home_dir`** as the user profile
 /// root (directory that contains **`.claude`**). **`None`** skips resolution (same as missing real home).
-pub(crate) fn resolve_user_claude_bundle_collisions_with_home(
+pub(super) fn resolve_user_claude_bundle_collisions_with_home(
     bundle: &Path,
     opencode: &Path,
     codex: &Path,
     cursor_pack: &Path,
     home_dir: Option<&Path>,
 ) -> Result<StagingCollisionRemoval> {
-    let mut removed_skills = HashSet::new();
+    let no_removals = || StagingCollisionRemoval {
+        skill_slugs_lower: HashSet::new(),
+    };
 
     if env::var(IGNORE_ENV).ok().as_deref() == Some("1") {
         tracing::warn!("skipping bundle vs ~/.claude collision handling ({IGNORE_ENV}=1)");
-        return Ok(StagingCollisionRemoval {
-            skill_slugs_lower: removed_skills,
-        });
+        return Ok(no_removals());
     }
 
     let Some(home) = home_dir else {
-        return Ok(StagingCollisionRemoval {
-            skill_slugs_lower: removed_skills,
-        });
+        return Ok(no_removals());
     };
     let uc = home.join(".claude");
 
     let mut user_skills = HashSet::new();
     collect_skill_slugs(&uc.join("skills"), &mut user_skills)?;
     let mut user_cmd = HashSet::new();
-    collect_md_stems_under(&uc.join("commands"), &mut user_cmd)?;
+    collect_md_stems_recursive(&uc.join("commands"), &mut user_cmd)?;
     let mut user_agents = HashSet::new();
-    collect_md_stems_under(&uc.join("agents"), &mut user_agents)?;
+    collect_md_stems_recursive(&uc.join("agents"), &mut user_agents)?;
 
     if user_skills.is_empty() && user_cmd.is_empty() && user_agents.is_empty() {
-        return Ok(StagingCollisionRemoval {
-            skill_slugs_lower: removed_skills,
-        });
+        return Ok(no_removals());
     }
+
+    let mut removed_skills = HashSet::new();
+    let harness_roots = [bundle, opencode, codex, cursor_pack];
 
     let mut bundle_skills = HashSet::new();
     collect_skill_slugs(&bundle.join("skills"), &mut bundle_skills)?;
     let mut bundle_cmd = HashSet::new();
-    collect_md_stems_under(&bundle.join("commands"), &mut bundle_cmd)?;
+    collect_md_stems_recursive(&bundle.join("commands"), &mut bundle_cmd)?;
     let mut bundle_agents = HashSet::new();
-    collect_md_stems_under(&bundle.join("agents"), &mut bundle_agents)?;
+    collect_md_stems_recursive(&bundle.join("agents"), &mut bundle_agents)?;
 
+    // Skills: remove matching slug dirs from all harness roots.
     let mut skill_keys: Vec<&String> = user_skills.intersection(&bundle_skills).collect();
     skill_keys.sort();
     for k in skill_keys {
@@ -170,32 +166,28 @@ pub(crate) fn resolve_user_claude_bundle_collisions_with_home(
         eprint_collision_warning(&format!(
             "Using ~/.claude skill `{k}`; omitted pack duplicate from staged bundle (and other harness trees)"
         ));
-        remove_skill_slug_dir(&bundle.join("skills"), k)?;
-        remove_skill_slug_dir(&opencode.join("skills"), k)?;
-        remove_skill_slug_dir(&codex.join("skills"), k)?;
-        remove_skill_slug_dir(&cursor_pack.join("skills"), k)?;
+        for root in &harness_roots {
+            remove_skill_slug_dir(&root.join("skills"), k)?;
+        }
     }
 
-    let mut cmd_keys: Vec<&String> = user_cmd.intersection(&bundle_cmd).collect();
-    cmd_keys.sort();
-    for k in cmd_keys {
-        eprint_collision_warning(&format!(
-            "Using ~/.claude command `{k}`; omitted pack duplicate from staged bundle (and other harness trees)"
-        ));
-        remove_md_stems_under_tree(&bundle.join("commands"), k)?;
-        remove_md_stems_under_tree(&opencode.join("commands"), k)?;
-        remove_md_stems_under_tree(&cursor_pack.join("commands"), k)?;
-    }
-
-    let mut agent_keys: Vec<&String> = user_agents.intersection(&bundle_agents).collect();
-    agent_keys.sort();
-    for k in agent_keys {
-        eprint_collision_warning(&format!(
-            "Using ~/.claude agent `{k}`; omitted pack duplicate from staged bundle (and other harness trees)"
-        ));
-        remove_md_stems_under_tree(&bundle.join("agents"), k)?;
-        remove_md_stems_under_tree(&opencode.join("agents"), k)?;
-        remove_md_stems_under_tree(&cursor_pack.join("agents"), k)?;
+    // Commands and agents: remove matching .md stems from applicable harness roots.
+    // Codex doesn't have commands/ or agents/ trees, so we skip it.
+    let md_roots = [bundle, opencode, cursor_pack];
+    for (user_set, bundle_set, dir_name, label) in [
+        (&user_cmd, &bundle_cmd, "commands", "command"),
+        (&user_agents, &bundle_agents, "agents", "agent"),
+    ] {
+        let mut keys: Vec<&String> = user_set.intersection(bundle_set).collect();
+        keys.sort();
+        for k in keys {
+            eprint_collision_warning(&format!(
+                "Using ~/.claude {label} `{k}`; omitted pack duplicate from staged bundle (and other harness trees)"
+            ));
+            for root in &md_roots {
+                remove_md_stems_under_tree(&root.join(dir_name), k)?;
+            }
+        }
     }
 
     Ok(StagingCollisionRemoval {
@@ -206,7 +198,7 @@ pub(crate) fn resolve_user_claude_bundle_collisions_with_home(
 /// Remove staged pack copies that duplicate `~/.claude` skills / commands / agents so the user
 /// install wins. Prints yellow warnings to stderr. When **`IGNORE_ENV=1`**, does nothing (duplicates
 /// remain). Returns lowercase skill slugs removed from **`skills/`** for staging verification.
-pub fn resolve_user_claude_bundle_collisions(
+pub(super) fn resolve_user_claude_bundle_collisions(
     bundle: &Path,
     opencode: &Path,
     codex: &Path,

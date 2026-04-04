@@ -1,8 +1,6 @@
 mod artifacts;
 pub mod cache;
 mod cli;
-mod codex_auth;
-mod collision;
 mod error;
 mod fs_util;
 mod github;
@@ -28,7 +26,7 @@ use anyhow::Context;
 
 /// Main entry for tests and binary.
 pub fn run(cli: Cli) -> anyhow::Result<()> {
-    let ui = Ui::new(cli.quiet, cli.no_progress);
+    let ui = Ui::new(cli.quiet, cli.no_progress, cli.debug);
     match cli.command {
         Command::Init { name, version } => {
             let root = init_root(cli.project_root.as_deref())?;

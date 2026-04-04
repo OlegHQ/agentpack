@@ -7,7 +7,8 @@ use crate::error::{AgentpackError, Result};
 use crate::lockfile::{LockPlugin, LockSkill, PackLock};
 use crate::manifest::AgentpackManifest;
 
-use super::json_local::write_text_file;
+use crate::fs_util::write_text_file;
+
 use super::tree::copy_merge_tree;
 
 fn walk_source_files<F>(root: &Path, current: &Path, visitor: &mut F) -> Result<()>
@@ -207,7 +208,6 @@ fn stage_bare_skill_cache_for_target(
 }
 
 pub(super) fn stage_pack_plugins_for_target(
-    _project_root: &Path,
     lock: &PackLock,
     dest_root: &Path,
     target: HarnessTarget,
@@ -245,7 +245,6 @@ pub(super) fn stage_pack_plugins_for_target(
 }
 
 pub(super) fn stage_pack_skills_for_target(
-    _project_root: &Path,
     lock: &PackLock,
     dest_root: &Path,
     target: HarnessTarget,
@@ -288,7 +287,7 @@ pub(super) fn stage_pack_skills_for_target(
 }
 
 pub(crate) fn entry_short_id(cache_key: &str) -> String {
-    cache_key.chars().take(16).collect()
+    crate::fs_util::truncate_str(cache_key, 16)
 }
 
 pub(super) fn skill_folder_name(skill: &LockSkill) -> String {

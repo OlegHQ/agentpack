@@ -19,7 +19,7 @@ pub fn run_opencode(
         "AGENTPACK_OPENCODE_CONFIG_DIR",
         &paths::staging_opencode_dir(project_root)?,
     );
-    ui.message(format!(
+    ui.debug_message(format!(
         "OpenCode config dir: {}",
         std::path::Path::new(&config_dir).display()
     ));

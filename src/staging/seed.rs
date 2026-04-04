@@ -1,11 +1,11 @@
 use std::env;
 use std::path::Path;
 
-use crate::codex_auth;
+use super::codex_auth;
 use crate::error::Result;
+use crate::fs_util::{read_json_value_opt, write_json_value};
 
 use super::constants::{CODEX_HOME_ENTRIES, CURSOR_USER_ROOT_ENTRIES, OPENCODE_USER_ROOT_ENTRIES};
-use super::json_local::{read_json_file, write_json_file};
 use super::tree::copy_merge_tree;
 
 /// Copy user harness config into staged launch roots when **`1`** or unset.
@@ -34,16 +34,16 @@ pub(super) fn merge_user_settings_files_into_bundle(bundle: &Path) -> Result<()>
     };
 
     let user_settings = home.join(".claude").join("settings.json");
-    if let Some(v) = read_json_file(&user_settings)? {
+    if let Some(v) = read_json_value_opt(&user_settings)? {
         let dst = bundle.join(".claude").join("settings.json");
-        write_json_file(&dst, &v)?;
+        write_json_value(&dst, &v)?;
         tracing::debug!(from = %user_settings.display(), "copied user settings.json into bundle");
     }
 
     let user_app = home.join(".claude.json");
-    if let Some(v) = read_json_file(&user_app)? {
+    if let Some(v) = read_json_value_opt(&user_app)? {
         let dst = bundle.join(".claude.json");
-        write_json_file(&dst, &v)?;
+        write_json_value(&dst, &v)?;
         tracing::debug!(from = %user_app.display(), "copied user .claude.json into bundle");
     }
 
@@ -71,7 +71,7 @@ fn write_opencode_config_stub(root: &Path) -> Result<()> {
     let value = serde_json::json!({
         "$schema": "https://opencode.ai/config.json"
     });
-    write_json_file(&config_path, &value)
+    write_json_value(&config_path, &value)
 }
 
 pub(super) fn seed_opencode_root(root: &Path) -> Result<()> {

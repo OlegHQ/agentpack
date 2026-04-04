@@ -149,7 +149,7 @@ pub fn run_agent(
         apply_yolo_cursor_agent(&mut args);
     }
     prepend_trust_if_configured(&mut args);
-    ui.message(msg);
+    ui.debug_message(msg);
 
     exec_with_env("CURSOR_AGENT_PATH", "agent", &envs, args)
 }

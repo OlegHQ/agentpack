@@ -16,7 +16,9 @@ pub use layout::{
 };
 pub(crate) use materialize::blob_path_parent_prefixes;
 pub use materialize::{fetch_github_asset_from_url, materialize_github_tree};
-pub use restore::{ensure_lock_plugin_cached, ensure_lock_skill_cached};
+pub use restore::{
+    ensure_lock_plugin_cached, ensure_lock_skill_cached, verify_lock_cache_integrity,
+};
 pub use tree::copy_package_dir_to_cache;
 
 #[cfg(test)]

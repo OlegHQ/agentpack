@@ -25,6 +25,10 @@ pub struct Cli {
     #[arg(long, global = true)]
     pub yolo: bool,
 
+    /// Print launcher diagnostics (workspace paths, env overrides, fast-sync skip reason)
+    #[arg(long, global = true)]
+    pub debug: bool,
+
     #[command(subcommand)]
     pub command: Command,
 }
