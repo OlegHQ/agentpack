@@ -1,5 +1,10 @@
-# Versioning & Homebrew tap (see README → Releasing).
-# Requires Python 3. Targets that talk to GitHub need `gh auth login`.
+# Versioning, local install (no Homebrew on Linux), and Homebrew tap release.
+# Requires Python 3 for release targets. Targets that talk to GitHub need `gh auth login`.
+
+CARGO ?= cargo
+INSTALL_DIR ?= $(HOME)/.local/bin
+BINARY := agentpack
+RELEASE_BIN := target/release/$(BINARY)
 
 RELEASE_BRANCH ?= dev
 
@@ -15,12 +20,19 @@ endif
 HOMEBREW_TAP_DIR ?= $(CURDIR)/../homebrew-agentpack
 TAP_DESC := Homebrew tap for agentpack (https://github.com/$(UPSTREAM_REPO))
 
-.PHONY: help minor patch check-clean check-gh \
+.PHONY: help all build release install uninstall \
+	minor patch check-clean check-gh \
 	ship-minor ship-patch _ship-commit tag-push gh-release brew-sync brew-ship tap-init
 
 .DEFAULT_GOAL := minor
 
 help:
+	@echo "Local build / install (e.g. Linux without brew):"
+	@echo "  all, release    cargo build --release"
+	@echo "  build           cargo build (debug)"
+	@echo "  install         release, then copy binary to INSTALL_DIR ($(INSTALL_DIR))"
+	@echo "  uninstall       remove binary from INSTALL_DIR"
+	@echo ""
 	@echo "Releasing (Cargo.toml semver):"
 	@echo "  make, minor     0.x.y -> 0.(x+1).0"
 	@echo "  patch           0.x.y -> 0.x.(y+1)"
@@ -33,6 +45,23 @@ help:
 	@echo "  brew-sync       refresh url + sha256 in \$$HOMEBREW_TAP_DIR/Formula/agentpack.rb"
 	@echo "  brew-ship       brew-sync then commit + push the tap repo"
 	@echo "Env: RELEASE_BRANCH=$(RELEASE_BRANCH) HOMEBREW_TAP_DIR=$(HOMEBREW_TAP_DIR)"
+	@echo "     INSTALL_DIR=$(INSTALL_DIR) CARGO=$(CARGO)"
+
+all: release
+
+build:
+	$(CARGO) build
+
+release:
+	$(CARGO) build --release
+
+install: release
+	mkdir -p "$(INSTALL_DIR)"
+	cp "$(RELEASE_BIN)" "$(INSTALL_DIR)/$(BINARY)"
+	@echo "Installed $(INSTALL_DIR)/$(BINARY) — ensure INSTALL_DIR is on PATH"
+
+uninstall:
+	rm -f "$(INSTALL_DIR)/$(BINARY)"
 
 minor:
 	python3 scripts/bump_version.py minor

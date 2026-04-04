@@ -21,10 +21,10 @@ The tap repo is [**OlegHQ/homebrew-agentpack**](https://github.com/OlegHQ/homebr
 ```bash
 cargo install --path .
 # or
-cargo build --release
+make install          # release build + copy to ~/.local/bin (override: make install INSTALL_DIR=/usr/local/bin)
 ```
 
-Binary: `target/release/agentpack`.
+Binary: `target/release/agentpack` (unless installed via `make install`, which copies it to **`INSTALL_DIR`**, default **`~/.local/bin`**). Ensure that directory is on **`PATH`**.
 
 ## Prerequisites
 
