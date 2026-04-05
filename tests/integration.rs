@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use agentpack::cli::dispatch::run;
 use agentpack::cli::{Cli, Command};
-use agentpack::lockfile::{LockPlugin, LockSkill, PackLock};
+use agentpack::lockfile::{LockPackage, PackLock, PackageKind};
 use agentpack::paths::{
     cache_dir, cursor_workspace_dir, project_dot_agents_dir, staging_codex_home_dir,
     staging_cursor_bundle_dir, staging_cursor_home_dir, staging_cursor_pack_plugin_dir,
@@ -136,8 +136,10 @@ fn sync_stages_full_plugin_and_shadows_contained_skill() {
 
     let commit = "c".repeat(40);
     let mut lock = PackLock::load(&root).unwrap();
-    lock.plugins.push(LockPlugin {
+    lock.packages.push(LockPackage {
         module: String::new(),
+        direct: true,
+        kind: PackageKind::Plugin,
         name: String::new(),
         url: "https://github.com/o/r/tree/main/plugins/foo".into(),
         owner: "o".into(),
@@ -146,14 +148,17 @@ fn sync_stages_full_plugin_and_shadows_contained_skill() {
         commit: commit.clone(),
         cache_key: pk.clone(),
     });
-    lock.skills.push(LockSkill {
+    lock.packages.push(LockPackage {
         module: String::new(),
+        direct: true,
+        kind: PackageKind::Skill,
         url: "https://github.com/o/r/tree/main/plugins/foo/skills/bar".into(),
         owner: "o".into(),
         repo: "r".into(),
         path: "plugins/foo/skills/bar".into(),
         commit,
         cache_key: sk.clone(),
+        name: String::new(),
     });
     lock.save(&root).unwrap();
 
@@ -253,14 +258,17 @@ fn sync_stages_bare_skills_for_all_launchers() {
     fs::write(cache.join(&sk).join("SKILL.md"), "# shared skill").unwrap();
 
     let mut lock = PackLock::load(&root).unwrap();
-    lock.skills.push(LockSkill {
+    lock.packages.push(LockPackage {
         module: String::new(),
+        direct: true,
+        kind: PackageKind::Skill,
         url: "https://github.com/o/r/tree/main/skills/shared-skill".into(),
         owner: "o".into(),
         repo: "r".into(),
         path: "skills/shared-skill".into(),
         commit: "d".repeat(40),
         cache_key: sk,
+        name: String::new(),
     });
     lock.save(&root).unwrap();
 
@@ -354,8 +362,10 @@ fn sync_stages_cursor_and_claude_plugin_with_skill_support_and_command_sidecars(
     .unwrap();
 
     let mut lock = PackLock::load(&root).unwrap();
-    lock.plugins.push(LockPlugin {
+    lock.packages.push(LockPackage {
         module: String::new(),
+        direct: true,
+        kind: PackageKind::Plugin,
         name: String::new(),
         url: "https://github.com/o/r/tree/main/plugins/rust-dev".into(),
         owner: "o".into(),
@@ -466,8 +476,10 @@ fn sync_converts_markdown_artifacts_per_target_harness() {
     .unwrap();
 
     let mut lock = PackLock::load(&root).unwrap();
-    lock.plugins.push(LockPlugin {
+    lock.packages.push(LockPackage {
         module: String::new(),
+        direct: true,
+        kind: PackageKind::Plugin,
         name: String::new(),
         url: "https://github.com/o/r/tree/main/portable".into(),
         owner: "o".into(),
@@ -583,8 +595,10 @@ fn sync_leaves_project_cursor_files_alone_when_pack_overlaps_names() {
     .unwrap();
 
     let mut lock = PackLock::load(&root).unwrap();
-    lock.plugins.push(LockPlugin {
+    lock.packages.push(LockPackage {
         module: String::new(),
+        direct: true,
+        kind: PackageKind::Plugin,
         name: String::new(),
         url: "https://github.com/o/r/tree/main/portable".into(),
         owner: "o".into(),
@@ -658,8 +672,10 @@ fn sync_does_not_remove_user_cursor_files_when_pack_entries_removed() {
     .unwrap();
 
     let mut lock = PackLock::load(&root).unwrap();
-    lock.plugins.push(LockPlugin {
+    lock.packages.push(LockPackage {
         module: String::new(),
+        direct: true,
+        kind: PackageKind::Plugin,
         name: String::new(),
         url: "https://github.com/o/r/tree/main/portable".into(),
         owner: "o".into(),
@@ -689,8 +705,7 @@ fn sync_does_not_remove_user_cursor_files_when_pack_entries_removed() {
     fs::write(&user_cmd, "# user\n").unwrap();
 
     let mut lock = PackLock::load(&root).unwrap();
-    lock.plugins.clear();
-    lock.skills.clear();
+    lock.packages.clear();
     lock.save(&root).unwrap();
 
     run(Cli {

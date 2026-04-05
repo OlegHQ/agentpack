@@ -2,11 +2,11 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use sha2::{Digest, Sha256};
 use ignore::WalkBuilder;
+use sha2::{Digest, Sha256};
 
 use crate::error::{AgentpackError, Result};
-use crate::fs_util::{read_json_value, truncate_str, write_json_value};
+use crate::fs_util::{read_json_value, write_json_value};
 use crate::manifest::AgentpackManifest;
 use crate::paths;
 
@@ -92,7 +92,7 @@ pub fn collect_source_files(root: &Path) -> Result<Vec<PathBuf>> {
         .build();
     for entry in walker {
         let entry = entry.map_err(|e| AgentpackError::Cache(e.to_string()))?;
-        if !entry.file_type().map_or(false, |ft| ft.is_file()) {
+        if !entry.file_type().is_some_and(|ft| ft.is_file()) {
             continue;
         }
         let rel = entry
@@ -106,20 +106,78 @@ pub fn collect_source_files(root: &Path) -> Result<Vec<PathBuf>> {
 }
 
 /// Hash directory contents for stable path-sourced pins (40 hex for `pack.lock` commit field).
+/// Uses streaming I/O — files are fed through the hasher in chunks, not loaded fully into memory.
 pub fn hash_directory_contents(root: &Path) -> Result<String> {
+    use std::io::Read;
+
     let files = collect_source_files(root)?;
 
     let mut hash = Sha256::new();
+    let mut buf = [0u8; 8192];
     for rel in files {
         hash.update(rel.as_os_str().as_encoded_bytes());
         hash.update([0]);
-        let bytes =
-            fs::read(root.join(&rel)).map_err(|err| AgentpackError::io(root.join(rel), err))?;
-        hash.update(&bytes);
+        let path = root.join(&rel);
+        let file = fs::File::open(&path).map_err(|err| AgentpackError::io(&path, err))?;
+        let mut reader = std::io::BufReader::new(file);
+        loop {
+            let n = reader
+                .read(&mut buf)
+                .map_err(|err| AgentpackError::io(&path, err))?;
+            if n == 0 {
+                break;
+            }
+            hash.update(&buf[..n]);
+        }
     }
 
     let full = hex::encode(hash.finalize());
-    Ok(truncate_str(&full, 40))
+    Ok(full[..40].to_string())
+}
+
+/// Single-pass: hash directory contents while copying to destination.
+/// Returns the 40-hex content hash. Files are read once, hashed and copied simultaneously.
+pub(super) fn hash_and_copy_source_tree(src: &Path, dst: &Path) -> Result<String> {
+    use std::io::{Read, Write};
+
+    let files = collect_source_files(src)?;
+
+    let mut hash = Sha256::new();
+    let mut buf = [0u8; 8192];
+    for rel in &files {
+        // Hash: include relative path in the digest
+        hash.update(rel.as_os_str().as_encoded_bytes());
+        hash.update([0]);
+
+        let src_file = src.join(rel);
+        let dst_file = dst.join(rel);
+        if let Some(parent) = dst_file.parent() {
+            fs::create_dir_all(parent).map_err(|err| AgentpackError::io(parent, err))?;
+        }
+
+        let in_file =
+            fs::File::open(&src_file).map_err(|err| AgentpackError::io(&src_file, err))?;
+        let mut reader = std::io::BufReader::new(in_file);
+        let mut writer = std::io::BufWriter::new(
+            fs::File::create(&dst_file).map_err(|err| AgentpackError::io(&dst_file, err))?,
+        );
+
+        loop {
+            let n = reader
+                .read(&mut buf)
+                .map_err(|err| AgentpackError::io(&src_file, err))?;
+            if n == 0 {
+                break;
+            }
+            hash.update(&buf[..n]);
+            writer
+                .write_all(&buf[..n])
+                .map_err(|err| AgentpackError::io(&dst_file, err))?;
+        }
+    }
+
+    let full = hex::encode(hash.finalize());
+    Ok(full[..40].to_string())
 }
 
 fn synthesize_cursor_manifest_from_claude(cache_root: &Path, claude_manifest: &Path) -> Result<()> {

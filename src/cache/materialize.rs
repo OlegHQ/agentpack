@@ -13,8 +13,9 @@ use crate::github::{
 use crate::paths;
 use crate::ui::Ui;
 
-use super::asset::{classify_materialized, FetchedGithubAsset};
+use super::asset::classify_materialized;
 use super::layout::{cache_dir_is_package_root_in_filesystem, cache_entry_dir, compute_cache_key};
+use crate::lockfile::LockPackage;
 
 /// Parent directories of a repo-relative file path, deepest first, ending at repo root (`""`).
 pub(crate) fn blob_path_parent_prefixes(blob_file_path: &str) -> Vec<String> {
@@ -59,7 +60,7 @@ pub fn materialize_github_tree(
     source: &GitHubSource,
     display_url: &str,
     ui: &Ui,
-) -> Result<FetchedGithubAsset> {
+) -> Result<LockPackage> {
     paths::ensure_user_agentpack_layout()?;
     let commit = if git_ref_is_full_commit_sha(&source.git_ref) {
         source.git_ref.to_lowercase()
@@ -135,11 +136,7 @@ pub fn materialize_github_tree(
     classify_materialized(&out, &display, &effective, commit, cache_key)
 }
 
-pub fn fetch_github_asset_from_url(
-    client: &Client,
-    raw_url: &str,
-    ui: &Ui,
-) -> Result<FetchedGithubAsset> {
+pub fn fetch_github_asset_from_url(client: &Client, raw_url: &str, ui: &Ui) -> Result<LockPackage> {
     let parsed = parse_github_url(raw_url)?;
     materialize_github_tree(client, &parsed, raw_url, ui)
 }

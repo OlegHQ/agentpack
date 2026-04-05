@@ -56,12 +56,10 @@ pub fn collect_repo_relative_paths(buf: &[u8]) -> Result<HashSet<String>> {
             .map_err(|e| AgentpackError::Archive(e.to_string()))?
             .to_string_lossy()
             .to_string();
-        let components: Vec<&str> = path.split('/').collect();
-        if components.len() < 2 {
+        let Some(rel_in_repo) = path.split_once('/').map(|x| x.1) else {
             continue;
-        }
-        let rel_in_repo = components[1..].join("/");
-        out.insert(rel_in_repo);
+        };
+        out.insert(rel_in_repo.to_string());
     }
     Ok(out)
 }
@@ -145,11 +143,10 @@ pub fn extract_tarball_with_prefix(
             .to_string_lossy()
             .to_string();
 
-        let components: Vec<&str> = path.split('/').collect();
-        if components.len() < 2 {
+        let Some(rel_in_repo) = path.split_once('/').map(|x| x.1) else {
             continue;
-        }
-        let rel_in_repo = components[1..].join("/");
+        };
+        let rel_in_repo = rel_in_repo.to_string();
 
         let extract_rel = if path_prefix.is_empty() {
             rel_in_repo
@@ -202,6 +199,10 @@ the directory may not exist at this commit or may have been renamed/moved (updat
 }
 
 /// Download a repo tarball and extract a subtree. Pass **`blob_target_file`** when `path_prefix` points at a single file in the repo: the archive is scanned and the deepest enclosing **package root** (`.claude-plugin`, `.cursor-plugin`, `SKILL.md`, or `agentpack.toml`) is extracted instead.
+///
+/// When `blob_target_file` is set, uses a single-decompression strategy: the tarball is decoded
+/// once, entries are buffered in memory, the prefix is determined from the path index, and only
+/// matching entries are written to disk.
 #[allow(clippy::too_many_arguments)]
 pub fn download_and_extract(
     client: &Client,
@@ -216,9 +217,18 @@ pub fn download_and_extract(
     let buf = download_tarball_bytes(client, owner, repo, commit_sha, ui)?;
 
     let path_prefix = if let Some(blob) = blob_target_file {
-        let index = collect_repo_relative_paths(&buf)?;
-        choose_package_prefix_for_blob_path(&index, blob)
-            .unwrap_or_else(|| parent_dir_in_repo(blob))
+        // Single-pass: decompress once, collect paths and entry data simultaneously,
+        // then determine prefix and write matching entries.
+        let (index, entries) = collect_paths_and_entries(&buf)?;
+        let prefix = choose_package_prefix_for_blob_path(&index, blob)
+            .unwrap_or_else(|| parent_dir_in_repo(blob));
+        let n = write_entries_with_prefix(&entries, &prefix, out_dir, ui)?;
+        if n == 0 && !prefix.is_empty() {
+            return Err(archive_no_files_for_repo_path(
+                owner, repo, commit_sha, &prefix,
+            ));
+        }
+        return Ok(());
     } else {
         path_prefix.trim_matches('/').to_string()
     };
@@ -233,6 +243,120 @@ pub fn download_and_extract(
         ));
     }
     Ok(())
+}
+
+/// Decompress a tarball once, collecting both the path index and all entry data.
+fn collect_paths_and_entries(buf: &[u8]) -> Result<(HashSet<String>, Vec<TarEntry>)> {
+    use std::io::Read;
+
+    let tar_gz = GzDecoder::new(Cursor::new(buf));
+    let mut archive = Archive::new(tar_gz);
+    let mut index = HashSet::new();
+    let mut entries = Vec::new();
+
+    for entry in archive
+        .entries()
+        .map_err(|e| AgentpackError::Archive(e.to_string()))?
+    {
+        let mut entry = entry.map_err(|e| AgentpackError::Archive(e.to_string()))?;
+        let path = entry
+            .path()
+            .map_err(|e| AgentpackError::Archive(e.to_string()))?
+            .to_string_lossy()
+            .to_string();
+
+        let Some(rel_in_repo) = path.split_once('/').map(|x| x.1) else {
+            continue;
+        };
+        let rel_in_repo = rel_in_repo.to_string();
+        let is_dir = entry.header().entry_type().is_dir();
+
+        // Build the index
+        index.insert(rel_in_repo.clone());
+
+        // Buffer entry data (only for files)
+        let data = if !is_dir {
+            let mut buf = Vec::new();
+            entry
+                .read_to_end(&mut buf)
+                .map_err(|e| AgentpackError::Archive(e.to_string()))?;
+            buf
+        } else {
+            Vec::new()
+        };
+
+        entries.push(TarEntry {
+            rel_in_repo,
+            is_dir,
+            data,
+        });
+    }
+
+    Ok((index, entries))
+}
+
+struct TarEntry {
+    rel_in_repo: String,
+    is_dir: bool,
+    data: Vec<u8>,
+}
+
+/// Write buffered tar entries matching a given prefix to the output directory.
+fn write_entries_with_prefix(
+    entries: &[TarEntry],
+    path_prefix: &str,
+    out_dir: &Path,
+    ui: &Ui,
+) -> Result<usize> {
+    use std::io::Write;
+
+    let extract_pb = ui.spinner("Extracting archive…");
+
+    if out_dir.exists() {
+        fs::remove_dir_all(out_dir).map_err(|e| AgentpackError::io(out_dir, e))?;
+    }
+    fs::create_dir_all(out_dir).map_err(|e| AgentpackError::io(out_dir, e))?;
+
+    let path_prefix = path_prefix.trim_matches('/');
+    let prefix_dir = if path_prefix.is_empty() {
+        String::new()
+    } else {
+        format!("{path_prefix}/")
+    };
+
+    let mut files_written = 0usize;
+    for entry in entries {
+        let extract_rel = if path_prefix.is_empty() {
+            &entry.rel_in_repo
+        } else if entry.rel_in_repo == path_prefix {
+            continue;
+        } else if let Some(stripped) = entry.rel_in_repo.strip_prefix(&prefix_dir) {
+            stripped
+        } else {
+            continue;
+        };
+
+        if extract_rel.is_empty() {
+            continue;
+        }
+
+        let out_path = out_dir.join(Path::new(extract_rel));
+        if entry.is_dir {
+            fs::create_dir_all(&out_path).map_err(|e| AgentpackError::io(&out_path, e))?;
+        } else {
+            if let Some(parent) = out_path.parent() {
+                fs::create_dir_all(parent).map_err(|e| AgentpackError::io(parent, e))?;
+            }
+            let mut f =
+                fs::File::create(&out_path).map_err(|e| AgentpackError::io(&out_path, e))?;
+            f.write_all(&entry.data)
+                .map_err(|e| AgentpackError::io(&out_path, e))?;
+            files_written += 1;
+        }
+    }
+
+    Ui::finish_spinner(extract_pb.as_ref(), "Extracted files");
+    Ok(files_written)
 }
 
 #[cfg(test)]

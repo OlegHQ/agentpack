@@ -60,3 +60,7 @@ divan = "0.1"
 [[bench]]
 name = "copy_tree"
 harness = false
+
+[[bench]]
+name = "perf_optimizations"
+harness = false

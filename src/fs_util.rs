@@ -85,7 +85,16 @@ pub(crate) fn write_text_file(path: &Path, contents: &str) -> Result<()> {
     fs::write(path, contents).map_err(|e| AgentpackError::io(path, e))
 }
 
-/// Truncate a string to at most `max_chars` Unicode characters.
+/// Truncate a string to at most `max_chars` characters.
+/// Optimized for ASCII (hex strings, cache keys) — uses byte slicing when safe.
 pub(crate) fn truncate_str(value: &str, max_chars: usize) -> String {
+    if value.len() <= max_chars {
+        return value.to_string();
+    }
+    // Fast path: if the boundary is valid UTF-8, slice directly.
+    if value.is_char_boundary(max_chars) {
+        return value[..max_chars].to_string();
+    }
+    // Fallback for multi-byte chars at the boundary.
     value.chars().take(max_chars).collect()
 }

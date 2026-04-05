@@ -90,7 +90,7 @@ pub fn resolve_lock_from_manifest(
     project_root: &Path,
 ) -> Result<PackLock> {
     if manifest.dependencies.is_empty() {
-        let mut lock = PackLock {
+        let lock = PackLock {
             lockfile_version: 2,
             meta: Meta {
                 name: manifest.name.clone(),
@@ -98,7 +98,7 @@ pub fn resolve_lock_from_manifest(
             },
             ..Default::default()
         };
-        lock.sync_views_from_packages();
+
         return Ok(lock);
     }
 
@@ -128,8 +128,9 @@ pub fn resolve_lock_from_manifest(
                 .map(|u| u.to_string())
                 .map_err(|_| AgentpackError::Cache("invalid path for file URL".into()))?;
             let source = github_source_from_segments("path", key, "");
-            let fetched = classify_materialized(&out, &file_url, &source, commit, cache_key)?;
-            let pkg = fetched.to_lock_package(key, true);
+            let mut pkg = classify_materialized(&out, &file_url, &source, commit, cache_key)?;
+            pkg.module = key.to_string();
+            pkg.direct = true;
             path_packages.push(pkg);
 
             // Load nested deps from path package (transitive).
@@ -190,12 +191,14 @@ pub fn resolve_lock_from_manifest(
         let git_ref = pick_effective_git_ref(&mc, client, &owner, &repo, &mid, opts)?;
         let source = mid.to_github_source(&git_ref);
         let display = canonical_github_tree_url(&source);
-        let fetched = materialize_github_tree(client, &source, &display, ui)?;
-        let pkg = fetched.to_lock_package(mid.as_str(), direct_ids.contains(&mid));
+        let mut pkg = materialize_github_tree(client, &source, &display, ui)?;
+        pkg.module = mid.as_str().to_string();
+        pkg.direct = direct_ids.contains(&mid);
+        let pkg_cache_key = pkg.cache_key.clone();
         resolved.insert(mid.clone(), pkg);
 
         if let Some(deps) =
-            AgentpackManifest::load_nested_dependencies(&cache_entry_dir(fetched.cache_key())?)?
+            AgentpackManifest::load_nested_dependencies(&cache_entry_dir(&pkg_cache_key)?)?
         {
             for (k, dep) in deps {
                 let (base, key_ref) = split_module_at_ref(&k);
@@ -223,7 +226,7 @@ pub fn resolve_lock_from_manifest(
     packages.extend(path_packages);
     packages.sort_by(|a, b| a.module.cmp(&b.module));
 
-    let mut lock = PackLock {
+    let lock = PackLock {
         lockfile_version: 2,
         meta: Meta {
             name: manifest.name.clone(),
@@ -232,7 +235,6 @@ pub fn resolve_lock_from_manifest(
         packages,
         ..Default::default()
     };
-    lock.sync_views_from_packages();
     Ok(lock)
 }
 

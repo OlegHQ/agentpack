@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use serde_yaml::{Mapping, Value};
 
 use crate::error::{AgentpackError, Result};
@@ -6,7 +8,7 @@ use super::ArtifactKind;
 
 pub(super) fn split_frontmatter(contents: &str) -> Result<(Option<Mapping>, String)> {
     let Some((yaml, body)) = extract_frontmatter_sections(contents) else {
-        return Ok((None, ensure_trailing_newline(contents)));
+        return Ok((None, ensure_trailing_newline(contents).into_owned()));
     };
 
     let normalized_yaml = normalize_frontmatter_yaml(yaml);
@@ -14,7 +16,7 @@ pub(super) fn split_frontmatter(contents: &str) -> Result<(Option<Mapping>, Stri
         .map_err(|err| AgentpackError::Staging(format!("invalid YAML frontmatter: {err}")))?;
     Ok((
         Some(mapping),
-        ensure_trailing_newline(body.trim_start_matches('\n')),
+        ensure_trailing_newline(body.trim_start_matches('\n')).into_owned(),
     ))
 }
 
@@ -58,24 +60,27 @@ pub(super) fn infer_description(body: &str, name: &str, kind: ArtifactKind) -> S
     }
 }
 
-pub(super) fn ensure_trailing_newline(contents: &str) -> String {
+pub(super) fn ensure_trailing_newline(contents: &str) -> Cow<'_, str> {
     if contents.ends_with('\n') {
-        contents.to_string()
+        Cow::Borrowed(contents)
     } else {
-        format!("{contents}\n")
+        Cow::Owned(format!("{contents}\n"))
     }
 }
 
 pub(super) fn render_markdown(frontmatter: &Mapping, body: &str) -> String {
-    let mut rendered = String::new();
+    let yaml = serde_yaml::to_string(frontmatter)
+        .expect("frontmatter serialization should not fail for scalar mappings");
+    let body = body.trim_start_matches('\n');
+    let mut rendered = String::with_capacity(6 + yaml.len() + 5 + body.len() + 1);
     rendered.push_str("---\n");
-    rendered.push_str(
-        &serde_yaml::to_string(frontmatter)
-            .expect("frontmatter serialization should not fail for scalar mappings"),
-    );
+    rendered.push_str(&yaml);
     rendered.push_str("---\n\n");
-    rendered.push_str(body.trim_start_matches('\n'));
-    ensure_trailing_newline(&rendered)
+    rendered.push_str(body);
+    if !rendered.ends_with('\n') {
+        rendered.push('\n');
+    }
+    rendered
 }
 
 pub(super) fn merge_allowed_frontmatter(dst: &mut Mapping, src: &Mapping, allowed: &[&str]) {

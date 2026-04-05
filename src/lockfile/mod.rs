@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::fmt;
 use std::fs;
 use std::path::Path;
@@ -17,12 +16,18 @@ pub enum PackageKind {
     Plugin,
 }
 
+impl PackageKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Skill => "skill",
+            Self::Plugin => "plugin",
+        }
+    }
+}
+
 impl fmt::Display for PackageKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Skill => f.write_str("skill"),
-            Self::Plugin => f.write_str("plugin"),
-        }
+        f.write_str(self.as_str())
     }
 }
 
@@ -45,12 +50,6 @@ pub struct PackLock {
     pub config: Config,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub packages: Vec<LockPackage>,
-    /// Derived read-models for command code; never serialized or parsed from disk.
-    #[serde(skip)]
-    pub skills: Vec<LockSkill>,
-    /// Derived read-models for command code; never serialized or parsed from disk.
-    #[serde(skip)]
-    pub plugins: Vec<LockPlugin>,
 }
 
 /// Single locked package (v2 lockfile). Kind is **`skill`** or **`plugin`**.
@@ -72,29 +71,18 @@ pub struct LockPackage {
 }
 
 impl LockPackage {
-    pub fn to_lock_skill(&self) -> LockSkill {
-        LockSkill {
-            module: self.module.clone(),
-            url: self.url.clone(),
-            owner: self.owner.clone(),
-            repo: self.repo.clone(),
-            path: self.path.clone(),
-            commit: self.commit.clone(),
-            cache_key: self.cache_key.clone(),
-        }
+    /// True when a plugin row is only partially populated and still needs network resolution.
+    pub fn needs_backfill(&self) -> bool {
+        self.kind == PackageKind::Plugin
+            && !self.url.is_empty()
+            && (self.cache_key.is_empty()
+                || self.commit.is_empty()
+                || self.owner.is_empty()
+                || self.repo.is_empty())
     }
 
-    pub fn to_lock_plugin(&self) -> LockPlugin {
-        LockPlugin {
-            module: self.module.clone(),
-            name: self.name.clone(),
-            url: self.url.clone(),
-            owner: self.owner.clone(),
-            repo: self.repo.clone(),
-            path: self.path.clone(),
-            commit: self.commit.clone(),
-            cache_key: self.cache_key.clone(),
-        }
+    pub fn kind_label(&self) -> &'static str {
+        self.kind.as_str()
     }
 }
 
@@ -112,47 +100,11 @@ pub struct Config {
     pub disabled_plugins: Vec<String>,
 }
 
-#[derive(Debug, Clone)]
-pub struct LockSkill {
-    pub module: String,
-    pub url: String,
-    pub owner: String,
-    pub repo: String,
-    pub path: String,
-    pub commit: String,
-    pub cache_key: String,
-}
-
-/// GitHub-pinned plugin read-model derived from canonical packages or network fetches.
-#[derive(Debug, Clone)]
-pub struct LockPlugin {
-    pub module: String,
-    pub name: String,
-    pub url: String,
-    pub owner: String,
-    pub repo: String,
-    pub path: String,
-    pub commit: String,
-    pub cache_key: String,
-}
-
-impl LockPlugin {
-    /// True when a plugin row is only partially populated and still needs network resolution.
-    pub fn needs_backfill(&self) -> bool {
-        !self.url.is_empty()
-            && (self.cache_key.is_empty()
-                || self.commit.is_empty()
-                || self.owner.is_empty()
-                || self.repo.is_empty())
-    }
-}
-
 impl PackLock {
     pub fn load_from_path(p: &Path) -> Result<Self> {
         let raw = fs::read_to_string(p).map_err(|e| AgentpackError::io(p, e))?;
-        let mut lock: PackLock =
+        let lock: PackLock =
             toml::from_str(&raw).map_err(|e| AgentpackError::LockfileParse(e.to_string()))?;
-        lock.sync_views_from_packages();
         Ok(lock)
     }
 
@@ -160,83 +112,38 @@ impl PackLock {
         Self::load_from_path(&lock_path(project_root))
     }
 
-    /// Facade read-models: `packages` is canonical, `skills/plugins` are derived for the rest of the codebase.
-    pub fn sync_views_from_packages(&mut self) {
-        self.skills.clear();
-        self.plugins.clear();
-        let mut pkgs = self.packages.clone();
-        pkgs.sort_by(|a, b| a.module.cmp(&b.module));
-        for p in pkgs {
-            match p.kind {
-                PackageKind::Plugin => self.plugins.push(p.to_lock_plugin()),
-                PackageKind::Skill => self.skills.push(p.to_lock_skill()),
-            }
-        }
+    /// Iterate over plugin packages.
+    pub fn plugins(&self) -> impl Iterator<Item = &LockPackage> {
+        self.packages
+            .iter()
+            .filter(|p| p.kind == PackageKind::Plugin)
     }
 
-    fn sync_packages_from_views(&mut self) {
-        let existing_direct: HashMap<(PackageKind, String, String), bool> = self
-            .packages
+    /// Iterate over skill packages.
+    pub fn skills(&self) -> impl Iterator<Item = &LockPackage> {
+        self.packages
             .iter()
-            .map(|package| {
-                (
-                    (
-                        package.kind,
-                        package.module.clone(),
-                        package.cache_key.clone(),
-                    ),
-                    package.direct,
-                )
-            })
-            .collect();
+            .filter(|p| p.kind == PackageKind::Skill)
+    }
 
-        let mut packages = Vec::with_capacity(self.skills.len() + self.plugins.len());
-        for skill in &self.skills {
-            let key = (
-                PackageKind::Skill,
-                skill.module.clone(),
-                skill.cache_key.clone(),
-            );
-            packages.push(LockPackage {
-                module: skill.module.clone(),
-                direct: existing_direct.get(&key).copied().unwrap_or(true),
-                kind: PackageKind::Skill,
-                url: skill.url.clone(),
-                owner: skill.owner.clone(),
-                repo: skill.repo.clone(),
-                path: skill.path.clone(),
-                commit: skill.commit.clone(),
-                cache_key: skill.cache_key.clone(),
-                name: String::new(),
-            });
-        }
-        for plugin in &self.plugins {
-            let key = (
-                PackageKind::Plugin,
-                plugin.module.clone(),
-                plugin.cache_key.clone(),
-            );
-            packages.push(LockPackage {
-                module: plugin.module.clone(),
-                direct: existing_direct.get(&key).copied().unwrap_or(true),
-                kind: PackageKind::Plugin,
-                url: plugin.url.clone(),
-                owner: plugin.owner.clone(),
-                repo: plugin.repo.clone(),
-                path: plugin.path.clone(),
-                commit: plugin.commit.clone(),
-                cache_key: plugin.cache_key.clone(),
-                name: plugin.name.clone(),
-            });
-        }
-        packages.sort_by(|a, b| a.module.cmp(&b.module));
-        self.packages = packages;
+    /// Mutable iterate over plugin packages.
+    pub fn plugins_mut(&mut self) -> impl Iterator<Item = &mut LockPackage> {
+        self.packages
+            .iter_mut()
+            .filter(|p| p.kind == PackageKind::Plugin)
+    }
+
+    pub fn plugin_count(&self) -> usize {
+        self.plugins().count()
+    }
+
+    pub fn skill_count(&self) -> usize {
+        self.skills().count()
     }
 
     pub fn save(&self, project_root: &Path) -> Result<()> {
         let mut snapshot = self.clone();
-        snapshot.sync_packages_from_views();
-        snapshot.sync_views_from_packages();
+        snapshot.packages.sort_by(|a, b| a.module.cmp(&b.module));
         let p = lock_path(project_root);
         let raw = toml::to_string_pretty(&snapshot)
             .map_err(|e| AgentpackError::LockfileParse(e.to_string()))?;
@@ -286,12 +193,10 @@ mod tests {
             ..Default::default()
         };
         let raw = toml::to_string_pretty(&p).unwrap();
-        assert!(!raw.contains("skills = []"));
-        assert!(!raw.contains("plugins = []"));
         assert!(!raw.contains("[config]"));
         let q: PackLock = toml::from_str(&raw).unwrap();
-        assert!(q.skills.is_empty());
-        assert!(q.plugins.is_empty());
+        assert_eq!(q.skill_count(), 0);
+        assert_eq!(q.plugin_count(), 0);
         assert!(q.config.disabled_plugins.is_empty());
     }
 
@@ -329,19 +234,23 @@ cache_key = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
             },
             ..Default::default()
         };
-        p.skills.push(LockSkill {
+        p.packages.push(LockPackage {
             module: "".into(),
+            direct: true,
+            kind: PackageKind::Skill,
             url: "u".into(),
             owner: "o".into(),
             repo: "r".into(),
             path: "p".into(),
             commit: "a".repeat(40),
             cache_key: "ab".repeat(32),
+            name: String::new(),
         });
         p.save(root).unwrap();
         let q = PackLock::load(root).unwrap();
-        assert_eq!(q.skills.len(), 1);
-        assert_eq!(q.skills[0].cache_key, p.skills[0].cache_key);
+        assert_eq!(q.skill_count(), 1);
+        let skill = q.skills().next().unwrap();
+        assert_eq!(skill.cache_key, p.packages[0].cache_key);
         assert_eq!(q.packages.len(), 1);
     }
 }

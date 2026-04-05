@@ -5,7 +5,7 @@ use reqwest::blocking::Client;
 
 use crate::error::{AgentpackError, Result};
 use crate::github::{download_and_extract, path_in_repo_looks_like_file};
-use crate::lockfile::{LockPlugin, LockSkill, PackLock};
+use crate::lockfile::{LockPackage, PackLock, PackageKind};
 use crate::paths;
 use crate::ui::Ui;
 
@@ -15,125 +15,80 @@ use super::layout::{
 };
 use super::tree::copy_source_tree;
 
-// Common fields for skill and plugin lock entries, used to avoid duplicated match arms.
-struct CachedLockEntry<'a> {
-    cache_key: &'a str,
-    url: &'a str,
-    owner: &'a str,
-    repo: &'a str,
-    path: &'a str,
-    commit: &'a str,
-    is_plugin: bool,
+fn is_local_source(pkg: &LockPackage) -> bool {
+    matches!(pkg.owner.as_str(), "path" | "local") || pkg.url.starts_with("file:")
 }
 
-impl<'a> CachedLockEntry<'a> {
-    fn from_skill(s: &'a LockSkill) -> Self {
-        Self {
-            cache_key: &s.cache_key,
-            url: &s.url,
-            owner: &s.owner,
-            repo: &s.repo,
-            path: &s.path,
-            commit: &s.commit,
-            is_plugin: false,
-        }
-    }
+fn blob_hint(pkg: &LockPackage) -> Option<&str> {
+    (pkg.url.contains("/blob/") && path_in_repo_looks_like_file(&pkg.path)).then_some(&pkg.path)
+}
 
-    fn from_plugin(p: &'a LockPlugin) -> Self {
-        Self {
-            cache_key: &p.cache_key,
-            url: &p.url,
-            owner: &p.owner,
-            repo: &p.repo,
-            path: &p.path,
-            commit: &p.commit,
-            is_plugin: true,
-        }
-    }
-
-    fn kind_label(&self) -> &'static str {
-        if self.is_plugin {
-            "plugin"
-        } else {
-            "skill"
-        }
-    }
-
-    fn is_local_source(&self) -> bool {
-        matches!(self.owner, "path" | "local") || self.url.starts_with("file:")
-    }
-
-    fn blob_hint(&self) -> Option<&str> {
-        (self.url.contains("/blob/") && path_in_repo_looks_like_file(self.path))
-            .then_some(self.path)
-    }
-
-    fn cache_ready(&self, out: &Path) -> Result<bool> {
-        if self.is_plugin {
-            normalize_plugin_cache_layout(out)?;
-            Ok(cache_has_plugin_manifest(out))
-        } else {
-            Ok(out.join("SKILL.md").is_file() || cache_has_plugin_manifest(out))
-        }
-    }
-
-    fn local_source_dir(&self) -> Option<PathBuf> {
-        path_from_file_url(self.url).or_else(|| resolve_local_mirror_from_url(self.url))
-    }
-
-    fn restore_from_local_source(&self, out: &Path) -> Result<bool> {
-        let Some(source) = self.local_source_dir() else {
-            return Ok(false);
-        };
-        if !source.is_dir() {
-            return Ok(false);
-        }
-        prepare_cache_output_dir(out)?;
-        copy_source_tree(&source, out)?;
+fn cache_ready(pkg: &LockPackage, out: &Path) -> Result<bool> {
+    if pkg.kind == PackageKind::Plugin {
         normalize_plugin_cache_layout(out)?;
-        Ok(true)
+        Ok(cache_has_plugin_manifest(out))
+    } else {
+        Ok(out.join("SKILL.md").is_file() || cache_has_plugin_manifest(out))
     }
+}
 
-    fn download_from_github(&self, client: &Client, out: &Path, ui: &Ui) -> Result<()> {
-        let cache_dir = paths::cache_dir()?;
-        fs::create_dir_all(&cache_dir).map_err(|err| AgentpackError::io(&cache_dir, err))?;
-        download_and_extract(
-            client,
-            self.owner,
-            self.repo,
-            self.commit,
-            self.path,
-            out,
-            ui,
-            self.blob_hint(),
-        )?;
-        if self.is_plugin {
-            ensure_plugin_manifest(out)
-        } else {
-            ensure_skill_md(out)
-        }
-    }
+fn local_source_dir(pkg: &LockPackage) -> Option<PathBuf> {
+    path_from_file_url(&pkg.url).or_else(|| resolve_local_mirror_from_url(&pkg.url))
+}
 
-    fn ensure_cached(self, client: &Client, ui: &Ui) -> Result<bool> {
-        let out = cache_entry_dir(self.cache_key)?;
-        if self.cache_ready(&out)? {
-            return Ok(true);
-        }
-        if self.restore_from_local_source(&out)? {
-            return self.cache_ready(&out);
-        }
-        if self.is_local_source() {
-            tracing::warn!(
-                cache_key = %self.cache_key,
-                url = %self.url,
-                "{} cache missing and path/local source unavailable; skipping",
-                self.kind_label(),
-            );
-            return Ok(false);
-        }
-        self.download_from_github(client, &out, ui)?;
-        self.cache_ready(&out)
+fn restore_from_local_source(pkg: &LockPackage, out: &Path) -> Result<bool> {
+    let Some(source) = local_source_dir(pkg) else {
+        return Ok(false);
+    };
+    if !source.is_dir() {
+        return Ok(false);
     }
+    prepare_cache_output_dir(out)?;
+    copy_source_tree(&source, out)?;
+    normalize_plugin_cache_layout(out)?;
+    Ok(true)
+}
+
+fn download_from_github(pkg: &LockPackage, client: &Client, out: &Path, ui: &Ui) -> Result<()> {
+    let cache_dir = paths::cache_dir()?;
+    fs::create_dir_all(&cache_dir).map_err(|err| AgentpackError::io(&cache_dir, err))?;
+    download_and_extract(
+        client,
+        &pkg.owner,
+        &pkg.repo,
+        &pkg.commit,
+        &pkg.path,
+        out,
+        ui,
+        blob_hint(pkg),
+    )?;
+    if pkg.kind == PackageKind::Plugin {
+        ensure_plugin_manifest(out)
+    } else {
+        ensure_skill_md(out)
+    }
+}
+
+/// Ensure a lock package is cached; returns true if cache is ready.
+pub fn ensure_lock_cached(client: &Client, pkg: &LockPackage, ui: &Ui) -> Result<bool> {
+    let out = cache_entry_dir(&pkg.cache_key)?;
+    if cache_ready(pkg, &out)? {
+        return Ok(true);
+    }
+    if restore_from_local_source(pkg, &out)? {
+        return cache_ready(pkg, &out);
+    }
+    if is_local_source(pkg) {
+        tracing::warn!(
+            cache_key = %pkg.cache_key,
+            url = %pkg.url,
+            "{} cache missing and path/local source unavailable; skipping",
+            pkg.kind_label(),
+        );
+        return Ok(false);
+    }
+    download_from_github(pkg, client, &out, ui)?;
+    cache_ready(pkg, &out)
 }
 
 fn prepare_cache_output_dir(out: &Path) -> Result<()> {
@@ -159,40 +114,31 @@ fn path_from_file_url(url: &str) -> Option<PathBuf> {
     parsed.to_file_path().ok()
 }
 
-pub fn ensure_lock_skill_cached(client: &Client, skill: &LockSkill, ui: &Ui) -> Result<bool> {
-    CachedLockEntry::from_skill(skill).ensure_cached(client, ui)
-}
-
-pub fn ensure_lock_plugin_cached(client: &Client, plugin: &LockPlugin, ui: &Ui) -> Result<bool> {
-    CachedLockEntry::from_plugin(plugin).ensure_cached(client, ui)
-}
-
-/// Validate cache trees for every lock entry that [`crate::sync::pipeline`] would pass to [`ensure_lock_plugin_cached`] / [`ensure_lock_skill_cached`].
+/// Validate cache trees for every lock entry.
 pub fn verify_lock_cache_integrity(lock: &PackLock) -> Result<()> {
-    for plugin in &lock.plugins {
-        if plugin.cache_key.is_empty() {
+    for pkg in &lock.packages {
+        if pkg.cache_key.is_empty() {
             continue;
         }
-        let out = cache_entry_dir(&plugin.cache_key)?;
-        normalize_plugin_cache_layout(&out)?;
-        if !cache_has_plugin_manifest(&out) {
-            return Err(AgentpackError::Cache(format!(
-                "plugin cache not ready for {}",
-                plugin.cache_key
-            )));
-        }
-    }
-    for skill in &lock.skills {
-        if skill.cache_key.is_empty() {
-            continue;
-        }
-        let out = cache_entry_dir(&skill.cache_key)?;
-        let ok = cache_dir_is_package_root_in_filesystem(&out);
-        if !ok {
-            return Err(AgentpackError::Cache(format!(
-                "skill cache not ready for {}",
-                skill.cache_key
-            )));
+        let out = cache_entry_dir(&pkg.cache_key)?;
+        match pkg.kind {
+            PackageKind::Plugin => {
+                normalize_plugin_cache_layout(&out)?;
+                if !cache_has_plugin_manifest(&out) {
+                    return Err(AgentpackError::Cache(format!(
+                        "plugin cache not ready for {}",
+                        pkg.cache_key
+                    )));
+                }
+            }
+            PackageKind::Skill => {
+                if !cache_dir_is_package_root_in_filesystem(&out) {
+                    return Err(AgentpackError::Cache(format!(
+                        "skill cache not ready for {}",
+                        pkg.cache_key
+                    )));
+                }
+            }
         }
     }
     Ok(())

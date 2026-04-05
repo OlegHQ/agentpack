@@ -95,11 +95,11 @@ fn with_manifest_document_mut(
 }
 
 impl AgentpackManifest {
-    pub fn disable_paths_for_module(&self, module: &str) -> Vec<String> {
+    pub fn disable_paths_for_module(&self, module: &str) -> &[String] {
         self.overrides
             .get(module)
-            .map(|o| o.disable.clone())
-            .unwrap_or_default()
+            .map(|o| o.disable.as_slice())
+            .unwrap_or(&[])
     }
 
     pub fn load(project_root: &Path) -> Result<Option<Self>> {

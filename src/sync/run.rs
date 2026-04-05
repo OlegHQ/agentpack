@@ -80,7 +80,12 @@ pub fn run_add(project_root: &Path, spec: &str, no_sync: bool, ui: &Ui) -> Resul
     let client = http_client()?;
     let _ = require_manifest(project_root)?;
     let (fetched, shorthand) = resolve_add_spec(&client, spec, ui)?;
-    let module_key = fetched.dependency_key();
+    let module_key = crate::cache::asset::dependency_key_for_entry(
+        &fetched.module,
+        &fetched.owner,
+        &fetched.repo,
+        &fetched.path,
+    );
     AgentpackManifest::append_dependency_key(project_root, &module_key)?;
     let manifest = require_manifest(project_root)?;
     resolve_and_save_lock(project_root, &manifest, &client, ui, false)?;

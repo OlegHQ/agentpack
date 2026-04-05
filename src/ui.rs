@@ -105,7 +105,7 @@ impl Ui {
             None
         };
 
-        let mut buf = Vec::new();
+        let mut buf = Vec::with_capacity(total.unwrap_or(0) as usize);
         let mut chunk = [0u8; 64 * 1024];
         loop {
             let n = r.read(&mut chunk)?;

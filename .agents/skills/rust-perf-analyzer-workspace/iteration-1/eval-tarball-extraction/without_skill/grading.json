@@ -1,9 +1,0 @@
-{
-  "expectations": [
-    {"text": "Identifies read_to_end + fs::write could be streaming instead", "passed": true, "evidence": "Issue 1: 'allocates a Vec, reads the entire file into memory... production code already fixes this by using std::io::copy'"},
-    {"text": "Identifies create_dir_all called per file (redundant syscalls)", "passed": true, "evidence": "Issue 2: 'calls create_dir_all on its parent directory, even when many files share the same parent'"},
-    {"text": "Notes path.components().collect() allocates Vec unnecessarily", "passed": true, "evidence": "Issue 3: 'Collecting all components into a Vec allocates on every entry... could use iterator with .skip(n)'"},
-    {"text": "Notes entry.path().to_path_buf() clones the path", "passed": true, "evidence": "Issue 3 mentions: 'path = entry.path()?.to_path_buf()' as part of the re-parsing issue"},
-    {"text": "Suggests pre-creating directory structure in one pass", "passed": true, "evidence": "Issue 2: 'Cache a HashSet<PathBuf> of already-created directories and skip the syscall'"}
-  ]
-}

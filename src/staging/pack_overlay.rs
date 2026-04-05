@@ -6,7 +6,7 @@ use walkdir::WalkDir;
 use crate::artifacts::{parse_markdown_artifact, staged_skill_support_path, HarnessTarget};
 use crate::cache::{cache_entry_dir, cache_has_plugin_manifest};
 use crate::error::{AgentpackError, Result};
-use crate::lockfile::{LockPlugin, LockSkill, PackLock};
+use crate::lockfile::{LockPackage, PackLock, PackageKind};
 use crate::manifest::AgentpackManifest;
 
 use crate::fs_util::write_text_file;
@@ -55,13 +55,16 @@ fn rel_is_disabled(rel: &Path, disabled: &[String]) -> bool {
     false
 }
 
-fn disable_list_for_entry(manifest: Option<&AgentpackManifest>, module: &str) -> Vec<String> {
+fn disable_list_for_entry<'a>(
+    manifest: Option<&'a AgentpackManifest>,
+    module: &str,
+) -> &'a [String] {
     if module.is_empty() {
-        return Vec::new();
+        return &[];
     }
     manifest
         .map(|m| m.disable_paths_for_module(module))
-        .unwrap_or_default()
+        .unwrap_or(&[])
 }
 
 fn stage_source_tree(
@@ -199,14 +202,14 @@ pub(super) fn stage_pack_plugins_for_target(
     target: HarnessTarget,
     manifest: Option<&AgentpackManifest>,
 ) -> Result<()> {
-    let mut plug_list: Vec<&LockPlugin> = lock.plugins.iter().collect();
+    let mut plug_list: Vec<&LockPackage> = lock.plugins().collect();
     plug_list.sort_by(|a, b| a.cache_key.cmp(&b.cache_key));
     for plugin in plug_list {
         if plugin.cache_key.is_empty() {
             tracing::warn!("skipping plugin staging: empty cache_key (run sync to backfill)");
             continue;
         }
-        if plugin_disabled_in_config(lock, plugin) {
+        if disabled_in_config(lock, plugin) {
             tracing::info!(cache_key = %plugin.cache_key, "skip disabled plugin");
             continue;
         }
@@ -225,7 +228,7 @@ pub(super) fn stage_pack_plugins_for_target(
             continue;
         }
         let disabled = disable_list_for_entry(manifest, &plugin.module);
-        stage_plugin_cache_for_target(&cache_path, dest_root, target, &disabled)?;
+        stage_plugin_cache_for_target(&cache_path, dest_root, target, disabled)?;
     }
     Ok(())
 }
@@ -236,14 +239,15 @@ pub(super) fn stage_pack_skills_for_target(
     target: HarnessTarget,
     manifest: Option<&AgentpackManifest>,
 ) -> Result<()> {
-    let mut skill_list: Vec<&LockSkill> = lock.skills.iter().collect();
+    let plugins: Vec<&LockPackage> = lock.plugins().collect();
+    let mut skill_list: Vec<&LockPackage> = lock.skills().collect();
     skill_list.sort_by(|a, b| a.cache_key.cmp(&b.cache_key));
     for skill in skill_list {
-        if skill_disabled_in_config(lock, skill) {
+        if disabled_in_config(lock, skill) {
             tracing::info!(cache_key = %skill.cache_key, "skip disabled skill");
             continue;
         }
-        if skill_is_shadowed(skill, &lock.plugins) {
+        if skill_is_shadowed(skill, &plugins) {
             tracing::info!(
                 cache_key = %skill.cache_key,
                 path = %skill.path,
@@ -267,7 +271,7 @@ pub(super) fn stage_pack_skills_for_target(
             );
             continue;
         }
-        stage_bare_skill_cache_for_target(&cache_path, dest_root, target, &name, &disabled)?;
+        stage_bare_skill_cache_for_target(&cache_path, dest_root, target, &name, disabled)?;
     }
     Ok(())
 }
@@ -276,38 +280,35 @@ fn entry_short_id(cache_key: &str) -> String {
     crate::fs_util::truncate_str(cache_key, 16)
 }
 
-pub(crate) fn skill_folder_name(skill: &LockSkill) -> String {
-    if skill.path.is_empty() {
-        return skill.repo.clone();
+pub(crate) fn skill_folder_name(pkg: &LockPackage) -> String {
+    if pkg.path.is_empty() {
+        return pkg.repo.clone();
     }
-    Path::new(&skill.path)
+    Path::new(&pkg.path)
         .file_name()
         .map(|s| s.to_string_lossy().into_owned())
-        .unwrap_or_else(|| skill.repo.clone())
+        .unwrap_or_else(|| pkg.repo.clone())
 }
 
-pub(super) fn skill_disabled_in_config(lock: &PackLock, skill: &LockSkill) -> bool {
-    let sid = entry_short_id(&skill.cache_key);
+/// Check if a package is disabled in the lock config.
+pub(super) fn disabled_in_config(lock: &PackLock, pkg: &LockPackage) -> bool {
+    let sid = entry_short_id(&pkg.cache_key);
     lock.config
         .disabled_plugins
         .iter()
-        .any(|id| id == &skill.cache_key || id == &sid)
+        .any(|id| id == &pkg.cache_key || id == &sid)
 }
 
-pub(super) fn plugin_disabled_in_config(lock: &PackLock, plugin: &LockPlugin) -> bool {
-    let sid = entry_short_id(&plugin.cache_key);
-    lock.config
-        .disabled_plugins
-        .iter()
-        .any(|id| id == &plugin.cache_key || id == &sid)
-}
-
-fn plugin_ready_for_shadowing(p: &LockPlugin) -> bool {
-    !p.cache_key.is_empty() && !p.commit.is_empty() && !p.owner.is_empty() && !p.repo.is_empty()
+fn plugin_ready_for_shadowing(p: &LockPackage) -> bool {
+    p.kind == PackageKind::Plugin
+        && !p.cache_key.is_empty()
+        && !p.commit.is_empty()
+        && !p.owner.is_empty()
+        && !p.repo.is_empty()
 }
 
 /// True when this skill path is already provided by a full plugin at the same commit.
-pub fn skill_is_shadowed(skill: &LockSkill, plugins: &[LockPlugin]) -> bool {
+pub fn skill_is_shadowed(skill: &LockPackage, plugins: &[&LockPackage]) -> bool {
     plugins
         .iter()
         .filter(|p| plugin_ready_for_shadowing(p))

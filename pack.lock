@@ -56,12 +56,12 @@ name = ""
 module = "github.com/oleghq/agent-configs/plugins/rust-dev"
 direct = true
 kind = "plugin"
-url = "https://github.com/oleghq/agent-configs/tree/d5901af663dda6ff5d0a07b8b1367507adcc6db5/plugins/rust-dev"
+url = "https://github.com/oleghq/agent-configs/tree/e25702aef5f52e2c886bbe13940afca47d6722cc/plugins/rust-dev"
 owner = "oleghq"
 repo = "agent-configs"
 path = "plugins/rust-dev"
-commit = "d5901af663dda6ff5d0a07b8b1367507adcc6db5"
-cache_key = "91db8dc7bfe02f28cf4b0da22f6dd022bdde444baa76c23861874541fdd54d62"
+commit = "e25702aef5f52e2c886bbe13940afca47d6722cc"
+cache_key = "88a1a7c3e038d3eeec077bdbe6987b4708497b279535ec29b52de962e1f47e41"
 name = ""
 
 [[packages]]

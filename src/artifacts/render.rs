@@ -144,6 +144,6 @@ impl MarkdownArtifact {
         }
         rendered.push('\n');
         rendered.push_str(self.body.trim_start_matches('\n'));
-        ensure_trailing_newline(&rendered)
+        ensure_trailing_newline(&rendered).into_owned()
     }
 }
