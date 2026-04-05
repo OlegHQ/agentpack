@@ -6,6 +6,9 @@ use chrono::Utc;
 use reqwest::blocking::Client;
 use url::Url;
 
+use crate::cache::index::{
+    aliases_for_github_entry, get_entry, lookup_alias, upsert_entry, CacheEntryRecord,
+};
 use crate::cache::{
     cache_entry_dir, cache_has_plugin_manifest, classify_materialized, claude_plugin_manifest_path,
     copy_package_dir_to_cache, cursor_plugin_manifest_path, ensure_lock_plugin_cached,
@@ -15,9 +18,6 @@ use crate::cache::{
 use crate::error::{AgentpackError, Result};
 use crate::github::{
     canonical_github_tree_url, github_source_from_segments, parse_github_url, GitHubSource,
-};
-use crate::cache::index::{
-    aliases_for_github_entry, get_entry, lookup_alias, upsert_entry, CacheEntryRecord,
 };
 use crate::lockfile::{LockPlugin, LockSkill, PackageKind};
 use crate::paths;

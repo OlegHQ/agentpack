@@ -62,11 +62,7 @@ fn pick_effective_git_ref(
     }
     if !opts.refresh_floating {
         if let Some(prev) = opts.previous {
-            if let Some(pkg) = prev
-                .packages
-                .iter()
-                .find(|p| p.module == mid.as_str())
-            {
+            if let Some(pkg) = prev.packages.iter().find(|p| p.module == mid.as_str()) {
                 return Ok(pkg.commit.clone());
             }
         }
@@ -207,8 +203,7 @@ mod effective_ref_tests {
             refresh_floating: false,
         };
         let c = Client::new();
-        let got =
-            pick_effective_git_ref(&mc, &c, "foo", "bar", &mid, &opts).expect("reuse");
+        let got = pick_effective_git_ref(&mc, &c, "foo", "bar", &mid, &opts).expect("reuse");
         assert_eq!(got, sha);
     }
 
@@ -239,8 +234,7 @@ mod effective_ref_tests {
             refresh_floating: false,
         };
         let c = Client::new();
-        let got =
-            pick_effective_git_ref(&mc, &c, "foo", "bar", &mid, &opts).expect("exact");
+        let got = pick_effective_git_ref(&mc, &c, "foo", "bar", &mid, &opts).expect("exact");
         assert_eq!(got, new_sha);
     }
 

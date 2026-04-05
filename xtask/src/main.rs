@@ -103,8 +103,7 @@ fn sync_homebrew(tap_root: &str, slug: &str, version: &str) {
     let text = fs::read_to_string(&formula).expect("read formula");
 
     let (text, n_url) = replace_first_match(&text, r#"  url ""#, &format!("  url \"{url}\""));
-    let (text, n_sha) =
-        replace_first_match(&text, r#"  sha256 ""#, &format!("  sha256 \"{sha}\""));
+    let (text, n_sha) = replace_first_match(&text, r#"  sha256 ""#, &format!("  sha256 \"{sha}\""));
 
     if n_url != 1 || n_sha != 1 {
         eprintln!(

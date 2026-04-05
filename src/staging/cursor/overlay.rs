@@ -6,12 +6,16 @@ use std::path::{Path, PathBuf};
 
 use crate::error::{AgentpackError, Result};
 use crate::fs_util::remove_path_any;
-use crate::paths::{cursor_overlay_manifest_path, cursor_workspace_dir, staging_cursor_pack_plugin_dir};
+use crate::paths::{
+    cursor_overlay_manifest_path, cursor_workspace_dir, staging_cursor_pack_plugin_dir,
+};
 
 use super::super::constants::CURSOR_WORKSPACE_AGENTS_OVERLAY;
 use super::fake_home::symlink_or_copy_into_fake_home;
 
-pub(in crate::staging) fn read_cursor_overlay_manifest(project_root: &Path) -> Result<Vec<PathBuf>> {
+pub(in crate::staging) fn read_cursor_overlay_manifest(
+    project_root: &Path,
+) -> Result<Vec<PathBuf>> {
     let manifest = cursor_overlay_manifest_path(project_root)?;
     match fs::read_to_string(&manifest) {
         Ok(contents) => Ok(contents

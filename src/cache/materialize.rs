@@ -5,10 +5,10 @@ use reqwest::blocking::Client;
 
 use crate::error::{AgentpackError, Result};
 use crate::github::{
-    archive_no_files_for_repo_path, canonical_github_tree_url,
-    choose_package_prefix_for_blob_path, collect_repo_relative_paths, download_tarball_bytes,
-    extract_tarball_with_prefix, parent_dir_in_repo, parse_github_url, path_in_repo_looks_like_file,
-    resolve_ref_to_sha, GitHubSource,
+    archive_no_files_for_repo_path, canonical_github_tree_url, choose_package_prefix_for_blob_path,
+    collect_repo_relative_paths, download_tarball_bytes, extract_tarball_with_prefix,
+    parent_dir_in_repo, parse_github_url, path_in_repo_looks_like_file, resolve_ref_to_sha,
+    GitHubSource,
 };
 use crate::paths;
 use crate::ui::Ui;

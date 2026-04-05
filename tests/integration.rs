@@ -1,6 +1,8 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use agentpack::cli::dispatch::run;
+use agentpack::cli::{Cli, Command};
 use agentpack::lockfile::{LockPlugin, LockSkill, PackLock};
 use agentpack::paths::{
     cache_dir, cursor_workspace_dir, project_dot_agents_dir, staging_codex_home_dir,
@@ -10,8 +12,6 @@ use agentpack::paths::{
 use agentpack::sync::launch_fingerprint::{
     compute_launch_sync_digest, read_stored_launch_digest, write_launch_sync_state,
 };
-use agentpack::cli::dispatch::run;
-use agentpack::cli::{Cli, Command};
 use serial_test::serial;
 use tempfile::tempdir;
 

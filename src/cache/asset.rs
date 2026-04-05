@@ -80,9 +80,13 @@ fn module_for_source(source: &GitHubSource) -> String {
     if source.owner == "path" || source.owner == "local" {
         return String::new();
     }
-    crate::resolve::module_id::ModuleId::from_owner_repo_path(&source.owner, &source.repo, &source.path)
-        .as_str()
-        .to_string()
+    crate::resolve::module_id::ModuleId::from_owner_repo_path(
+        &source.owner,
+        &source.repo,
+        &source.path,
+    )
+    .as_str()
+    .to_string()
 }
 
 fn lock_skill_from(
