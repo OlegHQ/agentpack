@@ -1,22 +1,14 @@
 mod artifacts;
 pub mod cache;
-mod cli;
-mod dispatch;
-mod error;
+pub mod cli;
+pub mod error;
 mod fs_util;
 mod github;
-mod index;
 pub mod launcher;
 pub mod lockfile;
 mod manifest;
-mod module_id;
 pub mod paths;
 mod resolve;
 mod staging;
 pub mod sync;
-mod ui;
-
-pub use cli::{Cli, Command};
-pub use dispatch::run;
-pub use error::{AgentpackError, Result};
-pub use ui::Ui;
+pub mod ui;

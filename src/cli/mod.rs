@@ -1,3 +1,5 @@
+pub mod dispatch;
+
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};

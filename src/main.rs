@@ -1,4 +1,5 @@
-use agentpack::{run, Cli};
+use agentpack::cli::dispatch::run;
+use agentpack::cli::Cli;
 use clap::Parser;
 use tracing_subscriber::EnvFilter;
 

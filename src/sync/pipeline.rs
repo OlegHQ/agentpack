@@ -7,7 +7,7 @@ use crate::cache::{
     backfill_plugin_lock_entry, ensure_lock_plugin_cached, ensure_lock_skill_cached,
 };
 use crate::error::Result;
-use crate::index::{list_keys, upsert_entry, CacheEntryRecord};
+use crate::cache::index::{list_keys, upsert_entry, CacheEntryRecord};
 use crate::lockfile::{LockPlugin, LockSkill, PackLock, PackageKind};
 use crate::manifest::AgentpackManifest;
 use crate::paths;

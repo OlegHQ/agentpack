@@ -71,7 +71,7 @@ fn dependency_key_for_entry(module: &str, owner: &str, repo: &str, path: &str) -
     if !module.is_empty() {
         return module.to_string();
     }
-    crate::module_id::ModuleId::from_owner_repo_path(owner, repo, path)
+    crate::resolve::module_id::ModuleId::from_owner_repo_path(owner, repo, path)
         .as_str()
         .to_string()
 }
@@ -80,7 +80,7 @@ fn module_for_source(source: &GitHubSource) -> String {
     if source.owner == "path" || source.owner == "local" {
         return String::new();
     }
-    crate::module_id::ModuleId::from_owner_repo_path(&source.owner, &source.repo, &source.path)
+    crate::resolve::module_id::ModuleId::from_owner_repo_path(&source.owner, &source.repo, &source.path)
         .as_str()
         .to_string()
 }

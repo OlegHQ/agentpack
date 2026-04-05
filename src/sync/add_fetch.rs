@@ -16,7 +16,7 @@ use crate::error::{AgentpackError, Result};
 use crate::github::{
     canonical_github_tree_url, github_source_from_segments, parse_github_url, GitHubSource,
 };
-use crate::index::{
+use crate::cache::index::{
     aliases_for_github_entry, get_entry, lookup_alias, upsert_entry, CacheEntryRecord,
 };
 use crate::lockfile::{LockPlugin, LockSkill, PackageKind};
@@ -314,7 +314,7 @@ mod tests {
     use serial_test::serial;
     use tempfile::tempdir;
 
-    use crate::index::{upsert_entry, CacheEntryRecord};
+    use crate::cache::index::{upsert_entry, CacheEntryRecord};
     use crate::lockfile::PackageKind;
     use crate::ui::Ui;
 

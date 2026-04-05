@@ -10,7 +10,8 @@ use agentpack::paths::{
 use agentpack::sync::launch_fingerprint::{
     compute_launch_sync_digest, read_stored_launch_digest, write_launch_sync_state,
 };
-use agentpack::{run, Cli, Command};
+use agentpack::cli::dispatch::run;
+use agentpack::cli::{Cli, Command};
 use serial_test::serial;
 use tempfile::tempdir;
 

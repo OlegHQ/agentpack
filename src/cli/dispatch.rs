@@ -5,7 +5,7 @@ use std::path::Path;
 
 use anyhow::Context;
 
-use crate::cli::{Cli, Command};
+use super::{Cli, Command};
 use crate::{launcher, lockfile, manifest, paths, sync};
 use crate::ui::Ui;
 

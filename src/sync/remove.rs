@@ -2,7 +2,7 @@ use crate::cache::blob_path_parent_prefixes;
 use crate::error::{AgentpackError, Result};
 use crate::github::{parse_github_url, path_in_repo_looks_like_file};
 use crate::manifest::AgentpackManifest;
-use crate::module_id::{split_module_at_ref, ModuleId};
+use crate::resolve::module_id::{split_module_at_ref, ModuleId};
 
 fn module_key_candidates(owner: &str, repo: &str, path: &str) -> Vec<String> {
     let owner = owner.to_lowercase();

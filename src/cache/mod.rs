@@ -1,4 +1,5 @@
 mod asset;
+pub(crate) mod index;
 mod layout;
 mod materialize;
 mod restore;
