@@ -1,4 +1,8 @@
-use crate::launcher::common::{apply_yolo_claude_opencode, exec_with_env, single_dir_override};
+use anyhow::Context;
+
+use crate::launcher::common::{
+    apply_yolo_claude_opencode, exec_with_env, resolve_harness_binary, single_dir_override,
+};
 use crate::paths;
 use crate::sync::sync_for_launch;
 use crate::ui::Ui;
@@ -24,9 +28,12 @@ pub fn run_opencode(
         std::path::Path::new(&config_dir).display()
     ));
 
+    let opencode = resolve_harness_binary("OPENCODE_PATH", "opencode").with_context(|| {
+        "OpenCode CLI (`opencode`) not found.\n\
+         Install OpenCode and ensure `opencode` is on your PATH, or set OPENCODE_PATH to the executable."
+    })?;
     exec_with_env(
-        "OPENCODE_PATH",
-        "opencode",
+        &opencode,
         &[("OPENCODE_CONFIG_DIR", config_dir)],
         passthrough,
     )

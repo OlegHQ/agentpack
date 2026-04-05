@@ -302,6 +302,108 @@ fn sync_stages_bare_skills_for_all_launchers() {
     }
 }
 
+/// Plugin trees must merge non-`.md` assets under `commands` / `skills` / etc. for **both** Cursor
+/// and Claude bundles (raw subtree merge + markdown overlay).
+#[test]
+#[serial]
+fn sync_stages_cursor_and_claude_plugin_with_skill_support_and_command_sidecars() {
+    let dir = tempdir().unwrap();
+    let root: PathBuf = dir.path().to_path_buf();
+    prep_store(&root);
+    run(Cli {
+        project_root: Some(root.clone()),
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        debug: false,
+        command: Command::Init {
+            name: None,
+            version: None,
+        },
+    })
+    .unwrap();
+
+    let pk = "7".repeat(64);
+    let cache = cache_dir().unwrap();
+    fs::create_dir_all(cache.join(&pk).join(".cursor-plugin")).unwrap();
+    fs::write(
+        cache.join(&pk).join(".cursor-plugin/plugin.json"),
+        r#"{"name":"rust-dev-like","version":"1.0.0","displayName":"rust-dev-like"}"#,
+    )
+    .unwrap();
+    let skill_dir = cache.join(&pk).join("skills").join("rust-skill");
+    fs::create_dir_all(skill_dir.join("evals")).unwrap();
+    fs::write(
+        skill_dir.join("SKILL.md"),
+        "---\nname: rust-skill\ndescription: Rust helpers\n---\n\nBody.\n",
+    )
+    .unwrap();
+    fs::write(skill_dir.join("evals").join("evals.json"), "{\"version\":1}\n").unwrap();
+    fs::create_dir_all(cache.join(&pk).join("commands")).unwrap();
+    fs::write(
+        cache.join(&pk).join("commands").join("sidecar.txt"),
+        "binary-friendly sidecar\n",
+    )
+    .unwrap();
+
+    let mut lock = PackLock::load(&root).unwrap();
+    lock.plugins.push(LockPlugin {
+        module: String::new(),
+        name: String::new(),
+        url: "https://github.com/o/r/tree/main/plugins/rust-dev".into(),
+        owner: "o".into(),
+        repo: "r".into(),
+        path: "plugins/rust-dev".into(),
+        commit: "8".repeat(40),
+        cache_key: pk,
+    });
+    lock.save(&root).unwrap();
+
+    run(Cli {
+        project_root: Some(root.clone()),
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        debug: false,
+        command: Command::Sync {
+            dry_run: false,
+            verify_only: false,
+        },
+    })
+    .unwrap();
+
+    let cursor_pack = staging_cursor_pack_plugin_dir(&root).unwrap();
+    let staged_skill = cursor_pack.join("skills/rust-skill");
+    assert!(staged_skill.join("SKILL.md").is_file());
+    assert_eq!(
+        fs::read_to_string(staged_skill.join("evals/evals.json")).unwrap(),
+        "{\"version\":1}\n"
+    );
+    assert_eq!(
+        fs::read_to_string(cursor_pack.join("commands/sidecar.txt")).unwrap(),
+        "binary-friendly sidecar\n"
+    );
+
+    let cursor_home = staging_cursor_home_dir(&root).unwrap();
+    assert!(cursor_home
+        .join(".cursor/skills/rust-skill/evals/evals.json")
+        .is_file());
+    assert!(cursor_home
+        .join(".cursor/commands/sidecar.txt")
+        .is_file());
+
+    let claude_bundle = staging_plugins_dir(&root).unwrap().join("agentpack-bundle");
+    assert!(claude_bundle.join("skills/rust-skill/SKILL.md").is_file());
+    assert_eq!(
+        fs::read_to_string(claude_bundle.join("skills/rust-skill/evals/evals.json")).unwrap(),
+        "{\"version\":1}\n"
+    );
+    assert_eq!(
+        fs::read_to_string(claude_bundle.join("commands/sidecar.txt")).unwrap(),
+        "binary-friendly sidecar\n"
+    );
+}
+
 #[test]
 #[serial]
 fn sync_converts_markdown_artifacts_per_target_harness() {

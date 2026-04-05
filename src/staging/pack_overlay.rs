@@ -95,11 +95,8 @@ fn stage_source_tree(
             return Ok(());
         }
 
-        let ext = src
-            .extension()
-            .and_then(|ext| ext.to_str())
-            .unwrap_or_default();
-        if ext != "md" && ext != "mdc" {
+        let ext = src.extension().and_then(|e| e.to_str()).unwrap_or("");
+        if !ext.eq_ignore_ascii_case("md") && !ext.eq_ignore_ascii_case("mdc") {
             return Ok(());
         }
 

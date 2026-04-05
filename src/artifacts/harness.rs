@@ -15,8 +15,31 @@ pub enum HarnessTarget {
 impl HarnessTarget {
     pub fn raw_plugin_subdirs(self) -> &'static [&'static str] {
         match self {
-            HarnessTarget::Claude => &["hooks", "matchers", "core", "examples", "utils"],
-            HarnessTarget::Cursor => &["hooks", "assets", "scripts"],
+            // Same extension-dir merge as Cursor: verbatim copy then markdown overlay (see `stage_source_tree`).
+            HarnessTarget::Claude => &[
+                "hooks",
+                "matchers",
+                "core",
+                "examples",
+                "utils",
+                "commands",
+                "agents",
+                "rules",
+                "skills",
+            ],
+            // Cursor plugins often ship `skills/<slug>/…` plus `commands` / `agents` / `rules` at the
+            // repo root (or only under `.cursor/` — those still go through `stage_source_tree`). Copy
+            // these subtrees verbatim first so non-`.md` assets (eval JSON, reference snippets, etc.)
+            // are not dropped; markdown pass then overlays rendered artifacts.
+            HarnessTarget::Cursor => &[
+                "hooks",
+                "assets",
+                "scripts",
+                "commands",
+                "agents",
+                "rules",
+                "skills",
+            ],
             HarnessTarget::OpenCode | HarnessTarget::Codex => &[],
         }
     }

@@ -140,13 +140,25 @@ pub(super) fn detect_skill_file(path: &Path) -> Option<(String, PathBuf)> {
     Some((name, PathBuf::from("SKILL.md")))
 }
 
-pub(super) fn detect_named_markdown(path: &Path, dir_name: &str, ext: &str) -> Option<PathBuf> {
+/// Detects **`dir_name/<path>.{md,mdc}`** under a package (after harness prefix strip). Extensions are case-insensitive.
+pub(super) fn detect_named_markdown_extensions(
+    path: &Path,
+    dir_name: &str,
+    exts: &[&str],
+) -> Option<PathBuf> {
     let mut comps = path.components();
     if comps.next()?.as_os_str() != OsStr::new(dir_name) {
         return None;
     }
     let remainder = comps.as_path();
-    if remainder.as_os_str().is_empty() || remainder.extension() != Some(OsStr::new(ext)) {
+    if remainder.as_os_str().is_empty() {
+        return None;
+    }
+    let got = remainder.extension()?.to_str()?;
+    if !exts
+        .iter()
+        .any(|e| got.eq_ignore_ascii_case(e.trim_start_matches('.')))
+    {
         return None;
     }
     Some(remainder.to_path_buf())

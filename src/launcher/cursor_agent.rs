@@ -1,7 +1,11 @@
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
-use crate::launcher::common::{apply_yolo_cursor_agent, exec_with_env, single_dir_override};
+use anyhow::Context;
+
+use crate::launcher::common::{
+    apply_yolo_cursor_agent, exec_with_env, resolve_harness_binary, single_dir_override,
+};
 use crate::paths;
 use crate::sync::sync_for_launch;
 use crate::ui::Ui;
@@ -151,5 +155,9 @@ pub fn run_agent(
     prepend_trust_if_configured(&mut args);
     ui.debug_message(msg);
 
-    exec_with_env("CURSOR_AGENT_PATH", "agent", &envs, args)
+    let agent = resolve_harness_binary("CURSOR_AGENT_PATH", "agent").with_context(|| {
+        "Cursor Agent CLI (`agent`) not found.\n\
+         Install Cursor with the Agent CLI available on your PATH, or set CURSOR_AGENT_PATH to the `agent` executable."
+    })?;
+    exec_with_env(&agent, &envs, args)
 }
