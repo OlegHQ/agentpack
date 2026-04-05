@@ -1,0 +1,10 @@
+{
+  "expectations": [
+    {"text": "Provides specific cargo-flamegraph command for the binary", "passed": true, "evidence": "Includes 'cargo flamegraph --bin agentpack -- sync' and samply commands"},
+    {"text": "Includes Cargo.toml profile settings for debug symbols in release", "passed": true, "evidence": "Shows [profile.release] debug = 1 and [profile.bench] debug = 1"},
+    {"text": "Provides strace/dtruss command for syscall counting", "passed": true, "evidence": "Provides strace/dtruss commands in profiling section"},
+    {"text": "Creates benchmark file structure with criterion or divan", "passed": true, "evidence": "Complete benches/sync_bench.rs with divan, multiple benchmark functions"},
+    {"text": "Benchmarks are broken down by pipeline stage (resolve, download, cache, staging)", "passed": true, "evidence": "6-phase breakdown table with specific code paths, benchmarks for individual stages"},
+    {"text": "Explains how to read flamegraph output", "passed": true, "evidence": "Explains wide boxes = CPU time, tall stacks = deep chains"}
+  ]
+}

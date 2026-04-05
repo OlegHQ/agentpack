@@ -1,6 +1,6 @@
 # Agentpack project manifest — direct dependencies only. Run `agentpack lock` to refresh pack.lock.
 
-name = "agentpack"
+name = "github.com/OlegHQ/agentpack"
 version = "0.0.1"
 
 [dependencies]

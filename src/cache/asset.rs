@@ -71,6 +71,9 @@ fn dependency_key_for_entry(module: &str, owner: &str, repo: &str, path: &str) -
     if !module.is_empty() {
         return module.to_string();
     }
+    if owner == "path" {
+        return repo.to_string();
+    }
     crate::resolve::module_id::ModuleId::from_owner_repo_path(owner, repo, path)
         .as_str()
         .to_string()

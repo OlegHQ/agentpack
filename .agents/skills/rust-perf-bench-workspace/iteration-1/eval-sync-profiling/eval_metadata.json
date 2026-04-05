@@ -1,0 +1,13 @@
+{
+  "eval_id": 1,
+  "eval_name": "sync-profiling-setup",
+  "prompt": "Set up profiling and benchmarks for a slow Rust CLI sync command (~37s)",
+  "assertions": [
+    {"text": "Provides specific cargo-flamegraph command for the binary", "type": "boolean"},
+    {"text": "Includes Cargo.toml profile settings for debug symbols in release", "type": "boolean"},
+    {"text": "Provides strace/dtruss command for syscall counting", "type": "boolean"},
+    {"text": "Creates benchmark file structure with criterion or divan", "type": "boolean"},
+    {"text": "Benchmarks are broken down by pipeline stage (resolve, download, cache, staging)", "type": "boolean"},
+    {"text": "Explains how to read flamegraph output", "type": "boolean"}
+  ]
+}

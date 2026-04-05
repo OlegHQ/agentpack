@@ -1,0 +1,12 @@
+{
+  "eval_id": 3,
+  "eval_name": "tarball-extraction-analysis",
+  "prompt": "Review tarball extraction function for performance",
+  "assertions": [
+    {"text": "Identifies read_to_end + fs::write could be streaming instead", "type": "boolean"},
+    {"text": "Identifies create_dir_all called per file (redundant syscalls)", "type": "boolean"},
+    {"text": "Notes path.components().collect() allocates Vec unnecessarily", "type": "boolean"},
+    {"text": "Notes entry.path().to_path_buf() clones the path", "type": "boolean"},
+    {"text": "Suggests pre-creating directory structure in one pass", "type": "boolean"}
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "expectations": [
+    {"text": "Identifies read_to_end + fs::write could be streaming instead", "passed": true, "evidence": "Critical: 'Double-buffering... The correct approach is std::io::copy... streams through a small stack buffer'"},
+    {"text": "Identifies create_dir_all called per file (redundant syscalls)", "passed": true, "evidence": "Significant: 'create_dir_all issues multiple stat+mkdir syscalls... called for every file entry... track in HashSet'"},
+    {"text": "Notes path.components().collect() allocates Vec unnecessarily", "passed": true, "evidence": "Critical: 'Collects all path components into a Vec on every iteration... can be skipped with .skip(strip_components)'"},
+    {"text": "Notes entry.path().to_path_buf() clones the path", "passed": true, "evidence": "Critical: 'Allocates a PathBuf for every archive entry... could be avoided by working with borrowed Cow<Path>'"},
+    {"text": "Suggests pre-creating directory structure in one pass", "passed": true, "evidence": "Significant: 'track already-created directories in a HashSet<PathBuf> and skip the syscall'"}
+  ]
+}

@@ -1,7 +1,7 @@
 lockfile_version = 2
 
 [meta]
-name = "agentpack"
+name = "github.com/OlegHQ/agentpack"
 version = "0.0.1"
 
 [[packages]]

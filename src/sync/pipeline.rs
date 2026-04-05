@@ -118,7 +118,7 @@ fn maybe_refresh_lock_from_manifest(
         previous: previous.as_ref(),
         refresh_floating,
     };
-    let resolved = resolve_lock_from_manifest(manifest, client, ui, &opts)?;
+    let resolved = resolve_lock_from_manifest(manifest, client, ui, &opts, project_root)?;
     resolved.save(project_root)
 }
 

@@ -122,6 +122,11 @@ pub(super) fn from_ref_str(r: Option<&str>) -> Result<ModuleConstraints> {
 }
 
 pub(super) fn from_table(t: &DepTable, key_ref: Option<&str>) -> Result<ModuleConstraints> {
+    if t.path.is_some() {
+        return Err(AgentpackError::Cache(
+            "path dependencies should be resolved before constraint parsing".into(),
+        ));
+    }
     let mut c = ModuleConstraints::default();
     let mut n = 0u8;
     if t.commit.is_some() {

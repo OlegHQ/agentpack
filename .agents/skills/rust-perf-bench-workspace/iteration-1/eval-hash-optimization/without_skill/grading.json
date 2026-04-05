@@ -1,0 +1,10 @@
+{
+  "expectations": [
+    {"text": "Suggests parallel hashing with rayon", "passed": true, "evidence": "Fix 3: mentions 'Parallelizing the walk or the per-file hashing with rayon'"},
+    {"text": "Suggests faster hasher (blake3/xxhash) for non-crypto use case", "passed": false, "evidence": "Does not mention alternative hashers"},
+    {"text": "Suggests mmap or streaming instead of fs::read into Vec", "passed": true, "evidence": "Fix: 'BufReader feeding io::copy into the hasher would avoid the per-file heap allocation'"},
+    {"text": "Suggests caching hash based on directory mtime", "passed": false, "evidence": "Does not mention mtime-based caching; focuses on cache slot skip"},
+    {"text": "Provides benchmark code to measure before/after", "passed": false, "evidence": "Provides code fixes but no benchmark code"},
+    {"text": "Discusses tradeoffs of each approach", "passed": true, "evidence": "Discusses determinism requirement for parallel hashing, double-walk problem, cache skip safety"}
+  ]
+}

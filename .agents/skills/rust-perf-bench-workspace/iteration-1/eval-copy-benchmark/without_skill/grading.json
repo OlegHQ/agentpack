@@ -1,0 +1,10 @@
+{
+  "expectations": [
+    {"text": "Produces complete, compilable benchmark code", "passed": true, "evidence": "Created benches/copy_tree.rs that compiled and ran successfully"},
+    {"text": "Uses divan or criterion with parameterized inputs (10, 100, 1000)", "passed": true, "evidence": "Uses divan with args = [10, 100, 1000]"},
+    {"text": "Sets up realistic test fixtures with tempdir", "passed": true, "evidence": "Creates test fixtures with 5 subdirectories, ~300 byte markdown files"},
+    {"text": "Properly isolates setup from measurement (black_box, bench_local)", "passed": true, "evidence": "Source tree built outside timed region"},
+    {"text": "Includes Cargo.toml changes needed", "passed": true, "evidence": "Added divan to dev-deps and [[bench]] entry"},
+    {"text": "Cleans up temp files in teardown", "passed": true, "evidence": "TempDir auto-cleans on drop"}
+  ]
+}

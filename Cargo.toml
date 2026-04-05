@@ -36,6 +36,8 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 chrono = { version = "0.4", features = ["clock"] }
 indicatif = "0.17"
 walkdir = "2"
+ignore = "0.4"
+pathdiff = "0.2"
 pubgrub = "0.3"
 semver = "1.0.27"
 toml_edit = "0.25.10"
@@ -53,3 +55,8 @@ keyring = { version = "3", features = ["windows-native"] }
 [dev-dependencies]
 tempfile = "3"
 serial_test = "3"
+divan = "0.1"
+
+[[bench]]
+name = "copy_tree"
+harness = false

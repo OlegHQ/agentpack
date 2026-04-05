@@ -1,0 +1,13 @@
+{
+  "eval_id": 2,
+  "eval_name": "hash-optimization-advice",
+  "prompt": "Optimize hash_directory_contents that takes 60% CPU time on ~500 files/2MB",
+  "assertions": [
+    {"text": "Suggests parallel hashing with rayon", "type": "boolean"},
+    {"text": "Suggests faster hasher (blake3/xxhash) for non-crypto use case", "type": "boolean"},
+    {"text": "Suggests mmap or streaming instead of fs::read into Vec", "type": "boolean"},
+    {"text": "Suggests caching hash based on directory mtime", "type": "boolean"},
+    {"text": "Provides benchmark code to measure before/after", "type": "boolean"},
+    {"text": "Discusses tradeoffs of each approach", "type": "boolean"}
+  ]
+}

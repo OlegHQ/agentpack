@@ -7,11 +7,17 @@ use std::collections::{BTreeMap, HashSet, VecDeque};
 
 use reqwest::blocking::Client;
 
-use crate::cache::{cache_entry_dir, materialize_github_tree};
+use std::path::Path;
+
+use url::Url;
+
+use crate::cache::{
+    cache_entry_dir, classify_materialized, copy_package_dir_to_cache, materialize_github_tree,
+};
 use crate::error::{AgentpackError, Result};
-use crate::github::canonical_github_tree_url;
+use crate::github::{canonical_github_tree_url, github_source_from_segments};
 use crate::lockfile::{LockPackage, Meta, PackLock};
-use crate::manifest::AgentpackManifest;
+use crate::manifest::{AgentpackManifest, DepSpecToml};
 use crate::ui::Ui;
 
 use module_id::{split_module_at_ref, ModuleId};
@@ -81,6 +87,7 @@ pub fn resolve_lock_from_manifest(
     client: &Client,
     ui: &Ui,
     opts: &ResolveLockOpts<'_>,
+    project_root: &Path,
 ) -> Result<PackLock> {
     if manifest.dependencies.is_empty() {
         let mut lock = PackLock {
@@ -95,12 +102,59 @@ pub fn resolve_lock_from_manifest(
         return Ok(lock);
     }
 
+    // --- Phase 1: resolve path dependencies ---
+    let mut path_packages: Vec<LockPackage> = Vec::new();
+    let mut github_deps: Vec<(String, DepSpecToml)> = Vec::new();
+    // Transitive GitHub deps discovered inside path packages.
+    let mut transitive_from_path: Vec<(String, DepSpecToml)> = Vec::new();
+
+    for (key, dep) in &manifest.dependencies {
+        if let Some(rel_path) = dep.path_value() {
+            let abs_path = project_root.join(rel_path);
+            let canon = abs_path.canonicalize().map_err(|_| {
+                AgentpackError::Cache(format!(
+                    "path dependency '{key}' points to '{rel_path}' which does not exist"
+                ))
+            })?;
+            if !canon.is_dir() {
+                return Err(AgentpackError::Cache(format!(
+                    "path dependency '{key}' at '{}' is not a directory",
+                    canon.display()
+                )));
+            }
+            let identity = format!("path:{}", canon.display());
+            let (cache_key, commit, out) = copy_package_dir_to_cache(&canon, &identity)?;
+            let file_url = Url::from_file_path(&canon)
+                .map(|u| u.to_string())
+                .map_err(|_| AgentpackError::Cache("invalid path for file URL".into()))?;
+            let source = github_source_from_segments("path", key, "");
+            let fetched = classify_materialized(&out, &file_url, &source, commit, cache_key)?;
+            let pkg = fetched.to_lock_package(key, true);
+            path_packages.push(pkg);
+
+            // Load nested deps from path package (transitive).
+            if let Some(nested) = AgentpackManifest::load_nested_dependencies(&out)? {
+                for (k, ndep) in nested {
+                    if ndep.path_value().is_some() {
+                        return Err(AgentpackError::Cache(format!(
+                            "transitive path dependencies are not supported (found in path dep '{key}')"
+                        )));
+                    }
+                    transitive_from_path.push((k, ndep));
+                }
+            }
+        } else {
+            github_deps.push((key.clone(), dep.clone()));
+        }
+    }
+
+    // --- Phase 2: resolve GitHub dependencies ---
     let mut merged: BTreeMap<ModuleId, ModuleConstraints> = BTreeMap::new();
     let mut queue: VecDeque<ModuleId> = VecDeque::new();
     let mut queued: HashSet<ModuleId> = HashSet::new();
     let mut direct_ids: HashSet<ModuleId> = HashSet::new();
 
-    for (key, dep) in &manifest.dependencies {
+    for (key, dep) in &github_deps {
         let (base, key_ref) = split_module_at_ref(key);
         let mid = ModuleId::parse(base)?;
         let mc = from_dep(dep, key_ref)?;
@@ -109,6 +163,17 @@ pub fn resolve_lock_from_manifest(
             queue.push_back(mid.clone());
         }
         direct_ids.insert(mid);
+    }
+
+    // Seed transitive GitHub deps from path packages.
+    for (k, dep) in &transitive_from_path {
+        let (base, key_ref) = split_module_at_ref(k);
+        let mid = ModuleId::parse(base)?;
+        let mc = from_dep(dep, key_ref)?;
+        merged.entry(mid.clone()).or_default().merge(mc)?;
+        if queued.insert(mid.clone()) {
+            queue.push_back(mid);
+        }
     }
 
     let mut resolved: BTreeMap<ModuleId, LockPackage> = BTreeMap::new();
@@ -153,7 +218,9 @@ pub fn resolve_lock_from_manifest(
         }
     }
 
+    // --- Phase 3: combine ---
     let mut packages: Vec<LockPackage> = resolved.into_values().collect();
+    packages.extend(path_packages);
     packages.sort_by(|a, b| a.module.cmp(&b.module));
 
     let mut lock = PackLock {

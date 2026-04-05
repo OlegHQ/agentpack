@@ -38,7 +38,7 @@ fn resolve_and_save_lock(
         previous: previous.as_ref(),
         refresh_floating,
     };
-    let lock = resolve_lock_from_manifest(manifest, client, ui, &opts)?;
+    let lock = resolve_lock_from_manifest(manifest, client, ui, &opts, project_root)?;
     lock.save(project_root)?;
     Ok(lock)
 }
@@ -54,12 +54,29 @@ fn sync_unless_skipped(project_root: &Path, no_sync: bool, ui: &Ui) -> Result<()
 pub fn run_add(project_root: &Path, spec: &str, no_sync: bool, ui: &Ui) -> Result<()> {
     paths::ensure_user_agentpack_layout()?;
     ui.message(format!("Adding: {spec}"));
-    if resolve_existing_path_for_add(spec).is_some() {
-        return Err(AgentpackError::Cache(
-            "filesystem package: add an entry under [dependencies] in agentpack.toml manually (file: pins are not auto-edited)"
-                .into(),
+
+    if let Some(canon) = resolve_existing_path_for_add(spec) {
+        // Path dependency flow.
+        let basename = canon.file_name().and_then(|s| s.to_str()).unwrap_or("pack");
+        let rel_path = pathdiff::diff_paths(&canon, project_root).ok_or_else(|| {
+            AgentpackError::Cache(
+                "cannot compute relative path from project root to target directory".into(),
+            )
+        })?;
+        let rel_str = rel_path
+            .to_str()
+            .ok_or_else(|| AgentpackError::Cache("path contains non-UTF8 characters".into()))?;
+        let _ = require_manifest(project_root)?;
+        AgentpackManifest::append_path_dependency(project_root, basename, rel_str)?;
+        let manifest = require_manifest(project_root)?;
+        let client = http_client()?;
+        resolve_and_save_lock(project_root, &manifest, &client, ui, false)?;
+        ui.message(format!(
+            "Recorded {basename} = {{ path = \"{rel_str}\" }} in agentpack.toml and refreshed pack.lock."
         ));
+        return sync_unless_skipped(project_root, no_sync, ui);
     }
+
     let client = http_client()?;
     let _ = require_manifest(project_root)?;
     let (fetched, shorthand) = resolve_add_spec(&client, spec, ui)?;

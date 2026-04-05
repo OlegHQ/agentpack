@@ -50,7 +50,7 @@ Resolution order (network/local):
 
 Repeat **`owner/repo`** and **`owner/repo/path`** adds also consult the RedDB alias/index after checking **`local/`**, so previously fetched GitHub packages are reused before any new GitHub request is made.
 
-**Not automatic:** a bare **filesystem path** is not passed to **`add`** — put a **`file:`** (or path) dependency in **`agentpack.toml`** yourself if you need a directory pin; **`sync`** will warn on other machines if the path is missing and the cache slot is empty.
+5. **Filesystem path** (`./rel/dir`, `/abs/dir`) — the directory is copied to cache; an entry like **`name = { path = "rel/path" }`** is written to **`agentpack.toml`** where **`name`** is the directory basename and the path is relative to the project root. On **`lock`** / **`sync`**, path deps are always re-copied from source (content hash detects changes). **`sync`** will error on other machines if the path is missing and the cache slot is empty.
 
 Duplicate content for the same **`owner` / `repo` / in-repo `path` / commit** hits the same **`cache_key`**. Plugins may expose **`.claude-plugin`**, **`.cursor-plugin`**, or both; layouts are normalized after fetch.
 
@@ -181,6 +181,7 @@ version = "0.0.1"
 [dependencies]
 "github.com/anthropics/skills/skills/canvas-design" = { branch = "main" }
 "github.com/anthropics/claude-plugins-official/plugins/hookify" = { version = "^1.0.0" }
+mcp-retrieval = { path = "../mcp-retrieval" }
 
 [overrides."github.com/someorg/heavy-pack"]
 disable = [ "commands/noise.md", "hooks" ]

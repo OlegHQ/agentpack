@@ -1,0 +1,10 @@
+{
+  "expectations": [
+    {"text": "Identifies O(n^2) from .iter().any() inside loop", "passed": true, "evidence": "Critical: 'resolved.iter().any() inside a loop... O(n*m^2)... effectively O(n^3)'"},
+    {"text": "Suggests HashSet for O(1) membership checking", "passed": true, "evidence": "Critical: 'Replace resolved with a HashSet<String> for O(1) name lookups'"},
+    {"text": "Identifies redundant fetch_dependencies calls for same package", "passed": true, "evidence": "Critical: 'fetch_dependencies called unconditionally, even when the package is already in resolved... should be skipped entirely'"},
+    {"text": "Notes the resolver only handles 2 levels instead of proper graph traversal", "passed": true, "evidence": "Minor: 'three-level nesting only resolves two levels of transitive dependencies... fixing it with a worklist/BFS pattern'"},
+    {"text": "Identifies unnecessary .to_string() allocations", "passed": true, "evidence": "Significant: 'parsed[\"name\"].as_str().unwrap_or(\"\").to_string()... each allocate a new String'"},
+    {"text": "Suggests caching parsed manifests", "passed": true, "evidence": "Critical: 'Cache parsed manifests in a HashMap<PathBuf, (String, String)> to avoid redundant filesystem reads'"}
+  ]
+}

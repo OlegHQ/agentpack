@@ -3,7 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use sha2::{Digest, Sha256};
-use walkdir::WalkDir;
+use ignore::WalkBuilder;
 
 use crate::error::{AgentpackError, Result};
 use crate::fs_util::{read_json_value, truncate_str, write_json_value};
@@ -75,27 +75,42 @@ pub fn ensure_plugin_manifest(cache_root: &Path) -> Result<()> {
     ))
 }
 
-/// Hash directory contents for stable path-sourced pins (40 hex for `pack.lock` commit field).
-pub fn hash_directory_contents(root: &Path) -> Result<String> {
-    let mut relative_paths = Vec::new();
-    for entry in WalkDir::new(root)
+/// Collect files under `root` respecting `.gitignore` rules.
+///
+/// Skips `.git/` directories and any paths matched by `.gitignore`, `.git/info/exclude`,
+/// and the global gitignore. Hidden files (dotfiles) are **not** skipped — pack content
+/// like `.claude-plugin/` must be included. Returns sorted relative paths (files only).
+pub fn collect_source_files(root: &Path) -> Result<Vec<PathBuf>> {
+    let mut files = Vec::new();
+    let walker = WalkBuilder::new(root)
+        .hidden(false)
+        .git_ignore(true)
+        .git_global(true)
+        .git_exclude(true)
+        .parents(true)
         .follow_links(false)
-        .into_iter()
-        .filter_map(|entry| entry.ok())
-    {
-        if !entry.file_type().is_file() {
+        .build();
+    for entry in walker {
+        let entry = entry.map_err(|e| AgentpackError::Cache(e.to_string()))?;
+        if !entry.file_type().map_or(false, |ft| ft.is_file()) {
             continue;
         }
-        let path = entry.path();
-        let rel = path
+        let rel = entry
+            .path()
             .strip_prefix(root)
-            .map_err(|err| AgentpackError::Cache(err.to_string()))?;
-        relative_paths.push(rel.to_path_buf());
+            .map_err(|e| AgentpackError::Cache(e.to_string()))?;
+        files.push(rel.to_path_buf());
     }
-    relative_paths.sort();
+    files.sort();
+    Ok(files)
+}
+
+/// Hash directory contents for stable path-sourced pins (40 hex for `pack.lock` commit field).
+pub fn hash_directory_contents(root: &Path) -> Result<String> {
+    let files = collect_source_files(root)?;
 
     let mut hash = Sha256::new();
-    for rel in relative_paths {
+    for rel in files {
         hash.update(rel.as_os_str().as_encoded_bytes());
         hash.update([0]);
         let bytes =

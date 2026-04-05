@@ -5,40 +5,29 @@ use crate::error::{AgentpackError, Result};
 use crate::paths;
 
 use super::layout::{
-    cache_entry_dir, compute_cache_key, hash_directory_contents, normalize_plugin_cache_layout,
+    cache_entry_dir, collect_source_files, compute_cache_key, hash_directory_contents,
+    normalize_plugin_cache_layout,
 };
 
-pub(super) fn copy_tree_files(src: &Path, dst: &Path) -> Result<()> {
-    let Some(effective) = crate::fs_util::resolve_tree_copy_source(
-        src,
-        "skipping dangling symlink while copying into cache",
-    )?
-    else {
-        return Ok(());
-    };
-
-    if effective.is_file() {
-        if let Some(parent) = dst.parent() {
+/// Copy only git-visible files from `src` to `dst` (respects `.gitignore`).
+pub(super) fn copy_source_tree(src: &Path, dst: &Path) -> Result<()> {
+    let files = collect_source_files(src)?;
+    for rel in &files {
+        let src_file = src.join(rel);
+        let dst_file = dst.join(rel);
+        if let Some(parent) = dst_file.parent() {
             fs::create_dir_all(parent).map_err(|err| AgentpackError::io(parent, err))?;
         }
-        fs::copy(&effective, dst).map_err(|err| AgentpackError::io(dst, err))?;
-        return Ok(());
+        fs::copy(&src_file, &dst_file).map_err(|err| AgentpackError::io(&dst_file, err))?;
     }
-
-    if effective.is_dir() {
-        fs::create_dir_all(dst).map_err(|err| AgentpackError::io(dst, err))?;
-        for entry in fs::read_dir(&effective).map_err(|err| AgentpackError::io(&effective, err))? {
-            let entry = entry.map_err(|err| AgentpackError::io(&effective, err))?;
-            copy_tree_files(&entry.path(), &dst.join(entry.file_name()))?;
-        }
-        return Ok(());
-    }
-
     Ok(())
 }
 
 /// Copy a local directory into the content-addressed cache (path / local mirror / file adds).
 /// Returns **`cache_key`**, **40-hex content fingerprint** (for `pack.lock` `commit`), and cache path.
+///
+/// Respects `.gitignore` — `.git/`, `target/`, and other gitignored paths are excluded from
+/// both the content hash and the cached copy.
 pub fn copy_package_dir_to_cache(
     from: &Path,
     identity_prefix: &str,
@@ -56,7 +45,7 @@ pub fn copy_package_dir_to_cache(
     let cache_dir = paths::cache_dir()?;
     fs::create_dir_all(&cache_dir).map_err(|err| AgentpackError::io(&cache_dir, err))?;
     fs::create_dir_all(&out).map_err(|err| AgentpackError::io(&out, err))?;
-    copy_tree_files(from, &out)?;
+    copy_source_tree(from, &out)?;
     normalize_plugin_cache_layout(&out)?;
     Ok((cache_key, commit, out))
 }

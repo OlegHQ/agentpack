@@ -13,7 +13,7 @@ use super::layout::{
     cache_dir_is_package_root_in_filesystem, cache_entry_dir, cache_has_plugin_manifest,
     ensure_plugin_manifest, ensure_skill_md, normalize_plugin_cache_layout,
 };
-use super::tree::copy_tree_files;
+use super::tree::copy_source_tree;
 
 // Common fields for skill and plugin lock entries, used to avoid duplicated match arms.
 struct CachedLockEntry<'a> {
@@ -89,7 +89,7 @@ impl<'a> CachedLockEntry<'a> {
             return Ok(false);
         }
         prepare_cache_output_dir(out)?;
-        copy_tree_files(&source, out)?;
+        copy_source_tree(&source, out)?;
         normalize_plugin_cache_layout(out)?;
         Ok(true)
     }

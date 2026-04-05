@@ -1,0 +1,10 @@
+{
+  "expectations": [
+    {"text": "Identifies O(n^2) from .iter().any() inside loop", "passed": true, "evidence": "Issue 1: 'walks the entire resolved vector... O(n) per check... O(n^2) overall'"},
+    {"text": "Suggests HashSet for O(1) membership checking", "passed": true, "evidence": "Fix: 'Use a HashSet<String>... to get O(1) membership tests'"},
+    {"text": "Identifies redundant fetch_dependencies calls for same package", "passed": true, "evidence": "Issue 2: 'fetch_dependencies is called for every dependency encountered, even if the same package name appears... no memoization'"},
+    {"text": "Notes the resolver only handles 2 levels instead of proper graph traversal", "passed": true, "evidence": "Issue 3: 'resolves direct dependencies and their immediate sub-dependencies, but never recurses further'"},
+    {"text": "Identifies unnecessary .to_string() allocations", "passed": true, "evidence": "Issue 6: 'String cloning on every comparison' — mentions string allocations but less detailed"},
+    {"text": "Suggests caching parsed manifests", "passed": true, "evidence": "Issue 4: 'resolve_single re-reads the manifest that fetch_dependencies presumably already examined. Sharing parsed data... would eliminate redundant I/O'"}
+  ]
+}
