@@ -13,16 +13,17 @@ mod tree;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::cache::{cache_entry_dir, cache_has_plugin_manifest};
+use crate::cache::cache_entry_dir;
 use crate::error::{AgentpackError, Result};
 use crate::lockfile::PackLock;
 use crate::manifest::AgentpackManifest;
 use crate::paths::staging_plugins_dir;
 
+pub(crate) use pack_overlay::skill_folder_name;
 pub use pack_overlay::skill_is_shadowed;
 
 use harnesses::StagingPipeline;
-use pack_overlay::{plugin_disabled_in_config, skill_disabled_in_config, skill_folder_name};
+use pack_overlay::skill_disabled_in_config;
 
 /// Build one plugin tree: optional copies of user **`settings.json`** / **`.claude.json`**, then
 /// plugin packages, then standalone skill packages. Later layers overwrite same relative paths
@@ -71,24 +72,19 @@ pub fn verify_staging(project_root: &Path, lock: &PackLock) -> Result<()> {
     let codex_home = pipeline.codex_home()?;
     let cursor_pack = pipeline.cursor_pack_plugin_dir()?;
 
-    for plugin in &lock.plugins {
-        if plugin.cache_key.is_empty() || plugin_disabled_in_config(lock, plugin) {
-            continue;
-        }
-        let Ok(cache_root) = cache_entry_dir(&plugin.cache_key) else {
-            continue;
-        };
-        if cache_has_plugin_manifest(&cache_root) {
-            tracing::debug!(path = %cache_root.display(), "plugin cache present for verify");
-        }
-    }
-
     let collision_removed = collision::resolve_user_claude_bundle_collisions(
         bundle,
         &opencode_root,
         &codex_home,
         &cursor_pack,
     )?;
+
+    let harness_roots: &[(&Path, &str)] = &[
+        (bundle, "bundle"),
+        (&opencode_root, "opencode"),
+        (&codex_home, "codex"),
+        (&cursor_pack, "cursor"),
+    ];
 
     for skill in &lock.skills {
         if skill_disabled_in_config(lock, skill) {
@@ -111,33 +107,14 @@ pub fn verify_staging(project_root: &Path, lock: &PackLock) -> Result<()> {
         {
             continue;
         }
-        let bundled = bundle.join("skills").join(&name).join("SKILL.md");
-        if !bundled.is_file() {
-            return Err(AgentpackError::Staging(format!(
-                "bundle missing skill SKILL.md {}",
-                bundled.display()
-            )));
-        }
-        let opencode_skill = opencode_root.join("skills").join(&name).join("SKILL.md");
-        if !opencode_skill.is_file() {
-            return Err(AgentpackError::Staging(format!(
-                "opencode staging missing skill SKILL.md {}",
-                opencode_skill.display()
-            )));
-        }
-        let codex_skill = codex_home.join("skills").join(&name).join("SKILL.md");
-        if !codex_skill.is_file() {
-            return Err(AgentpackError::Staging(format!(
-                "codex staging missing skill SKILL.md {}",
-                codex_skill.display()
-            )));
-        }
-        let cursor_skill = cursor_pack.join("skills").join(&name).join("SKILL.md");
-        if !cursor_skill.is_file() {
-            return Err(AgentpackError::Staging(format!(
-                "cursor staging missing skill SKILL.md {}",
-                cursor_skill.display()
-            )));
+        for (root, label) in harness_roots {
+            let skill_md = root.join("skills").join(&name).join("SKILL.md");
+            if !skill_md.is_file() {
+                return Err(AgentpackError::Staging(format!(
+                    "{label} staging missing skill SKILL.md {}",
+                    skill_md.display()
+                )));
+            }
         }
     }
 

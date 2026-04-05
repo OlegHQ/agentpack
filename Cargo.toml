@@ -1,6 +1,9 @@
+[workspace]
+members = [".", "xtask"]
+
 [package]
 name = "agentpack"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "The package manager for AI coding agents — pin, resolve, and sync skills & plugins across Claude Code, Cursor, OpenCode, and Codex"
 license = "MIT"

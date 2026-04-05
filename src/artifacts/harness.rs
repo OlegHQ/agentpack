@@ -17,14 +17,7 @@ impl HarnessTarget {
         match self {
             // Same extension-dir merge as Cursor: verbatim copy then markdown overlay (see `stage_source_tree`).
             HarnessTarget::Claude => &[
-                "hooks",
-                "matchers",
-                "core",
-                "examples",
-                "utils",
-                "commands",
-                "agents",
-                "rules",
+                "hooks", "matchers", "core", "examples", "utils", "commands", "agents", "rules",
                 "skills",
             ],
             // Cursor plugins often ship `skills/<slug>/…` plus `commands` / `agents` / `rules` at the
@@ -32,13 +25,7 @@ impl HarnessTarget {
             // these subtrees verbatim first so non-`.md` assets (eval JSON, reference snippets, etc.)
             // are not dropped; markdown pass then overlays rendered artifacts.
             HarnessTarget::Cursor => &[
-                "hooks",
-                "assets",
-                "scripts",
-                "commands",
-                "agents",
-                "rules",
-                "skills",
+                "hooks", "assets", "scripts", "commands", "agents", "rules", "skills",
             ],
             HarnessTarget::OpenCode | HarnessTarget::Codex => &[],
         }

@@ -31,32 +31,17 @@ pub(super) fn http_client() -> Result<Client> {
 }
 
 fn read_plugin_package_name(cache_root: &Path) -> Option<String> {
-    for p in [
+    [
         claude_plugin_manifest_path(cache_root),
         cursor_plugin_manifest_path(cache_root),
-    ] {
-        if p.is_file() {
-            if let Ok(s) = fs::read_to_string(&p) {
-                if let Ok(v) = serde_json::from_str::<serde_json::Value>(&s) {
-                    if let Some(n) = v.get("name").and_then(|x| x.as_str()) {
-                        return Some(n.to_string());
-                    }
-                }
-            }
-        }
-    }
-    None
-}
-
-fn skill_alias_name(s: &LockSkill) -> String {
-    if s.path.is_empty() {
-        s.repo.clone()
-    } else {
-        Path::new(&s.path)
-            .file_name()
-            .map(|x| x.to_string_lossy().into_owned())
-            .unwrap_or_else(|| s.repo.clone())
-    }
+    ]
+    .iter()
+    .filter(|p| p.is_file())
+    .find_map(|p| {
+        crate::fs_util::read_json_value(p)
+            .ok()
+            .and_then(|v| v.get("name").and_then(|x| x.as_str()).map(str::to_owned))
+    })
 }
 
 fn record_and_aliases(fetched: &FetchedGithubAsset) -> Result<(CacheEntryRecord, Vec<String>)> {
@@ -71,7 +56,7 @@ fn record_and_aliases(fetched: &FetchedGithubAsset) -> Result<(CacheEntryRecord,
                 commit: s.commit.clone(),
                 fetched_at_unix: Utc::now().timestamp(),
             };
-            let name = skill_alias_name(s);
+            let name = crate::staging::skill_folder_name(s);
             let aliases = aliases_for_github_entry(&s.owner, &s.repo, &s.path, Some(&name));
             Ok((rec, aliases))
         }

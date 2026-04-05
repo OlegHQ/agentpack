@@ -173,10 +173,7 @@ mod tests {
         .unwrap();
         assert_eq!(cmd_mdc.kind, ArtifactKind::Command);
         let rendered = cmd_mdc.render(HarnessTarget::Claude);
-        assert_eq!(
-            rendered.relative_path,
-            PathBuf::from("commands/format.mdc")
-        );
+        assert_eq!(rendered.relative_path, PathBuf::from("commands/format.mdc"));
 
         let agent_mdc = parse_markdown_artifact(
             Path::new(".cursor/agents/review.mdc"),

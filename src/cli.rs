@@ -43,7 +43,11 @@ pub enum Command {
         version: Option<String>,
     },
     /// Resolve **agentpack.toml** and refresh **pack.lock** (direct + transitive packages)
-    Lock,
+    Lock {
+        /// Re-resolve floating pins from GitHub instead of keeping commits already in **pack.lock**
+        #[arg(long)]
+        update: bool,
+    },
     /// Resolve a package spec and append its module id under **[dependencies]** in `agentpack.toml` (requires manifest); then resolve and sync unless `--no-sync`
     Add {
         spec: String,
@@ -62,6 +66,9 @@ pub enum Command {
         dry_run: bool,
         #[arg(long)]
         verify_only: bool,
+        /// When refreshing **pack.lock**, re-resolve floating pins from GitHub (same as **`lock --update`**)
+        #[arg(long)]
+        update_lock: bool,
     },
     /// Run `claude` with `--plugin-dir` for each staged skill plugin
     Claude {

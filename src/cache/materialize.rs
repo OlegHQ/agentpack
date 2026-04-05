@@ -5,15 +5,16 @@ use reqwest::blocking::Client;
 
 use crate::error::{AgentpackError, Result};
 use crate::github::{
-    canonical_github_tree_url, choose_package_prefix_for_blob_path, collect_repo_relative_paths,
-    download_tarball_bytes, extract_tarball_with_prefix, parent_dir_in_repo, parse_github_url,
-    path_in_repo_looks_like_file, resolve_ref_to_sha, GitHubSource,
+    archive_no_files_for_repo_path, canonical_github_tree_url,
+    choose_package_prefix_for_blob_path, collect_repo_relative_paths, download_tarball_bytes,
+    extract_tarball_with_prefix, parent_dir_in_repo, parse_github_url, path_in_repo_looks_like_file,
+    resolve_ref_to_sha, GitHubSource,
 };
 use crate::paths;
 use crate::ui::Ui;
 
 use super::asset::{classify_materialized, FetchedGithubAsset};
-use super::layout::{cache_entry_dir, cache_has_plugin_manifest, compute_cache_key};
+use super::layout::{cache_dir_is_package_root_in_filesystem, cache_entry_dir, compute_cache_key};
 
 /// Parent directories of a repo-relative file path, deepest first, ending at repo root (`""`).
 pub(crate) fn blob_path_parent_prefixes(blob_file_path: &str) -> Vec<String> {
@@ -45,9 +46,7 @@ fn github_prefix_cache_ready(owner: &str, repo: &str, commit: &str, path_prefix:
     let Ok(out) = cache_entry_dir(&cache_key) else {
         return false;
     };
-    cache_has_plugin_manifest(&out)
-        || out.join("SKILL.md").is_file()
-        || out.join(crate::paths::MANIFEST_NAME).is_file()
+    cache_dir_is_package_root_in_filesystem(&out)
 }
 
 fn git_ref_is_full_commit_sha(git_ref: &str) -> bool {
@@ -112,9 +111,7 @@ pub fn materialize_github_tree(
     let identity = crate::github::normalized_identity(&effective, &commit);
     let cache_key = compute_cache_key(&identity);
     let out = cache_entry_dir(&cache_key)?;
-    let cache_ready = cache_has_plugin_manifest(&out)
-        || out.join("SKILL.md").is_file()
-        || out.join(crate::paths::MANIFEST_NAME).is_file();
+    let cache_ready = cache_dir_is_package_root_in_filesystem(&out);
 
     if !cache_ready {
         let cache_dir = paths::cache_dir()?;
@@ -123,7 +120,15 @@ pub fn materialize_github_tree(
             Some(bytes) => bytes,
             None => download_tarball_bytes(client, &source.owner, &source.repo, &commit, ui)?,
         };
-        extract_tarball_with_prefix(&tarball, &effective.path, &out, ui)?;
+        let n = extract_tarball_with_prefix(&tarball, &effective.path, &out, ui)?;
+        if n == 0 && !effective.path.is_empty() {
+            return Err(archive_no_files_for_repo_path(
+                &effective.owner,
+                &effective.repo,
+                &commit,
+                &effective.path,
+            ));
+        }
     }
 
     let display = canonical_github_tree_url(&effective);

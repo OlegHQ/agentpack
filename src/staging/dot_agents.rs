@@ -7,8 +7,8 @@ use walkdir::WalkDir;
 use crate::error::{AgentpackError, Result};
 use crate::fs_util::remove_path_any;
 use crate::paths::{
-    project_dot_agents_dir, staging_codex_home_dir, staging_cursor_pack_plugin_dir,
-    staging_opencode_dir, staging_plugins_dir, STAGED_AGENTPACK_BUNDLE_NAME,
+    project_dot_agents_dir, staging_codex_home_dir, staging_plugins_dir,
+    STAGED_AGENTPACK_BUNDLE_NAME,
 };
 
 use super::tree::copy_merge_tree;
@@ -78,12 +78,14 @@ fn merge_dot_agents_subdir_into_dest_roots(
     Ok(())
 }
 
-/// Merge **`./.agents/`** into staged harness trees after pack content. Project files overwrite pack
-/// on the same relative path inside each destination directory.
+/// Merge **`./.agents/`** into staged harness trees that do **not** natively read the directory.
 ///
-/// Supported layout: optional **`claude/`**, **`opencode/`**, **`codex/`**, **`cursor/`** subtrees (each merged into that
-/// harness stage root); shared **`rules/**/*.mdc`**, **`skills/`**, **`agents/`**, **`commands/`**, **`hooks/`**; Cursor-only
-/// **`assets/`**, **`scripts/`**; top-level **`AGENTS.md`** (Codex), **`CLAUDE.md`** (Claude bundle), **`mcp.json`**.
+/// **Cursor** and **OpenCode** natively discover `.agents/` from the workspace, so they are excluded.
+/// Only **Claude bundle** and **Codex home** receive the overlay.
+///
+/// Supported layout: optional **`claude/`**, **`codex/`** subtrees (merged into that harness stage root);
+/// shared **`rules/**/*.mdc`**, **`skills/`**, **`agents/`**, **`commands/`**, **`hooks/`**; top-level **`AGENTS.md`** (Codex),
+/// **`CLAUDE.md`** (Claude bundle), **`mcp.json`**.
 ///
 /// Set **`AGENTPACK_DOT_AGENTS=0`** to skip.
 pub(crate) fn stage_dot_agents_overlay(project_root: &Path) -> Result<()> {
@@ -96,16 +98,11 @@ pub(crate) fn stage_dot_agents_overlay(project_root: &Path) -> Result<()> {
     }
 
     let bundle = staging_plugins_dir(project_root)?.join(STAGED_AGENTPACK_BUNDLE_NAME);
-    let opencode = staging_opencode_dir(project_root)?;
     let codex = staging_codex_home_dir(project_root)?;
-    let cursor_pack = staging_cursor_pack_plugin_dir(project_root)?;
 
-    for (sub, dest) in [
-        ("claude", bundle.as_path()),
-        ("opencode", opencode.as_path()),
-        ("codex", codex.as_path()),
-        ("cursor", cursor_pack.as_path()),
-    ] {
+    // Cursor and OpenCode natively read `.agents/` from the workspace, so only
+    // Claude and Codex need the overlay merged into their staging trees.
+    for (sub, dest) in [("claude", bundle.as_path()), ("codex", codex.as_path())] {
         let src = dot_agents.join(sub);
         if src.is_dir() {
             copy_merge_tree(&src, dest)?;
@@ -114,30 +111,17 @@ pub(crate) fn stage_dot_agents_overlay(project_root: &Path) -> Result<()> {
 
     let rules = dot_agents.join("rules");
     if rules.is_dir() {
-        for dest_rules in [
-            bundle.join("rules"),
-            opencode.join("rules"),
-            cursor_pack.join("rules"),
-        ] {
-            fs::create_dir_all(&dest_rules).map_err(|e| AgentpackError::io(&dest_rules, e))?;
-            merge_dot_agents_rules_mdc(&rules, &dest_rules)?;
-        }
+        let dest_rules = bundle.join("rules");
+        fs::create_dir_all(&dest_rules).map_err(|e| AgentpackError::io(&dest_rules, e))?;
+        merge_dot_agents_rules_mdc(&rules, &dest_rules)?;
     }
 
-    // Subdir routing: each tuple is (subdir, indices into all_roots).
-    let all_roots: [&Path; 4] = [
-        bundle.as_path(),
-        opencode.as_path(),
-        codex.as_path(),
-        cursor_pack.as_path(),
-    ];
+    let all_roots: [&Path; 2] = [bundle.as_path(), codex.as_path()];
     const SUBDIR_ROUTES: &[(&str, &[usize])] = &[
-        ("skills", &[0, 1, 2, 3]),
-        ("agents", &[0, 1, 3]),
-        ("commands", &[0, 1, 3]),
-        ("hooks", &[0, 3]),
-        ("assets", &[3]),
-        ("scripts", &[3]),
+        ("skills", &[0, 1]),
+        ("agents", &[0]),
+        ("commands", &[0]),
+        ("hooks", &[0]),
     ];
     for &(sub, indices) in SUBDIR_ROUTES {
         let dests: Vec<&Path> = indices.iter().map(|&i| all_roots[i]).collect();
@@ -157,7 +141,6 @@ pub(crate) fn stage_dot_agents_overlay(project_root: &Path) -> Result<()> {
     let mcp = dot_agents.join("mcp.json");
     if mcp.is_file() {
         copy_merge_tree(&mcp, &bundle.join("mcp.json"))?;
-        copy_merge_tree(&mcp, &cursor_pack.join("mcp.json"))?;
     }
 
     Ok(())

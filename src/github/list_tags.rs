@@ -36,7 +36,7 @@ pub fn list_tags(client: &Client, owner: &str, repo: &str) -> Result<Vec<(String
     let mut req = client
         .get(&url)
         .header("Accept", "application/vnd.github+json");
-    if let Ok(token) = std::env::var("GITHUB_TOKEN").or_else(|_| std::env::var("GH_TOKEN")) {
+    if let Some(token) = super::github_token() {
         req = req.header("Authorization", format!("Bearer {token}"));
     }
     let resp = req

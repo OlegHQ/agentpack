@@ -1,2 +1,5 @@
+[alias]
+xtask = "run --package xtask --"
+
 [target.aarch64-apple-darwin]
 rustflags = ["-Lnative=/opt/homebrew/opt/libiconv/lib"]

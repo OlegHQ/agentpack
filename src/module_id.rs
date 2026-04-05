@@ -1,7 +1,7 @@
 //! Go-style module paths: `github.com/<owner>/<repo>[/<path>][@<ref>]`.
 
 use crate::error::{AgentpackError, Result};
-use crate::github::{parse_github_url, GitHubSource};
+use crate::github::GitHubSource;
 
 /// Canonical module path without `@ref` (e.g. `github.com/anthropics/skills/skills/foo`).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -43,23 +43,6 @@ impl ModuleId {
             String::new()
         };
         (owner, repo, path)
-    }
-
-    /// `https://github.com/...` → `github.com/o/r/subdir`
-    #[allow(dead_code)]
-    pub fn from_github_url(url: &str) -> Result<Self> {
-        let gh = parse_github_url(url.trim())?;
-        let path = gh.path.trim_matches('/').to_string();
-        let mut id = format!(
-            "github.com/{}/{}",
-            gh.owner.to_lowercase(),
-            gh.repo.to_lowercase()
-        );
-        if !path.is_empty() {
-            id.push('/');
-            id.push_str(&path);
-        }
-        Ok(ModuleId(id))
     }
 
     /// Lowercase `github.com/owner/repo[/path]` from GitHub coordinates (no `@ref`).

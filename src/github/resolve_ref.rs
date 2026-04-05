@@ -32,8 +32,8 @@ pub fn resolve_ref_to_sha(
     {
         return Ok(entry.sha.clone());
     }
-    if let Some(tags) = GitHubMetadataCache::load_tags(owner, repo)?
-        .filter(|tags| GitHubMetadataCache::tags_are_fresh(tags))
+    if let Some(tags) =
+        GitHubMetadataCache::load_tags(owner, repo)?.filter(GitHubMetadataCache::tags_are_fresh)
     {
         if let Some((_, sha)) = tags.tags.iter().find(|(name, _)| name == git_ref) {
             return Ok(sha.clone());
@@ -48,7 +48,7 @@ pub fn resolve_ref_to_sha(
     let mut req = client
         .get(&url)
         .header("Accept", "application/vnd.github+json");
-    if let Ok(token) = std::env::var("GITHUB_TOKEN").or_else(|_| std::env::var("GH_TOKEN")) {
+    if let Some(token) = super::github_token() {
         req = req.header("Authorization", format!("Bearer {token}"));
     }
     let resp = req

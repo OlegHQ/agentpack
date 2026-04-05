@@ -47,40 +47,28 @@ impl<'a> StagingContext<'a> {
         }
     }
 
-    fn project_root(&self) -> &Path {
-        self.project_root
-    }
-
-    fn lock(&self) -> &PackLock {
-        self.lock
-    }
-
-    fn manifest(&self) -> Option<&AgentpackManifest> {
-        self.manifest
-    }
-
     pub(super) fn claude_bundle_dir(&self) -> Result<PathBuf> {
-        Ok(staging_plugins_dir(self.project_root())?.join(STAGED_AGENTPACK_BUNDLE_NAME))
+        Ok(staging_plugins_dir(self.project_root)?.join(STAGED_AGENTPACK_BUNDLE_NAME))
     }
 
     pub(super) fn opencode_root(&self) -> Result<PathBuf> {
-        staging_opencode_dir(self.project_root())
+        staging_opencode_dir(self.project_root)
     }
 
     pub(super) fn codex_home(&self) -> Result<PathBuf> {
-        staging_codex_home_dir(self.project_root())
+        staging_codex_home_dir(self.project_root)
     }
 
     pub(super) fn cursor_bundle_root(&self) -> Result<PathBuf> {
-        staging_cursor_bundle_dir(self.project_root())
+        staging_cursor_bundle_dir(self.project_root)
     }
 
     pub(super) fn cursor_pack_plugin_dir(&self) -> Result<PathBuf> {
-        staging_cursor_pack_plugin_dir(self.project_root())
+        staging_cursor_pack_plugin_dir(self.project_root)
     }
 
     pub(super) fn cursor_home(&self) -> Result<PathBuf> {
-        staging_cursor_home_dir(self.project_root())
+        staging_cursor_home_dir(self.project_root)
     }
 }
 
@@ -105,7 +93,7 @@ impl<'a> StagingPipeline<'a> {
             stage.stage(&self.ctx)?;
         }
 
-        stage_dot_agents_overlay(self.ctx.project_root())?;
+        stage_dot_agents_overlay(self.ctx.project_root)?;
 
         for stage in harness_stagers() {
             stage.finalize(&self.ctx)?;
@@ -172,8 +160,8 @@ fn harness_stagers() -> [&'static dyn HarnessStager; 4] {
 }
 
 fn stage_target_tree(ctx: &StagingContext<'_>, root: &Path, target: HarnessTarget) -> Result<()> {
-    stage_pack_plugins_for_target(ctx.lock(), root, target, ctx.manifest())?;
-    stage_pack_skills_for_target(ctx.lock(), root, target, ctx.manifest())?;
+    stage_pack_plugins_for_target(ctx.lock, root, target, ctx.manifest)?;
+    stage_pack_skills_for_target(ctx.lock, root, target, ctx.manifest)?;
     Ok(())
 }
 
@@ -195,11 +183,11 @@ fn write_bundle_manifest(bundle: &Path) -> Result<()> {
 
 impl HarnessStager for ClaudeBundleStager {
     fn reset_paths(&self, ctx: &StagingContext<'_>) -> Result<Vec<PathBuf>> {
-        Ok(vec![staging_plugins_dir(ctx.project_root())?])
+        Ok(vec![staging_plugins_dir(ctx.project_root)?])
     }
 
     fn stage(&self, ctx: &StagingContext<'_>) -> Result<()> {
-        let plugins_base = staging_plugins_dir(ctx.project_root())?;
+        let plugins_base = staging_plugins_dir(ctx.project_root)?;
         fs::create_dir_all(&plugins_base).map_err(|err| AgentpackError::io(&plugins_base, err))?;
 
         let bundle = ctx.claude_bundle_dir()?;
@@ -263,11 +251,11 @@ impl HarnessStager for CursorStager {
     }
 
     fn stage(&self, ctx: &StagingContext<'_>) -> Result<()> {
-        rebuild_cursor_staging_without_finalize(ctx.project_root(), ctx.lock(), ctx.manifest())
+        rebuild_cursor_staging_without_finalize(ctx.project_root, ctx.lock, ctx.manifest)
     }
 
     fn finalize(&self, ctx: &StagingContext<'_>) -> Result<()> {
-        finalize_cursor_staging(ctx.project_root())
+        finalize_cursor_staging(ctx.project_root)
     }
 
     fn verify(&self, ctx: &StagingContext<'_>) -> Result<()> {
@@ -304,8 +292,8 @@ impl HarnessStager for CursorStager {
             format!("cursor fake home missing .cursor/ under {}", home.display())
         })?;
 
-        for rel in read_cursor_overlay_manifest(ctx.project_root())? {
-            let tracked = cursor_workspace_dir(ctx.project_root()).join(&rel);
+        for rel in read_cursor_overlay_manifest(ctx.project_root)? {
+            let tracked = cursor_workspace_dir(ctx.project_root).join(&rel);
             if !tracked.exists() {
                 return Err(AgentpackError::Staging(format!(
                     "cursor workspace overlay missing at {} (from cursor-overlay.manifest entry {})",

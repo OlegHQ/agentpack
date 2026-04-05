@@ -10,108 +10,75 @@ use crate::paths;
 use crate::ui::Ui;
 
 use super::layout::{
-    cache_entry_dir, cache_has_plugin_manifest, ensure_plugin_manifest, ensure_skill_md,
-    normalize_plugin_cache_layout,
+    cache_dir_is_package_root_in_filesystem, cache_entry_dir, cache_has_plugin_manifest,
+    ensure_plugin_manifest, ensure_skill_md, normalize_plugin_cache_layout,
 };
 use super::tree::copy_tree_files;
 
-// Facade over the closed skill/plugin lock entry set so cache restore behavior lives in one place.
-enum CachedLockEntry<'a> {
-    Skill(&'a LockSkill),
-    Plugin(&'a LockPlugin),
+// Common fields for skill and plugin lock entries, used to avoid duplicated match arms.
+struct CachedLockEntry<'a> {
+    cache_key: &'a str,
+    url: &'a str,
+    owner: &'a str,
+    repo: &'a str,
+    path: &'a str,
+    commit: &'a str,
+    is_plugin: bool,
 }
 
 impl<'a> CachedLockEntry<'a> {
-    fn ensure_cached(self, client: &Client, ui: &Ui) -> Result<bool> {
-        let out = cache_entry_dir(self.cache_key())?;
-        if self.cache_ready(&out)? {
-            return Ok(true);
-        }
-
-        if self.restore_from_local_source(&out)? {
-            return self.cache_ready(&out);
-        }
-
-        if self.is_local_source() {
-            tracing::warn!(
-                cache_key = %self.cache_key(),
-                url = %self.url(),
-                "{} cache missing and path/local source unavailable; skipping",
-                self.kind_label(),
-            );
-            return Ok(false);
-        }
-
-        self.download_from_github(client, &out, ui)?;
-        self.cache_ready(&out)
-    }
-
-    fn cache_key(&self) -> &str {
-        match self {
-            Self::Skill(skill) => &skill.cache_key,
-            Self::Plugin(plugin) => &plugin.cache_key,
+    fn from_skill(s: &'a LockSkill) -> Self {
+        Self {
+            cache_key: &s.cache_key,
+            url: &s.url,
+            owner: &s.owner,
+            repo: &s.repo,
+            path: &s.path,
+            commit: &s.commit,
+            is_plugin: false,
         }
     }
 
-    fn url(&self) -> &str {
-        match self {
-            Self::Skill(skill) => &skill.url,
-            Self::Plugin(plugin) => &plugin.url,
-        }
-    }
-
-    fn owner(&self) -> &str {
-        match self {
-            Self::Skill(skill) => &skill.owner,
-            Self::Plugin(plugin) => &plugin.owner,
-        }
-    }
-
-    fn repo(&self) -> &str {
-        match self {
-            Self::Skill(skill) => &skill.repo,
-            Self::Plugin(plugin) => &plugin.repo,
-        }
-    }
-
-    fn path(&self) -> &str {
-        match self {
-            Self::Skill(skill) => &skill.path,
-            Self::Plugin(plugin) => &plugin.path,
-        }
-    }
-
-    fn commit(&self) -> &str {
-        match self {
-            Self::Skill(skill) => &skill.commit,
-            Self::Plugin(plugin) => &plugin.commit,
+    fn from_plugin(p: &'a LockPlugin) -> Self {
+        Self {
+            cache_key: &p.cache_key,
+            url: &p.url,
+            owner: &p.owner,
+            repo: &p.repo,
+            path: &p.path,
+            commit: &p.commit,
+            is_plugin: true,
         }
     }
 
     fn kind_label(&self) -> &'static str {
-        match self {
-            Self::Skill(_) => "skill",
-            Self::Plugin(_) => "plugin",
+        if self.is_plugin {
+            "plugin"
+        } else {
+            "skill"
         }
     }
 
     fn is_local_source(&self) -> bool {
-        matches!(self.owner(), "path" | "local") || self.url().starts_with("file:")
+        matches!(self.owner, "path" | "local") || self.url.starts_with("file:")
     }
 
     fn blob_hint(&self) -> Option<&str> {
-        (self.url().contains("/blob/") && path_in_repo_looks_like_file(self.path()))
-            .then_some(self.path())
+        (self.url.contains("/blob/") && path_in_repo_looks_like_file(self.path))
+            .then_some(self.path)
     }
 
     fn cache_ready(&self, out: &Path) -> Result<bool> {
-        match self {
-            Self::Skill(_) => Ok(out.join("SKILL.md").is_file() || cache_has_plugin_manifest(out)),
-            Self::Plugin(_) => {
-                normalize_plugin_cache_layout(out)?;
-                Ok(cache_has_plugin_manifest(out))
-            }
+        if self.is_plugin {
+            normalize_plugin_cache_layout(out)?;
+            Ok(cache_has_plugin_manifest(out))
+        } else {
+            Ok(out.join("SKILL.md").is_file() || cache_has_plugin_manifest(out))
         }
+    }
+
+    fn local_source_dir(&self) -> Option<PathBuf> {
+        path_from_file_url(self.url).or_else(|| resolve_local_mirror_from_url(self.url))
     }
 
     fn restore_from_local_source(&self, out: &Path) -> Result<bool> {
@@ -121,7 +88,6 @@ impl<'a> CachedLockEntry<'a> {
         if !source.is_dir() {
             return Ok(false);
         }
-
         prepare_cache_output_dir(out)?;
         copy_tree_files(&source, out)?;
         normalize_plugin_cache_layout(out)?;
@@ -133,23 +99,40 @@ impl<'a> CachedLockEntry<'a> {
         fs::create_dir_all(&cache_dir).map_err(|err| AgentpackError::io(&cache_dir, err))?;
         download_and_extract(
             client,
-            self.owner(),
-            self.repo(),
-            self.commit(),
-            self.path(),
+            self.owner,
+            self.repo,
+            self.commit,
+            self.path,
             out,
             ui,
             self.blob_hint(),
         )?;
-
-        match self {
-            Self::Skill(_) => ensure_skill_md(out),
-            Self::Plugin(_) => ensure_plugin_manifest(out),
+        if self.is_plugin {
+            ensure_plugin_manifest(out)
+        } else {
+            ensure_skill_md(out)
         }
     }
 
-    fn local_source_dir(&self) -> Option<PathBuf> {
-        path_from_file_url(self.url()).or_else(|| resolve_local_mirror_from_url(self.url()))
+    fn ensure_cached(self, client: &Client, ui: &Ui) -> Result<bool> {
+        let out = cache_entry_dir(self.cache_key)?;
+        if self.cache_ready(&out)? {
+            return Ok(true);
+        }
+        if self.restore_from_local_source(&out)? {
+            return self.cache_ready(&out);
+        }
+        if self.is_local_source() {
+            tracing::warn!(
+                cache_key = %self.cache_key,
+                url = %self.url,
+                "{} cache missing and path/local source unavailable; skipping",
+                self.kind_label(),
+            );
+            return Ok(false);
+        }
+        self.download_from_github(client, &out, ui)?;
+        self.cache_ready(&out)
     }
 }
 
@@ -177,11 +160,11 @@ fn path_from_file_url(url: &str) -> Option<PathBuf> {
 }
 
 pub fn ensure_lock_skill_cached(client: &Client, skill: &LockSkill, ui: &Ui) -> Result<bool> {
-    CachedLockEntry::Skill(skill).ensure_cached(client, ui)
+    CachedLockEntry::from_skill(skill).ensure_cached(client, ui)
 }
 
 pub fn ensure_lock_plugin_cached(client: &Client, plugin: &LockPlugin, ui: &Ui) -> Result<bool> {
-    CachedLockEntry::Plugin(plugin).ensure_cached(client, ui)
+    CachedLockEntry::from_plugin(plugin).ensure_cached(client, ui)
 }
 
 /// Validate cache trees for every lock entry that [`crate::sync::pipeline`] would pass to [`ensure_lock_plugin_cached`] / [`ensure_lock_skill_cached`].
@@ -204,9 +187,7 @@ pub fn verify_lock_cache_integrity(lock: &PackLock) -> Result<()> {
             continue;
         }
         let out = cache_entry_dir(&skill.cache_key)?;
-        let ok = out.join("SKILL.md").is_file()
-            || cache_has_plugin_manifest(&out)
-            || out.join(crate::paths::MANIFEST_NAME).is_file();
+        let ok = cache_dir_is_package_root_in_filesystem(&out);
         if !ok {
             return Err(AgentpackError::Cache(format!(
                 "skill cache not ready for {}",

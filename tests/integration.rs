@@ -165,6 +165,7 @@ fn sync_stages_full_plugin_and_shadows_contained_skill() {
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
+            update_lock: false,
         },
     })
     .unwrap();
@@ -271,6 +272,7 @@ fn sync_stages_bare_skills_for_all_launchers() {
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
+            update_lock: false,
         },
     })
     .unwrap();
@@ -338,7 +340,11 @@ fn sync_stages_cursor_and_claude_plugin_with_skill_support_and_command_sidecars(
         "---\nname: rust-skill\ndescription: Rust helpers\n---\n\nBody.\n",
     )
     .unwrap();
-    fs::write(skill_dir.join("evals").join("evals.json"), "{\"version\":1}\n").unwrap();
+    fs::write(
+        skill_dir.join("evals").join("evals.json"),
+        "{\"version\":1}\n",
+    )
+    .unwrap();
     fs::create_dir_all(cache.join(&pk).join("commands")).unwrap();
     fs::write(
         cache.join(&pk).join("commands").join("sidecar.txt"),
@@ -368,6 +374,7 @@ fn sync_stages_cursor_and_claude_plugin_with_skill_support_and_command_sidecars(
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
+            update_lock: false,
         },
     })
     .unwrap();
@@ -388,9 +395,7 @@ fn sync_stages_cursor_and_claude_plugin_with_skill_support_and_command_sidecars(
     assert!(cursor_home
         .join(".cursor/skills/rust-skill/evals/evals.json")
         .is_file());
-    assert!(cursor_home
-        .join(".cursor/commands/sidecar.txt")
-        .is_file());
+    assert!(cursor_home.join(".cursor/commands/sidecar.txt").is_file());
 
     let claude_bundle = staging_plugins_dir(&root).unwrap().join("agentpack-bundle");
     assert!(claude_bundle.join("skills/rust-skill/SKILL.md").is_file());
@@ -481,6 +486,7 @@ fn sync_converts_markdown_artifacts_per_target_harness() {
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
+            update_lock: false,
         },
     })
     .unwrap();
@@ -597,6 +603,7 @@ fn sync_leaves_project_cursor_files_alone_when_pack_overlaps_names() {
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
+            update_lock: false,
         },
     })
     .unwrap();
@@ -671,6 +678,7 @@ fn sync_does_not_remove_user_cursor_files_when_pack_entries_removed() {
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
+            update_lock: false,
         },
     })
     .unwrap();
@@ -693,6 +701,7 @@ fn sync_does_not_remove_user_cursor_files_when_pack_entries_removed() {
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
+            update_lock: false,
         },
     })
     .unwrap();
@@ -755,6 +764,7 @@ fn sync_merges_dot_agents_into_staging() {
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
+            update_lock: false,
         },
     })
     .unwrap();
@@ -772,10 +782,8 @@ fn sync_merges_dot_agents_into_staging() {
         .unwrap()
         .contains("Claude project from dot"));
 
-    let opencode_root = staging_opencode_dir(&root).unwrap();
-    assert!(opencode_root
-        .join("rules/dot-agents--nested--standards.mdc")
-        .is_file());
+    // OpenCode natively reads `.agents/` from the workspace, so dot-agents content
+    // is NOT merged into OpenCode staging.
 
     let codex_home = staging_codex_home_dir(&root).unwrap();
     assert!(fs::read_to_string(codex_home.join("AGENTS.md"))
@@ -783,18 +791,8 @@ fn sync_merges_dot_agents_into_staging() {
         .contains("Codex agents from dot"));
     assert!(codex_home.join("skills/dot-skill/SKILL.md").is_file());
 
-    let cursor_pack = staging_cursor_pack_plugin_dir(&root).unwrap();
-    assert!(cursor_pack
-        .join("rules/dot-agents--nested--standards.mdc")
-        .is_file());
-    assert!(cursor_pack.join("agents/local-sub.md").is_file());
-
-    assert!(
-        cursor_workspace_dir(&root)
-            .join("agents/local-sub.md")
-            .is_file(),
-        "workspace .cursor/agents should expose dot-agents markdown merged into staged agents"
-    );
+    // Cursor natively reads `.agents/` from the workspace, so dot-agents content
+    // is NOT merged into Cursor staging.
 }
 
 #[test]

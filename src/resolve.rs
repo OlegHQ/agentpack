@@ -7,7 +7,7 @@ use semver::VersionReq;
 
 use crate::cache::{cache_entry_dir, materialize_github_tree};
 use crate::error::{AgentpackError, Result};
-use crate::github::{canonical_github_tree_url, list_tags, resolve_ref_to_sha};
+use crate::github::{canonical_github_tree_url, list_tags};
 use crate::lockfile::{LockPackage, Meta, PackLock};
 use crate::manifest::{AgentpackManifest, DepSpecToml, DepTable};
 use crate::module_id::{split_module_at_ref, ModuleId};
@@ -179,34 +179,73 @@ fn constraints_from_dep(dep: &DepSpecToml, key_ref: Option<&str>) -> Result<Modu
     }
 }
 
-/// Verify that a previously resolved transitive dependency still matches after merging new constraints.
+/// Only **exact commit** requirements from merged constraints can invalidate an already-pinned
+/// transitive package. Floating (HEAD / branch / tag / semver) constraints keep the existing
+/// lock commit until **`--update`** / **`--update-lock`** forces a refresh.
 fn check_transitive_pin_conflict(
     child: &ModuleId,
     pkg: &LockPackage,
     merged: &BTreeMap<ModuleId, ModuleConstraints>,
-    client: &Client,
 ) -> Result<()> {
-    let (co, cr, _) = child.owner_repo_path_parts();
-    let cmc = merged.get(child).unwrap().clone();
-    let want_ref = cmc.pick_git_ref(client, &co, &cr)?;
-    let want_sha = resolve_ref_to_sha(client, &co, &cr, &want_ref)?;
-    if want_sha != pkg.commit {
-        return Err(AgentpackError::Cache(format!(
-            "transitive dependency `{}` was already pinned at {}; merged requirements resolve to {} (ref {})",
-            child.as_str(),
-            pkg.commit,
-            want_sha,
-            want_ref
-        )));
+    let cmc = merged.get(child).unwrap();
+    if let Some(want) = &cmc.exact {
+        if want != &pkg.commit {
+            return Err(AgentpackError::Cache(format!(
+                "transitive dependency `{}` must be at commit {want}, but is already pinned at {}",
+                child.as_str(),
+                pkg.commit
+            )));
+        }
     }
     Ok(())
 }
 
+/// Options for [`resolve_lock_from_manifest`].
+#[derive(Debug, Clone, Copy)]
+pub struct ResolveLockOpts<'a> {
+    /// Existing lock (same project) used to **reuse commits** for non-exact manifest constraints.
+    pub previous: Option<&'a PackLock>,
+    /// When **`true`**, ignore [`ResolveLockOpts::previous`] commits and re-resolve floating pins
+    /// against the remote (`HEAD`, branch, tag name, semver, etc.).
+    pub refresh_floating: bool,
+}
+
+fn pick_effective_git_ref(
+    mc: &ModuleConstraints,
+    client: &Client,
+    owner: &str,
+    repo: &str,
+    mid: &ModuleId,
+    opts: &ResolveLockOpts<'_>,
+) -> Result<String> {
+    if let Some(c) = &mc.exact {
+        return Ok(c.clone());
+    }
+    if !opts.refresh_floating {
+        if let Some(prev) = opts.previous {
+            if let Some(pkg) = prev
+                .packages
+                .iter()
+                .find(|p| p.module == mid.as_str())
+            {
+                return Ok(pkg.commit.clone());
+            }
+        }
+    }
+    mc.pick_git_ref(client, owner, repo)
+}
+
 /// Regenerate **`pack.lock`** from **`agentpack.toml`** (transitive via nested manifests).
+///
+/// When **`opts.refresh_floating`** is **`false`** (default for **`sync`** / **`lock`**), commits
+/// already recorded in **`opts.previous`** for each module id are reused instead of re-resolving
+/// **`HEAD`**, branch tips, etc. Use **`refresh_floating: true`** (`agentpack lock --update` or
+/// `sync --update-lock`) to advance floating pins.
 pub fn resolve_lock_from_manifest(
     manifest: &AgentpackManifest,
     client: &Client,
     ui: &Ui,
+    opts: &ResolveLockOpts<'_>,
 ) -> Result<PackLock> {
     if manifest.dependencies.is_empty() {
         let mut lock = PackLock {
@@ -248,7 +287,7 @@ pub fn resolve_lock_from_manifest(
             .ok_or_else(|| AgentpackError::Cache("internal: missing constraints".into()))?
             .clone();
         let (owner, repo, _in_path) = mid.owner_repo_path_parts();
-        let git_ref = mc.pick_git_ref(client, &owner, &repo)?;
+        let git_ref = pick_effective_git_ref(&mc, client, &owner, &repo, &mid, opts)?;
         let source = mid.to_github_source(&git_ref);
         let display = canonical_github_tree_url(&source);
         let fetched = materialize_github_tree(client, &source, &display, ui)?;
@@ -268,7 +307,7 @@ pub fn resolve_lock_from_manifest(
                     .merge(cnew.clone())?;
 
                 if let Some(pkg) = resolved.get(&child) {
-                    check_transitive_pin_conflict(&child, pkg, &merged, client)?;
+                    check_transitive_pin_conflict(&child, pkg, &merged)?;
                     continue;
                 }
 
@@ -293,6 +332,107 @@ pub fn resolve_lock_from_manifest(
     };
     lock.sync_views_from_packages();
     Ok(lock)
+}
+
+#[cfg(test)]
+mod effective_ref_tests {
+    use reqwest::blocking::Client;
+
+    use crate::lockfile::PackageKind;
+
+    use super::*;
+
+    #[test]
+    fn reuses_previous_commit_when_not_refreshing() {
+        let mid = ModuleId::parse("github.com/foo/bar/sub").unwrap();
+        let sha = "0123456789abcdef0123456789abcdef01234567";
+        let mut prev = PackLock::default();
+        prev.packages.push(LockPackage {
+            module: mid.as_str().to_string(),
+            direct: true,
+            kind: PackageKind::Plugin,
+            url: "https://github.com/foo/bar/tree/x/sub".into(),
+            owner: "foo".into(),
+            repo: "bar".into(),
+            path: "sub".into(),
+            commit: sha.into(),
+            cache_key: "k".repeat(64),
+            name: "".into(),
+        });
+        let mc = ModuleConstraints {
+            latest: true,
+            ..Default::default()
+        };
+        let opts = ResolveLockOpts {
+            previous: Some(&prev),
+            refresh_floating: false,
+        };
+        let c = Client::new();
+        let got =
+            pick_effective_git_ref(&mc, &c, "foo", "bar", &mid, &opts).expect("reuse");
+        assert_eq!(got, sha);
+    }
+
+    #[test]
+    fn manifest_exact_commit_overrides_previous_lock() {
+        let mid = ModuleId::parse("github.com/foo/bar/sub").unwrap();
+        let old_sha = "0123456789abcdef0123456789abcdef01234567";
+        let new_sha = "ffffffffffffffffffffffffffffffffffffffff";
+        let mut prev = PackLock::default();
+        prev.packages.push(LockPackage {
+            module: mid.as_str().to_string(),
+            direct: true,
+            kind: PackageKind::Plugin,
+            url: "u".into(),
+            owner: "foo".into(),
+            repo: "bar".into(),
+            path: "sub".into(),
+            commit: old_sha.into(),
+            cache_key: "k".repeat(64),
+            name: "".into(),
+        });
+        let mc = ModuleConstraints {
+            exact: Some(new_sha.into()),
+            ..Default::default()
+        };
+        let opts = ResolveLockOpts {
+            previous: Some(&prev),
+            refresh_floating: false,
+        };
+        let c = Client::new();
+        let got =
+            pick_effective_git_ref(&mc, &c, "foo", "bar", &mid, &opts).expect("exact");
+        assert_eq!(got, new_sha);
+    }
+
+    #[test]
+    fn refresh_floating_skips_previous_lock() {
+        let mid = ModuleId::parse("github.com/foo/bar/sub").unwrap();
+        let mut prev = PackLock::default();
+        prev.packages.push(LockPackage {
+            module: mid.as_str().to_string(),
+            direct: true,
+            kind: PackageKind::Plugin,
+            url: "u".into(),
+            owner: "foo".into(),
+            repo: "bar".into(),
+            path: "sub".into(),
+            commit: "0123456789abcdef0123456789abcdef01234567".into(),
+            cache_key: "k".repeat(64),
+            name: "".into(),
+        });
+        let mc = ModuleConstraints {
+            latest: true,
+            ..Default::default()
+        };
+        let opts = ResolveLockOpts {
+            previous: Some(&prev),
+            refresh_floating: true,
+        };
+        let c = Client::new();
+        let got = pick_effective_git_ref(&mc, &c, "foo", "bar", &mid, &opts).unwrap();
+        assert_eq!(got, "HEAD");
+    }
 }
 
 #[cfg(test)]

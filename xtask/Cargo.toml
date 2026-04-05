@@ -1,0 +1,12 @@
+[package]
+name = "xtask"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+toml_edit = "0.25"
+semver = "1"
+sha2 = "0.10"
+hex = "0.4"
+ureq = "3"

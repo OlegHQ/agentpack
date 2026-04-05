@@ -8,6 +8,25 @@ use crate::paths;
 const ENTRIES: TableDefinition<&str, &[u8]> = TableDefinition::new("cache_entries");
 const ALIASES: TableDefinition<&str, &str> = TableDefinition::new("aliases");
 
+fn db_err(e: impl std::fmt::Display) -> AgentpackError {
+    AgentpackError::Database(e.to_string())
+}
+
+fn open_or_create_db(p: &std::path::Path) -> Result<Database> {
+    if p.exists() {
+        Database::open(p).map_err(db_err)
+    } else {
+        Database::create(p).map_err(db_err)
+    }
+}
+
+fn open_db(p: &std::path::Path) -> Result<Option<Database>> {
+    if !p.exists() {
+        return Ok(None);
+    }
+    Database::open(p).map_err(db_err).map(Some)
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CacheEntryRecord {
     pub kind: PackageKind,
@@ -26,113 +45,71 @@ pub fn upsert_entry(cache_key: &str, record: &CacheEntryRecord, aliases: &[Strin
     if let Some(parent) = p.parent() {
         std::fs::create_dir_all(parent).map_err(|e| AgentpackError::io(parent, e))?;
     }
-    let bytes = serde_json::to_vec(record)
-        .map_err(|e| AgentpackError::Database(format!("serialize: {e}")))?;
-    let db = if p.exists() {
-        Database::open(&p).map_err(|e| AgentpackError::Database(e.to_string()))?
-    } else {
-        Database::create(&p).map_err(|e| AgentpackError::Database(e.to_string()))?
-    };
-    let write = db
-        .begin_write()
-        .map_err(|e| AgentpackError::Database(e.to_string()))?;
+    let bytes = serde_json::to_vec(record).map_err(|e| db_err(format!("serialize: {e}")))?;
+    let db = open_or_create_db(&p)?;
+    let write = db.begin_write().map_err(db_err)?;
     {
-        let mut table = write
-            .open_table(ENTRIES)
-            .map_err(|e| AgentpackError::Database(e.to_string()))?;
-        table
-            .insert(cache_key, &bytes[..])
-            .map_err(|e| AgentpackError::Database(e.to_string()))?;
+        let mut table = write.open_table(ENTRIES).map_err(db_err)?;
+        table.insert(cache_key, &bytes[..]).map_err(db_err)?;
         if !aliases.is_empty() {
-            let mut at = write
-                .open_table(ALIASES)
-                .map_err(|e| AgentpackError::Database(e.to_string()))?;
+            let mut at = write.open_table(ALIASES).map_err(db_err)?;
             for a in aliases {
                 let key = a.trim().to_lowercase();
                 if key.is_empty() {
                     continue;
                 }
-                at.insert(key.as_str(), cache_key)
-                    .map_err(|e| AgentpackError::Database(e.to_string()))?;
+                at.insert(key.as_str(), cache_key).map_err(db_err)?;
             }
         }
     }
-    write
-        .commit()
-        .map_err(|e| AgentpackError::Database(e.to_string()))?;
+    write.commit().map_err(db_err)?;
     Ok(())
 }
 
 /// Lookup cached `cache_key` by shorthand like `anthropics/skills/algorithmic-art`.
 pub fn lookup_alias(alias: &str) -> Result<Option<String>> {
     let p = crate::paths::cache_db_path()?;
-    if !p.exists() {
-        return Ok(None);
-    }
-    let db = Database::open(&p).map_err(|e| AgentpackError::Database(e.to_string()))?;
-    let read = db
-        .begin_read()
-        .map_err(|e| AgentpackError::Database(e.to_string()))?;
-    let table = read
-        .open_table(ALIASES)
-        .map_err(|e| AgentpackError::Database(e.to_string()))?;
-    let key = alias.trim().to_lowercase();
-    let Some(v) = table
-        .get(key.as_str())
-        .map_err(|e| AgentpackError::Database(e.to_string()))?
-    else {
+    let Some(db) = open_db(&p)? else {
         return Ok(None);
     };
-    Ok(Some(v.value().to_string()))
+    let read = db.begin_read().map_err(db_err)?;
+    let table = read.open_table(ALIASES).map_err(db_err)?;
+    let key = alias.trim().to_lowercase();
+    Ok(table
+        .get(key.as_str())
+        .map_err(db_err)?
+        .map(|v| v.value().to_string()))
 }
 
 /// Read primary entry by `cache_key`.
 #[allow(dead_code)]
 pub fn get_entry(cache_key: &str) -> Result<Option<CacheEntryRecord>> {
     let p = crate::paths::cache_db_path()?;
-    if !p.exists() {
-        return Ok(None);
-    }
-    let db = Database::open(&p).map_err(|e| AgentpackError::Database(e.to_string()))?;
-    let read = db
-        .begin_read()
-        .map_err(|e| AgentpackError::Database(e.to_string()))?;
-    let table = read
-        .open_table(ENTRIES)
-        .map_err(|e| AgentpackError::Database(e.to_string()))?;
-    let Some(v) = table
-        .get(cache_key)
-        .map_err(|e| AgentpackError::Database(e.to_string()))?
-    else {
+    let Some(db) = open_db(&p)? else {
         return Ok(None);
     };
-    let s = v.value();
-    let record: CacheEntryRecord = serde_json::from_slice(s)
-        .map_err(|e| AgentpackError::Database(format!("deserialize: {e}")))?;
+    let read = db.begin_read().map_err(db_err)?;
+    let table = read.open_table(ENTRIES).map_err(db_err)?;
+    let Some(v) = table.get(cache_key).map_err(db_err)? else {
+        return Ok(None);
+    };
+    let record: CacheEntryRecord =
+        serde_json::from_slice(v.value()).map_err(|e| db_err(format!("deserialize: {e}")))?;
     Ok(Some(record))
 }
 
 pub fn list_keys() -> Result<Vec<String>> {
     let p = crate::paths::cache_db_path()?;
-    if !p.exists() {
+    let Some(db) = open_db(&p)? else {
         return Ok(Vec::new());
-    }
-    let db = Database::open(&p).map_err(|e| AgentpackError::Database(e.to_string()))?;
-    let read = db
-        .begin_read()
-        .map_err(|e| AgentpackError::Database(e.to_string()))?;
-    let table = read
-        .open_table(ENTRIES)
-        .map_err(|e| AgentpackError::Database(e.to_string()))?;
-    let mut keys = Vec::new();
-    for item in table
+    };
+    let read = db.begin_read().map_err(db_err)?;
+    let table = read.open_table(ENTRIES).map_err(db_err)?;
+    table
         .iter()
-        .map_err(|e| AgentpackError::Database(e.to_string()))?
-    {
-        let (k, _) = item.map_err(|e| AgentpackError::Database(e.to_string()))?;
-        keys.push(k.value().to_string());
-    }
-    Ok(keys)
+        .map_err(db_err)?
+        .map(|item| item.map_err(db_err).map(|(k, _)| k.value().to_string()))
+        .collect()
 }
 
 /// Build alias list for a GitHub-backed row (slash forms + optional package name).

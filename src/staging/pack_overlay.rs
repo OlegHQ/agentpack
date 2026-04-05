@@ -1,5 +1,7 @@
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+
+use walkdir::WalkDir;
 
 use crate::artifacts::{parse_markdown_artifact, staged_skill_support_path, HarnessTarget};
 use crate::cache::{cache_entry_dir, cache_has_plugin_manifest};
@@ -11,40 +13,27 @@ use crate::fs_util::write_text_file;
 
 use super::tree::copy_merge_tree;
 
-fn walk_source_files<F>(root: &Path, current: &Path, visitor: &mut F) -> Result<()>
+fn walk_source_files<F>(root: &Path, visitor: &mut F) -> Result<()>
 where
     F: FnMut(&Path, &Path) -> Result<()>,
 {
-    let dir = if current.as_os_str().is_empty() {
-        root.to_path_buf()
-    } else {
-        root.join(current)
-    };
-    for entry in fs::read_dir(&dir).map_err(|e| AgentpackError::io(&dir, e))? {
-        let entry = entry.map_err(|e| AgentpackError::io(&dir, e))?;
-        let path = entry.path();
-        let rel = if current.as_os_str().is_empty() {
-            PathBuf::from(entry.file_name())
-        } else {
-            current.join(entry.file_name())
-        };
-        let file_type = entry
-            .file_type()
-            .map_err(|e| AgentpackError::io(&path, e))?;
-        if file_type.is_dir() {
-            walk_source_files(root, &rel, visitor)?;
-        } else if file_type.is_file() {
-            visitor(&path, &rel)?;
+    for entry in WalkDir::new(root).follow_links(false) {
+        let entry = entry.map_err(|e| AgentpackError::Staging(e.to_string()))?;
+        if !entry.file_type().is_file() {
+            continue;
         }
+        let path = entry.path();
+        let rel = path.strip_prefix(root).map_err(|_| {
+            AgentpackError::Staging(format!("path outside root: {}", path.display()))
+        })?;
+        visitor(path, rel)?;
     }
     Ok(())
 }
 
 fn rel_key(rel: &Path) -> String {
-    rel.iter()
-        .map(|c| c.to_string_lossy())
-        .collect::<Vec<_>>()
-        .join("/")
+    rel.to_string_lossy()
+        .replace(std::path::MAIN_SEPARATOR, "/")
 }
 
 /// Paths are package-root-relative (forward slashes). A pattern matches the exact path or any file under it as a directory prefix.
@@ -86,7 +75,7 @@ fn stage_source_tree(
         return Ok(());
     }
 
-    walk_source_files(src_root, Path::new(""), &mut |src, rel| {
+    walk_source_files(src_root, &mut |src, rel| {
         if rel_is_disabled(rel, disabled) {
             return Ok(());
         }
@@ -151,7 +140,7 @@ fn copy_raw_plugin_support_dirs(
         for sub in subdirs {
             let s = src_root.join(sub);
             if s.is_dir() {
-                walk_source_files(&s, Path::new(""), &mut |src, rel| {
+                walk_source_files(&s, &mut |src, rel| {
                     let full_rel = Path::new(sub).join(rel);
                     if rel_is_disabled(&full_rel, disabled) {
                         return Ok(());
@@ -283,11 +272,11 @@ pub(super) fn stage_pack_skills_for_target(
     Ok(())
 }
 
-pub(crate) fn entry_short_id(cache_key: &str) -> String {
+fn entry_short_id(cache_key: &str) -> String {
     crate::fs_util::truncate_str(cache_key, 16)
 }
 
-pub(super) fn skill_folder_name(skill: &LockSkill) -> String {
+pub(crate) fn skill_folder_name(skill: &LockSkill) -> String {
     if skill.path.is_empty() {
         return skill.repo.clone();
     }

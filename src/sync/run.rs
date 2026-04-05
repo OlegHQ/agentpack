@@ -7,7 +7,7 @@ use crate::error::{AgentpackError, Result};
 use crate::lockfile::PackLock;
 use crate::manifest::AgentpackManifest;
 use crate::paths;
-use crate::resolve::resolve_lock_from_manifest;
+use crate::resolve::{resolve_lock_from_manifest, ResolveLockOpts};
 use crate::staging;
 use crate::ui::Ui;
 
@@ -21,10 +21,6 @@ use super::add_fetch::{
 };
 use super::remove::resolve_remove_spec_to_key;
 
-fn sync_client() -> Result<Client> {
-    http_client()
-}
-
 fn require_manifest(project_root: &Path) -> Result<AgentpackManifest> {
     AgentpackManifest::load(project_root)?
         .ok_or_else(|| AgentpackError::ManifestMissing(paths::manifest_path(project_root)))
@@ -35,8 +31,14 @@ fn resolve_and_save_lock(
     manifest: &AgentpackManifest,
     client: &Client,
     ui: &Ui,
+    refresh_floating: bool,
 ) -> Result<PackLock> {
-    let lock = resolve_lock_from_manifest(manifest, client, ui)?;
+    let previous = PackLock::load(project_root).ok();
+    let opts = ResolveLockOpts {
+        previous: previous.as_ref(),
+        refresh_floating,
+    };
+    let lock = resolve_lock_from_manifest(manifest, client, ui, &opts)?;
     lock.save(project_root)?;
     Ok(lock)
 }
@@ -46,7 +48,7 @@ fn sync_unless_skipped(project_root: &Path, no_sync: bool, ui: &Ui) -> Result<()
         ui.message("Skipping sync (--no-sync).");
         return Ok(());
     }
-    super::run_sync(project_root, false, false, ui)
+    super::run_sync(project_root, false, false, false, ui)
 }
 
 pub fn run_add(project_root: &Path, spec: &str, no_sync: bool, ui: &Ui) -> Result<()> {
@@ -58,13 +60,13 @@ pub fn run_add(project_root: &Path, spec: &str, no_sync: bool, ui: &Ui) -> Resul
                 .into(),
         ));
     }
-    let client = sync_client()?;
+    let client = http_client()?;
     let _ = require_manifest(project_root)?;
     let (fetched, shorthand) = resolve_add_spec(&client, spec, ui)?;
     let module_key = fetched.dependency_key();
     AgentpackManifest::append_dependency_key(project_root, &module_key)?;
     let manifest = require_manifest(project_root)?;
-    resolve_and_save_lock(project_root, &manifest, &client, ui)?;
+    resolve_and_save_lock(project_root, &manifest, &client, ui, false)?;
     upsert_fetched_index(&fetched, shorthand.as_deref())?;
     ui.message(format!(
         "Recorded {module_key} in agentpack.toml and refreshed pack.lock."
@@ -79,8 +81,8 @@ pub fn run_remove(project_root: &Path, spec: &str, no_sync: bool, ui: &Ui) -> Re
     let key = resolve_remove_spec_to_key(spec, &manifest)?;
     AgentpackManifest::remove_dependency_entry(project_root, &key)?;
     let manifest = require_manifest(project_root)?;
-    let client = sync_client()?;
-    resolve_and_save_lock(project_root, &manifest, &client, ui)?;
+    let client = http_client()?;
+    resolve_and_save_lock(project_root, &manifest, &client, ui, false)?;
     if !ui.quiet {
         ui.message(format!(
             "Removed {} from {} and refreshed {}.",
@@ -92,11 +94,11 @@ pub fn run_remove(project_root: &Path, spec: &str, no_sync: bool, ui: &Ui) -> Re
     sync_unless_skipped(project_root, no_sync, ui)
 }
 
-pub fn run_lock(project_root: &Path, ui: &Ui) -> Result<()> {
+pub fn run_lock(project_root: &Path, refresh_floating: bool, ui: &Ui) -> Result<()> {
     paths::ensure_user_agentpack_layout()?;
     let manifest = require_manifest(project_root)?;
-    let client = sync_client()?;
-    let lock = resolve_and_save_lock(project_root, &manifest, &client, ui)?;
+    let client = http_client()?;
+    let lock = resolve_and_save_lock(project_root, &manifest, &client, ui, refresh_floating)?;
     if !ui.quiet {
         ui.message(format!(
             "Wrote {} ({} package(s)).",
@@ -135,7 +137,7 @@ pub fn sync_for_launch(project_root: &Path, ui: &Ui) -> Result<()> {
         }
     }
 
-    super::run_sync(project_root, false, false, ui)?;
+    super::run_sync(project_root, false, false, false, ui)?;
     let digest = compute_launch_sync_digest(project_root)?;
     write_launch_sync_state(project_root, &digest)?;
     Ok(())

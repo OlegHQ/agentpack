@@ -11,18 +11,25 @@ use crate::index::{list_keys, upsert_entry, CacheEntryRecord};
 use crate::lockfile::{LockPlugin, LockSkill, PackLock, PackageKind};
 use crate::manifest::AgentpackManifest;
 use crate::paths;
-use crate::resolve::resolve_lock_from_manifest;
+use crate::resolve::{resolve_lock_from_manifest, ResolveLockOpts};
 use crate::staging::{self, skill_is_shadowed};
 use crate::ui::Ui;
 
 use super::add_fetch::http_client;
 
-pub fn run_sync(project_root: &Path, dry_run: bool, verify_only: bool, ui: &Ui) -> Result<()> {
+pub fn run_sync(
+    project_root: &Path,
+    dry_run: bool,
+    verify_only: bool,
+    update_lock: bool,
+    ui: &Ui,
+) -> Result<()> {
     let mut session = SyncSession::prepare(
         project_root,
         SyncMode {
             dry_run,
             verify_only,
+            update_lock,
         },
         ui,
     )?;
@@ -38,6 +45,7 @@ pub fn run_sync(project_root: &Path, dry_run: bool, verify_only: bool, ui: &Ui) 
 struct SyncMode {
     dry_run: bool,
     verify_only: bool,
+    update_lock: bool,
 }
 
 struct SyncSession<'a> {
@@ -58,7 +66,13 @@ impl<'a> SyncSession<'a> {
 
         let manifest = AgentpackManifest::load(project_root)?;
         if !mode.dry_run {
-            maybe_refresh_lock_from_manifest(project_root, manifest.as_ref(), &client, ui)?;
+            maybe_refresh_lock_from_manifest(
+                project_root,
+                manifest.as_ref(),
+                &client,
+                ui,
+                mode.update_lock,
+            )?;
         }
 
         let lock = PackLock::load(project_root)?;
@@ -90,6 +104,7 @@ fn maybe_refresh_lock_from_manifest(
     manifest: Option<&AgentpackManifest>,
     client: &Client,
     ui: &Ui,
+    refresh_floating: bool,
 ) -> Result<()> {
     let Some(manifest) = manifest else {
         return Ok(());
@@ -98,74 +113,102 @@ fn maybe_refresh_lock_from_manifest(
     if manifest.dependencies.is_empty() {
         return Ok(());
     }
-    let resolved = resolve_lock_from_manifest(manifest, client, ui)?;
+    let previous = PackLock::load(project_root).ok();
+    let opts = ResolveLockOpts {
+        previous: previous.as_ref(),
+        refresh_floating,
+    };
+    let resolved = resolve_lock_from_manifest(manifest, client, ui, &opts)?;
     resolved.save(project_root)
 }
 
-enum SyncEntry<'a> {
-    Plugin(&'a LockPlugin),
-    Skill(&'a LockSkill),
+struct SyncEntry<'a> {
+    cache_key: &'a str,
+    url: &'a str,
+    owner: &'a str,
+    repo: &'a str,
+    path: &'a str,
+    commit: &'a str,
+    kind: PackageKind,
+    /// Plugins with empty cache_key are incomplete and should be skipped.
+    skip: bool,
 }
 
 impl<'a> SyncEntry<'a> {
-    fn ensure_cached(&self, client: &Client, ui: &Ui) -> Result<bool> {
-        match self {
-            Self::Plugin(plugin) => ensure_lock_plugin_cached(client, plugin, ui),
-            Self::Skill(skill) => ensure_lock_skill_cached(client, skill, ui),
+    fn from_plugin(p: &'a LockPlugin) -> Self {
+        Self {
+            cache_key: &p.cache_key,
+            url: &p.url,
+            owner: &p.owner,
+            repo: &p.repo,
+            path: &p.path,
+            commit: &p.commit,
+            kind: PackageKind::Plugin,
+            skip: p.cache_key.is_empty(),
         }
     }
 
-    fn index_record(&self, fetched_at_unix: i64) -> CacheEntryRecord {
-        match self {
-            Self::Plugin(plugin) => CacheEntryRecord {
-                kind: PackageKind::Plugin,
-                source_url: plugin.url.clone(),
-                owner: plugin.owner.clone(),
-                repo: plugin.repo.clone(),
-                path: plugin.path.clone(),
-                commit: plugin.commit.clone(),
-                fetched_at_unix,
-            },
-            Self::Skill(skill) => CacheEntryRecord {
-                kind: PackageKind::Skill,
-                source_url: skill.url.clone(),
-                owner: skill.owner.clone(),
-                repo: skill.repo.clone(),
-                path: skill.path.clone(),
-                commit: skill.commit.clone(),
-                fetched_at_unix,
-            },
-        }
-    }
-
-    fn cache_key(&self) -> &str {
-        match self {
-            Self::Plugin(plugin) => &plugin.cache_key,
-            Self::Skill(skill) => &skill.cache_key,
-        }
-    }
-
-    fn url(&self) -> &str {
-        match self {
-            Self::Plugin(plugin) => &plugin.url,
-            Self::Skill(skill) => &skill.url,
+    fn from_skill(s: &'a LockSkill) -> Self {
+        Self {
+            cache_key: &s.cache_key,
+            url: &s.url,
+            owner: &s.owner,
+            repo: &s.repo,
+            path: &s.path,
+            commit: &s.commit,
+            kind: PackageKind::Skill,
+            skip: false,
         }
     }
 
     fn kind_label(&self) -> &'static str {
-        match self {
-            Self::Plugin(_) => "plugin",
-            Self::Skill(_) => "skill",
+        match self.kind {
+            PackageKind::Plugin => "plugin",
+            PackageKind::Skill => "skill",
         }
     }
 
-    fn should_skip(&self) -> bool {
-        matches!(self, Self::Plugin(plugin) if plugin.cache_key.is_empty())
+    fn ensure_cached(&self, client: &Client, ui: &Ui) -> Result<bool> {
+        // Re-use the lock-entry helpers which already exist.
+        // Build thin LockSkill/LockPlugin proxies — we only need the fields the helpers read.
+        match self.kind {
+            PackageKind::Plugin => {
+                let proxy = LockPlugin {
+                    module: String::new(),
+                    name: String::new(),
+                    url: self.url.to_owned(),
+                    owner: self.owner.to_owned(),
+                    repo: self.repo.to_owned(),
+                    path: self.path.to_owned(),
+                    commit: self.commit.to_owned(),
+                    cache_key: self.cache_key.to_owned(),
+                };
+                ensure_lock_plugin_cached(client, &proxy, ui)
+            }
+            PackageKind::Skill => {
+                let proxy = LockSkill {
+                    module: String::new(),
+                    url: self.url.to_owned(),
+                    owner: self.owner.to_owned(),
+                    repo: self.repo.to_owned(),
+                    path: self.path.to_owned(),
+                    commit: self.commit.to_owned(),
+                    cache_key: self.cache_key.to_owned(),
+                };
+                ensure_lock_skill_cached(client, &proxy, ui)
+            }
+        }
     }
 
-    fn log_skip(&self) {
-        if matches!(self, Self::Plugin(_)) {
-            tracing::warn!("skipping plugin sync: empty cache_key");
+    fn index_record(&self, fetched_at_unix: i64) -> CacheEntryRecord {
+        CacheEntryRecord {
+            kind: self.kind,
+            source_url: self.url.to_owned(),
+            owner: self.owner.to_owned(),
+            repo: self.repo.to_owned(),
+            path: self.path.to_owned(),
+            commit: self.commit.to_owned(),
+            fetched_at_unix,
         }
     }
 
@@ -173,8 +216,8 @@ impl<'a> SyncEntry<'a> {
         format!(
             "{} {} ({}): cache missing and source unavailable — omitted from staging",
             self.kind_label(),
-            crate::fs_util::truncate_str(self.cache_key(), 12),
-            self.url()
+            crate::fs_util::truncate_str(self.cache_key, 12),
+            self.url
         )
     }
 }
@@ -263,23 +306,23 @@ impl SyncStep for CacheAndIndexStep {
         let mut warnings = Vec::new();
 
         for plugin in &session.lock.plugins {
-            let entry = SyncEntry::Plugin(plugin);
-            if entry.should_skip() {
-                entry.log_skip();
+            let entry = SyncEntry::from_plugin(plugin);
+            if entry.skip {
+                tracing::warn!("skipping plugin sync: empty cache_key");
                 continue;
             }
             if !entry.ensure_cached(&session.client, session.ui)? {
                 warnings.push(entry.missing_cache_warning());
             }
-            upsert_entry(entry.cache_key(), &entry.index_record(fetched_at_unix), &[])?;
+            upsert_entry(entry.cache_key, &entry.index_record(fetched_at_unix), &[])?;
         }
 
         for skill in &session.lock.skills {
-            let entry = SyncEntry::Skill(skill);
+            let entry = SyncEntry::from_skill(skill);
             if !entry.ensure_cached(&session.client, session.ui)? {
                 warnings.push(entry.missing_cache_warning());
             }
-            upsert_entry(entry.cache_key(), &entry.index_record(fetched_at_unix), &[])?;
+            upsert_entry(entry.cache_key, &entry.index_record(fetched_at_unix), &[])?;
         }
 
         for warning in warnings {

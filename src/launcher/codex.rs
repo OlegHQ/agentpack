@@ -32,9 +32,5 @@ pub fn run_codex(
         "Codex CLI (`codex`) not found.\n\
          Install the Codex CLI and ensure `codex` is on your PATH, or set CODEX_PATH to the executable."
     })?;
-    exec_with_env(
-        &codex,
-        &[("CODEX_HOME", codex_home)],
-        passthrough,
-    )
+    exec_with_env(&codex, &[("CODEX_HOME", codex_home)], passthrough)
 }

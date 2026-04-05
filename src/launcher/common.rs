@@ -251,8 +251,9 @@ mod tests {
         let old_env = std::env::var_os("_AGENTPACK_TEST_HARNESS_PATH");
         std::env::set_var("PATH", dir.path().as_os_str());
         std::env::set_var("_AGENTPACK_TEST_HARNESS_PATH", " ");
-        let got = resolve_harness_binary("_AGENTPACK_TEST_HARNESS_PATH", "agentpack-harness-default")
-            .unwrap();
+        let got =
+            resolve_harness_binary("_AGENTPACK_TEST_HARNESS_PATH", "agentpack-harness-default")
+                .unwrap();
         assert_eq!(got, exe);
         match old_path {
             Some(v) => std::env::set_var("PATH", v),

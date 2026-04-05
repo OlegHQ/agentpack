@@ -19,33 +19,23 @@ pub(super) fn split_frontmatter(contents: &str) -> Result<(Option<Mapping>, Stri
 }
 
 fn extract_frontmatter_sections(contents: &str) -> Option<(&str, &str)> {
-    let (first, mut offset) = read_line(contents, 0)?;
-    if first != "---" {
-        return None;
-    }
-    let yaml_start = offset;
-    while let Some((line, next_offset)) = read_line(contents, offset) {
-        if line == "---" {
-            return Some((&contents[yaml_start..offset], &contents[next_offset..]));
+    // First line must be exactly `---`
+    let after_open = contents
+        .strip_prefix("---\n")
+        .or_else(|| contents.strip_prefix("---\r\n"))?;
+    // Scan lines for the closing `---`
+    let mut offset = 0;
+    for line in after_open.split('\n') {
+        let trimmed = line.trim_end_matches('\r');
+        if trimmed == "---" {
+            let yaml = &after_open[..offset];
+            let body_start = offset + line.len() + 1; // +1 for '\n'
+            let body = after_open.get(body_start..).unwrap_or("");
+            return Some((yaml, body));
         }
-        offset = next_offset;
+        offset += line.len() + 1; // +1 for '\n'
     }
     None
-}
-
-fn read_line(contents: &str, start: usize) -> Option<(&str, usize)> {
-    if start >= contents.len() {
-        return None;
-    }
-    let remainder = &contents[start..];
-    if let Some(pos) = remainder.find('\n') {
-        let end = start + pos;
-        let line = contents[start..end].trim_end_matches('\r');
-        Some((line, end + 1))
-    } else {
-        let line = remainder.trim_end_matches('\r');
-        Some((line, contents.len()))
-    }
 }
 
 pub(super) fn infer_description(body: &str, name: &str, kind: ArtifactKind) -> String {
