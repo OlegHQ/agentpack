@@ -67,10 +67,31 @@ fn disable_list_for_entry<'a>(
         .unwrap_or(&[])
 }
 
-fn stage_source_tree(
+/// Destination roots for the four harness trees that receive merged pack content.
+pub(super) struct PackHarnessRoots<'a> {
+    pub claude_bundle: &'a Path,
+    pub opencode: &'a Path,
+    pub codex: &'a Path,
+    pub cursor_pack: &'a Path,
+}
+
+impl PackHarnessRoots<'_> {
+    fn targets_and_roots(&self) -> [(HarnessTarget, &Path); 4] {
+        [
+            (HarnessTarget::Claude, self.claude_bundle),
+            (HarnessTarget::OpenCode, self.opencode),
+            (HarnessTarget::Codex, self.codex),
+            (HarnessTarget::Cursor, self.cursor_pack),
+        ]
+    }
+}
+
+/// One walk over **`src_root`**: copy skill support files and read each markdown artifact once, then
+/// render per harness. Avoids repeating directory walks and YAML/markdown parsing for every target
+/// (previously ~4× I/O and CPU per plugin).
+fn stage_source_tree_all_harnesses(
     src_root: &Path,
-    dest_root: &Path,
-    target: HarnessTarget,
+    dests: &PackHarnessRoots<'_>,
     bare_skill_name: Option<&str>,
     disabled: &[String],
 ) -> Result<()> {
@@ -78,12 +99,15 @@ fn stage_source_tree(
         return Ok(());
     }
 
+    let pairs = dests.targets_and_roots();
     walk_source_files(src_root, &mut |src, rel| {
         if rel_is_disabled(rel, disabled) {
             return Ok(());
         }
         if let Some(dest_rel) = staged_skill_support_path(rel, bare_skill_name) {
-            copy_merge_tree(src, &dest_root.join(dest_rel))?;
+            for (_, dest_root) in &pairs {
+                copy_merge_tree(src, &dest_root.join(&dest_rel))?;
+            }
             return Ok(());
         }
 
@@ -94,15 +118,17 @@ fn stage_source_tree(
 
         let contents = fs::read_to_string(src).map_err(|e| AgentpackError::io(src, e))?;
         if let Some(artifact) = parse_markdown_artifact(rel, &contents, bare_skill_name)? {
-            tracing::debug!(
-                source = %rel.display(),
-                kind = ?artifact.kind,
-                source_variant = ?artifact.source_variant,
-                target = ?target,
-                "rendering staged markdown artifact"
-            );
-            let rendered = artifact.render(target);
-            write_text_file(&dest_root.join(rendered.relative_path), &rendered.contents)?;
+            for (target, dest_root) in &pairs {
+                tracing::debug!(
+                    source = %rel.display(),
+                    kind = ?artifact.kind,
+                    source_variant = ?artifact.source_variant,
+                    target = ?target,
+                    "rendering staged markdown artifact"
+                );
+                let rendered = artifact.render(*target);
+                write_text_file(&dest_root.join(rendered.relative_path), &rendered.contents)?;
+            }
         }
         Ok(())
     })
@@ -173,33 +199,32 @@ fn copy_plugin_root_file_if_present(
     Ok(())
 }
 
-fn stage_plugin_cache_for_target(
+fn stage_bare_skill_cache_all_harnesses(
     cache_root: &Path,
-    dest_root: &Path,
-    target: HarnessTarget,
-    disabled: &[String],
-) -> Result<()> {
-    copy_raw_plugin_support_dirs(cache_root, dest_root, target, disabled)?;
-    if target.stages_plugin_root_mcp_json() {
-        copy_plugin_root_file_if_present(cache_root, dest_root, "mcp.json", disabled)?;
-    }
-    stage_source_tree(cache_root, dest_root, target, None, disabled)
-}
-
-fn stage_bare_skill_cache_for_target(
-    cache_root: &Path,
-    dest_root: &Path,
-    target: HarnessTarget,
+    dests: &PackHarnessRoots<'_>,
     skill_name: &str,
     disabled: &[String],
 ) -> Result<()> {
-    stage_source_tree(cache_root, dest_root, target, Some(skill_name), disabled)
+    stage_source_tree_all_harnesses(cache_root, dests, Some(skill_name), disabled)
 }
 
-pub(super) fn stage_pack_plugins_for_target(
+fn stage_plugin_cache_all_harnesses(
+    cache_root: &Path,
+    dests: &PackHarnessRoots<'_>,
+    disabled: &[String],
+) -> Result<()> {
+    for (target, root) in dests.targets_and_roots() {
+        copy_raw_plugin_support_dirs(cache_root, root, target, disabled)?;
+        if target.stages_plugin_root_mcp_json() {
+            copy_plugin_root_file_if_present(cache_root, root, "mcp.json", disabled)?;
+        }
+    }
+    stage_source_tree_all_harnesses(cache_root, dests, None, disabled)
+}
+
+pub(super) fn stage_pack_plugins_all_harnesses(
     lock: &PackLock,
-    dest_root: &Path,
-    target: HarnessTarget,
+    dests: &PackHarnessRoots<'_>,
     manifest: Option<&AgentpackManifest>,
 ) -> Result<()> {
     let mut plug_list: Vec<&LockPackage> = lock.plugins().collect();
@@ -228,15 +253,14 @@ pub(super) fn stage_pack_plugins_for_target(
             continue;
         }
         let disabled = disable_list_for_entry(manifest, &plugin.module);
-        stage_plugin_cache_for_target(&cache_path, dest_root, target, disabled)?;
+        stage_plugin_cache_all_harnesses(&cache_path, dests, disabled)?;
     }
     Ok(())
 }
 
-pub(super) fn stage_pack_skills_for_target(
+pub(super) fn stage_pack_skills_all_harnesses(
     lock: &PackLock,
-    dest_root: &Path,
-    target: HarnessTarget,
+    dests: &PackHarnessRoots<'_>,
     manifest: Option<&AgentpackManifest>,
 ) -> Result<()> {
     let plugins: Vec<&LockPackage> = lock.plugins().collect();
@@ -271,7 +295,7 @@ pub(super) fn stage_pack_skills_for_target(
             );
             continue;
         }
-        stage_bare_skill_cache_for_target(&cache_path, dest_root, target, &name, disabled)?;
+        stage_bare_skill_cache_all_harnesses(&cache_path, dests, &name, disabled)?;
     }
     Ok(())
 }

@@ -7,25 +7,16 @@ mod overlay;
 use std::fs;
 use std::path::Path;
 
-use crate::artifacts::HarnessTarget;
 use crate::error::{AgentpackError, Result};
-use crate::lockfile::PackLock;
-use crate::manifest::AgentpackManifest;
 use crate::paths::{staging_cursor_bundle_dir, staging_cursor_pack_plugin_dir};
 
-use super::pack_overlay::{stage_pack_plugins_for_target, stage_pack_skills_for_target};
 use super::seed::seed_cursor_root;
 
 pub(super) use overlay::read_cursor_overlay_manifest;
 
-/// Cursor pack tree and marketplace layout only. **`rebuild_staging`** calls
-/// **`stage_dot_agents_overlay`** next, then **`finalize_cursor_staging`** (fake **`HOME`** +
-/// workspace **`agents`** symlink), so dot-agents content is included before symlinks are written.
-pub(super) fn rebuild_cursor_staging_without_finalize(
-    project_root: &Path,
-    lock: &PackLock,
-    manifest: Option<&AgentpackManifest>,
-) -> Result<()> {
+/// Cursor marketplace layout and optional user **`~/.cursor`** seeds only. Pack trees are merged in
+/// one pass for all harnesses in **`staging::pack_overlay`**.
+pub(super) fn prepare_cursor_staging_without_pack_overlay(project_root: &Path) -> Result<()> {
     overlay::cleanup_cursor_overlay(project_root)?;
     let root = staging_cursor_bundle_dir(project_root)?;
     fs::create_dir_all(&root).map_err(|e| AgentpackError::io(&root, e))?;
@@ -33,9 +24,6 @@ pub(super) fn rebuild_cursor_staging_without_finalize(
     let pack_plugin = staging_cursor_pack_plugin_dir(project_root)?;
     fs::create_dir_all(&pack_plugin).map_err(|e| AgentpackError::io(&pack_plugin, e))?;
     manifests::write_cursor_pack_plugin_manifests(&root)?;
-    stage_pack_plugins_for_target(lock, &pack_plugin, HarnessTarget::Cursor, manifest)?;
-    stage_pack_skills_for_target(lock, &pack_plugin, HarnessTarget::Cursor, manifest)?;
-    manifests::write_cursor_pack_plugin_readme(&pack_plugin)?;
     Ok(())
 }
 

@@ -1,7 +1,6 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::artifacts::HarnessTarget;
 use crate::error::{AgentpackError, Result};
 use crate::lockfile::PackLock;
 use crate::manifest::AgentpackManifest;
@@ -12,16 +11,21 @@ use crate::paths::{
 };
 
 use super::cursor::{
-    finalize_cursor_staging, read_cursor_overlay_manifest, rebuild_cursor_staging_without_finalize,
+    finalize_cursor_staging, prepare_cursor_staging_without_pack_overlay,
+    read_cursor_overlay_manifest,
 };
+use super::cursor::manifests::write_cursor_pack_plugin_readme;
 use super::dot_agents::stage_dot_agents_overlay;
-use super::pack_overlay::{stage_pack_plugins_for_target, stage_pack_skills_for_target};
+use super::pack_overlay::{
+    stage_pack_plugins_all_harnesses, stage_pack_skills_all_harnesses, PackHarnessRoots,
+};
 use super::seed::{merge_user_settings_files_into_bundle, seed_codex_home, seed_opencode_root};
 
 /// Strategy objects encapsulate per-harness staging so adding another harness is additive.
 trait HarnessStager {
     fn reset_paths(&self, ctx: &StagingContext<'_>) -> Result<Vec<PathBuf>>;
-    fn stage(&self, ctx: &StagingContext<'_>) -> Result<()>;
+    /// Create harness roots and copy user config seeds; does **not** merge pack.lock trees.
+    fn prepare(&self, ctx: &StagingContext<'_>) -> Result<()>;
     fn finalize(&self, _ctx: &StagingContext<'_>) -> Result<()> {
         Ok(())
     }
@@ -90,8 +94,22 @@ impl<'a> StagingPipeline<'a> {
     pub(super) fn rebuild(&self) -> Result<Vec<PathBuf>> {
         self.reset_all()?;
         for stage in harness_stagers() {
-            stage.stage(&self.ctx)?;
+            stage.prepare(&self.ctx)?;
         }
+
+        let claude_bundle = self.ctx.claude_bundle_dir()?;
+        let opencode = self.ctx.opencode_root()?;
+        let codex = self.ctx.codex_home()?;
+        let cursor_pack = self.ctx.cursor_pack_plugin_dir()?;
+        let pack_dests = PackHarnessRoots {
+            claude_bundle: &claude_bundle,
+            opencode: &opencode,
+            codex: &codex,
+            cursor_pack: &cursor_pack,
+        };
+        stage_pack_plugins_all_harnesses(self.ctx.lock, &pack_dests, self.ctx.manifest)?;
+        stage_pack_skills_all_harnesses(self.ctx.lock, &pack_dests, self.ctx.manifest)?;
+        write_cursor_pack_plugin_readme(&cursor_pack)?;
 
         stage_dot_agents_overlay(self.ctx.project_root)?;
 
@@ -159,12 +177,6 @@ fn harness_stagers() -> [&'static dyn HarnessStager; 4] {
     ]
 }
 
-fn stage_target_tree(ctx: &StagingContext<'_>, root: &Path, target: HarnessTarget) -> Result<()> {
-    stage_pack_plugins_for_target(ctx.lock, root, target, ctx.manifest)?;
-    stage_pack_skills_for_target(ctx.lock, root, target, ctx.manifest)?;
-    Ok(())
-}
-
 fn staging_require(cond: bool, message: impl FnOnce() -> String) -> Result<()> {
     if !cond {
         return Err(AgentpackError::Staging(message()));
@@ -186,7 +198,7 @@ impl HarnessStager for ClaudeBundleStager {
         Ok(vec![staging_plugins_dir(ctx.project_root)?])
     }
 
-    fn stage(&self, ctx: &StagingContext<'_>) -> Result<()> {
+    fn prepare(&self, ctx: &StagingContext<'_>) -> Result<()> {
         let plugins_base = staging_plugins_dir(ctx.project_root)?;
         fs::create_dir_all(&plugins_base).map_err(|err| AgentpackError::io(&plugins_base, err))?;
 
@@ -194,7 +206,7 @@ impl HarnessStager for ClaudeBundleStager {
         fs::create_dir_all(&bundle).map_err(|err| AgentpackError::io(&bundle, err))?;
         write_bundle_manifest(&bundle)?;
         merge_user_settings_files_into_bundle(&bundle)?;
-        stage_target_tree(ctx, &bundle, HarnessTarget::Claude)
+        Ok(())
     }
 
     fn verify(&self, ctx: &StagingContext<'_>) -> Result<()> {
@@ -210,11 +222,11 @@ impl HarnessStager for OpenCodeStager {
         Ok(vec![ctx.opencode_root()?])
     }
 
-    fn stage(&self, ctx: &StagingContext<'_>) -> Result<()> {
+    fn prepare(&self, ctx: &StagingContext<'_>) -> Result<()> {
         let root = ctx.opencode_root()?;
         fs::create_dir_all(&root).map_err(|err| AgentpackError::io(&root, err))?;
         seed_opencode_root(&root)?;
-        stage_target_tree(ctx, &root, HarnessTarget::OpenCode)
+        Ok(())
     }
 
     fn verify(&self, ctx: &StagingContext<'_>) -> Result<()> {
@@ -230,11 +242,11 @@ impl HarnessStager for CodexHomeStager {
         Ok(vec![ctx.codex_home()?])
     }
 
-    fn stage(&self, ctx: &StagingContext<'_>) -> Result<()> {
+    fn prepare(&self, ctx: &StagingContext<'_>) -> Result<()> {
         let root = ctx.codex_home()?;
         fs::create_dir_all(&root).map_err(|err| AgentpackError::io(&root, err))?;
         seed_codex_home(&root)?;
-        stage_target_tree(ctx, &root, HarnessTarget::Codex)
+        Ok(())
     }
 
     fn verify(&self, ctx: &StagingContext<'_>) -> Result<()> {
@@ -250,8 +262,8 @@ impl HarnessStager for CursorStager {
         Ok(vec![ctx.cursor_bundle_root()?, ctx.cursor_home()?])
     }
 
-    fn stage(&self, ctx: &StagingContext<'_>) -> Result<()> {
-        rebuild_cursor_staging_without_finalize(ctx.project_root, ctx.lock, ctx.manifest)
+    fn prepare(&self, ctx: &StagingContext<'_>) -> Result<()> {
+        prepare_cursor_staging_without_pack_overlay(ctx.project_root)
     }
 
     fn finalize(&self, ctx: &StagingContext<'_>) -> Result<()> {
