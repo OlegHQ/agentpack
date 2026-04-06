@@ -12,9 +12,8 @@ use crate::paths::{
 
 use super::cursor::{
     finalize_cursor_staging, prepare_cursor_staging_without_pack_overlay,
-    read_cursor_overlay_manifest,
+    read_cursor_overlay_manifest, write_cursor_pack_plugin_readme,
 };
-use super::cursor::manifests::write_cursor_pack_plugin_readme;
 use super::dot_agents::stage_dot_agents_overlay;
 use super::pack_overlay::{
     stage_pack_plugins_all_harnesses, stage_pack_skills_all_harnesses, PackHarnessRoots,

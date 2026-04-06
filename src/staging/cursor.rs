@@ -12,6 +12,7 @@ use crate::paths::{staging_cursor_bundle_dir, staging_cursor_pack_plugin_dir};
 
 use super::seed::seed_cursor_root;
 
+pub(super) use manifests::write_cursor_pack_plugin_readme;
 pub(super) use overlay::read_cursor_overlay_manifest;
 
 /// Cursor marketplace layout and optional user **`~/.cursor`** seeds only. Pack trees are merged in

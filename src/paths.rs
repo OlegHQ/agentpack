@@ -145,6 +145,15 @@ pub fn staging_codex_home_dir(project_root: &Path) -> Result<PathBuf> {
     Ok(staging_root(project_root)?.join("codex-home"))
 }
 
+/// Shared Codex credential cache for staged homes when the real user config uses keyring-backed
+/// auth and therefore has no reusable `~/.codex/auth.json`.
+pub fn shared_codex_auth_path() -> Result<PathBuf> {
+    Ok(user_agentpack_home()?
+        .join("shared")
+        .join("codex")
+        .join("auth.json"))
+}
+
 pub fn staging_cursor_bundle_dir(project_root: &Path) -> Result<PathBuf> {
     Ok(staging_root(project_root)?.join("cursor"))
 }

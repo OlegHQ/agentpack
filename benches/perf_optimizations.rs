@@ -262,7 +262,9 @@ fn make_lock_packages(n: usize) -> Vec<(String, String, String, String, String, 
 }
 
 /// OLD: clone entire struct, sync views, then serialize
-fn save_old_approach(packages: &[(String, String, String, String, String, String, bool)]) -> String {
+fn save_old_approach(
+    packages: &[(String, String, String, String, String, String, bool)],
+) -> String {
     // Simulate: clone all strings (the old sync_views_from_packages cloned the entire vec)
     let mut cloned: Vec<(String, String)> = packages
         .iter()
@@ -270,14 +272,22 @@ fn save_old_approach(packages: &[(String, String, String, String, String, String
         .collect();
     cloned.sort_by(|a, b| a.0.cmp(&b.0));
     // Simulate: rebuild from views (clone again)
-    let mut rebuilt: Vec<(String, String)> = cloned.iter().map(|(m, ck)| (m.clone(), ck.clone())).collect();
+    let mut rebuilt: Vec<(String, String)> = cloned
+        .iter()
+        .map(|(m, ck)| (m.clone(), ck.clone()))
+        .collect();
     rebuilt.sort_by(|a, b| a.0.cmp(&b.0));
     format!("{}", rebuilt.len())
 }
 
 /// NEW: sort in place, serialize directly
-fn save_new_approach(packages: &[(String, String, String, String, String, String, bool)]) -> String {
-    let mut sorted: Vec<&str> = packages.iter().map(|(m, _, _, _, _, _, _)| m.as_str()).collect();
+fn save_new_approach(
+    packages: &[(String, String, String, String, String, String, bool)],
+) -> String {
+    let mut sorted: Vec<&str> = packages
+        .iter()
+        .map(|(m, _, _, _, _, _, _)| m.as_str())
+        .collect();
     sorted.sort();
     format!("{}", sorted.len())
 }
@@ -317,12 +327,18 @@ fn truncate_new(value: &str, max_chars: usize) -> String {
 #[divan::bench]
 fn truncate_str_old_short() -> String {
     // Common case: cache_key (64 hex chars) truncated to 12
-    truncate_old("abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789", 12)
+    truncate_old(
+        "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+        12,
+    )
 }
 
 #[divan::bench]
 fn truncate_str_new_short() -> String {
-    truncate_new("abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789", 12)
+    truncate_new(
+        "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+        12,
+    )
 }
 
 #[divan::bench]

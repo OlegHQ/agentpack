@@ -98,12 +98,8 @@ pub(super) fn seed_codex_home(root: &Path) -> Result<()> {
     };
     let user_root = home.join(".codex");
     copy_selected_entries(&user_root, root, CODEX_HOME_ENTRIES)?;
-
-    let auth_json = root.join("auth.json");
-    if !auth_json.is_file() {
-        let _ = codex_auth::try_materialize_codex_auth_json_from_user_keyring(&user_root, root)?;
-    }
-    codex_auth::patch_staged_codex_keyring_config_to_file(root)?;
+    codex_auth::prepare_staged_codex_auth(&user_root, root)?;
+    codex_auth::force_staged_codex_credentials_store_to_file(root)?;
 
     Ok(())
 }

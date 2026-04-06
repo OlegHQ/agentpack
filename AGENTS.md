@@ -18,6 +18,7 @@ All downloaded trees, the RedDB index, and your **`local/`** mirror live under a
 | **`$AGENTPACK_HOME/cache/db.reddb`** | Metadata + alias map for fast repeat **`add`**, plus cached GitHub ref/tag lookups to reduce API calls. |
 | **`$AGENTPACK_HOME/local/<owner>/<repo>/…`** | Optional offline mirror; same slash layout as **`owner/repo/…`** specs. |
 | **`$AGENTPACK_HOME/projects/<hash>/cursor-overlay.manifest`** | Per-project Cursor overlay bookkeeping (not stored in the repo). |
+| **`$AGENTPACK_HOME/shared/codex/auth.json`** | Shared Codex auth cache used by staged **`CODEX_HOME`** trees when the real user config stores credentials in the OS keychain instead of **`~/.codex/auth.json`**. |
 
 **Default `AGENTPACK_HOME`:** if unset, **Windows** uses **`%LOCALAPPDATA%\agentpack`**; **Unix** uses **`$XDG_DATA_HOME/agentpack`** when **`XDG_DATA_HOME`** is set, otherwise **`$HOME/.local/share/agentpack`**.
 
@@ -112,7 +113,7 @@ The Cursor CLI also reads workspace **`.cursor/`** for some features; behavior m
    - **Optional:** seeds from **`~/.config/opencode/`** (`opencode.json`, `agents`, `commands`, `modes`, `plugins`, `skills`) so provider/auth config still works when **`OPENCODE_CONFIG_DIR`** is redirected.
    - **Overlay:** converted pack commands / agents / skills / rules written into OpenCode’s supported markdown locations.
 6. **Codex home** — **`sync`** rebuilds **`$STAGING/codex-home/`**:
-   - **Optional:** seeds from **`~/.codex/`** (`config.toml`, **`auth.json`**, `skills`, `themes`) so user config still works when **`CODEX_HOME`** is redirected. The Codex CLI stores OAuth/API material in **`auth.json`** or in the OS keychain keyed by the **canonical `CODEX_HOME` path**; a staged path would otherwise miss keychain entries. When **`auth.json`** is missing in the staged tree, agentpack may **read the same keychain entry** used for **`~/.codex`** (service **`Codex Auth`**) and write **`$STAGING/codex-home/auth.json`**. If the **staged** copy of **`config.toml`** sets **`cli_auth_credentials_store = "keyring"`**, agentpack rewrites that setting to **`file`** in the staging copy only so the CLI loads the bridged **`auth.json`**.
+   - **Optional:** seeds from **`~/.codex/`** (`config.toml`, `skills`, `themes`) so user config still works when **`CODEX_HOME`** is redirected. The Codex CLI stores OAuth/API material in **`auth.json`** or in the OS keychain keyed by the **canonical `CODEX_HOME` path**; a staged path would otherwise miss keychain entries. agentpack therefore links each staged **`$STAGING/codex-home/auth.json`** to a **shared source** instead of copying credentials per project: it uses **`~/.codex/auth.json`** when that file already exists, otherwise it materializes the real **`~/.codex`** keychain entry (service **`Codex Auth`**) into **`$AGENTPACK_HOME/shared/codex/auth.json`** and links staged homes there. The staged **`config.toml`** is forced to **`cli_auth_credentials_store = "file"`** so every project shares refresh-token updates through the same file.
    - **Overlay:** portable pack content is rendered into Codex **skills** under **`$STAGING/codex-home/skills/`**. Full Claude plugins are **not** translated into Codex plugin marketplaces.
 7. **Cursor staging** — **`sync`** rebuilds **`$STAGING/cursor/`** as a [Cursor plugins](https://cursor.com/docs/reference/plugins) layout, then builds **`$STAGING/cursor-home/`** as a **fake `HOME`** for the CLI:
    - **Plugin / pack tree:** **`$STAGING/cursor/.cursor-plugin/marketplace.json`**, **`$STAGING/cursor/agentpack-bundle/.cursor-plugin/plugin.json`**, plus **`commands/`**, **`agents/`**, **`skills/`**, **`rules/`**, **`hooks/`**, **`assets/`**, **`scripts/`**, **`mcp.json`** when present.
@@ -130,7 +131,7 @@ After staging, **`sync`** verifies that **skill directory names** under **`bundl
 
 Overlay order for staged roots: optional **user config copies** first, then **plugins** (by `cache_key`), then **bare skills**, then **project `./.agents/`** when present — **later layers win** on the same relative path inside `agents`, `commands`, `skills`, etc.
 
-**`~/.claude.json`**, **`~/.config/opencode/opencode.json`**, **`~/.codex/config.toml`**, **`~/.codex/auth.json`**, and files under **`~/.cursor`** may contain sensitive settings or session state. Copying them into a temp staging directory may widen exposure (including a **materialized** Codex **`auth.json`** when bridging from the keychain). Turn off these seed copies with **`AGENTPACK_BUNDLE_USER_SETTINGS=0`** if you only want pack content in staged roots.
+**`~/.claude.json`**, **`~/.config/opencode/opencode.json`**, **`~/.codex/config.toml`**, **`~/.codex/auth.json`**, and files under **`~/.cursor`** may contain sensitive settings or session state. Copying them into a temp staging directory may widen exposure, and Codex keychain bridging can materialize a shared **`$AGENTPACK_HOME/shared/codex/auth.json`** file so staged homes share refresh-token updates. Turn off these seed copies with **`AGENTPACK_BUNDLE_USER_SETTINGS=0`** if you only want pack content in staged roots.
 
 ### Skill shadowing
 
