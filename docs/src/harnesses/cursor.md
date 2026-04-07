@@ -4,9 +4,9 @@ agentpack supports [Cursor](https://www.cursor.com/) via the `agentpack agent` l
 
 ## How it works
 
-Cursor reads its agent configuration from directories under `HOME`. agentpack overrides the `HOME` environment variable to point at a staging directory that contains symlinks back to the real home directory, plus the packaged agent content layered on top.
+Cursor discovery for skills, commands, and agents is tied to the HOME-backed `.cursor` tree. agentpack therefore launches Cursor with a synthetic `HOME` containing a staged `.cursor/` directory that overlays packaged agent content on top of your real Cursor config and session state.
 
-This approach avoids modifying your actual `~/.cursor/` directory.
+To keep external tools working inside Cursor, agentpack also bridges common tool-specific homes back to the real profile: `CARGO_HOME`, `RUSTUP_HOME`, and `DOCKER_CONFIG`.
 
 ## Launching
 
@@ -25,41 +25,42 @@ agentpack agent --new-window /path/to/project
 When launched, agentpack sets:
 
 ```sh
-HOME="$AGENTPACK_STAGING_ROOT/cursor/home"
+HOME="$AGENTPACK_STAGING_ROOT/cursor-home"
 ```
 
-Inside this synthetic home:
+Inside that synthetic home:
 
 ```
-cursor/home/
+$AGENTPACK_STAGING_ROOT/cursor-home/
   .cursor/
+    commands/
+    agents/
+    skills/
     rules/
-      packaged-rule.mdc
-      another-rule.mdc
-    # symlinks to other real ~/.cursor/ content
-  # symlinks to the rest of the real $HOME
+    # symlinks to real ~/.cursor state where needed
 ```
-
-The symlink approach means Cursor sees your real settings, extensions, and keybindings while also seeing the packaged agent rules.
 
 ## Cursor config dir override
 
-You can also override the Cursor config directory directly without the HOME trick by setting:
+You can still override the config directory Cursor sees by setting:
 
 ```sh
 export AGENTPACK_CURSOR_CONFIG_DIR=/path/to/cursor-config
 ```
 
-When set, agentpack uses this path as the Cursor config root instead of deriving it from the synthetic HOME.
+When unset, agentpack points `CURSOR_CONFIG_DIR` at the staged fake-home `.cursor` directory so Cursor resolves packaged skills and commands through the same path it expects normally.
 
 ## Staged layout
 
 ```
 $AGENTPACK_STAGING_ROOT/cursor/
-  home/
-    .cursor/
-      rules/
-        <packaged-rule>.mdc
+  .cursor-plugin/
+    marketplace.json
+  agentpack-bundle/
+    .cursor-plugin/
+      plugin.json
+    rules/
+      <packaged-rule>.mdc
 ```
 
 Rules are `.mdc` files in Cursor's native format.
@@ -68,9 +69,9 @@ Rules are `.mdc` files in Cursor's native format.
 
 | Artifact | Staged as |
 |---|---|
-| Rules | `.cursor/rules/<name>.mdc` |
-| Commands | Converted to rules or agent instructions |
-| Agents / skills | Converted to rules |
+| Rules | `agentpack-bundle/rules/<name>.mdc` |
+| Commands | fake `HOME` `.cursor/commands/<name>.md` |
+| Agents / skills | fake `HOME` `.cursor/agents/` and `.cursor/skills/` |
 
 ## Environment variables
 

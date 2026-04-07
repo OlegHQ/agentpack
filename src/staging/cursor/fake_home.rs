@@ -15,8 +15,6 @@ use super::super::constants::{
 #[cfg(windows)]
 use super::super::tree::copy_merge_tree;
 
-/// Symlink **src** → **dst** for Cursor fake HOME (absolute target); fall back to
-/// **`copy_merge_tree`** on Windows when symlinks fail.
 pub(in crate::staging) fn symlink_or_copy_into_fake_home(
     src: &Path,
     dst: &Path,
@@ -49,7 +47,6 @@ pub(in crate::staging) fn symlink_or_copy_into_fake_home(
     }
 }
 
-/// Symlink **src** dir → **dst** if src exists, creating parent directories as needed.
 fn symlink_dir_if_present(src: &Path, dst: &Path) -> Result<()> {
     if !src.is_dir() {
         return Ok(());
@@ -60,7 +57,6 @@ fn symlink_dir_if_present(src: &Path, dst: &Path) -> Result<()> {
     symlink_or_copy_into_fake_home(src, dst, true)
 }
 
-/// Symlink Cursor's **Electron user-data** tree into the fake HOME.
 fn materialize_cursor_platform_user_data(fake_home: &Path, real_home: &Path) -> Result<()> {
     #[cfg(target_os = "macos")]
     {
@@ -90,7 +86,7 @@ fn materialize_cursor_platform_user_data(fake_home: &Path, real_home: &Path) -> 
             &fake_home.join(".local/share/Cursor"),
         )?;
     }
-    #[cfg(target_os = "windows")]
+    #[cfg(windows)]
     {
         symlink_dir_if_present(
             &real_home.join("AppData/Roaming/Cursor"),
@@ -100,7 +96,6 @@ fn materialize_cursor_platform_user_data(fake_home: &Path, real_home: &Path) -> 
     Ok(())
 }
 
-/// Electron **`User`** dir (workspace trust + machine state).
 fn cursor_electron_user_dir(real_home: &Path) -> PathBuf {
     #[cfg(target_os = "macos")]
     {
@@ -127,8 +122,6 @@ fn cursor_electron_user_dir(real_home: &Path) -> PathBuf {
     }
 }
 
-/// Physical **`globalStorage`** / **`workspaceStorage`** directory to expose at
-/// **`$FAKE_HOME/.cursor/User/<name>`**.
 fn cursor_user_storage_src(real_home: &Path, dot_cursor: &Path, leaf: &str) -> Result<PathBuf> {
     let user_dir = cursor_electron_user_dir(real_home);
     let electron_leaf = user_dir.join(leaf);
@@ -144,7 +137,6 @@ fn cursor_user_storage_src(real_home: &Path, dot_cursor: &Path, leaf: &str) -> R
     Ok(electron_leaf)
 }
 
-/// Symlink each entry from **src_base** into **dst_base**, auto-detecting file vs dir.
 fn symlink_entries_into(src_base: &Path, dst_base: &Path, names: &[&str]) -> Result<()> {
     for name in names {
         let src = src_base.join(name);
@@ -159,8 +151,6 @@ fn symlink_entries_into(src_base: &Path, dst_base: &Path, names: &[&str]) -> Res
     Ok(())
 }
 
-/// **`$STAGING/cursor-home`**: **`HOME`** for **`agentpack agent`**, with **`.cursor`** blending
-/// pack symlinks and real **`~/.cursor`** credential paths.
 pub(in crate::staging) fn materialize_cursor_fake_home(project_root: &Path) -> Result<()> {
     let fake_home = staging_cursor_home_dir(project_root)?;
     if fake_home.exists() {

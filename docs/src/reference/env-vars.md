@@ -61,9 +61,9 @@ export AGENTPACK_DOT_AGENTS="$HOME/.my-agents"
 
 ## `AGENTPACK_CURSOR_CONFIG_DIR`
 
-**Default:** derived from synthetic HOME
+**Default:** `$AGENTPACK_STAGING_ROOT/cursor-home/.cursor`
 
-Overrides the Cursor configuration directory used by the `agentpack agent` launcher. When set, agentpack stages packaged Cursor artifacts here instead of under the synthetic HOME.
+Overrides the Cursor configuration directory used by the `agentpack agent` launcher. When unset, agentpack points `CURSOR_CONFIG_DIR` at the staged fake-home `.cursor` directory.
 
 ```sh
 export AGENTPACK_CURSOR_CONFIG_DIR="$HOME/.cursor"
