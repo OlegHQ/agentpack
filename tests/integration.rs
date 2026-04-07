@@ -313,6 +313,75 @@ fn sync_stages_bare_skills_for_all_launchers() {
     }
 }
 
+#[test]
+#[serial]
+fn sync_stages_bare_skill_under_lockfile_slug_when_frontmatter_name_differs() {
+    let dir = tempdir().unwrap();
+    let root: PathBuf = dir.path().to_path_buf();
+    prep_store(&root);
+    run(Cli {
+        project_root: Some(root.clone()),
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        debug: false,
+        command: Command::Init {
+            name: None,
+            version: None,
+        },
+    })
+    .unwrap();
+
+    let sk = "d".repeat(64);
+    let cache = cache_dir().unwrap();
+    fs::create_dir_all(cache.join(&sk)).unwrap();
+    fs::write(
+        cache.join(&sk).join("SKILL.md"),
+        "---\nname: vercel-react-best-practices\ndescription: React guidance\n---\n\n# React Best Practices\n",
+    )
+    .unwrap();
+
+    let mut lock = PackLock::load(&root).unwrap();
+    lock.packages.push(LockPackage {
+        module: String::new(),
+        direct: true,
+        kind: PackageKind::Skill,
+        url: "https://github.com/vercel-labs/agent-skills/tree/main/skills/react-best-practices"
+            .into(),
+        owner: "vercel-labs".into(),
+        repo: "agent-skills".into(),
+        path: "skills/react-best-practices".into(),
+        commit: "e".repeat(40),
+        cache_key: sk,
+        name: String::new(),
+    });
+    lock.save(&root).unwrap();
+
+    run(Cli {
+        project_root: Some(root.clone()),
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        debug: false,
+        command: Command::Sync {
+            dry_run: false,
+            verify_only: false,
+            update_lock: false,
+        },
+    })
+    .unwrap();
+
+    let staged = staging_plugins_dir(&root)
+        .unwrap()
+        .join("agentpack-bundle")
+        .join("skills")
+        .join("react-best-practices")
+        .join("SKILL.md");
+    let contents = fs::read_to_string(&staged).unwrap();
+    assert!(staged.is_file());
+    assert!(contents.contains("name: vercel-react-best-practices"));
+}
+
 /// Plugin trees must merge non-`.md` assets under `commands` / `skills` / etc. for **both** Cursor
 /// and Claude bundles (raw subtree merge + markdown overlay).
 #[test]
