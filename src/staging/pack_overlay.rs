@@ -1,6 +1,8 @@
+use std::collections::BTreeMap;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
+use rayon::prelude::*;
 use walkdir::WalkDir;
 
 use crate::artifacts::{parse_markdown_artifact, staged_skill_support_path, HarnessTarget};
@@ -9,9 +11,7 @@ use crate::error::{AgentpackError, Result};
 use crate::lockfile::{LockPackage, PackLock, PackageKind};
 use crate::manifest::AgentpackManifest;
 
-use crate::fs_util::write_text_file;
-
-use super::tree::copy_merge_tree;
+use crate::fs_util::{fast_copy_file, write_text_file};
 
 fn walk_source_files<F>(root: &Path, visitor: &mut F) -> Result<()>
 where
@@ -106,7 +106,7 @@ fn stage_source_tree_all_harnesses(
         }
         if let Some(dest_rel) = staged_skill_support_path(rel, bare_skill_name) {
             for (_, dest_root) in &pairs {
-                copy_merge_tree(src, &dest_root.join(&dest_rel))?;
+                fast_copy_file(src, &dest_root.join(&dest_rel))?;
             }
             return Ok(());
         }
@@ -134,53 +134,53 @@ fn stage_source_tree_all_harnesses(
     })
 }
 
-fn merge_named_subdirs(
-    from_base: &Path,
-    bundle: &Path,
-    subdirs: &[&str],
-    label: &'static str,
-) -> Result<()> {
-    if !from_base.is_dir() {
-        return Ok(());
-    }
-    for sub in subdirs {
-        let s = from_base.join(sub);
-        if s.is_dir() {
-            tracing::debug!(label, sub, "merging into bundle");
-            copy_merge_tree(&s, &bundle.join(sub))?;
-        }
-    }
-    Ok(())
-}
-
-fn copy_raw_plugin_support_dirs(
+/// Walk each unique raw-plugin support subdir **once** and fan out files to every harness
+/// destination that wants them. Previously each of the four targets was walked independently,
+/// so the same cache tree was `read_dir`+`stat`ed up to **4×** per plugin. This collapses it to
+/// a single traversal with per-file fast copies.
+fn copy_raw_plugin_support_dirs_all_harnesses(
     src_root: &Path,
-    dest_root: &Path,
-    target: HarnessTarget,
+    dests: &PackHarnessRoots<'_>,
     disabled: &[String],
 ) -> Result<()> {
-    let subdirs = target.raw_plugin_subdirs();
-    if subdirs.is_empty() {
+    // Build subdir → [dest_root per interested target] map. Preserve insertion order for
+    // deterministic debug logs; BTreeMap also gives consistent ordering across runs.
+    let mut subdir_dests: BTreeMap<&'static str, Vec<PathBuf>> = BTreeMap::new();
+    for (target, dest_root) in dests.targets_and_roots() {
+        for sub in target.raw_plugin_subdirs() {
+            subdir_dests
+                .entry(*sub)
+                .or_default()
+                .push(dest_root.to_path_buf());
+        }
+    }
+    if subdir_dests.is_empty() {
         return Ok(());
     }
-    if disabled.is_empty() {
-        merge_named_subdirs(src_root, dest_root, subdirs, "portable raw support")
-    } else {
-        for sub in subdirs {
+
+    // Different subdirs map to disjoint destination paths (`commands/**` vs `agents/**` vs …),
+    // so we can walk them in parallel without risking write ordering issues.
+    let entries: Vec<(&'static str, &Vec<PathBuf>)> =
+        subdir_dests.iter().map(|(k, v)| (*k, v)).collect();
+    entries
+        .par_iter()
+        .try_for_each(|(sub, dest_roots)| -> Result<()> {
             let s = src_root.join(sub);
-            if s.is_dir() {
-                walk_source_files(&s, &mut |src, rel| {
-                    let full_rel = Path::new(sub).join(rel);
-                    if rel_is_disabled(&full_rel, disabled) {
-                        return Ok(());
-                    }
-                    copy_merge_tree(src, &dest_root.join(&full_rel))?;
-                    Ok(())
-                })?;
+            if !s.is_dir() {
+                return Ok(());
             }
-        }
-        Ok(())
-    }
+            walk_source_files(&s, &mut |src, rel| {
+                let full_rel = Path::new(sub).join(rel);
+                if rel_is_disabled(&full_rel, disabled) {
+                    return Ok(());
+                }
+                for dest_root in *dest_roots {
+                    fast_copy_file(src, &dest_root.join(&full_rel))?;
+                }
+                Ok(())
+            })
+        })?;
+    Ok(())
 }
 
 fn copy_plugin_root_file_if_present(
@@ -194,7 +194,7 @@ fn copy_plugin_root_file_if_present(
     }
     let src = cache_root.join(file_name);
     if src.is_file() {
-        copy_merge_tree(&src, &dest_root.join(file_name))?;
+        fast_copy_file(&src, &dest_root.join(file_name))?;
     }
     Ok(())
 }
@@ -213,8 +213,8 @@ fn stage_plugin_cache_all_harnesses(
     dests: &PackHarnessRoots<'_>,
     disabled: &[String],
 ) -> Result<()> {
+    copy_raw_plugin_support_dirs_all_harnesses(cache_root, dests, disabled)?;
     for (target, root) in dests.targets_and_roots() {
-        copy_raw_plugin_support_dirs(cache_root, root, target, disabled)?;
         if target.stages_plugin_root_mcp_json() {
             copy_plugin_root_file_if_present(cache_root, root, "mcp.json", disabled)?;
         }
@@ -266,37 +266,43 @@ pub(super) fn stage_pack_skills_all_harnesses(
     let plugins: Vec<&LockPackage> = lock.plugins().collect();
     let mut skill_list: Vec<&LockPackage> = lock.skills().collect();
     skill_list.sort_by(|a, b| a.cache_key.cmp(&b.cache_key));
-    for skill in skill_list {
-        if disabled_in_config(lock, skill) {
-            tracing::info!(cache_key = %skill.cache_key, "skip disabled skill");
-            continue;
-        }
-        if skill_is_shadowed(skill, &plugins) {
-            tracing::info!(
-                cache_key = %skill.cache_key,
-                path = %skill.path,
-                "skip skill: shadowed by full plugin"
-            );
-            continue;
-        }
-        let cache_path = match cache_entry_dir(&skill.cache_key) {
-            Ok(p) => p,
-            Err(e) => {
-                tracing::warn!(cache_key = %skill.cache_key, error = %e, "skip skill staging: cache path");
-                continue;
+
+    // Each skill stages under `skills/<unique-name>/…` in every harness root, so staging can
+    // run in parallel across skills without write-ordering risk. Plugins stay sequential to
+    // preserve deterministic overlay order on rare path collisions.
+    skill_list
+        .par_iter()
+        .try_for_each(|skill| -> Result<()> {
+            if disabled_in_config(lock, skill) {
+                tracing::info!(cache_key = %skill.cache_key, "skip disabled skill");
+                return Ok(());
             }
-        };
-        let name = skill_folder_name(skill);
-        let disabled = disable_list_for_entry(manifest, &skill.module);
-        if !cache_path.join("SKILL.md").is_file() {
-            tracing::warn!(
-                path = %cache_path.display(),
-                "skip skill staging: SKILL.md missing"
-            );
-            continue;
-        }
-        stage_bare_skill_cache_all_harnesses(&cache_path, dests, &name, disabled)?;
-    }
+            if skill_is_shadowed(skill, &plugins) {
+                tracing::info!(
+                    cache_key = %skill.cache_key,
+                    path = %skill.path,
+                    "skip skill: shadowed by full plugin"
+                );
+                return Ok(());
+            }
+            let cache_path = match cache_entry_dir(&skill.cache_key) {
+                Ok(p) => p,
+                Err(e) => {
+                    tracing::warn!(cache_key = %skill.cache_key, error = %e, "skip skill staging: cache path");
+                    return Ok(());
+                }
+            };
+            let name = skill_folder_name(skill);
+            let disabled = disable_list_for_entry(manifest, &skill.module);
+            if !cache_path.join("SKILL.md").is_file() {
+                tracing::warn!(
+                    path = %cache_path.display(),
+                    "skip skill staging: SKILL.md missing"
+                );
+                return Ok(());
+            }
+            stage_bare_skill_cache_all_harnesses(&cache_path, dests, &name, disabled)
+        })?;
     Ok(())
 }
 

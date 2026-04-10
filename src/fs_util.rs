@@ -30,6 +30,35 @@ pub(crate) fn resolve_tree_copy_source(
     }
 }
 
+/// Fast single-file copy: try reflink (APFS `clonefile`, btrfs/XFS `FICLONE`), fall back to
+/// `fs::copy` on cross-device or unsupported filesystems. An existing destination is overwritten
+/// (reflink requires a non-existing target, so we remove any prior file first).
+pub(crate) fn fast_copy_file(src: &Path, dst: &Path) -> Result<()> {
+    if let Some(parent) = dst.parent() {
+        fs::create_dir_all(parent).map_err(|e| AgentpackError::io(parent, e))?;
+    }
+    match fs::symlink_metadata(dst) {
+        Ok(m) if m.is_dir() => {
+            return Err(AgentpackError::io(
+                dst,
+                io::Error::new(
+                    ErrorKind::AlreadyExists,
+                    "fast_copy_file: destination is a directory",
+                ),
+            ));
+        }
+        Ok(_) => {
+            fs::remove_file(dst).map_err(|e| AgentpackError::io(dst, e))?;
+        }
+        Err(e) if e.kind() == ErrorKind::NotFound => {}
+        Err(e) => return Err(AgentpackError::io(dst, e)),
+    }
+    match reflink_copy::reflink_or_copy(src, dst) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(AgentpackError::io(dst, e)),
+    }
+}
+
 /// Remove a file, symlink, or directory (recursive). Missing paths are OK.
 pub(crate) fn remove_path_any(path: &Path) -> Result<()> {
     let meta = match fs::symlink_metadata(path) {

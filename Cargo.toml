@@ -42,6 +42,8 @@ pubgrub = "0.3"
 semver = "1.0.27"
 toml_edit = "0.25.10"
 petgraph = "0.8.3"
+rayon = "1"
+reflink-copy = "0.1"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 keyring = { version = "3", features = ["apple-native"] }

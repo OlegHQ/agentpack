@@ -274,7 +274,7 @@ impl SyncStep for StageOrVerifyStep {
             return Ok(StepOutcome::Finished);
         }
 
-        let spinner = session.ui.spinner("Rebuild plugin staging (symlinks)…");
+        let spinner = session.ui.spinner("Rebuild plugin staging…");
         staging::rebuild_staging(
             session.project_root,
             &session.lock,
