@@ -47,7 +47,9 @@ impl MarkdownArtifact {
         );
 
         RenderedArtifact {
-            relative_path: PathBuf::from("skills").join(&self.name).join("SKILL.md"),
+            relative_path: PathBuf::from("skills")
+                .join(&self.storage_name)
+                .join("SKILL.md"),
             contents: render_markdown(&frontmatter, &self.skill_body(target)),
         }
     }

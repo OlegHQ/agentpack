@@ -44,6 +44,7 @@ pub struct MarkdownArtifact {
     pub kind: ArtifactKind,
     pub source_variant: SourceVariant,
     pub name: String,
+    pub storage_name: String,
     pub description: String,
     pub body: String,
     pub disable_model_invocation: bool,
@@ -206,5 +207,25 @@ mod tests {
         );
         assert!(rendered.contents.contains("name: typescript"));
         assert!(rendered.contents.contains("Original Cursor globs"));
+    }
+
+    #[test]
+    fn skill_render_uses_source_slug_for_path_not_frontmatter_name() {
+        let artifact = parse_markdown_artifact(
+            Path::new("skills/react-best-practices/SKILL.md"),
+            "---\nname: vercel-react-best-practices\ndescription: React guidance\n---\n\n# React Best Practices\n",
+            None,
+        )
+        .unwrap()
+        .unwrap();
+
+        let rendered = artifact.render(HarnessTarget::Claude);
+        assert_eq!(
+            rendered.relative_path,
+            PathBuf::from("skills/react-best-practices/SKILL.md")
+        );
+        assert!(rendered
+            .contents
+            .contains("name: vercel-react-best-practices"));
     }
 }

@@ -21,6 +21,7 @@ pub(super) fn parse_skill_file(
         kind: ArtifactKind::Skill,
         source_variant: SourceVariant::SkillFrontmatter,
         name: frontmatter.name.unwrap_or_else(|| name.to_string()),
+        storage_name: name.to_string(),
         description,
         body,
         disable_model_invocation: frontmatter.disable_model_invocation.unwrap_or(false),
@@ -37,6 +38,7 @@ pub(super) fn parse_command_file(
     tail_path: PathBuf,
 ) -> Result<Option<MarkdownArtifact>> {
     let name = stem_name(&tail_path)?;
+    let storage_name = name.clone();
     let (frontmatter, body) = split_frontmatter(contents)?;
     let source_variant = if frontmatter.is_some() {
         SourceVariant::CommandFrontmatter
@@ -52,6 +54,7 @@ pub(super) fn parse_command_file(
         kind: ArtifactKind::Command,
         source_variant,
         name: frontmatter.name.unwrap_or(name),
+        storage_name,
         description,
         body,
         disable_model_invocation: true,
@@ -68,6 +71,7 @@ pub(super) fn parse_agent_file(
     tail_path: PathBuf,
 ) -> Result<Option<MarkdownArtifact>> {
     let name = stem_name(&tail_path)?;
+    let storage_name = name.clone();
     let (frontmatter, body) = split_frontmatter(contents)?;
     let (frontmatter, extra_frontmatter) = split_common_frontmatter(frontmatter);
     let description = frontmatter
@@ -78,6 +82,7 @@ pub(super) fn parse_agent_file(
         kind: ArtifactKind::Agent,
         source_variant: SourceVariant::AgentFrontmatter,
         name: frontmatter.name.unwrap_or(name),
+        storage_name,
         description,
         body,
         disable_model_invocation: false,
@@ -94,6 +99,7 @@ pub(super) fn parse_rule_file(
     tail_path: PathBuf,
 ) -> Result<Option<MarkdownArtifact>> {
     let name = stem_name(&tail_path)?;
+    let storage_name = name.clone();
     let (frontmatter, body) = split_frontmatter(contents)?;
     let (frontmatter, extra_frontmatter) = split_common_frontmatter(frontmatter);
     let description = frontmatter
@@ -104,6 +110,7 @@ pub(super) fn parse_rule_file(
         kind: ArtifactKind::Rule,
         source_variant: SourceVariant::CursorRule,
         name: frontmatter.name.unwrap_or(name),
+        storage_name,
         description,
         body,
         disable_model_invocation: false,
