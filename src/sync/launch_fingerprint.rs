@@ -50,29 +50,42 @@ fn staging_root_fingerprint() -> String {
 }
 
 fn hash_dot_agents_tree(dir: &Path) -> Result<Vec<u8>> {
+    use std::io::Read;
+
     if !dir.is_dir() {
         return Ok(Vec::from(b"__dot_agents_absent__" as &[u8]));
     }
 
-    let mut files: Vec<_> = WalkDir::new(dir)
+    let mut entries: Vec<_> = WalkDir::new(dir)
         .into_iter()
         .filter_map(|e| e.ok())
         .filter(|e| e.file_type().is_file())
+        .map(|e| e.into_path())
         .collect();
-    files.sort_by_key(|e| e.path().to_path_buf());
+    entries.sort();
 
     let mut hasher = Sha256::new();
-    for e in files {
-        let path = e.path();
+    let mut buf = [0u8; 8192];
+    for path in &entries {
         let rel = path.strip_prefix(dir).map_err(|_| {
             AgentpackError::Cache("dot-agents path strip_prefix failed".to_string())
         })?;
         hasher.update(rel.as_os_str().as_encoded_bytes());
         hasher.update([0_u8]);
-        let meta = fs::metadata(path).map_err(|err| AgentpackError::io(path, err))?;
-        hasher.update(meta.len().to_le_bytes());
-        let bytes = fs::read(path).map_err(|err| AgentpackError::io(path, err))?;
-        hasher.update(&bytes);
+        // Stream file contents through hasher in chunks instead of loading entirely.
+        let file = fs::File::open(path).map_err(|err| AgentpackError::io(path, err))?;
+        let len = file.metadata().map(|m| m.len()).unwrap_or(0);
+        hasher.update(len.to_le_bytes());
+        let mut reader = std::io::BufReader::new(file);
+        loop {
+            let n = reader
+                .read(&mut buf)
+                .map_err(|err| AgentpackError::io(path, err))?;
+            if n == 0 {
+                break;
+            }
+            hasher.update(&buf[..n]);
+        }
     }
     Ok(hasher.finalize().to_vec())
 }

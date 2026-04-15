@@ -1,7 +1,9 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use agentpack::lockfile::{LockPlugin, LockSkill, PackLock};
+use agentpack::cli::dispatch::run;
+use agentpack::cli::{Cli, Command};
+use agentpack::lockfile::{LockPackage, PackLock, PackageKind};
 use agentpack::paths::{
     cache_dir, cursor_workspace_dir, project_dot_agents_dir, staging_codex_home_dir,
     staging_cursor_bundle_dir, staging_cursor_home_dir, staging_cursor_pack_plugin_dir,
@@ -10,7 +12,6 @@ use agentpack::paths::{
 use agentpack::sync::launch_fingerprint::{
     compute_launch_sync_digest, read_stored_launch_digest, write_launch_sync_state,
 };
-use agentpack::{run, Cli, Command};
 use serial_test::serial;
 use tempfile::tempdir;
 
@@ -135,8 +136,10 @@ fn sync_stages_full_plugin_and_shadows_contained_skill() {
 
     let commit = "c".repeat(40);
     let mut lock = PackLock::load(&root).unwrap();
-    lock.plugins.push(LockPlugin {
+    lock.packages.push(LockPackage {
         module: String::new(),
+        direct: true,
+        kind: PackageKind::Plugin,
         name: String::new(),
         url: "https://github.com/o/r/tree/main/plugins/foo".into(),
         owner: "o".into(),
@@ -145,14 +148,17 @@ fn sync_stages_full_plugin_and_shadows_contained_skill() {
         commit: commit.clone(),
         cache_key: pk.clone(),
     });
-    lock.skills.push(LockSkill {
+    lock.packages.push(LockPackage {
         module: String::new(),
+        direct: true,
+        kind: PackageKind::Skill,
         url: "https://github.com/o/r/tree/main/plugins/foo/skills/bar".into(),
         owner: "o".into(),
         repo: "r".into(),
         path: "plugins/foo/skills/bar".into(),
         commit,
         cache_key: sk.clone(),
+        name: String::new(),
     });
     lock.save(&root).unwrap();
 
@@ -165,6 +171,7 @@ fn sync_stages_full_plugin_and_shadows_contained_skill() {
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
+            update_lock: false,
         },
     })
     .unwrap();
@@ -251,14 +258,17 @@ fn sync_stages_bare_skills_for_all_launchers() {
     fs::write(cache.join(&sk).join("SKILL.md"), "# shared skill").unwrap();
 
     let mut lock = PackLock::load(&root).unwrap();
-    lock.skills.push(LockSkill {
+    lock.packages.push(LockPackage {
         module: String::new(),
+        direct: true,
+        kind: PackageKind::Skill,
         url: "https://github.com/o/r/tree/main/skills/shared-skill".into(),
         owner: "o".into(),
         repo: "r".into(),
         path: "skills/shared-skill".into(),
         commit: "d".repeat(40),
         cache_key: sk,
+        name: String::new(),
     });
     lock.save(&root).unwrap();
 
@@ -271,6 +281,7 @@ fn sync_stages_bare_skills_for_all_launchers() {
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
+            update_lock: false,
         },
     })
     .unwrap();
@@ -300,6 +311,182 @@ fn sync_stages_bare_skills_for_all_launchers() {
             skill_root.display()
         );
     }
+}
+
+#[test]
+#[serial]
+fn sync_stages_bare_skill_under_lockfile_slug_when_frontmatter_name_differs() {
+    let dir = tempdir().unwrap();
+    let root: PathBuf = dir.path().to_path_buf();
+    prep_store(&root);
+    run(Cli {
+        project_root: Some(root.clone()),
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        debug: false,
+        command: Command::Init {
+            name: None,
+            version: None,
+        },
+    })
+    .unwrap();
+
+    let sk = "d".repeat(64);
+    let cache = cache_dir().unwrap();
+    fs::create_dir_all(cache.join(&sk)).unwrap();
+    fs::write(
+        cache.join(&sk).join("SKILL.md"),
+        "---\nname: vercel-react-best-practices\ndescription: React guidance\n---\n\n# React Best Practices\n",
+    )
+    .unwrap();
+
+    let mut lock = PackLock::load(&root).unwrap();
+    lock.packages.push(LockPackage {
+        module: String::new(),
+        direct: true,
+        kind: PackageKind::Skill,
+        url: "https://github.com/vercel-labs/agent-skills/tree/main/skills/react-best-practices"
+            .into(),
+        owner: "vercel-labs".into(),
+        repo: "agent-skills".into(),
+        path: "skills/react-best-practices".into(),
+        commit: "e".repeat(40),
+        cache_key: sk,
+        name: String::new(),
+    });
+    lock.save(&root).unwrap();
+
+    run(Cli {
+        project_root: Some(root.clone()),
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        debug: false,
+        command: Command::Sync {
+            dry_run: false,
+            verify_only: false,
+            update_lock: false,
+        },
+    })
+    .unwrap();
+
+    let staged = staging_plugins_dir(&root)
+        .unwrap()
+        .join("agentpack-bundle")
+        .join("skills")
+        .join("react-best-practices")
+        .join("SKILL.md");
+    let contents = fs::read_to_string(&staged).unwrap();
+    assert!(staged.is_file());
+    assert!(contents.contains("name: vercel-react-best-practices"));
+}
+
+/// Plugin trees must merge non-`.md` assets under `commands` / `skills` / etc. for **both** Cursor
+/// and Claude bundles (raw subtree merge + markdown overlay).
+#[test]
+#[serial]
+fn sync_stages_cursor_and_claude_plugin_with_skill_support_and_command_sidecars() {
+    let dir = tempdir().unwrap();
+    let root: PathBuf = dir.path().to_path_buf();
+    prep_store(&root);
+    run(Cli {
+        project_root: Some(root.clone()),
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        debug: false,
+        command: Command::Init {
+            name: None,
+            version: None,
+        },
+    })
+    .unwrap();
+
+    let pk = "7".repeat(64);
+    let cache = cache_dir().unwrap();
+    fs::create_dir_all(cache.join(&pk).join(".cursor-plugin")).unwrap();
+    fs::write(
+        cache.join(&pk).join(".cursor-plugin/plugin.json"),
+        r#"{"name":"rust-dev-like","version":"1.0.0","displayName":"rust-dev-like"}"#,
+    )
+    .unwrap();
+    let skill_dir = cache.join(&pk).join("skills").join("rust-skill");
+    fs::create_dir_all(skill_dir.join("evals")).unwrap();
+    fs::write(
+        skill_dir.join("SKILL.md"),
+        "---\nname: rust-skill\ndescription: Rust helpers\n---\n\nBody.\n",
+    )
+    .unwrap();
+    fs::write(
+        skill_dir.join("evals").join("evals.json"),
+        "{\"version\":1}\n",
+    )
+    .unwrap();
+    fs::create_dir_all(cache.join(&pk).join("commands")).unwrap();
+    fs::write(
+        cache.join(&pk).join("commands").join("sidecar.txt"),
+        "binary-friendly sidecar\n",
+    )
+    .unwrap();
+
+    let mut lock = PackLock::load(&root).unwrap();
+    lock.packages.push(LockPackage {
+        module: String::new(),
+        direct: true,
+        kind: PackageKind::Plugin,
+        name: String::new(),
+        url: "https://github.com/o/r/tree/main/plugins/rust-dev".into(),
+        owner: "o".into(),
+        repo: "r".into(),
+        path: "plugins/rust-dev".into(),
+        commit: "8".repeat(40),
+        cache_key: pk,
+    });
+    lock.save(&root).unwrap();
+
+    run(Cli {
+        project_root: Some(root.clone()),
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        debug: false,
+        command: Command::Sync {
+            dry_run: false,
+            verify_only: false,
+            update_lock: false,
+        },
+    })
+    .unwrap();
+
+    let cursor_pack = staging_cursor_pack_plugin_dir(&root).unwrap();
+    let staged_skill = cursor_pack.join("skills/rust-skill");
+    assert!(staged_skill.join("SKILL.md").is_file());
+    assert_eq!(
+        fs::read_to_string(staged_skill.join("evals/evals.json")).unwrap(),
+        "{\"version\":1}\n"
+    );
+    assert_eq!(
+        fs::read_to_string(cursor_pack.join("commands/sidecar.txt")).unwrap(),
+        "binary-friendly sidecar\n"
+    );
+
+    let cursor_home = staging_cursor_home_dir(&root).unwrap();
+    assert!(cursor_home
+        .join(".cursor/skills/rust-skill/evals/evals.json")
+        .is_file());
+    assert!(cursor_home.join(".cursor/commands/sidecar.txt").is_file());
+
+    let claude_bundle = staging_plugins_dir(&root).unwrap().join("agentpack-bundle");
+    assert!(claude_bundle.join("skills/rust-skill/SKILL.md").is_file());
+    assert_eq!(
+        fs::read_to_string(claude_bundle.join("skills/rust-skill/evals/evals.json")).unwrap(),
+        "{\"version\":1}\n"
+    );
+    assert_eq!(
+        fs::read_to_string(claude_bundle.join("commands/sidecar.txt")).unwrap(),
+        "binary-friendly sidecar\n"
+    );
 }
 
 #[test]
@@ -358,8 +545,10 @@ fn sync_converts_markdown_artifacts_per_target_harness() {
     .unwrap();
 
     let mut lock = PackLock::load(&root).unwrap();
-    lock.plugins.push(LockPlugin {
+    lock.packages.push(LockPackage {
         module: String::new(),
+        direct: true,
+        kind: PackageKind::Plugin,
         name: String::new(),
         url: "https://github.com/o/r/tree/main/portable".into(),
         owner: "o".into(),
@@ -379,6 +568,7 @@ fn sync_converts_markdown_artifacts_per_target_harness() {
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
+            update_lock: false,
         },
     })
     .unwrap();
@@ -474,8 +664,10 @@ fn sync_leaves_project_cursor_files_alone_when_pack_overlaps_names() {
     .unwrap();
 
     let mut lock = PackLock::load(&root).unwrap();
-    lock.plugins.push(LockPlugin {
+    lock.packages.push(LockPackage {
         module: String::new(),
+        direct: true,
+        kind: PackageKind::Plugin,
         name: String::new(),
         url: "https://github.com/o/r/tree/main/portable".into(),
         owner: "o".into(),
@@ -495,6 +687,7 @@ fn sync_leaves_project_cursor_files_alone_when_pack_overlaps_names() {
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
+            update_lock: false,
         },
     })
     .unwrap();
@@ -548,8 +741,10 @@ fn sync_does_not_remove_user_cursor_files_when_pack_entries_removed() {
     .unwrap();
 
     let mut lock = PackLock::load(&root).unwrap();
-    lock.plugins.push(LockPlugin {
+    lock.packages.push(LockPackage {
         module: String::new(),
+        direct: true,
+        kind: PackageKind::Plugin,
         name: String::new(),
         url: "https://github.com/o/r/tree/main/portable".into(),
         owner: "o".into(),
@@ -569,6 +764,7 @@ fn sync_does_not_remove_user_cursor_files_when_pack_entries_removed() {
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
+            update_lock: false,
         },
     })
     .unwrap();
@@ -578,8 +774,7 @@ fn sync_does_not_remove_user_cursor_files_when_pack_entries_removed() {
     fs::write(&user_cmd, "# user\n").unwrap();
 
     let mut lock = PackLock::load(&root).unwrap();
-    lock.plugins.clear();
-    lock.skills.clear();
+    lock.packages.clear();
     lock.save(&root).unwrap();
 
     run(Cli {
@@ -591,6 +786,7 @@ fn sync_does_not_remove_user_cursor_files_when_pack_entries_removed() {
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
+            update_lock: false,
         },
     })
     .unwrap();
@@ -653,6 +849,7 @@ fn sync_merges_dot_agents_into_staging() {
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
+            update_lock: false,
         },
     })
     .unwrap();
@@ -670,10 +867,8 @@ fn sync_merges_dot_agents_into_staging() {
         .unwrap()
         .contains("Claude project from dot"));
 
-    let opencode_root = staging_opencode_dir(&root).unwrap();
-    assert!(opencode_root
-        .join("rules/dot-agents--nested--standards.mdc")
-        .is_file());
+    // OpenCode natively reads `.agents/` from the workspace, so dot-agents content
+    // is NOT merged into OpenCode staging.
 
     let codex_home = staging_codex_home_dir(&root).unwrap();
     assert!(fs::read_to_string(codex_home.join("AGENTS.md"))
@@ -681,18 +876,8 @@ fn sync_merges_dot_agents_into_staging() {
         .contains("Codex agents from dot"));
     assert!(codex_home.join("skills/dot-skill/SKILL.md").is_file());
 
-    let cursor_pack = staging_cursor_pack_plugin_dir(&root).unwrap();
-    assert!(cursor_pack
-        .join("rules/dot-agents--nested--standards.mdc")
-        .is_file());
-    assert!(cursor_pack.join("agents/local-sub.md").is_file());
-
-    assert!(
-        cursor_workspace_dir(&root)
-            .join("agents/local-sub.md")
-            .is_file(),
-        "workspace .cursor/agents should expose dot-agents markdown merged into staged agents"
-    );
+    // Cursor natively reads `.agents/` from the workspace, so dot-agents content
+    // is NOT merged into Cursor staging.
 }
 
 #[test]

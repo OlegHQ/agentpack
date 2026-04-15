@@ -1,13 +1,12 @@
-mod asset;
+pub(crate) mod asset;
+pub(crate) mod index;
 mod layout;
 mod materialize;
 mod restore;
 mod tree;
 
 pub(crate) use asset::classify_materialized;
-pub use asset::{
-    backfill_plugin_lock_entry, fetch_skill_from_parsed, fetch_skill_from_url, FetchedGithubAsset,
-};
+pub use asset::{backfill_plugin_lock_entry, fetch_skill_from_parsed, fetch_skill_from_url};
 pub use layout::{
     cache_dir_is_package_root_in_filesystem, cache_entry_dir, cache_has_plugin_manifest,
     claude_plugin_manifest_path, compute_cache_key, cursor_plugin_manifest_path,
@@ -16,9 +15,7 @@ pub use layout::{
 };
 pub(crate) use materialize::blob_path_parent_prefixes;
 pub use materialize::{fetch_github_asset_from_url, materialize_github_tree};
-pub use restore::{
-    ensure_lock_plugin_cached, ensure_lock_skill_cached, verify_lock_cache_integrity,
-};
+pub use restore::{ensure_lock_cached, verify_lock_cache_integrity};
 pub use tree::copy_package_dir_to_cache;
 
 #[cfg(test)]

@@ -1,13 +1,14 @@
 # Agentpack project manifest — direct dependencies only. Run `agentpack lock` to refresh pack.lock.
 
-name = "agentpack"
+name = "github.com/OlegHQ/agentpack"
 version = "0.0.1"
 
 [dependencies]
 "github.com/anthropics/claude-plugins-official/plugins/code-simplifier" = {}
 "github.com/anthropics/claude-plugins-official/plugins/code-review" = {}
 "github.com/cursor/plugin-template/plugins/starter-advanced" = {}
-"github.com/oleghq/agent-configs/skills/rust-design-patterns" = {}
 "github.com/oleghq/agent-configs/simplifier" = {}
+"github.com/anthropics/skills/skills/skill-creator" = {}
+"github.com/oleghq/agent-configs/plugins/rust-dev" = {}
 # "github.com/owner/repo/path" = {}
 

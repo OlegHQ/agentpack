@@ -1,7 +1,11 @@
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
-use crate::launcher::common::{apply_yolo_cursor_agent, exec_with_env, single_dir_override};
+use anyhow::Context;
+
+use crate::launcher::common::{
+    apply_yolo_cursor_agent, exec_with_env, resolve_harness_binary, single_dir_override,
+};
 use crate::paths;
 use crate::sync::sync_for_launch;
 use crate::ui::Ui;
@@ -58,6 +62,12 @@ fn normalize_path(path: &Path) -> PathBuf {
     path.canonicalize().unwrap_or_else(|_| path.to_path_buf())
 }
 
+fn push_env_if_absent(envs: &mut Vec<(&'static str, OsString)>, key: &'static str, value: PathBuf) {
+    if std::env::var_os(key).is_none() {
+        envs.push((key, value.into_os_string()));
+    }
+}
+
 pub fn run_agent(
     project_root: &std::path::Path,
     passthrough: Vec<String>,
@@ -105,12 +115,8 @@ pub fn run_agent(
         envs.push(("XDG_DATA_HOME", data.into_os_string()));
     }
 
-    // Cursor resolves the user config root as **`CURSOR_CONFIG_DIR`**, else **`$XDG_CONFIG_HOME/cursor`**,
-    // else **`$HOME/.cursor`** (see bundled `cursor-config`). Agentpack materializes pack-backed
-    // **`agents/`**, **`commands/`**, etc. under **`$FAKE_HOME/.cursor`**. Without this, Linux (fake
-    // **`XDG_CONFIG_HOME`**) or a user-global **`CURSOR_CONFIG_DIR` / `XDG_CONFIG_HOME`** would point
-    // the CLI at a different directory, so **subagents** (markdown under **`agents/`)** from
-    // **`pack.lock`** would not load.
+    // Cursor skill / command / agent discovery still appears tied to the HOME-backed `.cursor`
+    // tree, so keep the fake HOME layout that Cursor already knows how to scan.
     let fake_cursor = Path::new(&fake_home).join(".cursor");
     let cursor_config_dir = if let Some(dir) = std::env::var_os("AGENTPACK_CURSOR_CONFIG_DIR") {
         dir
@@ -118,6 +124,12 @@ pub fn run_agent(
         fake_cursor.into_os_string()
     };
     envs.push(("CURSOR_CONFIG_DIR", cursor_config_dir));
+
+    if let Some(real_home) = dirs::home_dir() {
+        push_env_if_absent(&mut envs, "CARGO_HOME", real_home.join(".cargo"));
+        push_env_if_absent(&mut envs, "RUSTUP_HOME", real_home.join(".rustup"));
+        push_env_if_absent(&mut envs, "DOCKER_CONFIG", real_home.join(".docker"));
+    }
 
     // Cursor **`agent`** (bundled `cursor-config` + `workspace/approval.tsx`) stores **workspace trust** at
     // **`$CURSOR_DATA_DIR/projects/<slug>/.workspace-trusted`**, defaulting **`CURSOR_DATA_DIR`** to
@@ -142,6 +154,15 @@ pub fn run_agent(
     } else {
         msg.push_str("\nCURSOR_CONFIG_DIR: fake HOME .cursor (pack agents/commands)");
     }
+    if std::env::var_os("CARGO_HOME").is_none() {
+        msg.push_str("\nCARGO_HOME: real ~/.cargo");
+    }
+    if std::env::var_os("RUSTUP_HOME").is_none() {
+        msg.push_str("\nRUSTUP_HOME: real ~/.rustup");
+    }
+    if std::env::var_os("DOCKER_CONFIG").is_none() {
+        msg.push_str("\nDOCKER_CONFIG: real ~/.docker");
+    }
     if injected_cursor_data_dir {
         msg.push_str("\nCURSOR_DATA_DIR: real ~/.cursor (workspace trust + projects; avoids ephemeral staging)");
     }
@@ -151,5 +172,9 @@ pub fn run_agent(
     prepend_trust_if_configured(&mut args);
     ui.debug_message(msg);
 
-    exec_with_env("CURSOR_AGENT_PATH", "agent", &envs, args)
+    let agent = resolve_harness_binary("CURSOR_AGENT_PATH", "agent").with_context(|| {
+        "Cursor Agent CLI (`agent`) not found.\n\
+         Install Cursor with the Agent CLI available on your PATH, or set CURSOR_AGENT_PATH to the `agent` executable."
+    })?;
+    exec_with_env(&agent, &envs, args)
 }

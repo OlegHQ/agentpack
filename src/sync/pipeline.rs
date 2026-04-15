@@ -3,26 +3,31 @@ use std::path::Path;
 use chrono::Utc;
 use reqwest::blocking::Client;
 
-use crate::cache::{
-    backfill_plugin_lock_entry, ensure_lock_plugin_cached, ensure_lock_skill_cached,
-};
+use crate::cache::index::{list_keys, upsert_entry, CacheEntryRecord};
+use crate::cache::{backfill_plugin_lock_entry, ensure_lock_cached};
 use crate::error::Result;
-use crate::index::{list_keys, upsert_entry, CacheEntryRecord};
-use crate::lockfile::{LockPlugin, LockSkill, PackLock, PackageKind};
+use crate::lockfile::{LockPackage, PackLock, PackageKind};
 use crate::manifest::AgentpackManifest;
 use crate::paths;
-use crate::resolve::resolve_lock_from_manifest;
+use crate::resolve::{resolve_lock_from_manifest, ResolveLockOpts};
 use crate::staging::{self, skill_is_shadowed};
 use crate::ui::Ui;
 
 use super::add_fetch::http_client;
 
-pub fn run_sync(project_root: &Path, dry_run: bool, verify_only: bool, ui: &Ui) -> Result<()> {
+pub fn run_sync(
+    project_root: &Path,
+    dry_run: bool,
+    verify_only: bool,
+    update_lock: bool,
+    ui: &Ui,
+) -> Result<()> {
     let mut session = SyncSession::prepare(
         project_root,
         SyncMode {
             dry_run,
             verify_only,
+            update_lock,
         },
         ui,
     )?;
@@ -38,6 +43,7 @@ pub fn run_sync(project_root: &Path, dry_run: bool, verify_only: bool, ui: &Ui) 
 struct SyncMode {
     dry_run: bool,
     verify_only: bool,
+    update_lock: bool,
 }
 
 struct SyncSession<'a> {
@@ -58,14 +64,20 @@ impl<'a> SyncSession<'a> {
 
         let manifest = AgentpackManifest::load(project_root)?;
         if !mode.dry_run {
-            maybe_refresh_lock_from_manifest(project_root, manifest.as_ref(), &client, ui)?;
+            maybe_refresh_lock_from_manifest(
+                project_root,
+                manifest.as_ref(),
+                &client,
+                ui,
+                mode.update_lock,
+            )?;
         }
 
         let lock = PackLock::load(project_root)?;
+        let plugins: Vec<&LockPackage> = lock.plugins().collect();
         let shadowed_skills = lock
-            .skills
-            .iter()
-            .filter(|skill| skill_is_shadowed(skill, &lock.plugins))
+            .skills()
+            .filter(|skill| skill_is_shadowed(skill, &plugins))
             .count();
 
         Ok(Self {
@@ -90,6 +102,7 @@ fn maybe_refresh_lock_from_manifest(
     manifest: Option<&AgentpackManifest>,
     client: &Client,
     ui: &Ui,
+    refresh_floating: bool,
 ) -> Result<()> {
     let Some(manifest) = manifest else {
         return Ok(());
@@ -98,85 +111,34 @@ fn maybe_refresh_lock_from_manifest(
     if manifest.dependencies.is_empty() {
         return Ok(());
     }
-    let resolved = resolve_lock_from_manifest(manifest, client, ui)?;
+    let previous = PackLock::load(project_root).ok();
+    let opts = ResolveLockOpts {
+        previous: previous.as_ref(),
+        refresh_floating,
+    };
+    let resolved = resolve_lock_from_manifest(manifest, client, ui, &opts, project_root)?;
     resolved.save(project_root)
 }
 
-enum SyncEntry<'a> {
-    Plugin(&'a LockPlugin),
-    Skill(&'a LockSkill),
+fn index_record(pkg: &LockPackage, fetched_at_unix: i64) -> CacheEntryRecord {
+    CacheEntryRecord {
+        kind: pkg.kind,
+        source_url: pkg.url.to_owned(),
+        owner: pkg.owner.to_owned(),
+        repo: pkg.repo.to_owned(),
+        path: pkg.path.to_owned(),
+        commit: pkg.commit.to_owned(),
+        fetched_at_unix,
+    }
 }
 
-impl<'a> SyncEntry<'a> {
-    fn ensure_cached(&self, client: &Client, ui: &Ui) -> Result<bool> {
-        match self {
-            Self::Plugin(plugin) => ensure_lock_plugin_cached(client, plugin, ui),
-            Self::Skill(skill) => ensure_lock_skill_cached(client, skill, ui),
-        }
-    }
-
-    fn index_record(&self, fetched_at_unix: i64) -> CacheEntryRecord {
-        match self {
-            Self::Plugin(plugin) => CacheEntryRecord {
-                kind: PackageKind::Plugin,
-                source_url: plugin.url.clone(),
-                owner: plugin.owner.clone(),
-                repo: plugin.repo.clone(),
-                path: plugin.path.clone(),
-                commit: plugin.commit.clone(),
-                fetched_at_unix,
-            },
-            Self::Skill(skill) => CacheEntryRecord {
-                kind: PackageKind::Skill,
-                source_url: skill.url.clone(),
-                owner: skill.owner.clone(),
-                repo: skill.repo.clone(),
-                path: skill.path.clone(),
-                commit: skill.commit.clone(),
-                fetched_at_unix,
-            },
-        }
-    }
-
-    fn cache_key(&self) -> &str {
-        match self {
-            Self::Plugin(plugin) => &plugin.cache_key,
-            Self::Skill(skill) => &skill.cache_key,
-        }
-    }
-
-    fn url(&self) -> &str {
-        match self {
-            Self::Plugin(plugin) => &plugin.url,
-            Self::Skill(skill) => &skill.url,
-        }
-    }
-
-    fn kind_label(&self) -> &'static str {
-        match self {
-            Self::Plugin(_) => "plugin",
-            Self::Skill(_) => "skill",
-        }
-    }
-
-    fn should_skip(&self) -> bool {
-        matches!(self, Self::Plugin(plugin) if plugin.cache_key.is_empty())
-    }
-
-    fn log_skip(&self) {
-        if matches!(self, Self::Plugin(_)) {
-            tracing::warn!("skipping plugin sync: empty cache_key");
-        }
-    }
-
-    fn missing_cache_warning(&self) -> String {
-        format!(
-            "{} {} ({}): cache missing and source unavailable — omitted from staging",
-            self.kind_label(),
-            crate::fs_util::truncate_str(self.cache_key(), 12),
-            self.url()
-        )
-    }
+fn missing_cache_warning(pkg: &LockPackage) -> String {
+    format!(
+        "{} {} ({}): cache missing and source unavailable — omitted from staging",
+        pkg.kind_label(),
+        crate::fs_util::truncate_str(&pkg.cache_key, 12),
+        pkg.url
+    )
 }
 
 enum StepOutcome {
@@ -223,13 +185,13 @@ impl SyncStep for DryRunStep {
 
         session.ui.message(format!(
             "Dry-run: would sync {} skill(s), {} plugin(s); {} skill(s) shadowed by plugins (omitted from staging); no changes made.",
-            session.lock.skills.len(),
-            session.lock.plugins.len(),
+            session.lock.skill_count(),
+            session.lock.plugin_count(),
             session.shadowed_skills
         ));
         tracing::info!(
-            skills = session.lock.skills.len(),
-            plugins = session.lock.plugins.len(),
+            skills = session.lock.skill_count(),
+            plugins = session.lock.plugin_count(),
             shadowed_skills = session.shadowed_skills,
             "dry-run: would ensure cache and rebuild staging"
         );
@@ -240,7 +202,7 @@ impl SyncStep for DryRunStep {
 impl SyncStep for PluginBackfillStep {
     fn run(&self, session: &mut SyncSession<'_>) -> Result<StepOutcome> {
         let mut lock_dirty = false;
-        for plugin in &mut session.lock.plugins {
+        for plugin in session.lock.plugins_mut() {
             if plugin.url.is_empty() {
                 tracing::warn!("skipping plugin row with empty url");
                 continue;
@@ -262,24 +224,17 @@ impl SyncStep for CacheAndIndexStep {
         let fetched_at_unix = Utc::now().timestamp();
         let mut warnings = Vec::new();
 
-        for plugin in &session.lock.plugins {
-            let entry = SyncEntry::Plugin(plugin);
-            if entry.should_skip() {
-                entry.log_skip();
+        for pkg in &session.lock.packages {
+            if pkg.cache_key.is_empty() {
+                if pkg.kind == PackageKind::Plugin {
+                    tracing::warn!("skipping plugin sync: empty cache_key");
+                }
                 continue;
             }
-            if !entry.ensure_cached(&session.client, session.ui)? {
-                warnings.push(entry.missing_cache_warning());
+            if !ensure_lock_cached(&session.client, pkg, session.ui)? {
+                warnings.push(missing_cache_warning(pkg));
             }
-            upsert_entry(entry.cache_key(), &entry.index_record(fetched_at_unix), &[])?;
-        }
-
-        for skill in &session.lock.skills {
-            let entry = SyncEntry::Skill(skill);
-            if !entry.ensure_cached(&session.client, session.ui)? {
-                warnings.push(entry.missing_cache_warning());
-            }
-            upsert_entry(entry.cache_key(), &entry.index_record(fetched_at_unix), &[])?;
+            upsert_entry(&pkg.cache_key, &index_record(pkg, fetched_at_unix), &[])?;
         }
 
         for warning in warnings {
@@ -319,7 +274,7 @@ impl SyncStep for StageOrVerifyStep {
             return Ok(StepOutcome::Finished);
         }
 
-        let spinner = session.ui.spinner("Rebuild plugin staging (symlinks)…");
+        let spinner = session.ui.spinner("Rebuild plugin staging…");
         staging::rebuild_staging(
             session.project_root,
             &session.lock,
@@ -336,15 +291,15 @@ impl SyncStep for SummaryStep {
         let index_key_count = list_keys()?.len();
         tracing::debug!(
             index_keys = index_key_count,
-            skills = session.lock.skills.len(),
-            plugins = session.lock.plugins.len(),
+            skills = session.lock.skill_count(),
+            plugins = session.lock.plugin_count(),
             "sync complete"
         );
         if !session.ui.quiet {
             session.ui.message(format!(
                 "Sync finished — {} skill(s), {} plugin(s), {} cache index entr(ies). One merged bundle: agentpack-bundle.",
-                session.lock.skills.len(),
-                session.lock.plugins.len(),
+                session.lock.skill_count(),
+                session.lock.plugin_count(),
                 index_key_count
             ));
         }

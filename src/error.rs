@@ -57,9 +57,6 @@ pub enum AgentpackError {
         "cache at {0} is not a package root (expected SKILL.md, agentpack.toml, or .claude-plugin / .cursor-plugin)"
     )]
     InvalidCacheLayout(PathBuf),
-
-    #[error("claude executable not found on PATH (set CLAUDE_CODE_PATH)")]
-    ClaudeNotFound,
 }
 
 impl AgentpackError {

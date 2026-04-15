@@ -47,7 +47,9 @@ impl MarkdownArtifact {
         );
 
         RenderedArtifact {
-            relative_path: PathBuf::from("skills").join(&self.name).join("SKILL.md"),
+            relative_path: PathBuf::from("skills")
+                .join(&self.storage_name)
+                .join("SKILL.md"),
             contents: render_markdown(&frontmatter, &self.skill_body(target)),
         }
     }
@@ -144,6 +146,6 @@ impl MarkdownArtifact {
         }
         rendered.push('\n');
         rendered.push_str(self.body.trim_start_matches('\n'));
-        ensure_trailing_newline(&rendered)
+        ensure_trailing_newline(&rendered).into_owned()
     }
 }

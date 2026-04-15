@@ -1,14 +1,14 @@
 lockfile_version = 2
 
 [meta]
-name = "agentpack"
+name = "github.com/OlegHQ/agentpack"
 version = "0.0.1"
 
 [[packages]]
 module = "github.com/anthropics/claude-plugins-official/plugins/code-review"
 direct = true
 kind = "plugin"
-url = "https://github.com/anthropics/claude-plugins-official/tree/HEAD/plugins/code-review"
+url = "https://github.com/anthropics/claude-plugins-official/tree/104d39be10b7b1380b2ae23a387a11a297b599c3/plugins/code-review"
 owner = "anthropics"
 repo = "claude-plugins-official"
 path = "plugins/code-review"
@@ -20,7 +20,7 @@ name = ""
 module = "github.com/anthropics/claude-plugins-official/plugins/code-simplifier"
 direct = true
 kind = "plugin"
-url = "https://github.com/anthropics/claude-plugins-official/tree/HEAD/plugins/code-simplifier"
+url = "https://github.com/anthropics/claude-plugins-official/tree/104d39be10b7b1380b2ae23a387a11a297b599c3/plugins/code-simplifier"
 owner = "anthropics"
 repo = "claude-plugins-official"
 path = "plugins/code-simplifier"
@@ -29,10 +29,22 @@ cache_key = "717b651d84ecf0b374db84a582794346fcb5a1298d577884bc0cf678114f53fa"
 name = ""
 
 [[packages]]
+module = "github.com/anthropics/skills/skills/skill-creator"
+direct = true
+kind = "skill"
+url = "https://github.com/anthropics/skills/tree/98669c11ca63e9c81c11501e1437e5c47b556621/skills/skill-creator"
+owner = "anthropics"
+repo = "skills"
+path = "skills/skill-creator"
+commit = "98669c11ca63e9c81c11501e1437e5c47b556621"
+cache_key = "88310e0439693e305a5d49a5b4ac8c9feab246dc7e8ee5e791c0b6fa6a1a4b40"
+name = ""
+
+[[packages]]
 module = "github.com/cursor/plugin-template/plugins/starter-advanced"
 direct = true
 kind = "plugin"
-url = "https://github.com/cursor/plugin-template/tree/HEAD/plugins/starter-advanced"
+url = "https://github.com/cursor/plugin-template/tree/b211f35a0ed6d62ec90e94f874b11fea898961e0/plugins/starter-advanced"
 owner = "cursor"
 repo = "plugin-template"
 path = "plugins/starter-advanced"
@@ -41,25 +53,25 @@ cache_key = "706347874a7e59718d5d14b62c38e151540647d9b072c6f8eb418e61665996cd"
 name = ""
 
 [[packages]]
+module = "github.com/oleghq/agent-configs/plugins/rust-dev"
+direct = true
+kind = "plugin"
+url = "https://github.com/oleghq/agent-configs/tree/e25702aef5f52e2c886bbe13940afca47d6722cc/plugins/rust-dev"
+owner = "oleghq"
+repo = "agent-configs"
+path = "plugins/rust-dev"
+commit = "e25702aef5f52e2c886bbe13940afca47d6722cc"
+cache_key = "88a1a7c3e038d3eeec077bdbe6987b4708497b279535ec29b52de962e1f47e41"
+name = ""
+
+[[packages]]
 module = "github.com/oleghq/agent-configs/simplifier"
 direct = true
 kind = "plugin"
-url = "https://github.com/oleghq/agent-configs/tree/HEAD/simplifier"
+url = "https://github.com/oleghq/agent-configs/tree/b25166e5551640e6cc283fc0b3358c2c7755e5ab/simplifier"
 owner = "oleghq"
 repo = "agent-configs"
 path = "simplifier"
 commit = "b25166e5551640e6cc283fc0b3358c2c7755e5ab"
 cache_key = "764dfbc0f3404dadf2ceda075fe25f7557d43bb266d4f19710243c7eda9088c6"
-name = ""
-
-[[packages]]
-module = "github.com/oleghq/agent-configs/skills/rust-design-patterns"
-direct = true
-kind = "skill"
-url = "https://github.com/oleghq/agent-configs/tree/HEAD/skills/rust-design-patterns"
-owner = "oleghq"
-repo = "agent-configs"
-path = "skills/rust-design-patterns"
-commit = "b25166e5551640e6cc283fc0b3358c2c7755e5ab"
-cache_key = "8e4efd7741ea43a8c3cc82a6d59a975096d44f058416cfbca7f69c64cf233715"
 name = ""

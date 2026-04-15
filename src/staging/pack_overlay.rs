@@ -1,50 +1,39 @@
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+
+use rayon::prelude::*;
+use walkdir::WalkDir;
 
 use crate::artifacts::{parse_markdown_artifact, staged_skill_support_path, HarnessTarget};
 use crate::cache::{cache_entry_dir, cache_has_plugin_manifest};
 use crate::error::{AgentpackError, Result};
-use crate::lockfile::{LockPlugin, LockSkill, PackLock};
+use crate::lockfile::{LockPackage, PackLock, PackageKind};
 use crate::manifest::AgentpackManifest;
 
-use crate::fs_util::write_text_file;
+use crate::fs_util::{fast_copy_file, write_text_file};
 
-use super::tree::copy_merge_tree;
-
-fn walk_source_files<F>(root: &Path, current: &Path, visitor: &mut F) -> Result<()>
+fn walk_source_files<F>(root: &Path, visitor: &mut F) -> Result<()>
 where
     F: FnMut(&Path, &Path) -> Result<()>,
 {
-    let dir = if current.as_os_str().is_empty() {
-        root.to_path_buf()
-    } else {
-        root.join(current)
-    };
-    for entry in fs::read_dir(&dir).map_err(|e| AgentpackError::io(&dir, e))? {
-        let entry = entry.map_err(|e| AgentpackError::io(&dir, e))?;
-        let path = entry.path();
-        let rel = if current.as_os_str().is_empty() {
-            PathBuf::from(entry.file_name())
-        } else {
-            current.join(entry.file_name())
-        };
-        let file_type = entry
-            .file_type()
-            .map_err(|e| AgentpackError::io(&path, e))?;
-        if file_type.is_dir() {
-            walk_source_files(root, &rel, visitor)?;
-        } else if file_type.is_file() {
-            visitor(&path, &rel)?;
+    for entry in WalkDir::new(root).follow_links(false) {
+        let entry = entry.map_err(|e| AgentpackError::Staging(e.to_string()))?;
+        if !entry.file_type().is_file() {
+            continue;
         }
+        let path = entry.path();
+        let rel = path.strip_prefix(root).map_err(|_| {
+            AgentpackError::Staging(format!("path outside root: {}", path.display()))
+        })?;
+        visitor(path, rel)?;
     }
     Ok(())
 }
 
 fn rel_key(rel: &Path) -> String {
-    rel.iter()
-        .map(|c| c.to_string_lossy())
-        .collect::<Vec<_>>()
-        .join("/")
+    rel.to_string_lossy()
+        .replace(std::path::MAIN_SEPARATOR, "/")
 }
 
 /// Paths are package-root-relative (forward slashes). A pattern matches the exact path or any file under it as a directory prefix.
@@ -66,19 +55,43 @@ fn rel_is_disabled(rel: &Path, disabled: &[String]) -> bool {
     false
 }
 
-fn disable_list_for_entry(manifest: Option<&AgentpackManifest>, module: &str) -> Vec<String> {
+fn disable_list_for_entry<'a>(
+    manifest: Option<&'a AgentpackManifest>,
+    module: &str,
+) -> &'a [String] {
     if module.is_empty() {
-        return Vec::new();
+        return &[];
     }
     manifest
         .map(|m| m.disable_paths_for_module(module))
-        .unwrap_or_default()
+        .unwrap_or(&[])
 }
 
-fn stage_source_tree(
+/// Destination roots for the four harness trees that receive merged pack content.
+pub(super) struct PackHarnessRoots<'a> {
+    pub claude_bundle: &'a Path,
+    pub opencode: &'a Path,
+    pub codex: &'a Path,
+    pub cursor_pack: &'a Path,
+}
+
+impl PackHarnessRoots<'_> {
+    fn targets_and_roots(&self) -> [(HarnessTarget, &Path); 4] {
+        [
+            (HarnessTarget::Claude, self.claude_bundle),
+            (HarnessTarget::OpenCode, self.opencode),
+            (HarnessTarget::Codex, self.codex),
+            (HarnessTarget::Cursor, self.cursor_pack),
+        ]
+    }
+}
+
+/// One walk over **`src_root`**: copy skill support files and read each markdown artifact once, then
+/// render per harness. Avoids repeating directory walks and YAML/markdown parsing for every target
+/// (previously ~4× I/O and CPU per plugin).
+fn stage_source_tree_all_harnesses(
     src_root: &Path,
-    dest_root: &Path,
-    target: HarnessTarget,
+    dests: &PackHarnessRoots<'_>,
     bare_skill_name: Option<&str>,
     disabled: &[String],
 ) -> Result<()> {
@@ -86,86 +99,88 @@ fn stage_source_tree(
         return Ok(());
     }
 
-    walk_source_files(src_root, Path::new(""), &mut |src, rel| {
+    let pairs = dests.targets_and_roots();
+    walk_source_files(src_root, &mut |src, rel| {
         if rel_is_disabled(rel, disabled) {
             return Ok(());
         }
         if let Some(dest_rel) = staged_skill_support_path(rel, bare_skill_name) {
-            copy_merge_tree(src, &dest_root.join(dest_rel))?;
+            for (_, dest_root) in &pairs {
+                fast_copy_file(src, &dest_root.join(&dest_rel))?;
+            }
             return Ok(());
         }
 
-        let ext = src
-            .extension()
-            .and_then(|ext| ext.to_str())
-            .unwrap_or_default();
-        if ext != "md" && ext != "mdc" {
+        let ext = src.extension().and_then(|e| e.to_str()).unwrap_or("");
+        if !ext.eq_ignore_ascii_case("md") && !ext.eq_ignore_ascii_case("mdc") {
             return Ok(());
         }
 
         let contents = fs::read_to_string(src).map_err(|e| AgentpackError::io(src, e))?;
         if let Some(artifact) = parse_markdown_artifact(rel, &contents, bare_skill_name)? {
-            tracing::debug!(
-                source = %rel.display(),
-                kind = ?artifact.kind,
-                source_variant = ?artifact.source_variant,
-                target = ?target,
-                "rendering staged markdown artifact"
-            );
-            let rendered = artifact.render(target);
-            write_text_file(&dest_root.join(rendered.relative_path), &rendered.contents)?;
+            for (target, dest_root) in &pairs {
+                tracing::debug!(
+                    source = %rel.display(),
+                    kind = ?artifact.kind,
+                    source_variant = ?artifact.source_variant,
+                    target = ?target,
+                    "rendering staged markdown artifact"
+                );
+                let rendered = artifact.render(*target);
+                write_text_file(&dest_root.join(rendered.relative_path), &rendered.contents)?;
+            }
         }
         Ok(())
     })
 }
 
-fn merge_named_subdirs(
-    from_base: &Path,
-    bundle: &Path,
-    subdirs: &[&str],
-    label: &'static str,
-) -> Result<()> {
-    if !from_base.is_dir() {
-        return Ok(());
-    }
-    for sub in subdirs {
-        let s = from_base.join(sub);
-        if s.is_dir() {
-            tracing::debug!(label, sub, "merging into bundle");
-            copy_merge_tree(&s, &bundle.join(sub))?;
-        }
-    }
-    Ok(())
-}
-
-fn copy_raw_plugin_support_dirs(
+/// Walk each unique raw-plugin support subdir **once** and fan out files to every harness
+/// destination that wants them. Previously each of the four targets was walked independently,
+/// so the same cache tree was `read_dir`+`stat`ed up to **4×** per plugin. This collapses it to
+/// a single traversal with per-file fast copies.
+fn copy_raw_plugin_support_dirs_all_harnesses(
     src_root: &Path,
-    dest_root: &Path,
-    target: HarnessTarget,
+    dests: &PackHarnessRoots<'_>,
     disabled: &[String],
 ) -> Result<()> {
-    let subdirs = target.raw_plugin_subdirs();
-    if subdirs.is_empty() {
+    // Build subdir → [dest_root per interested target] map. Preserve insertion order for
+    // deterministic debug logs; BTreeMap also gives consistent ordering across runs.
+    let mut subdir_dests: BTreeMap<&'static str, Vec<PathBuf>> = BTreeMap::new();
+    for (target, dest_root) in dests.targets_and_roots() {
+        for sub in target.raw_plugin_subdirs() {
+            subdir_dests
+                .entry(*sub)
+                .or_default()
+                .push(dest_root.to_path_buf());
+        }
+    }
+    if subdir_dests.is_empty() {
         return Ok(());
     }
-    if disabled.is_empty() {
-        merge_named_subdirs(src_root, dest_root, subdirs, "portable raw support")
-    } else {
-        for sub in subdirs {
+
+    // Different subdirs map to disjoint destination paths (`commands/**` vs `agents/**` vs …),
+    // so we can walk them in parallel without risking write ordering issues.
+    let entries: Vec<(&'static str, &Vec<PathBuf>)> =
+        subdir_dests.iter().map(|(k, v)| (*k, v)).collect();
+    entries
+        .par_iter()
+        .try_for_each(|(sub, dest_roots)| -> Result<()> {
             let s = src_root.join(sub);
-            if s.is_dir() {
-                walk_source_files(&s, Path::new(""), &mut |src, rel| {
-                    let full_rel = Path::new(sub).join(rel);
-                    if rel_is_disabled(&full_rel, disabled) {
-                        return Ok(());
-                    }
-                    copy_merge_tree(src, &dest_root.join(&full_rel))?;
-                    Ok(())
-                })?;
+            if !s.is_dir() {
+                return Ok(());
             }
-        }
-        Ok(())
-    }
+            walk_source_files(&s, &mut |src, rel| {
+                let full_rel = Path::new(sub).join(rel);
+                if rel_is_disabled(&full_rel, disabled) {
+                    return Ok(());
+                }
+                for dest_root in *dest_roots {
+                    fast_copy_file(src, &dest_root.join(&full_rel))?;
+                }
+                Ok(())
+            })
+        })?;
+    Ok(())
 }
 
 fn copy_plugin_root_file_if_present(
@@ -179,48 +194,47 @@ fn copy_plugin_root_file_if_present(
     }
     let src = cache_root.join(file_name);
     if src.is_file() {
-        copy_merge_tree(&src, &dest_root.join(file_name))?;
+        fast_copy_file(&src, &dest_root.join(file_name))?;
     }
     Ok(())
 }
 
-fn stage_plugin_cache_for_target(
+fn stage_bare_skill_cache_all_harnesses(
     cache_root: &Path,
-    dest_root: &Path,
-    target: HarnessTarget,
-    disabled: &[String],
-) -> Result<()> {
-    copy_raw_plugin_support_dirs(cache_root, dest_root, target, disabled)?;
-    if target.stages_plugin_root_mcp_json() {
-        copy_plugin_root_file_if_present(cache_root, dest_root, "mcp.json", disabled)?;
-    }
-    stage_source_tree(cache_root, dest_root, target, None, disabled)
-}
-
-fn stage_bare_skill_cache_for_target(
-    cache_root: &Path,
-    dest_root: &Path,
-    target: HarnessTarget,
+    dests: &PackHarnessRoots<'_>,
     skill_name: &str,
     disabled: &[String],
 ) -> Result<()> {
-    stage_source_tree(cache_root, dest_root, target, Some(skill_name), disabled)
+    stage_source_tree_all_harnesses(cache_root, dests, Some(skill_name), disabled)
 }
 
-pub(super) fn stage_pack_plugins_for_target(
+fn stage_plugin_cache_all_harnesses(
+    cache_root: &Path,
+    dests: &PackHarnessRoots<'_>,
+    disabled: &[String],
+) -> Result<()> {
+    copy_raw_plugin_support_dirs_all_harnesses(cache_root, dests, disabled)?;
+    for (target, root) in dests.targets_and_roots() {
+        if target.stages_plugin_root_mcp_json() {
+            copy_plugin_root_file_if_present(cache_root, root, "mcp.json", disabled)?;
+        }
+    }
+    stage_source_tree_all_harnesses(cache_root, dests, None, disabled)
+}
+
+pub(super) fn stage_pack_plugins_all_harnesses(
     lock: &PackLock,
-    dest_root: &Path,
-    target: HarnessTarget,
+    dests: &PackHarnessRoots<'_>,
     manifest: Option<&AgentpackManifest>,
 ) -> Result<()> {
-    let mut plug_list: Vec<&LockPlugin> = lock.plugins.iter().collect();
+    let mut plug_list: Vec<&LockPackage> = lock.plugins().collect();
     plug_list.sort_by(|a, b| a.cache_key.cmp(&b.cache_key));
     for plugin in plug_list {
         if plugin.cache_key.is_empty() {
             tracing::warn!("skipping plugin staging: empty cache_key (run sync to backfill)");
             continue;
         }
-        if plugin_disabled_in_config(lock, plugin) {
+        if disabled_in_config(lock, plugin) {
             tracing::info!(cache_key = %plugin.cache_key, "skip disabled plugin");
             continue;
         }
@@ -239,89 +253,92 @@ pub(super) fn stage_pack_plugins_for_target(
             continue;
         }
         let disabled = disable_list_for_entry(manifest, &plugin.module);
-        stage_plugin_cache_for_target(&cache_path, dest_root, target, &disabled)?;
+        stage_plugin_cache_all_harnesses(&cache_path, dests, disabled)?;
     }
     Ok(())
 }
 
-pub(super) fn stage_pack_skills_for_target(
+pub(super) fn stage_pack_skills_all_harnesses(
     lock: &PackLock,
-    dest_root: &Path,
-    target: HarnessTarget,
+    dests: &PackHarnessRoots<'_>,
     manifest: Option<&AgentpackManifest>,
 ) -> Result<()> {
-    let mut skill_list: Vec<&LockSkill> = lock.skills.iter().collect();
+    let plugins: Vec<&LockPackage> = lock.plugins().collect();
+    let mut skill_list: Vec<&LockPackage> = lock.skills().collect();
     skill_list.sort_by(|a, b| a.cache_key.cmp(&b.cache_key));
-    for skill in skill_list {
-        if skill_disabled_in_config(lock, skill) {
-            tracing::info!(cache_key = %skill.cache_key, "skip disabled skill");
-            continue;
-        }
-        if skill_is_shadowed(skill, &lock.plugins) {
-            tracing::info!(
-                cache_key = %skill.cache_key,
-                path = %skill.path,
-                "skip skill: shadowed by full plugin"
-            );
-            continue;
-        }
-        let cache_path = match cache_entry_dir(&skill.cache_key) {
-            Ok(p) => p,
-            Err(e) => {
-                tracing::warn!(cache_key = %skill.cache_key, error = %e, "skip skill staging: cache path");
-                continue;
+
+    // Each skill stages under `skills/<unique-name>/…` in every harness root, so staging can
+    // run in parallel across skills without write-ordering risk. Plugins stay sequential to
+    // preserve deterministic overlay order on rare path collisions.
+    skill_list
+        .par_iter()
+        .try_for_each(|skill| -> Result<()> {
+            if disabled_in_config(lock, skill) {
+                tracing::info!(cache_key = %skill.cache_key, "skip disabled skill");
+                return Ok(());
             }
-        };
-        let name = skill_folder_name(skill);
-        let disabled = disable_list_for_entry(manifest, &skill.module);
-        if !cache_path.join("SKILL.md").is_file() {
-            tracing::warn!(
-                path = %cache_path.display(),
-                "skip skill staging: SKILL.md missing"
-            );
-            continue;
-        }
-        stage_bare_skill_cache_for_target(&cache_path, dest_root, target, &name, &disabled)?;
-    }
+            if skill_is_shadowed(skill, &plugins) {
+                tracing::info!(
+                    cache_key = %skill.cache_key,
+                    path = %skill.path,
+                    "skip skill: shadowed by full plugin"
+                );
+                return Ok(());
+            }
+            let cache_path = match cache_entry_dir(&skill.cache_key) {
+                Ok(p) => p,
+                Err(e) => {
+                    tracing::warn!(cache_key = %skill.cache_key, error = %e, "skip skill staging: cache path");
+                    return Ok(());
+                }
+            };
+            let name = skill_folder_name(skill);
+            let disabled = disable_list_for_entry(manifest, &skill.module);
+            if !cache_path.join("SKILL.md").is_file() {
+                tracing::warn!(
+                    path = %cache_path.display(),
+                    "skip skill staging: SKILL.md missing"
+                );
+                return Ok(());
+            }
+            stage_bare_skill_cache_all_harnesses(&cache_path, dests, &name, disabled)
+        })?;
     Ok(())
 }
 
-pub(crate) fn entry_short_id(cache_key: &str) -> String {
+fn entry_short_id(cache_key: &str) -> String {
     crate::fs_util::truncate_str(cache_key, 16)
 }
 
-pub(super) fn skill_folder_name(skill: &LockSkill) -> String {
-    if skill.path.is_empty() {
-        return skill.repo.clone();
+pub(crate) fn skill_folder_name(pkg: &LockPackage) -> String {
+    if pkg.path.is_empty() {
+        return pkg.repo.clone();
     }
-    Path::new(&skill.path)
+    Path::new(&pkg.path)
         .file_name()
         .map(|s| s.to_string_lossy().into_owned())
-        .unwrap_or_else(|| skill.repo.clone())
+        .unwrap_or_else(|| pkg.repo.clone())
 }
 
-pub(super) fn skill_disabled_in_config(lock: &PackLock, skill: &LockSkill) -> bool {
-    let sid = entry_short_id(&skill.cache_key);
+/// Check if a package is disabled in the lock config.
+pub(super) fn disabled_in_config(lock: &PackLock, pkg: &LockPackage) -> bool {
+    let sid = entry_short_id(&pkg.cache_key);
     lock.config
         .disabled_plugins
         .iter()
-        .any(|id| id == &skill.cache_key || id == &sid)
+        .any(|id| id == &pkg.cache_key || id == &sid)
 }
 
-pub(super) fn plugin_disabled_in_config(lock: &PackLock, plugin: &LockPlugin) -> bool {
-    let sid = entry_short_id(&plugin.cache_key);
-    lock.config
-        .disabled_plugins
-        .iter()
-        .any(|id| id == &plugin.cache_key || id == &sid)
-}
-
-fn plugin_ready_for_shadowing(p: &LockPlugin) -> bool {
-    !p.cache_key.is_empty() && !p.commit.is_empty() && !p.owner.is_empty() && !p.repo.is_empty()
+fn plugin_ready_for_shadowing(p: &LockPackage) -> bool {
+    p.kind == PackageKind::Plugin
+        && !p.cache_key.is_empty()
+        && !p.commit.is_empty()
+        && !p.owner.is_empty()
+        && !p.repo.is_empty()
 }
 
 /// True when this skill path is already provided by a full plugin at the same commit.
-pub fn skill_is_shadowed(skill: &LockSkill, plugins: &[LockPlugin]) -> bool {
+pub fn skill_is_shadowed(skill: &LockPackage, plugins: &[&LockPackage]) -> bool {
     plugins
         .iter()
         .filter(|p| plugin_ready_for_shadowing(p))

@@ -18,6 +18,9 @@ pub enum DepSpecToml {
 
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct DepTable {
+    /// Local filesystem path (relative to project root).
+    #[serde(default)]
+    pub path: Option<String>,
     #[serde(default)]
     pub commit: Option<String>,
     #[serde(default)]
@@ -27,6 +30,16 @@ pub struct DepTable {
     /// Semver requirement (e.g. `^1.2.0`) for tag resolution.
     #[serde(default)]
     pub version: Option<String>,
+}
+
+impl DepSpecToml {
+    /// Returns the `path` value if this is a filesystem path dependency.
+    pub fn path_value(&self) -> Option<&str> {
+        match self {
+            DepSpecToml::Table(t) => t.path.as_deref(),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -82,11 +95,11 @@ fn with_manifest_document_mut(
 }
 
 impl AgentpackManifest {
-    pub fn disable_paths_for_module(&self, module: &str) -> Vec<String> {
+    pub fn disable_paths_for_module(&self, module: &str) -> &[String] {
         self.overrides
             .get(module)
-            .map(|o| o.disable.clone())
-            .unwrap_or_default()
+            .map(|o| o.disable.as_slice())
+            .unwrap_or(&[])
     }
 
     pub fn load(project_root: &Path) -> Result<Option<Self>> {
@@ -157,6 +170,25 @@ impl AgentpackManifest {
                 toml_edit::Item::Value(
                     toml_edit::Value::InlineTable(toml_edit::InlineTable::new()),
                 ),
+            );
+            Ok(())
+        })
+    }
+
+    /// Append a **path** dependency: `name = { path = "rel_path" }`.
+    pub fn append_path_dependency(project_root: &Path, name: &str, rel_path: &str) -> Result<()> {
+        with_manifest_document_mut(project_root, |doc| {
+            let deps = doc
+                .entry("dependencies")
+                .or_insert(toml_edit::Item::Table(toml_edit::Table::new()));
+            let tab = deps.as_table_mut().ok_or_else(|| {
+                AgentpackError::LockfileParse("[dependencies] must be a table".into())
+            })?;
+            let mut inline = toml_edit::InlineTable::new();
+            inline.insert("path", toml_edit::Value::from(rel_path));
+            tab.insert(
+                name,
+                toml_edit::Item::Value(toml_edit::Value::InlineTable(inline)),
             );
             Ok(())
         })

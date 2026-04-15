@@ -1,0 +1,12 @@
+[book]
+authors = ["Oleg Pustovit"]
+language = "en"
+multilingual = false
+src = "src"
+title = "agentpack documentation"
+
+[output.html]
+default-theme = "navy"
+preferred-dark-theme = "navy"
+git-repository-url = "https://github.com/OlegHQ/agentpack"
+edit-url-template = "https://github.com/OlegHQ/agentpack/edit/dev/docs/{path}"

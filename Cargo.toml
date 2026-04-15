@@ -1,7 +1,17 @@
+[workspace]
+members = [".", "xtask"]
+
 [package]
 name = "agentpack"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
+description = "The package manager for AI coding agents — pin, resolve, and sync skills & plugins across Claude Code, Cursor, OpenCode, and Codex"
+license = "MIT"
+repository = "https://github.com/OlegHQ/agentpack"
+homepage = "https://github.com/OlegHQ/agentpack"
+readme = "README.md"
+keywords = ["ai", "agent", "package-manager", "claude", "devtools"]
+categories = ["command-line-utilities", "development-tools"]
 
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
@@ -26,10 +36,14 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 chrono = { version = "0.4", features = ["clock"] }
 indicatif = "0.17"
 walkdir = "2"
+ignore = "0.4"
+pathdiff = "0.2"
 pubgrub = "0.3"
 semver = "1.0.27"
 toml_edit = "0.25.10"
 petgraph = "0.8.3"
+rayon = "1"
+reflink-copy = "0.1"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 keyring = { version = "3", features = ["apple-native"] }
@@ -43,3 +57,12 @@ keyring = { version = "3", features = ["windows-native"] }
 [dev-dependencies]
 tempfile = "3"
 serial_test = "3"
+divan = "0.1"
+
+[[bench]]
+name = "copy_tree"
+harness = false
+
+[[bench]]
+name = "perf_optimizations"
+harness = false

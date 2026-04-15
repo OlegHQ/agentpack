@@ -12,7 +12,7 @@ use crate::error::Result;
 
 pub use harness::HarnessTarget;
 use parse::{
-    detect_named_markdown, detect_skill_file, parse_agent_file, parse_command_file,
+    detect_named_markdown_extensions, detect_skill_file, parse_agent_file, parse_command_file,
     parse_rule_file, parse_skill_file, strip_harness_prefix,
 };
 
@@ -44,6 +44,7 @@ pub struct MarkdownArtifact {
     pub kind: ArtifactKind,
     pub source_variant: SourceVariant,
     pub name: String,
+    pub storage_name: String,
     pub description: String,
     pub body: String,
     pub disable_model_invocation: bool,
@@ -69,13 +70,14 @@ pub fn parse_markdown_artifact(
     if let Some((name, tail_path)) = detect_skill_file(stripped) {
         return parse_skill_file(&name, contents, tail_path);
     }
-    if let Some(tail_path) = detect_named_markdown(stripped, "commands", "md") {
+    const MD_MDC: &[&str] = &["md", "mdc"];
+    if let Some(tail_path) = detect_named_markdown_extensions(stripped, "commands", MD_MDC) {
         return parse_command_file(stripped, contents, tail_path);
     }
-    if let Some(tail_path) = detect_named_markdown(stripped, "agents", "md") {
+    if let Some(tail_path) = detect_named_markdown_extensions(stripped, "agents", MD_MDC) {
         return parse_agent_file(stripped, contents, tail_path);
     }
-    if let Some(tail_path) = detect_named_markdown(stripped, "rules", "mdc") {
+    if let Some(tail_path) = detect_named_markdown_extensions(stripped, "rules", MD_MDC) {
         return parse_rule_file(stripped, contents, tail_path);
     }
 
@@ -152,6 +154,43 @@ mod tests {
     }
 
     #[test]
+    fn parses_rules_md_and_commands_mdc() {
+        let rule_md = parse_markdown_artifact(
+            Path::new(".claude/rules/notes.md"),
+            "---\ndescription: Notes rule\nglobs: \"**/*.rs\"\nalwaysApply: false\n---\n\n# Notes\n\n",
+            None,
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(rule_md.kind, ArtifactKind::Rule);
+        assert_eq!(rule_md.tail_path, PathBuf::from("notes.md"));
+
+        let cmd_mdc = parse_markdown_artifact(
+            Path::new("commands/format.mdc"),
+            "---\ndescription: Format\n---\n\nRun fmt.\n",
+            None,
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(cmd_mdc.kind, ArtifactKind::Command);
+        let rendered = cmd_mdc.render(HarnessTarget::Claude);
+        assert_eq!(rendered.relative_path, PathBuf::from("commands/format.mdc"));
+
+        let agent_mdc = parse_markdown_artifact(
+            Path::new(".cursor/agents/review.mdc"),
+            "---\ndescription: Review\n---\n\nGo.\n",
+            None,
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(agent_mdc.kind, ArtifactKind::Agent);
+        assert_eq!(
+            agent_mdc.render(HarnessTarget::Cursor).relative_path,
+            PathBuf::from("agents/review.mdc")
+        );
+    }
+
+    #[test]
     fn falls_back_to_skill_for_non_cursor_rule_targets() {
         let artifact = parse_markdown_artifact(
             Path::new(".cursor/rules/typescript.mdc"),
@@ -168,5 +207,25 @@ mod tests {
         );
         assert!(rendered.contents.contains("name: typescript"));
         assert!(rendered.contents.contains("Original Cursor globs"));
+    }
+
+    #[test]
+    fn skill_render_uses_source_slug_for_path_not_frontmatter_name() {
+        let artifact = parse_markdown_artifact(
+            Path::new("skills/react-best-practices/SKILL.md"),
+            "---\nname: vercel-react-best-practices\ndescription: React guidance\n---\n\n# React Best Practices\n",
+            None,
+        )
+        .unwrap()
+        .unwrap();
+
+        let rendered = artifact.render(HarnessTarget::Claude);
+        assert_eq!(
+            rendered.relative_path,
+            PathBuf::from("skills/react-best-practices/SKILL.md")
+        );
+        assert!(rendered
+            .contents
+            .contains("name: vercel-react-best-practices"));
     }
 }

@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use serde_yaml::{Mapping, Value};
 
 use crate::error::{AgentpackError, Result};
@@ -6,7 +8,7 @@ use super::ArtifactKind;
 
 pub(super) fn split_frontmatter(contents: &str) -> Result<(Option<Mapping>, String)> {
     let Some((yaml, body)) = extract_frontmatter_sections(contents) else {
-        return Ok((None, ensure_trailing_newline(contents)));
+        return Ok((None, ensure_trailing_newline(contents).into_owned()));
     };
 
     let normalized_yaml = normalize_frontmatter_yaml(yaml);
@@ -14,38 +16,28 @@ pub(super) fn split_frontmatter(contents: &str) -> Result<(Option<Mapping>, Stri
         .map_err(|err| AgentpackError::Staging(format!("invalid YAML frontmatter: {err}")))?;
     Ok((
         Some(mapping),
-        ensure_trailing_newline(body.trim_start_matches('\n')),
+        ensure_trailing_newline(body.trim_start_matches('\n')).into_owned(),
     ))
 }
 
 fn extract_frontmatter_sections(contents: &str) -> Option<(&str, &str)> {
-    let (first, mut offset) = read_line(contents, 0)?;
-    if first != "---" {
-        return None;
-    }
-    let yaml_start = offset;
-    while let Some((line, next_offset)) = read_line(contents, offset) {
-        if line == "---" {
-            return Some((&contents[yaml_start..offset], &contents[next_offset..]));
+    // First line must be exactly `---`
+    let after_open = contents
+        .strip_prefix("---\n")
+        .or_else(|| contents.strip_prefix("---\r\n"))?;
+    // Scan lines for the closing `---`
+    let mut offset = 0;
+    for line in after_open.split('\n') {
+        let trimmed = line.trim_end_matches('\r');
+        if trimmed == "---" {
+            let yaml = &after_open[..offset];
+            let body_start = offset + line.len() + 1; // +1 for '\n'
+            let body = after_open.get(body_start..).unwrap_or("");
+            return Some((yaml, body));
         }
-        offset = next_offset;
+        offset += line.len() + 1; // +1 for '\n'
     }
     None
-}
-
-fn read_line(contents: &str, start: usize) -> Option<(&str, usize)> {
-    if start >= contents.len() {
-        return None;
-    }
-    let remainder = &contents[start..];
-    if let Some(pos) = remainder.find('\n') {
-        let end = start + pos;
-        let line = contents[start..end].trim_end_matches('\r');
-        Some((line, end + 1))
-    } else {
-        let line = remainder.trim_end_matches('\r');
-        Some((line, contents.len()))
-    }
 }
 
 pub(super) fn infer_description(body: &str, name: &str, kind: ArtifactKind) -> String {
@@ -68,24 +60,27 @@ pub(super) fn infer_description(body: &str, name: &str, kind: ArtifactKind) -> S
     }
 }
 
-pub(super) fn ensure_trailing_newline(contents: &str) -> String {
+pub(super) fn ensure_trailing_newline(contents: &str) -> Cow<'_, str> {
     if contents.ends_with('\n') {
-        contents.to_string()
+        Cow::Borrowed(contents)
     } else {
-        format!("{contents}\n")
+        Cow::Owned(format!("{contents}\n"))
     }
 }
 
 pub(super) fn render_markdown(frontmatter: &Mapping, body: &str) -> String {
-    let mut rendered = String::new();
+    let yaml = serde_yaml::to_string(frontmatter)
+        .expect("frontmatter serialization should not fail for scalar mappings");
+    let body = body.trim_start_matches('\n');
+    let mut rendered = String::with_capacity(6 + yaml.len() + 5 + body.len() + 1);
     rendered.push_str("---\n");
-    rendered.push_str(
-        &serde_yaml::to_string(frontmatter)
-            .expect("frontmatter serialization should not fail for scalar mappings"),
-    );
+    rendered.push_str(&yaml);
     rendered.push_str("---\n\n");
-    rendered.push_str(body.trim_start_matches('\n'));
-    ensure_trailing_newline(&rendered)
+    rendered.push_str(body);
+    if !rendered.ends_with('\n') {
+        rendered.push('\n');
+    }
+    rendered
 }
 
 pub(super) fn merge_allowed_frontmatter(dst: &mut Mapping, src: &Mapping, allowed: &[&str]) {

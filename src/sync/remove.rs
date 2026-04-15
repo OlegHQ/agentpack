@@ -2,7 +2,7 @@ use crate::cache::blob_path_parent_prefixes;
 use crate::error::{AgentpackError, Result};
 use crate::github::{parse_github_url, path_in_repo_looks_like_file};
 use crate::manifest::AgentpackManifest;
-use crate::module_id::{split_module_at_ref, ModuleId};
+use crate::resolve::module_id::{split_module_at_ref, ModuleId};
 
 fn module_key_candidates(owner: &str, repo: &str, path: &str) -> Vec<String> {
     let owner = owner.to_lowercase();
@@ -30,6 +30,15 @@ pub(super) fn resolve_remove_spec_to_key(
     let spec = spec.trim();
     if spec.is_empty() {
         return Err(AgentpackError::Cache("empty remove spec".into()));
+    }
+
+    // Check if spec is a filesystem path — match by basename.
+    if let Some(canon) = super::add_fetch::resolve_existing_path_for_add(spec) {
+        if let Some(basename) = canon.file_name().and_then(|s| s.to_str()) {
+            if manifest.dependencies.contains_key(basename) {
+                return Ok(basename.to_string());
+            }
+        }
     }
 
     if spec.starts_with("http://") || spec.starts_with("https://") {

@@ -1,7 +1,9 @@
 use std::path::PathBuf;
 use std::process::Command;
 
-use crate::launcher::common::exec_inherit;
+use anyhow::Context;
+
+use crate::launcher::common::{exec_inherit, resolve_harness_binary};
 use crate::staging;
 use crate::sync::sync_for_launch;
 use crate::ui::Ui;
@@ -35,7 +37,10 @@ pub fn run_claude(
         ui.debug_message(format!("Claude plugin dirs:\n{rendered}"));
     }
 
-    let claude = std::env::var("CLAUDE_CODE_PATH").unwrap_or_else(|_| "claude".to_string());
+    let claude = resolve_harness_binary("CLAUDE_CODE_PATH", "claude").with_context(|| {
+        "Claude Code CLI (`claude`) not found.\n\
+         Install Claude Code and ensure `claude` is on your PATH, or set CLAUDE_CODE_PATH to the executable."
+    })?;
 
     let mut cmd = Command::new(&claude);
     for d in &plugin_dirs {
