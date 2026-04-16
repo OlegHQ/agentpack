@@ -1,7 +1,7 @@
 use anyhow::Context;
 
 use crate::launcher::common::{
-    apply_yolo_claude_opencode, exec_with_env, resolve_harness_binary, single_dir_override,
+    apply_yolo_claude_opencode, exec_with_env, resolve_harness_binary,
 };
 use crate::paths;
 use crate::sync::sync_for_launch;
@@ -19,13 +19,10 @@ pub fn run_opencode(
         apply_yolo_claude_opencode(&mut passthrough);
     }
 
-    let config_dir = single_dir_override(
-        "AGENTPACK_OPENCODE_CONFIG_DIR",
-        &paths::staging_opencode_dir(project_root)?,
-    );
+    let config_dir = paths::staging_opencode_dir(project_root)?;
     ui.debug_message(format!(
         "OpenCode config dir: {}",
-        std::path::Path::new(&config_dir).display()
+        config_dir.display()
     ));
 
     let opencode = resolve_harness_binary("OPENCODE_PATH", "opencode").with_context(|| {
@@ -34,7 +31,7 @@ pub fn run_opencode(
     })?;
     exec_with_env(
         &opencode,
-        &[("OPENCODE_CONFIG_DIR", config_dir)],
+        &[("OPENCODE_CONFIG_DIR", config_dir.into())],
         passthrough,
     )
 }

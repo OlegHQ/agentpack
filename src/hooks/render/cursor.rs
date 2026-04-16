@@ -47,12 +47,17 @@ impl HookRenderer for CursorHookRenderer {
                 continue;
             }
             let matcher = rewrite_cursor_matcher(hook, &mut output)?;
-            if hook.matcher.is_some() && matcher.is_none() && hook.is_strict() {
-                return Err(strict_mapping_error(
+            if hook.matcher.is_some() && matcher.is_none() {
+                // All matcher segments were stripped (no Cursor equivalents).
+                // Skip this hook rather than failing — the tool simply doesn't
+                // exist on Cursor, so there's nothing to fire on.
+                push_diag(
+                    &mut output,
+                    "omitted",
                     hook,
-                    HarnessTarget::Cursor,
                     "all matcher segments are unsupported on Cursor",
-                ));
+                );
+                continue;
             }
             let entry = render_entry(hook, matcher, ctx, &mut output)?;
             hooks_map

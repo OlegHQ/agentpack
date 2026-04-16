@@ -1,4 +1,3 @@
-use std::env;
 use std::path::Path;
 
 use super::codex_auth;
@@ -8,27 +7,10 @@ use crate::fs_util::{read_json_value_opt, write_json_value};
 use super::constants::{CODEX_HOME_ENTRIES, CURSOR_USER_ROOT_ENTRIES, OPENCODE_USER_ROOT_ENTRIES};
 use super::tree::copy_merge_tree;
 
-/// Copy user harness config into staged launch roots when **`1`** or unset.
-/// Set **`AGENTPACK_BUNDLE_USER_SETTINGS`** or **`AGENTPACK_BUNDLE_USER_CLAUDE`** to **`0`** to skip.
-fn copy_user_settings_enabled() -> bool {
-    for key in [
-        "AGENTPACK_BUNDLE_USER_SETTINGS",
-        "AGENTPACK_BUNDLE_USER_CLAUDE",
-    ] {
-        if let Ok(v) = env::var(key) {
-            return v != "0";
-        }
-    }
-    true
-}
-
 /// Copies **`~/.claude/settings.json`** and **`~/.claude.json`** into the bundle.
 /// Does **not** copy `commands/`, `agents/`, `skills/`, etc. (those stay user-scoped so slash
 /// commands are not duplicated under `(agentpack-bundle)`).
 pub(super) fn merge_user_settings_files_into_bundle(bundle: &Path) -> Result<()> {
-    if !copy_user_settings_enabled() {
-        return Ok(());
-    }
     let Some(home) = dirs::home_dir() else {
         return Ok(());
     };
@@ -75,10 +57,6 @@ fn write_opencode_config_stub(root: &Path) -> Result<()> {
 }
 
 pub(super) fn seed_opencode_root(root: &Path) -> Result<()> {
-    if !copy_user_settings_enabled() {
-        write_opencode_config_stub(root)?;
-        return Ok(());
-    }
     let Some(home) = dirs::home_dir() else {
         write_opencode_config_stub(root)?;
         return Ok(());
@@ -90,9 +68,6 @@ pub(super) fn seed_opencode_root(root: &Path) -> Result<()> {
 }
 
 pub(super) fn seed_codex_home(root: &Path) -> Result<()> {
-    if !copy_user_settings_enabled() {
-        return Ok(());
-    }
     let Some(home) = dirs::home_dir() else {
         return Ok(());
     };
@@ -105,9 +80,6 @@ pub(super) fn seed_codex_home(root: &Path) -> Result<()> {
 }
 
 pub(super) fn seed_cursor_root(root: &Path) -> Result<()> {
-    if !copy_user_settings_enabled() {
-        return Ok(());
-    }
     let Some(home) = dirs::home_dir() else {
         return Ok(());
     };

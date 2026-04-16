@@ -1,4 +1,3 @@
-use std::path::PathBuf;
 use std::process::Command;
 
 use anyhow::Context;
@@ -20,14 +19,7 @@ pub fn run_claude(
         crate::launcher::common::apply_yolo_claude_opencode(&mut passthrough);
     }
 
-    let plugin_dirs: Vec<PathBuf> = if let Ok(env) = std::env::var("AGENTPACK_PLUGIN_DIRS") {
-        env.split(':')
-            .filter(|s| !s.is_empty())
-            .map(PathBuf::from)
-            .collect()
-    } else {
-        staging::list_plugin_dirs(project_root)?
-    };
+    let plugin_dirs = staging::list_plugin_dirs(project_root)?;
     if !plugin_dirs.is_empty() {
         let rendered = plugin_dirs
             .iter()

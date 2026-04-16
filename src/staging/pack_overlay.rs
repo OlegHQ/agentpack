@@ -183,22 +183,6 @@ fn copy_raw_plugin_support_dirs_all_harnesses(
     Ok(())
 }
 
-fn copy_plugin_root_file_if_present(
-    cache_root: &Path,
-    dest_root: &Path,
-    file_name: &str,
-    disabled: &[String],
-) -> Result<()> {
-    if rel_is_disabled(Path::new(file_name), disabled) {
-        return Ok(());
-    }
-    let src = cache_root.join(file_name);
-    if src.is_file() {
-        fast_copy_file(&src, &dest_root.join(file_name))?;
-    }
-    Ok(())
-}
-
 fn stage_bare_skill_cache_all_harnesses(
     cache_root: &Path,
     dests: &PackHarnessRoots<'_>,
@@ -214,11 +198,7 @@ fn stage_plugin_cache_all_harnesses(
     disabled: &[String],
 ) -> Result<()> {
     copy_raw_plugin_support_dirs_all_harnesses(cache_root, dests, disabled)?;
-    for (target, root) in dests.targets_and_roots() {
-        if target.stages_plugin_root_mcp_json() {
-            copy_plugin_root_file_if_present(cache_root, root, "mcp.json", disabled)?;
-        }
-    }
+    // Plugin root `mcp.json` is collected centrally by `staging::mcp::stage_merged_mcp`.
     stage_source_tree_all_harnesses(cache_root, dests, None, disabled)
 }
 
@@ -306,10 +286,6 @@ pub(super) fn stage_pack_skills_all_harnesses(
     Ok(())
 }
 
-fn entry_short_id(cache_key: &str) -> String {
-    crate::fs_util::truncate_str(cache_key, 16)
-}
-
 pub(crate) fn skill_folder_name(pkg: &LockPackage) -> String {
     if pkg.path.is_empty() {
         return pkg.repo.clone();
@@ -322,26 +298,15 @@ pub(crate) fn skill_folder_name(pkg: &LockPackage) -> String {
 
 /// Check if a package is disabled in the lock config.
 pub(super) fn disabled_in_config(lock: &PackLock, pkg: &LockPackage) -> bool {
-    let sid = entry_short_id(&pkg.cache_key);
-    lock.config
-        .disabled_plugins
-        .iter()
-        .any(|id| id == &pkg.cache_key || id == &sid)
-}
-
-fn plugin_ready_for_shadowing(p: &LockPackage) -> bool {
-    p.kind == PackageKind::Plugin
-        && !p.cache_key.is_empty()
-        && !p.commit.is_empty()
-        && !p.owner.is_empty()
-        && !p.repo.is_empty()
+    let sid = crate::fs_util::truncate_str(&pkg.cache_key, 16);
+    lock.config.disabled_plugins.iter().any(|id| id == &pkg.cache_key || id.as_str() == sid)
 }
 
 /// True when this skill path is already provided by a full plugin at the same commit.
 pub fn skill_is_shadowed(skill: &LockPackage, plugins: &[&LockPackage]) -> bool {
     plugins
         .iter()
-        .filter(|p| plugin_ready_for_shadowing(p))
+        .filter(|p| p.kind == PackageKind::Plugin && !p.cache_key.is_empty() && !p.commit.is_empty() && !p.owner.is_empty() && !p.repo.is_empty())
         .any(|p| {
             if skill.owner != p.owner || skill.repo != p.repo || skill.commit != p.commit {
                 return false;

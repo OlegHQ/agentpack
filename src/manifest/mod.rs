@@ -49,6 +49,16 @@ pub struct OverrideTable {
     pub disable: Vec<String>,
 }
 
+/// `[mcp]` section in **`agentpack.toml`** — project-level MCP server definitions.
+///
+/// Uses [`crate::staging::mcp::McpServerEntry`] — the same type serves both TOML manifest
+/// and JSON `mcp.json` (Serialize + Deserialize with serde defaults).
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct McpSection {
+    #[serde(default)]
+    pub servers: BTreeMap<String, crate::staging::mcp::McpServerEntry>,
+}
+
 /// Nested **`agentpack.toml`** in a package (dependencies only).
 #[derive(Debug, Clone, Deserialize)]
 pub struct NestedManifest {
@@ -69,6 +79,8 @@ pub struct ManifestFile {
     pub dependencies: BTreeMap<String, DepSpecToml>,
     #[serde(default)]
     pub overrides: BTreeMap<String, OverrideTable>,
+    #[serde(default)]
+    pub mcp: McpSection,
 }
 
 #[derive(Debug, Clone)]
@@ -78,6 +90,7 @@ pub struct AgentpackManifest {
     pub description: String,
     pub dependencies: BTreeMap<String, DepSpecToml>,
     pub overrides: BTreeMap<String, OverrideTable>,
+    pub mcp: McpSection,
 }
 
 fn with_manifest_document_mut(
@@ -92,6 +105,16 @@ fn with_manifest_document_mut(
     f(&mut doc)?;
     fs::write(&p, doc.to_string()).map_err(|e| AgentpackError::io(&p, e))?;
     Ok(())
+}
+
+fn get_or_insert_table<'d>(
+    doc: &'d mut toml_edit::DocumentMut,
+    key: &str,
+) -> Result<&'d mut toml_edit::Table> {
+    doc.entry(key)
+        .or_insert(toml_edit::Item::Table(toml_edit::Table::new()))
+        .as_table_mut()
+        .ok_or_else(|| AgentpackError::LockfileParse(format!("[{key}] must be a table")))
 }
 
 impl AgentpackManifest {
@@ -130,6 +153,7 @@ impl AgentpackManifest {
             description: file.description,
             dependencies: file.dependencies,
             overrides: file.overrides,
+            mcp: file.mcp,
         }))
     }
 
@@ -153,24 +177,10 @@ impl AgentpackManifest {
 
     pub fn append_dependency_key(project_root: &Path, module_key: &str) -> Result<()> {
         with_manifest_document_mut(project_root, |doc| {
-            let deps = doc
-                .entry("dependencies")
-                .or_insert(toml_edit::Item::Table(toml_edit::Table::new()));
-            let tab = deps.as_table_mut().ok_or_else(|| {
-                AgentpackError::LockfileParse("[dependencies] must be a table".into())
-            })?;
-            // Logical key only — `toml_edit` quotes the key in output when needed (dots/slashes).
-            // Do not wrap in `\"…\"` here: that would make the key *include* quote characters and
-            // break `serde`/resolver (`got "\"github.com/…\""`).
-            if tab.get(module_key).is_some() {
-                return Ok(());
+            let tab = get_or_insert_table(doc, "dependencies")?;
+            if tab.get(module_key).is_none() {
+                tab.insert(module_key, toml_edit::Item::Value(toml_edit::Value::InlineTable(toml_edit::InlineTable::new())));
             }
-            tab.insert(
-                module_key,
-                toml_edit::Item::Value(
-                    toml_edit::Value::InlineTable(toml_edit::InlineTable::new()),
-                ),
-            );
             Ok(())
         })
     }
@@ -178,18 +188,10 @@ impl AgentpackManifest {
     /// Append a **path** dependency: `name = { path = "rel_path" }`.
     pub fn append_path_dependency(project_root: &Path, name: &str, rel_path: &str) -> Result<()> {
         with_manifest_document_mut(project_root, |doc| {
-            let deps = doc
-                .entry("dependencies")
-                .or_insert(toml_edit::Item::Table(toml_edit::Table::new()));
-            let tab = deps.as_table_mut().ok_or_else(|| {
-                AgentpackError::LockfileParse("[dependencies] must be a table".into())
-            })?;
+            let tab = get_or_insert_table(doc, "dependencies")?;
             let mut inline = toml_edit::InlineTable::new();
             inline.insert("path", toml_edit::Value::from(rel_path));
-            tab.insert(
-                name,
-                toml_edit::Item::Value(toml_edit::Value::InlineTable(inline)),
-            );
+            tab.insert(name, toml_edit::Item::Value(toml_edit::Value::InlineTable(inline)));
             Ok(())
         })
     }
@@ -197,15 +199,57 @@ impl AgentpackManifest {
     /// Remove **`module_key`** from **`[dependencies]`** and **`[overrides]`** (if present).
     pub fn remove_dependency_entry(project_root: &Path, module_key: &str) -> Result<()> {
         with_manifest_document_mut(project_root, |doc| {
-            if let Some(deps) = doc.get_mut("dependencies") {
-                if let Some(tab) = deps.as_table_mut() {
+            for section in ["dependencies", "overrides"] {
+                if let Some(tab) = doc.get_mut(section).and_then(|t| t.as_table_mut()) {
                     tab.remove(module_key);
                 }
             }
-            if let Some(ov) = doc.get_mut("overrides") {
-                if let Some(tab) = ov.as_table_mut() {
-                    tab.remove(module_key);
-                }
+            Ok(())
+        })
+    }
+
+    /// Insert (or replace) an MCP server entry under `[mcp.servers.<name>]`.
+    pub fn add_mcp_server(
+        project_root: &Path,
+        name: &str,
+        entry: &crate::staging::mcp::McpServerEntry,
+    ) -> Result<()> {
+        let mut inline = toml_edit::InlineTable::new();
+        inline.insert("command", toml_edit::Value::from(entry.command.as_str()));
+        if !entry.args.is_empty() {
+            let arr: toml_edit::Array = entry.args.iter().map(|a| a.as_str()).collect();
+            inline.insert("args", toml_edit::Value::Array(arr));
+        }
+        if !entry.env.is_empty() {
+            let mut env_tbl = toml_edit::InlineTable::new();
+            for (k, v) in &entry.env {
+                env_tbl.insert(k.as_str(), toml_edit::Value::from(v.as_str()));
+            }
+            inline.insert("env", toml_edit::Value::InlineTable(env_tbl));
+        }
+        let value = toml_edit::Item::Value(toml_edit::Value::InlineTable(inline));
+        with_manifest_document_mut(project_root, |doc| {
+            let mcp_tab = get_or_insert_table(doc, "mcp")?;
+            let servers = mcp_tab
+                .entry("servers")
+                .or_insert(toml_edit::Item::Table(toml_edit::Table::new()))
+                .as_table_mut()
+                .ok_or_else(|| AgentpackError::LockfileParse("[mcp.servers] must be a table".into()))?;
+            servers.insert(name, value);
+            Ok(())
+        })
+    }
+
+    /// Remove an MCP server entry from `[mcp.servers]`.
+    pub fn remove_mcp_server(project_root: &Path, name: &str) -> Result<()> {
+        with_manifest_document_mut(project_root, |doc| {
+            if let Some(servers) = doc
+                .get_mut("mcp")
+                .and_then(|m| m.as_table_mut())
+                .and_then(|t| t.get_mut("servers"))
+                .and_then(|s| s.as_table_mut())
+            {
+                servers.remove(name);
             }
             Ok(())
         })

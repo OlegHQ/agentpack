@@ -38,3 +38,5 @@ pub(super) const CURSOR_FAKE_HOME_PACK_SUBDIRS: &[&str] = &[
 
 /// Relative to **`./.cursor/`** — symlink **`./.cursor/agents`** → staged pack agents for Cursor **`agent`** (`computeAgentsDirs`).
 pub(super) const CURSOR_WORKSPACE_AGENTS_OVERLAY: &str = "agents";
+
+

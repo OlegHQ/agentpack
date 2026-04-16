@@ -12,12 +12,11 @@ use crate::staging;
 use crate::ui::Ui;
 
 use super::launch_fingerprint::{
-    compute_launch_sync_digest, launch_full_sync_forced, read_stored_launch_digest,
-    write_launch_sync_state,
+    compute_launch_sync_digest, read_stored_launch_digest, write_launch_sync_state,
 };
 
 use super::add_fetch::{
-    http_client, resolve_add_spec, resolve_existing_path_for_add, upsert_fetched_index,
+    http_client, resolve_add_spec, resolve_existing_path, upsert_fetched_index,
 };
 use super::remove::resolve_remove_spec_to_key;
 
@@ -55,7 +54,7 @@ pub fn run_add(project_root: &Path, spec: &str, no_sync: bool, ui: &Ui) -> Resul
     paths::ensure_user_agentpack_layout()?;
     ui.message(format!("Adding: {spec}"));
 
-    if let Some(canon) = resolve_existing_path_for_add(spec) {
+    if let Some(canon) = resolve_existing_path(spec.trim()) {
         // Path dependency flow.
         let basename = canon.file_name().and_then(|s| s.to_str()).unwrap_or("pack");
         let rel_path = pathdiff::diff_paths(&canon, project_root).ok_or_else(|| {
@@ -134,27 +133,25 @@ pub fn run_lock(project_root: &Path, refresh_floating: bool, ui: &Ui) -> Result<
 /// Used by launcher commands (`claude`, `agent`, `opencode`, `codex`) to sync before exec.
 ///
 /// When inputs are unchanged, skips full resolve/stage and reuses existing cache + staging after
-/// integrity checks. Set **`AGENTPACK_LAUNCH_FULL_SYNC=1`** to always run a full sync.
+/// integrity checks.
 pub fn sync_for_launch(project_root: &Path, ui: &Ui) -> Result<()> {
     paths::ensure_user_agentpack_layout()?;
 
-    if !launch_full_sync_forced() {
-        if let Some(stored) = read_stored_launch_digest(project_root)? {
-            let current = compute_launch_sync_digest(project_root)?;
-            if stored == current {
-                let lock = PackLock::load(project_root)?;
-                match verify_lock_cache_integrity(&lock) {
-                    Ok(()) => match staging::verify_staging(project_root, &lock) {
-                        Ok(()) => {
-                            ui.debug_message(
-                                "Launch sync skipped — manifest, lock, cache, and staging look unchanged.",
-                            );
-                            return Ok(());
-                        }
-                        Err(e) => tracing::debug!(%e, "launch fast path: verify_staging failed"),
-                    },
-                    Err(e) => tracing::debug!(%e, "launch fast path: cache integrity failed"),
-                }
+    if let Some(stored) = read_stored_launch_digest(project_root)? {
+        let current = compute_launch_sync_digest(project_root)?;
+        if stored == current {
+            let lock = PackLock::load(project_root)?;
+            match verify_lock_cache_integrity(&lock) {
+                Ok(()) => match staging::verify_staging(project_root, &lock) {
+                    Ok(()) => {
+                        ui.debug_message(
+                            "Launch sync skipped — manifest, lock, cache, and staging look unchanged.",
+                        );
+                        return Ok(());
+                    }
+                    Err(e) => tracing::debug!(%e, "launch fast path: verify_staging failed"),
+                },
+                Err(e) => tracing::debug!(%e, "launch fast path: cache integrity failed"),
             }
         }
     }

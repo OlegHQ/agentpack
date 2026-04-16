@@ -6,6 +6,7 @@ mod constants;
 mod cursor;
 mod dot_agents;
 mod harnesses;
+pub(crate) mod mcp;
 mod pack_overlay;
 mod seed;
 mod tree;

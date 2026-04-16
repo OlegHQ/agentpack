@@ -1085,7 +1085,7 @@ fn sync_stages_hooks_for_all_harnesses() {
 
 #[test]
 #[serial]
-fn sync_fails_when_strict_hook_cannot_be_represented_on_cursor() {
+fn sync_skips_unsupported_cursor_matcher_gracefully() {
     let dir = tempdir().unwrap();
     let root: PathBuf = dir.path().to_path_buf();
     prep_store(&root);
@@ -1143,7 +1143,9 @@ fn sync_fails_when_strict_hook_cannot_be_represented_on_cursor() {
     });
     lock.save(&root).unwrap();
 
-    let err = run(Cli {
+    // Glob-only matcher has no Cursor equivalent — sync should succeed
+    // (hook is gracefully skipped with a diagnostic, not a hard error).
+    run(Cli {
         project_root: Some(root.clone()),
         quiet: true,
         no_progress: true,
@@ -1155,8 +1157,5 @@ fn sync_fails_when_strict_hook_cannot_be_represented_on_cursor() {
             update_lock: false,
         },
     })
-    .unwrap_err();
-    assert!(err
-        .to_string()
-        .contains("cannot be rendered safely for Cursor"));
+    .unwrap();
 }

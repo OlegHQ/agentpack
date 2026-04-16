@@ -6,9 +6,7 @@ version = "0.0.1"
 [dependencies]
 "github.com/anthropics/claude-plugins-official/plugins/code-simplifier" = {}
 "github.com/anthropics/claude-plugins-official/plugins/code-review" = {}
-"github.com/cursor/plugin-template/plugins/starter-advanced" = {}
-"github.com/oleghq/agent-configs/simplifier" = {}
 "github.com/anthropics/skills/skills/skill-creator" = {}
 "github.com/oleghq/agent-configs/plugins/rust-dev" = {}
-# "github.com/owner/repo/path" = {}
+"github.com/oleghq/agent-configs/plugins/simplifier" = {}
 

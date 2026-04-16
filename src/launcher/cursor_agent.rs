@@ -3,9 +3,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::Context;
 
-use crate::launcher::common::{
-    apply_yolo_cursor_agent, exec_with_env, resolve_harness_binary, single_dir_override,
-};
+use crate::launcher::common::{apply_yolo_cursor_agent, exec_with_env, resolve_harness_binary};
 use crate::paths;
 use crate::sync::sync_for_launch;
 use crate::ui::Ui;
@@ -42,20 +40,11 @@ fn args_allow_trust_with_print(args: &[String]) -> bool {
     false
 }
 
-/// Prepends **`--trust`** only in headless mode (when **`--print`** / **`-p`** / **`--output-format`** is present). Set **`AGENTPACK_CURSOR_AGENT_TRUST=0`** to skip even then.
-fn prepend_trust_if_configured(args: &mut Vec<String>) {
-    let raw = std::env::var("AGENTPACK_CURSOR_AGENT_TRUST").unwrap_or_default();
-    let lower = raw.to_ascii_lowercase();
-    if matches!(lower.as_str(), "0" | "false" | "no" | "off") {
-        return;
+/// Prepends **`--trust`** in headless mode (when **`--print`** / **`-p`** / **`--output-format`** is present).
+fn prepend_trust_if_needed(args: &mut Vec<String>) {
+    if args_allow_trust_with_print(args) && !args_contain_trust_flag(args) {
+        args.insert(0, "--trust".into());
     }
-    if !args_allow_trust_with_print(args) {
-        return;
-    }
-    if args_contain_trust_flag(args) {
-        return;
-    }
-    args.insert(0, "--trust".into());
 }
 
 fn normalize_path(path: &Path) -> PathBuf {
@@ -76,10 +65,8 @@ pub fn run_agent(
 ) -> anyhow::Result<()> {
     sync_for_launch(project_root, ui)?;
 
-    let fake_home = single_dir_override(
-        "AGENTPACK_CURSOR_HOME",
-        &paths::staging_cursor_home_dir(project_root)?,
-    );
+    let fake_home_path = paths::staging_cursor_home_dir(project_root)?;
+    let fake_home: OsString = fake_home_path.into_os_string();
 
     let project_norm = normalize_path(project_root);
 
@@ -117,13 +104,8 @@ pub fn run_agent(
 
     // Cursor skill / command / agent discovery still appears tied to the HOME-backed `.cursor`
     // tree, so keep the fake HOME layout that Cursor already knows how to scan.
-    let fake_cursor = Path::new(&fake_home).join(".cursor");
-    let cursor_config_dir = if let Some(dir) = std::env::var_os("AGENTPACK_CURSOR_CONFIG_DIR") {
-        dir
-    } else {
-        fake_cursor.into_os_string()
-    };
-    envs.push(("CURSOR_CONFIG_DIR", cursor_config_dir));
+    let cursor_config_dir = Path::new(&fake_home).join(".cursor");
+    envs.push(("CURSOR_CONFIG_DIR", cursor_config_dir.into_os_string()));
 
     if let Some(real_home) = dirs::home_dir() {
         push_env_if_absent(&mut envs, "CARGO_HOME", real_home.join(".cargo"));
@@ -149,11 +131,7 @@ pub fn run_agent(
         workspace.display(),
         Path::new(&fake_home).display()
     );
-    if std::env::var_os("AGENTPACK_CURSOR_CONFIG_DIR").is_some() {
-        msg.push_str("\nCURSOR_CONFIG_DIR: from AGENTPACK_CURSOR_CONFIG_DIR");
-    } else {
-        msg.push_str("\nCURSOR_CONFIG_DIR: fake HOME .cursor (pack agents/commands)");
-    }
+    msg.push_str("\nCURSOR_CONFIG_DIR: fake HOME .cursor (pack agents/commands)");
     if std::env::var_os("CARGO_HOME").is_none() {
         msg.push_str("\nCARGO_HOME: real ~/.cargo");
     }
@@ -169,7 +147,7 @@ pub fn run_agent(
     if yolo {
         apply_yolo_cursor_agent(&mut args);
     }
-    prepend_trust_if_configured(&mut args);
+    prepend_trust_if_needed(&mut args);
     ui.debug_message(msg);
 
     let agent = resolve_harness_binary("CURSOR_AGENT_PATH", "agent").with_context(|| {

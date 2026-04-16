@@ -93,8 +93,51 @@ pub enum Command {
         #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
         args: Vec<String>,
     },
+    /// Manage MCP server definitions in agentpack.toml
+    Mcp {
+        #[command(subcommand)]
+        action: McpAction,
+    },
     /// Internal bridge used by rendered hook configs across harnesses
     HookExec(HookExecArgs),
+}
+
+#[derive(Subcommand)]
+pub enum McpAction {
+    /// Add an MCP server to [mcp.servers] in agentpack.toml
+    Add {
+        /// Server name (e.g. "filesystem", "retrieval")
+        name: String,
+        /// Command to run the MCP server
+        #[arg(long)]
+        command: String,
+        /// Arguments for the command
+        #[arg(long, num_args = 0..)]
+        args: Vec<String>,
+        /// Environment variables (KEY=VALUE pairs)
+        #[arg(long, value_parser = parse_env_pair, num_args = 0..)]
+        env: Vec<(String, String)>,
+        /// Skip sync after adding
+        #[arg(long)]
+        no_sync: bool,
+    },
+    /// Remove an MCP server from [mcp.servers] in agentpack.toml
+    Remove {
+        /// Server name to remove
+        name: String,
+        /// Skip sync after removing
+        #[arg(long)]
+        no_sync: bool,
+    },
+    /// List all MCP servers (from manifest, plugins, and .agents)
+    List,
+}
+
+fn parse_env_pair(s: &str) -> std::result::Result<(String, String), String> {
+    let (k, v) = s
+        .split_once('=')
+        .ok_or_else(|| format!("expected KEY=VALUE, got {s:?}"))?;
+    Ok((k.to_string(), v.to_string()))
 }
 
 #[derive(Args)]

@@ -160,10 +160,6 @@ pub fn exec_with_env(
     exec_inherit(cmd)
 }
 
-pub fn single_dir_override(env_key: &str, staged_path: &Path) -> OsString {
-    std::env::var_os(env_key).unwrap_or_else(|| staged_path.as_os_str().to_os_string())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

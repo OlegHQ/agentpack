@@ -41,18 +41,6 @@ cache_key = "88310e0439693e305a5d49a5b4ac8c9feab246dc7e8ee5e791c0b6fa6a1a4b40"
 name = ""
 
 [[packages]]
-module = "github.com/cursor/plugin-template/plugins/starter-advanced"
-direct = true
-kind = "plugin"
-url = "https://github.com/cursor/plugin-template/tree/b211f35a0ed6d62ec90e94f874b11fea898961e0/plugins/starter-advanced"
-owner = "cursor"
-repo = "plugin-template"
-path = "plugins/starter-advanced"
-commit = "b211f35a0ed6d62ec90e94f874b11fea898961e0"
-cache_key = "706347874a7e59718d5d14b62c38e151540647d9b072c6f8eb418e61665996cd"
-name = ""
-
-[[packages]]
 module = "github.com/oleghq/agent-configs/plugins/rust-dev"
 direct = true
 kind = "plugin"
@@ -65,13 +53,13 @@ cache_key = "88a1a7c3e038d3eeec077bdbe6987b4708497b279535ec29b52de962e1f47e41"
 name = ""
 
 [[packages]]
-module = "github.com/oleghq/agent-configs/simplifier"
+module = "github.com/oleghq/agent-configs/plugins/simplifier"
 direct = true
 kind = "plugin"
-url = "https://github.com/oleghq/agent-configs/tree/b25166e5551640e6cc283fc0b3358c2c7755e5ab/simplifier"
+url = "https://github.com/oleghq/agent-configs/tree/85204efc9cc134f705eac9cbeff3d2ef7c839252/plugins/simplifier"
 owner = "oleghq"
 repo = "agent-configs"
-path = "simplifier"
-commit = "b25166e5551640e6cc283fc0b3358c2c7755e5ab"
-cache_key = "764dfbc0f3404dadf2ceda075fe25f7557d43bb266d4f19710243c7eda9088c6"
+path = "plugins/simplifier"
+commit = "85204efc9cc134f705eac9cbeff3d2ef7c839252"
+cache_key = "084247bf21fa15d2a571eef7e9c9ddd4e67c82107b0ccedc866e5d0a37701bf5"
 name = ""

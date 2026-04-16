@@ -5,7 +5,7 @@ use std::path::Path;
 
 use anyhow::Context;
 
-use super::{Cli, Command};
+use super::{Cli, Command, McpAction};
 use crate::ui::Ui;
 use crate::{launcher, lockfile, manifest, paths, sync};
 
@@ -68,6 +68,49 @@ pub fn run(cli: Cli) -> anyhow::Result<()> {
         }
         Command::Agent { args } => {
             launcher::run_agent(&root, args, cli.yolo, &ui)?;
+        }
+        Command::Mcp { action } => {
+            run_mcp(&root, action, &ui)?;
+        }
+    }
+    Ok(())
+}
+
+fn run_mcp(root: &Path, action: McpAction, ui: &Ui) -> anyhow::Result<()> {
+    match action {
+        McpAction::Add { name, command, args, env, no_sync } => {
+            let entry = crate::staging::mcp::McpServerEntry {
+                command,
+                args,
+                env: env.into_iter().collect(),
+                disabled: None,
+            };
+            manifest::AgentpackManifest::add_mcp_server(root, &name, &entry)?;
+            ui.message(format!("Added MCP server \"{name}\" to agentpack.toml"));
+            if !no_sync {
+                sync::run_sync(root, false, false, false, ui)?;
+            }
+        }
+        McpAction::Remove { name, no_sync } => {
+            manifest::AgentpackManifest::remove_mcp_server(root, &name)?;
+            ui.message(format!("Removed MCP server \"{name}\" from agentpack.toml"));
+            if !no_sync {
+                sync::run_sync(root, false, false, false, ui)?;
+            }
+        }
+        McpAction::List => {
+            let lock = lockfile::PackLock::load(root).unwrap_or_default();
+            let manifest = manifest::AgentpackManifest::load(root)?;
+            let merged = crate::staging::mcp::collect_merged_mcp(root, &lock, manifest.as_ref())?;
+            if merged.is_empty() {
+                ui.message("No MCP servers configured.");
+            } else {
+                for (name, (entry, source)) in &merged {
+                    let disabled = if entry.disabled == Some(true) { " (disabled)" } else { "" };
+                    let args = entry.args.join(" ");
+                    ui.message(format!("  {name}: {} {args} [from {source}]{disabled}", entry.command));
+                }
+            }
         }
     }
     Ok(())

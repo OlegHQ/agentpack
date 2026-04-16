@@ -73,7 +73,7 @@ fn merge_shorthand_alias(aliases: &mut Vec<String>, shorthand: Option<&str>) {
     }
 }
 
-fn resolve_existing_path(spec: &str) -> Option<PathBuf> {
+pub(super) fn resolve_existing_path(spec: &str) -> Option<PathBuf> {
     let p = Path::new(spec);
     let candidate = if p.is_absolute() {
         p.to_path_buf()
@@ -270,10 +270,6 @@ pub(super) fn upsert_fetched_index(
     upsert_entry(&fetched.cache_key, &rec, &aliases)
 }
 
-/// Used by `run_add` to reject bare paths early (manual manifest flow).
-pub(super) fn resolve_existing_path_for_add(spec: &str) -> Option<PathBuf> {
-    resolve_existing_path(spec.trim())
-}
 
 #[cfg(test)]
 mod tests {

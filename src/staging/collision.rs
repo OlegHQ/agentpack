@@ -3,7 +3,6 @@
 //! `/agentpack-bundle:code-tutor`). By default we drop the staged pack copy and keep `~/.claude`.
 
 use std::collections::HashSet;
-use std::env;
 use std::fs;
 use std::io::{self, IsTerminal};
 use std::path::Path;
@@ -12,9 +11,6 @@ use walkdir::WalkDir;
 
 use crate::error::{AgentpackError, Result};
 use crate::fs_util::remove_path_any;
-
-/// Skip stripping pack copies when both exist (duplicated slash UX remains).
-const IGNORE_ENV: &str = "AGENTPACK_IGNORE_USER_BUNDLE_COLLISION";
 
 /// Lowercase skill slugs removed from staged harness trees so `verify_staging` can skip them.
 pub(super) struct StagingCollisionRemoval {
@@ -127,11 +123,6 @@ pub(super) fn resolve_user_claude_bundle_collisions_with_home(
         skill_slugs_lower: HashSet::new(),
     };
 
-    if env::var(IGNORE_ENV).ok().as_deref() == Some("1") {
-        tracing::warn!("skipping bundle vs ~/.claude collision handling ({IGNORE_ENV}=1)");
-        return Ok(no_removals());
-    }
-
     let Some(home) = home_dir else {
         return Ok(no_removals());
     };
@@ -204,13 +195,8 @@ pub(super) fn resolve_user_claude_bundle_collisions(
     codex: &Path,
     cursor_pack: &Path,
 ) -> Result<StagingCollisionRemoval> {
-    resolve_user_claude_bundle_collisions_with_home(
-        bundle,
-        opencode,
-        codex,
-        cursor_pack,
-        dirs::home_dir().as_deref(),
-    )
+    let home = dirs::home_dir();
+    resolve_user_claude_bundle_collisions_with_home(bundle, opencode, codex, cursor_pack, home.as_deref())
 }
 
 #[cfg(test)]

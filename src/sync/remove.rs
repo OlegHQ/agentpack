@@ -33,7 +33,7 @@ pub(super) fn resolve_remove_spec_to_key(
     }
 
     // Check if spec is a filesystem path — match by basename.
-    if let Some(canon) = super::add_fetch::resolve_existing_path_for_add(spec) {
+    if let Some(canon) = super::add_fetch::resolve_existing_path(spec) {
         if let Some(basename) = canon.file_name().and_then(|s| s.to_str()) {
             if manifest.dependencies.contains_key(basename) {
                 return Ok(basename.to_string());
@@ -102,6 +102,7 @@ mod remove_spec_tests {
             description: String::new(),
             dependencies: deps,
             overrides: BTreeMap::new(),
+            mcp: Default::default(),
         }
     }
 

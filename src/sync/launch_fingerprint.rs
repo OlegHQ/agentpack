@@ -18,44 +18,11 @@ struct LaunchSyncState {
     digest: String,
 }
 
-/// Same semantics as [`crate::staging::seed`] for user-settings copies into staged roots.
-fn bundle_user_settings_fingerprint() -> &'static str {
-    for key in [
-        "AGENTPACK_BUNDLE_USER_SETTINGS",
-        "AGENTPACK_BUNDLE_USER_CLAUDE",
-    ] {
-        if let Ok(v) = env::var(key) {
-            return if v == "0" { "0" } else { "1" };
-        }
-    }
-    "1"
-}
-
-fn dot_agents_merge_fingerprint() -> &'static str {
-    match env::var("AGENTPACK_DOT_AGENTS") {
-        Ok(v) if v == "0" => "0",
-        _ => "1",
-    }
-}
-
-fn collision_env_fingerprint() -> String {
-    env::var("AGENTPACK_IGNORE_USER_BUNDLE_COLLISION").unwrap_or_default()
-}
-
-fn staging_root_fingerprint() -> String {
-    match env::var("AGENTPACK_STAGING_ROOT") {
-        Ok(p) if !p.trim().is_empty() => p.trim().to_string(),
-        _ => "\0AGENTPACK_STAGING_DEFAULT".to_string(),
-    }
-}
 
 fn hash_dot_agents_tree(dir: &Path) -> Result<Vec<u8>> {
-    use std::io::Read;
-
     if !dir.is_dir() {
         return Ok(Vec::from(b"__dot_agents_absent__" as &[u8]));
     }
-
     let mut entries: Vec<_> = WalkDir::new(dir)
         .into_iter()
         .filter_map(|e| e.ok())
@@ -65,27 +32,15 @@ fn hash_dot_agents_tree(dir: &Path) -> Result<Vec<u8>> {
     entries.sort();
 
     let mut hasher = Sha256::new();
-    let mut buf = [0u8; 8192];
     for path in &entries {
         let rel = path.strip_prefix(dir).map_err(|_| {
             AgentpackError::Cache("dot-agents path strip_prefix failed".to_string())
         })?;
         hasher.update(rel.as_os_str().as_encoded_bytes());
         hasher.update([0_u8]);
-        // Stream file contents through hasher in chunks instead of loading entirely.
-        let file = fs::File::open(path).map_err(|err| AgentpackError::io(path, err))?;
-        let len = file.metadata().map(|m| m.len()).unwrap_or(0);
+        let len = fs::metadata(path).map(|m| m.len()).unwrap_or(0);
         hasher.update(len.to_le_bytes());
-        let mut reader = std::io::BufReader::new(file);
-        loop {
-            let n = reader
-                .read(&mut buf)
-                .map_err(|err| AgentpackError::io(path, err))?;
-            if n == 0 {
-                break;
-            }
-            hasher.update(&buf[..n]);
-        }
+        crate::fs_util::stream_file_into_hasher(path, &mut hasher)?;
     }
     Ok(hasher.finalize().to_vec())
 }
@@ -113,16 +68,7 @@ pub fn compute_launch_sync_digest(project_root: &Path) -> Result<String> {
     hasher.update(hash_dot_agents_tree(&dot)?);
 
     hasher.update(b"staging_root\0");
-    hasher.update(staging_root_fingerprint().as_bytes());
-
-    hasher.update(b"bundle_user_settings\0");
-    hasher.update(bundle_user_settings_fingerprint().as_bytes());
-
-    hasher.update(b"dot_agents_env\0");
-    hasher.update(dot_agents_merge_fingerprint().as_bytes());
-
-    hasher.update(b"collision_env\0");
-    hasher.update(collision_env_fingerprint().as_bytes());
+    hasher.update(env::var("AGENTPACK_STAGING_ROOT").unwrap_or_default().as_bytes());
 
     Ok(hex::encode(hasher.finalize()))
 }
@@ -151,14 +97,6 @@ pub fn write_launch_sync_state(project_root: &Path, digest: &str) -> Result<()> 
     Ok(())
 }
 
-pub fn launch_full_sync_forced() -> bool {
-    env::var("AGENTPACK_LAUNCH_FULL_SYNC")
-        .map(|v| {
-            let v = v.to_ascii_lowercase();
-            matches!(v.as_str(), "1" | "true" | "yes")
-        })
-        .unwrap_or(false)
-}
 
 #[cfg(test)]
 mod tests {
@@ -211,15 +149,4 @@ mod tests {
         assert_ne!(d1, d2);
     }
 
-    #[test]
-    #[serial_test::serial]
-    fn launch_full_sync_forced_reads_env() {
-        std::env::remove_var("AGENTPACK_LAUNCH_FULL_SYNC");
-        assert!(!super::launch_full_sync_forced());
-        std::env::set_var("AGENTPACK_LAUNCH_FULL_SYNC", "1");
-        assert!(super::launch_full_sync_forced());
-        std::env::set_var("AGENTPACK_LAUNCH_FULL_SYNC", "yes");
-        assert!(super::launch_full_sync_forced());
-        std::env::remove_var("AGENTPACK_LAUNCH_FULL_SYNC");
-    }
 }

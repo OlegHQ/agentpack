@@ -7,12 +7,6 @@ use crate::error::Result;
 use super::{build_hook, invalid, object_extra};
 use crate::hooks::ir::{ClaudeEvent, HookBundle, HookOrigin};
 
-fn strip_jsonc(raw: &str) -> std::result::Result<Value, serde_json::Error> {
-    let mut buf = raw.as_bytes().to_vec();
-    let _ = json_strip_comments::strip_slice(&mut buf);
-    serde_json::from_slice(&buf)
-}
-
 fn cursor_step_to_event(step: &str) -> Option<ClaudeEvent> {
     match step {
         "preToolUse" => Some(ClaudeEvent::PreToolUse),
@@ -28,7 +22,7 @@ fn cursor_step_to_event(step: &str) -> Option<ClaudeEvent> {
 }
 
 pub fn parse_cursor_hooks(path: &Path, raw: &str, base_origin: &HookOrigin) -> Result<HookBundle> {
-    let value: Value = strip_jsonc(raw)
+    let value: Value = crate::fs_util::parse_jsonc(raw)
         .map_err(|err| invalid(path, format!("failed to parse Cursor JSONC hooks: {err}")))?;
     let hooks_root = value
         .get("hooks")

@@ -108,29 +108,13 @@ pub fn collect_source_files(root: &Path) -> Result<Vec<PathBuf>> {
 /// Hash directory contents for stable path-sourced pins (40 hex for `pack.lock` commit field).
 /// Uses streaming I/O — files are fed through the hasher in chunks, not loaded fully into memory.
 pub fn hash_directory_contents(root: &Path) -> Result<String> {
-    use std::io::Read;
-
     let files = collect_source_files(root)?;
-
     let mut hash = Sha256::new();
-    let mut buf = [0u8; 8192];
     for rel in files {
         hash.update(rel.as_os_str().as_encoded_bytes());
         hash.update([0]);
-        let path = root.join(&rel);
-        let file = fs::File::open(&path).map_err(|err| AgentpackError::io(&path, err))?;
-        let mut reader = std::io::BufReader::new(file);
-        loop {
-            let n = reader
-                .read(&mut buf)
-                .map_err(|err| AgentpackError::io(&path, err))?;
-            if n == 0 {
-                break;
-            }
-            hash.update(&buf[..n]);
-        }
+        crate::fs_util::stream_file_into_hasher(&root.join(&rel), &mut hash)?;
     }
-
     let full = hex::encode(hash.finalize());
     Ok(full[..40].to_string())
 }

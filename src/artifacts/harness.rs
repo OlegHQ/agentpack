@@ -31,10 +31,6 @@ impl HarnessTarget {
         }
     }
 
-    pub fn stages_plugin_root_mcp_json(self) -> bool {
-        matches!(self, HarnessTarget::Cursor)
-    }
-
     /// How **`commands/*.md`** YAML is seeded before merging allowed extra keys.
     pub(super) fn seed_command_frontmatter(self, m: &mut Mapping, name: &str, description: &str) {
         match self {
@@ -97,8 +93,4 @@ impl HarnessTarget {
         )
     }
 
-    /// Cursor keeps **`.mdc`** rules; other harnesses fold rules into skills with an optional scope preamble.
-    pub(super) fn folds_cursor_rules_into_skills(self) -> bool {
-        !matches!(self, HarnessTarget::Cursor)
-    }
 }

@@ -120,7 +120,7 @@ impl MarkdownArtifact {
     }
 
     fn skill_body(&self, target: HarnessTarget) -> String {
-        if self.kind != ArtifactKind::Rule || !target.folds_cursor_rules_into_skills() {
+        if self.kind != ArtifactKind::Rule || target == HarnessTarget::Cursor {
             return self.body.clone();
         }
         if self.globs.is_empty() && !self.always_apply {
