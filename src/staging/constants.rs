@@ -10,7 +10,7 @@ pub(super) const OPENCODE_USER_ROOT_ENTRIES: &[&str] = &[
 
 /// Codex home entries we preserve before overlaying pack content.
 /// `auth.json` is linked separately so every staged `CODEX_HOME` shares the same refresh state.
-pub(super) const CODEX_HOME_ENTRIES: &[&str] = &["config.toml", "skills", "themes"];
+pub(super) const CODEX_HOME_ENTRIES: &[&str] = &["config.toml", "hooks.json", "skills", "themes"];
 
 /// Cursor files copied from `~/.cursor` into **`$STAGING/cursor/`** before pack overlay.
 /// Omit **`agents` / `commands` / `skills` / `rules`**: those come from **`pack.lock`** under

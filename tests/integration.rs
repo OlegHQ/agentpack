@@ -919,3 +919,244 @@ fn add_real_github_skill() {
         .next()
         .is_some());
 }
+
+#[test]
+#[serial]
+fn sync_stages_hooks_for_all_harnesses() {
+    let dir = tempdir().unwrap();
+    let root: PathBuf = dir.path().to_path_buf();
+    prep_store(&root);
+    run(Cli {
+        project_root: Some(root.clone()),
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        debug: false,
+        command: Command::Init {
+            name: None,
+            version: None,
+        },
+    })
+    .unwrap();
+
+    let pk = "9".repeat(64);
+    let cache = cache_dir().unwrap();
+    fs::create_dir_all(cache.join(&pk).join(".claude-plugin")).unwrap();
+    fs::write(
+        cache.join(&pk).join(".claude-plugin/plugin.json"),
+        r#"{"name":"hook-pack","version":"1.0.0"}"#,
+    )
+    .unwrap();
+    fs::create_dir_all(cache.join(&pk).join("scripts")).unwrap();
+    fs::write(
+        cache.join(&pk).join("scripts/validate.sh"),
+        "#!/bin/sh\necho ok\n",
+    )
+    .unwrap();
+    fs::create_dir_all(cache.join(&pk).join("hooks")).unwrap();
+    fs::write(
+        cache.join(&pk).join("hooks/hooks.json"),
+        r#"{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "./scripts/validate.sh" },
+          { "type": "http", "url": "https://example.com/hook", "method": "POST" }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "prompt", "prompt": "Summarize whether the task is complete." }
+        ]
+      }
+    ]
+  }
+}"#,
+    )
+    .unwrap();
+
+    let dot_agents = project_dot_agents_dir(&root);
+    fs::create_dir_all(dot_agents.join("hooks")).unwrap();
+    fs::write(
+        dot_agents.join("hooks/hooks.json"),
+        r#"{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          { "type": "prompt", "prompt": "Capture the user intent before execution." }
+        ]
+      }
+    ]
+  }
+}"#,
+    )
+    .unwrap();
+
+    let mut lock = PackLock::load(&root).unwrap();
+    lock.packages.push(LockPackage {
+        module: "github.com/o/r/plugins/hook-pack".into(),
+        direct: true,
+        kind: PackageKind::Plugin,
+        url: "https://github.com/o/r/tree/main/plugins/hook-pack".into(),
+        owner: "o".into(),
+        repo: "r".into(),
+        path: "plugins/hook-pack".into(),
+        commit: "f".repeat(40),
+        cache_key: pk.clone(),
+        name: String::new(),
+    });
+    lock.save(&root).unwrap();
+
+    run(Cli {
+        project_root: Some(root.clone()),
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        debug: false,
+        command: Command::Sync {
+            dry_run: false,
+            verify_only: false,
+            update_lock: false,
+        },
+    })
+    .unwrap();
+
+    let bundle = staging_plugins_dir(&root).unwrap().join("agentpack-bundle");
+    let claude_hooks = fs::read_to_string(bundle.join("hooks/hooks.json")).unwrap();
+    assert!(claude_hooks.contains("agentpack hook-exec command"));
+    assert!(claude_hooks.contains("\"type\": \"http\""));
+    assert!(claude_hooks.contains("Capture the user intent before execution."));
+    assert!(
+        bundle
+            .join(format!("hooks/_packages/{pk}/package/scripts/validate.sh"))
+            .is_file(),
+        "hook package assets should be namespaced under the bundle hooks root"
+    );
+
+    let cursor_hooks: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(
+            staging_cursor_pack_plugin_dir(&root)
+                .unwrap()
+                .join("hooks/hooks.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(cursor_hooks["version"], 1);
+    assert!(cursor_hooks["hooks"]["preToolUse"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|entry| entry["command"]
+            .as_str()
+            .is_some_and(|command| command.contains("hook-exec command"))));
+    assert!(cursor_hooks["hooks"]["stop"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|entry| entry["type"] == "prompt"));
+
+    let codex_hooks =
+        fs::read_to_string(staging_codex_home_dir(&root).unwrap().join("hooks.json")).unwrap();
+    assert!(codex_hooks.contains("pre-tool-use"));
+    assert!(codex_hooks.contains("hook-exec http"));
+
+    let opencode_root = staging_opencode_dir(&root).unwrap();
+    let opencode_config: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(opencode_root.join("opencode.json")).unwrap())
+            .unwrap();
+    assert!(opencode_root
+        .join("plugins/agentpack-hooks/index.js")
+        .is_file());
+    assert!(opencode_root
+        .join("plugins/agentpack-hooks/config.json")
+        .is_file());
+    assert!(opencode_config["plugin"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|entry| entry == "./plugins/agentpack-hooks/index.js"));
+}
+
+#[test]
+#[serial]
+fn sync_fails_when_strict_hook_cannot_be_represented_on_cursor() {
+    let dir = tempdir().unwrap();
+    let root: PathBuf = dir.path().to_path_buf();
+    prep_store(&root);
+    run(Cli {
+        project_root: Some(root.clone()),
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        debug: false,
+        command: Command::Init {
+            name: None,
+            version: None,
+        },
+    })
+    .unwrap();
+
+    let pk = "8".repeat(64);
+    let cache = cache_dir().unwrap();
+    fs::create_dir_all(cache.join(&pk).join(".claude-plugin")).unwrap();
+    fs::write(
+        cache.join(&pk).join(".claude-plugin/plugin.json"),
+        r#"{"name":"glob-pack","version":"1.0.0"}"#,
+    )
+    .unwrap();
+    fs::create_dir_all(cache.join(&pk).join("hooks")).unwrap();
+    fs::write(
+        cache.join(&pk).join("hooks/hooks.json"),
+        r#"{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Glob",
+        "hooks": [
+          { "type": "command", "command": "echo blocked" }
+        ]
+      }
+    ]
+  }
+}"#,
+    )
+    .unwrap();
+
+    let mut lock = PackLock::load(&root).unwrap();
+    lock.packages.push(LockPackage {
+        module: "github.com/o/r/plugins/glob-pack".into(),
+        direct: true,
+        kind: PackageKind::Plugin,
+        url: "https://github.com/o/r/tree/main/plugins/glob-pack".into(),
+        owner: "o".into(),
+        repo: "r".into(),
+        path: "plugins/glob-pack".into(),
+        commit: "g".repeat(40),
+        cache_key: pk,
+        name: String::new(),
+    });
+    lock.save(&root).unwrap();
+
+    let err = run(Cli {
+        project_root: Some(root.clone()),
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        debug: false,
+        command: Command::Sync {
+            dry_run: false,
+            verify_only: false,
+            update_lock: false,
+        },
+    })
+    .unwrap_err();
+    assert!(err
+        .to_string()
+        .contains("cannot be rendered safely for Cursor"));
+}

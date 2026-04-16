@@ -22,6 +22,7 @@ dependencies = [
  "hex",
  "ignore",
  "indicatif",
+ "json-strip-comments",
  "keyring",
  "pathdiff",
  "petgraph",
@@ -36,6 +37,7 @@ dependencies = [
  "serde_yaml",
  "serial_test",
  "sha2",
+ "shell-escape",
  "tar",
  "tempfile",
  "thiserror",
@@ -2086,6 +2088,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "json-strip-comments"
+version = "3.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25376d12b2f6ae53f986f86e2a808a56af03d72284ae24fc35a2e290d09ee3c3"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
 name = "keyring"
 version = "3.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2982,6 +2993,12 @@ checksum = "f40ca3c46823713e0d4209592e8d6e826aa57e928f09752619fc696c499637f6"
 dependencies = [
  "lazy_static",
 ]
+
+[[package]]
+name = "shell-escape"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "45bb67a18fa91266cc7807181f62f9178a6873bfad7dc788c42e6430db40184f"
 
 [[package]]
 name = "shell-words"

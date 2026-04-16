@@ -2,6 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::error::{AgentpackError, Result};
+use crate::hooks::stage::{stage_hooks_all_harnesses, HookHarnessRoots};
 use crate::lockfile::PackLock;
 use crate::manifest::AgentpackManifest;
 use crate::paths::{
@@ -108,6 +109,17 @@ impl<'a> StagingPipeline<'a> {
         };
         stage_pack_plugins_all_harnesses(self.ctx.lock, &pack_dests, self.ctx.manifest)?;
         stage_pack_skills_all_harnesses(self.ctx.lock, &pack_dests, self.ctx.manifest)?;
+        stage_hooks_all_harnesses(
+            self.ctx.project_root,
+            self.ctx.lock,
+            self.ctx.manifest,
+            &HookHarnessRoots {
+                claude_bundle: &claude_bundle,
+                opencode_root: &opencode,
+                codex_home: &codex,
+                cursor_pack: &cursor_pack,
+            },
+        )?;
         write_cursor_pack_plugin_readme(&cursor_pack)?;
 
         stage_dot_agents_overlay(self.ctx.project_root)?;

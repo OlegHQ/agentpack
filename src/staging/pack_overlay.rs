@@ -37,7 +37,7 @@ fn rel_key(rel: &Path) -> String {
 }
 
 /// Paths are package-root-relative (forward slashes). A pattern matches the exact path or any file under it as a directory prefix.
-fn rel_is_disabled(rel: &Path, disabled: &[String]) -> bool {
+pub(crate) fn rel_is_disabled(rel: &Path, disabled: &[String]) -> bool {
     if disabled.is_empty() {
         return false;
     }

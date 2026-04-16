@@ -1,8 +1,9 @@
 pub mod dispatch;
+pub mod hook_exec;
 
 use std::path::PathBuf;
 
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(
@@ -92,4 +93,24 @@ pub enum Command {
         #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
         args: Vec<String>,
     },
+    /// Internal bridge used by rendered hook configs across harnesses
+    HookExec(HookExecArgs),
+}
+
+#[derive(Args)]
+pub struct HookExecArgs {
+    #[command(subcommand)]
+    pub kind: HookExecKind,
+    #[arg(long, global = true)]
+    pub target: crate::hooks::ir::HookOutputTarget,
+    #[arg(long, global = true)]
+    pub spec: PathBuf,
+}
+
+#[derive(Subcommand, Clone, Copy)]
+pub enum HookExecKind {
+    Command,
+    Http,
+    Prompt,
+    Agent,
 }

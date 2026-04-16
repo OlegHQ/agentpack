@@ -32,11 +32,15 @@ pub fn run(cli: Cli) -> anyhow::Result<()> {
         ));
         return Ok(());
     }
+    if let Command::HookExec(args) = cli.command {
+        return crate::cli::hook_exec::run(args);
+    }
 
     let root = paths::resolve_project_root(cli.project_root.as_deref())?;
 
     match cli.command {
         Command::Init { .. } => unreachable!(),
+        Command::HookExec(..) => unreachable!(),
         Command::Lock { update } => {
             sync::run_lock(&root, update, &ui)?;
         }

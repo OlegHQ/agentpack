@@ -84,7 +84,7 @@ fn merge_dot_agents_subdir_into_dest_roots(
 /// Only **Claude bundle** and **Codex home** receive the overlay.
 ///
 /// Supported layout: optional **`claude/`**, **`codex/`** subtrees (merged into that harness stage root);
-/// shared **`rules/**/*.mdc`**, **`skills/`**, **`agents/`**, **`commands/`**, **`hooks/`**; top-level **`AGENTS.md`** (Codex),
+/// shared **`rules/**/*.mdc`**, **`skills/`**, **`agents/`**, **`commands/`**; top-level **`AGENTS.md`** (Codex),
 /// **`CLAUDE.md`** (Claude bundle), **`mcp.json`**.
 ///
 /// Set **`AGENTPACK_DOT_AGENTS=0`** to skip.
@@ -117,12 +117,8 @@ pub(crate) fn stage_dot_agents_overlay(project_root: &Path) -> Result<()> {
     }
 
     let all_roots: [&Path; 2] = [bundle.as_path(), codex.as_path()];
-    const SUBDIR_ROUTES: &[(&str, &[usize])] = &[
-        ("skills", &[0, 1]),
-        ("agents", &[0]),
-        ("commands", &[0]),
-        ("hooks", &[0]),
-    ];
+    const SUBDIR_ROUTES: &[(&str, &[usize])] =
+        &[("skills", &[0, 1]), ("agents", &[0]), ("commands", &[0])];
     for &(sub, indices) in SUBDIR_ROUTES {
         let dests: Vec<&Path> = indices.iter().map(|&i| all_roots[i]).collect();
         merge_dot_agents_subdir_into_dest_roots(&dot_agents, sub, &dests)?;

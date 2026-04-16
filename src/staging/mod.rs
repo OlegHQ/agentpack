@@ -19,6 +19,7 @@ use crate::lockfile::{LockPackage, PackLock};
 use crate::manifest::AgentpackManifest;
 use crate::paths::staging_plugins_dir;
 
+pub(crate) use pack_overlay::rel_is_disabled;
 pub(crate) use pack_overlay::skill_folder_name;
 pub use pack_overlay::skill_is_shadowed;
 
