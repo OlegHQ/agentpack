@@ -102,6 +102,27 @@ pub fn hook_exec_command(kind: &str, target: HookOutputTarget, spec_path: &Path)
     )
 }
 
+/// Command line for the host-side matcher router (Cursor emulation). One entry per event is
+/// registered in the harness's hooks file; the router reads stdin, iterates specs under
+/// `specs_dir`, and fires those whose stored Claude matcher matches the invoked tool.
+pub fn hook_dispatch_command(
+    target: HookOutputTarget,
+    event: &str,
+    specs_dir: &Path,
+) -> String {
+    format!(
+        "agentpack hook-exec dispatch --target {} --event {event} --specs-dir {}",
+        target.as_str(),
+        shell_escape::escape(specs_dir.to_string_lossy())
+    )
+}
+
+/// Root directory that `stage_origin_packages` populates per-harness; the router uses this as
+/// its `--specs-dir` and walks for `*.json` spec files.
+pub fn specs_dispatch_root(target: HarnessTarget, target_root: &Path) -> PathBuf {
+    base_asset_root(target, target_root)
+}
+
 pub fn staged_package_root<'a>(
     staged_packages: &'a BTreeMap<String, PathBuf>,
     origin: &HookOrigin,

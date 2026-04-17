@@ -144,16 +144,46 @@ fn parse_env_pair(s: &str) -> std::result::Result<(String, String), String> {
 pub struct HookExecArgs {
     #[command(subcommand)]
     pub kind: HookExecKind,
-    #[arg(long, global = true)]
+}
+
+#[derive(Subcommand, Clone)]
+pub enum HookExecKind {
+    Command(HookExecSpecArgs),
+    Http(HookExecSpecArgs),
+    Prompt(HookExecSpecArgs),
+    Agent(HookExecSpecArgs),
+    /// Host-side matcher router: reads harness stdin, matches stored specs, fires handlers.
+    /// Used by Cursor so a single blanket hook entry per event can emulate Claude's fine-grained matchers.
+    Dispatch(HookDispatchArgs),
+    /// Emit a plugin-provided guidance blob as the target harness's `additionalContext` JSON.
+    /// Invoked from a `SessionStart` hook in the Claude bundle so the model always sees the blob.
+    InjectGuidance(HookInjectGuidanceArgs),
+}
+
+#[derive(Args, Clone)]
+pub struct HookExecSpecArgs {
+    #[arg(long)]
     pub target: crate::hooks::ir::HookOutputTarget,
-    #[arg(long, global = true)]
+    #[arg(long)]
     pub spec: PathBuf,
 }
 
-#[derive(Subcommand, Clone, Copy)]
-pub enum HookExecKind {
-    Command,
-    Http,
-    Prompt,
-    Agent,
+#[derive(Args, Clone)]
+pub struct HookDispatchArgs {
+    #[arg(long)]
+    pub target: crate::hooks::ir::HookOutputTarget,
+    #[arg(long)]
+    pub event: String,
+    #[arg(long)]
+    pub specs_dir: PathBuf,
+}
+
+#[derive(Args, Clone)]
+pub struct HookInjectGuidanceArgs {
+    #[arg(long)]
+    pub target: crate::hooks::ir::HookOutputTarget,
+    #[arg(long)]
+    pub event: String,
+    #[arg(long)]
+    pub file: PathBuf,
 }

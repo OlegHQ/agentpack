@@ -1,14 +1,24 @@
+//! Cursor hook renderer.
+//!
+//! Cursor's native matcher is coarser than Claude's (no `Glob`, no regex-style alternations
+//! like `Edit|Write` without semantic equivalence, no `mcp__*` syntax). Rather than lossily
+//! down-translating each matcher, we register one blanket entry per Cursor lifecycle event
+//! whose command invokes `agentpack hook-exec dispatch ...`. The router reads Cursor's stdin
+//! (which includes `tool_name`), normalizes it to a candidate Claude tool name set, then
+//! iterates stored specs under the staged specs directory and fires the ones whose original
+//! Claude matcher matches — giving Cursor the full Claude matcher vocabulary.
+
 use serde_json::{json, Map, Value};
 
 use crate::artifacts::HarnessTarget;
 use crate::error::Result;
 
 use super::{
-    build_exec_spec_file, check_support, output_target_for, push_diag, strict_mapping_error,
-    HookRenderer, RenderContext, RenderedHookFile, RenderedHookFileContents, RenderedHookOutput,
+    build_exec_spec_file, check_support, output_target_for, push_diag, HookRenderer,
+    RenderContext, RenderedHookFile, RenderedHookFileContents, RenderedHookOutput,
 };
-use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, HookBundle, NormalizedHook};
-use crate::hooks::paths::hook_exec_command;
+use crate::hooks::ir::{ClaudeEvent, HookBundle, NormalizedHook};
+use crate::hooks::paths::{hook_dispatch_command, specs_dispatch_root};
 
 pub struct CursorHookRenderer;
 
@@ -19,16 +29,11 @@ impl HookRenderer for CursorHookRenderer {
 
     fn render(&self, bundle: &HookBundle, ctx: &RenderContext<'_>) -> Result<RenderedHookOutput> {
         let mut output = RenderedHookOutput::default();
-        let mut hooks_map = Map::new();
+        let mut entries_per_event: std::collections::BTreeMap<&'static str, Vec<Value>> =
+            std::collections::BTreeMap::new();
+
         for hook in &bundle.hooks {
             let Some(step) = mapped_cursor_step(hook.event) else {
-                if hook.is_strict() {
-                    return Err(strict_mapping_error(
-                        hook,
-                        HarnessTarget::Cursor,
-                        "Cursor has no equivalent lifecycle step",
-                    ));
-                }
                 push_diag(
                     &mut output,
                     "omitted",
@@ -41,45 +46,81 @@ impl HookRenderer for CursorHookRenderer {
                 HarnessTarget::Cursor,
                 hook,
                 &mut output,
-                "rendered into Cursor native hook config",
-                "wrapped into agentpack hook-exec for Cursor",
+                "routed via agentpack hook-exec dispatch",
+                "routed via agentpack hook-exec dispatch",
             )? {
                 continue;
             }
-            let matcher = rewrite_cursor_matcher(hook, &mut output)?;
-            if hook.matcher.is_some() && matcher.is_none() {
-                // All matcher segments were stripped (no Cursor equivalents).
-                // Skip this hook rather than failing — the tool simply doesn't
-                // exist on Cursor, so there's nothing to fire on.
-                push_diag(
-                    &mut output,
-                    "omitted",
-                    hook,
-                    "all matcher segments are unsupported on Cursor",
-                );
-                continue;
-            }
-            let entry = render_entry(hook, matcher, ctx, &mut output)?;
-            hooks_map
-                .entry(step.to_string())
-                .or_insert_with(|| Value::Array(Vec::new()));
-            hooks_map
-                .get_mut(step)
-                .and_then(Value::as_array_mut)
-                .expect("step array")
-                .push(entry);
+            // Always write the spec so the dispatcher can find it; the command line emitted
+            // in hooks.json is blanket (one per event) so we deliberately ignore the return path.
+            let _ = build_exec_spec_file(HarnessTarget::Cursor, hook, hook.event, ctx, &mut output)?;
+
+            entries_per_event.entry(step).or_default();
+            add_blanket_entry(
+                &mut entries_per_event,
+                step,
+                hook.event,
+                ctx,
+                needs_fail_closed(hook),
+            );
         }
-        if !hooks_map.is_empty() {
-            output.files.push(RenderedHookFile {
-                path: ctx.target_root.join("hooks/hooks.json"),
-                contents: RenderedHookFileContents::Json(json!({
-                    "version": 1,
-                    "hooks": hooks_map,
-                })),
-            });
+
+        if entries_per_event.is_empty() {
+            return Ok(output);
         }
+
+        let mut hooks_map = Map::new();
+        for (step, entries) in entries_per_event {
+            hooks_map.insert(step.into(), Value::Array(entries));
+        }
+
+        output.files.push(RenderedHookFile {
+            path: ctx.target_root.join("hooks/hooks.json"),
+            contents: RenderedHookFileContents::Json(json!({
+                "version": 1,
+                "hooks": hooks_map,
+            })),
+        });
         Ok(output)
     }
+}
+
+/// Insert a single dispatcher entry for `(cursor_step, claude_event)` if one isn't there yet.
+/// Cursor fires every entry registered under a step; one per (step,event) is all we need.
+fn add_blanket_entry(
+    entries_per_event: &mut std::collections::BTreeMap<&'static str, Vec<Value>>,
+    step: &'static str,
+    event: ClaudeEvent,
+    ctx: &RenderContext<'_>,
+    fail_closed: bool,
+) {
+    let specs_dir = specs_dispatch_root(HarnessTarget::Cursor, ctx.target_root);
+    let command = hook_dispatch_command(
+        output_target_for(HarnessTarget::Cursor),
+        event.as_claude_str(),
+        &specs_dir,
+    );
+    let entries = entries_per_event.entry(step).or_default();
+    let already = entries.iter().any(|entry| {
+        entry
+            .get("command")
+            .and_then(Value::as_str)
+            .is_some_and(|c| c == command)
+    });
+    if already {
+        return;
+    }
+    let mut obj = Map::new();
+    obj.insert("type".into(), Value::String("command".into()));
+    obj.insert("command".into(), Value::String(command));
+    if fail_closed {
+        obj.insert("failClosed".into(), Value::Bool(true));
+    }
+    entries.push(Value::Object(obj));
+}
+
+fn needs_fail_closed(hook: &NormalizedHook) -> bool {
+    hook.is_strict() || matches!(hook.event, ClaudeEvent::PermissionRequest)
 }
 
 fn mapped_cursor_step(event: ClaudeEvent) -> Option<&'static str> {
@@ -94,110 +135,5 @@ fn mapped_cursor_step(event: ClaudeEvent) -> Option<&'static str> {
         ClaudeEvent::PreCompact => Some("preCompact"),
         ClaudeEvent::PermissionRequest => Some("preToolUse"),
         ClaudeEvent::Notification => None,
-    }
-}
-
-fn rewrite_cursor_matcher(
-    hook: &NormalizedHook,
-    output: &mut RenderedHookOutput,
-) -> Result<Option<String>> {
-    let Some(matcher) = &hook.matcher else {
-        return Ok(None);
-    };
-    let mut mapped = Vec::new();
-    let mut stripped = Vec::new();
-    for raw in matcher.split('|') {
-        let token = raw.trim();
-        if token.is_empty() {
-            continue;
-        }
-        match token {
-            "Bash" => mapped.push("Shell".to_string()),
-            "Edit" | "Write" => mapped.push("Write".to_string()),
-            "Read" | "Grep" | "List" | "Delete" | "Fetch" | "ComputerUse" | "ReadLints"
-            | "BackgroundShell" | "WriteShellStdin" | "ListMcpResources" | "FetchMcpResource"
-            | "WebSearch" => {
-                if token == "WebSearch" {
-                    stripped.push(token.to_string());
-                } else {
-                    mapped.push(token.to_string());
-                }
-            }
-            "WebFetch" => mapped.push("Fetch".to_string()),
-            "Glob" => stripped.push(token.to_string()),
-            _ if token.starts_with("mcp__") => {
-                let mut parts = token.split("__");
-                let _ = parts.next();
-                let _ = parts.next();
-                if let Some(tool) = parts.next() {
-                    mapped.push(format!("MCP:{tool}"));
-                } else {
-                    stripped.push(token.to_string());
-                }
-            }
-            other => mapped.push(other.to_string()),
-        }
-    }
-    if !stripped.is_empty() {
-        push_diag(
-            output,
-            "degraded",
-            hook,
-            format!(
-                "Cursor cannot fire hooks for matcher segments: {}",
-                stripped.join(", ")
-            ),
-        );
-    }
-    if mapped.is_empty() {
-        return Ok(None);
-    }
-    Ok(Some(mapped.join("|")))
-}
-
-fn render_entry(
-    hook: &NormalizedHook,
-    matcher: Option<String>,
-    ctx: &RenderContext<'_>,
-    output: &mut RenderedHookOutput,
-) -> Result<Value> {
-    match &hook.handler {
-        ClaudeHandler::Prompt(handler) => {
-            let mut entry = Map::new();
-            if let Some(matcher) = matcher {
-                entry.insert("matcher".to_string(), Value::String(matcher));
-            }
-            entry.insert("type".to_string(), Value::String("prompt".to_string()));
-            entry.insert("prompt".to_string(), Value::String(handler.prompt.clone()));
-            if let Some(model) = &handler.model {
-                entry.insert("model".to_string(), Value::String(model.clone()));
-            }
-            if hook.is_strict() || matches!(hook.event, ClaudeEvent::PermissionRequest) {
-                entry.insert("failClosed".to_string(), Value::Bool(true));
-            }
-            Ok(Value::Object(entry))
-        }
-        _ => {
-            let kind = hook.handler.kind_name();
-            let spec_path =
-                build_exec_spec_file(HarnessTarget::Cursor, hook, hook.event, ctx, output)?;
-            let mut entry = Map::new();
-            if let Some(matcher) = matcher {
-                entry.insert("matcher".to_string(), Value::String(matcher));
-            }
-            entry.insert("type".to_string(), Value::String("command".to_string()));
-            entry.insert(
-                "command".to_string(),
-                Value::String(hook_exec_command(
-                    kind,
-                    output_target_for(HarnessTarget::Cursor),
-                    &spec_path,
-                )),
-            );
-            if hook.is_strict() || matches!(hook.event, ClaudeEvent::PermissionRequest) {
-                entry.insert("failClosed".to_string(), Value::Bool(true));
-            }
-            Ok(Value::Object(entry))
-        }
     }
 }

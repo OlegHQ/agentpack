@@ -165,6 +165,7 @@ pub fn build_exec_spec_file(
         event,
         handler: hook.handler.clone(),
         working_dir,
+        matcher: hook.matcher.clone(),
     };
     output.files.push(RenderedHookFile {
         path: spec_path.clone(),

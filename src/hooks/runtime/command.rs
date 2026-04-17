@@ -16,7 +16,12 @@ pub fn execute(spec: &HookExecutionSpec, stdin_bytes: &[u8]) -> anyhow::Result<C
         return Err(anyhow!("command executor received non-command hook"));
     };
     let mut cmd = shell_command(&handler.command);
-    cmd.current_dir(&spec.working_dir);
+    // Inherit the parent harness's CWD (session/project root) — matches Claude/Cursor's native
+    // hook semantics. Overriding CWD to the staged plugin dir silently breaks project-local
+    // cargo/npm/etc. config (`.cargo/config.toml`, `package.json` scripts) whose discovery is
+    // CWD-rooted. Plugins that need their own directory should use `$CLAUDE_PLUGIN_ROOT`.
+    cmd.env("CLAUDE_PLUGIN_ROOT", &spec.working_dir);
+    cmd.env("AGENTPACK_PLUGIN_ROOT", &spec.working_dir);
     cmd.stdin(Stdio::piped());
     cmd.stdout(Stdio::piped());
     cmd.stderr(Stdio::piped());

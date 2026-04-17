@@ -5,6 +5,7 @@ mod collision;
 mod constants;
 mod cursor;
 mod dot_agents;
+pub(crate) mod guidance;
 mod harnesses;
 pub(crate) mod mcp;
 mod pack_overlay;

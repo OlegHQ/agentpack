@@ -37,19 +37,12 @@ impl ClaudeEvent {
         }
     }
 
+    /// Codex's hook schema (codex-rs/hooks) rejects unknown keys silently via serde,
+    /// so names must match its PascalCase enum variants exactly. Codex currently only
+    /// handles `PreToolUse`, `PostToolUse`, `SessionStart`, `UserPromptSubmit`, `Stop`;
+    /// other events emit here but Codex will ignore them, which is fine.
     pub fn as_codex_str(self) -> &'static str {
-        match self {
-            Self::PreToolUse => "pre-tool-use",
-            Self::PostToolUse => "post-tool-use",
-            Self::UserPromptSubmit => "user-prompt-submit",
-            Self::Stop => "stop",
-            Self::SubagentStop => "subagent-stop",
-            Self::SessionStart => "session-start",
-            Self::SessionEnd => "session-end",
-            Self::PreCompact => "pre-compact",
-            Self::Notification => "notification",
-            Self::PermissionRequest => "permission-request",
-        }
+        self.as_claude_str()
     }
 
     pub fn from_any_str(value: &str) -> Option<Self> {

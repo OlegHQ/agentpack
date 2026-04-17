@@ -1048,22 +1048,27 @@ fn sync_stages_hooks_for_all_harnesses() {
     )
     .unwrap();
     assert_eq!(cursor_hooks["version"], 1);
+    // Cursor now uses blanket dispatcher entries — one `type: command` per (step, Claude event)
+    // invoking `agentpack hook-exec dispatch`, which handles matching and handler execution.
     assert!(cursor_hooks["hooks"]["preToolUse"]
         .as_array()
         .unwrap()
         .iter()
         .any(|entry| entry["command"]
             .as_str()
-            .is_some_and(|command| command.contains("hook-exec command"))));
+            .is_some_and(|command| command.contains("hook-exec dispatch"))
+            && entry["type"] == "command"));
     assert!(cursor_hooks["hooks"]["stop"]
         .as_array()
         .unwrap()
         .iter()
-        .any(|entry| entry["type"] == "prompt"));
+        .any(|entry| entry["command"]
+            .as_str()
+            .is_some_and(|command| command.contains("hook-exec dispatch"))));
 
     let codex_hooks =
         fs::read_to_string(staging_codex_home_dir(&root).unwrap().join("hooks.json")).unwrap();
-    assert!(codex_hooks.contains("pre-tool-use"));
+    assert!(codex_hooks.contains("PreToolUse"));
     assert!(codex_hooks.contains("hook-exec http"));
 
     let opencode_root = staging_opencode_dir(&root).unwrap();

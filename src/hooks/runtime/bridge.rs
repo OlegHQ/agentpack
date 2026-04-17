@@ -18,6 +18,10 @@ pub struct HookExecutionSpec {
     pub event: ClaudeEvent,
     pub handler: ClaudeHandler,
     pub working_dir: PathBuf,
+    /// Original Claude-style matcher (regex over tool names). Populated for specs that
+    /// participate in host-side dispatch (Cursor emulation). `None` → unconditional fire.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub matcher: Option<String>,
 }
 
 pub fn load_spec(path: &Path) -> anyhow::Result<HookExecutionSpec> {

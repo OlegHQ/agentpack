@@ -1,7 +1,22 @@
 //! MCP merge pipeline: collect MCP server configs from plugins, manifest, and
-//! `.agents/mcp.json`, merge them, and write per-harness `mcp.json`.
+//! `.agents/mcp.json`, merge them, then fan out to each harness using its native format.
+//!
+//! Per-harness formats are **not** identical. A single JSON blob will not do. This module owns the
+//! merge and the four render targets:
+//!
+//! | Harness  | Target file                                 | Shape                                                       |
+//! |----------|---------------------------------------------|-------------------------------------------------------------|
+//! | Claude   | `<bundle>/.mcp.json` (leading dot)          | `{"mcpServers": { name: { command, args, env, url, ... }}}` |
+//! | Cursor   | `<cursor_pack>/mcp.json`                    | `{"mcpServers": { name: { command, args, env, url, ... }}}` |
+//! | OpenCode | `<opencode>/opencode.json` `mcp` field      | `{"mcp": { name: { type, command: [..], environment, url }}}` |
+//! | Codex    | `<codex_home>/config.toml` `[mcp_servers]`  | TOML tables `[mcp_servers.<name>]`                          |
+//!
+//! For OpenCode and Codex the render is additive: pack entries never clobber user-seeded entries
+//! under the same server name (user wins on conflict). Cursor's fake HOME merge with user
+//! `~/.cursor/mcp.json` lives in [`super::cursor::fake_home`] and uses the same rule.
 
 use std::collections::BTreeMap;
+use std::fs;
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
@@ -14,19 +29,28 @@ use crate::paths::project_dot_agents_dir;
 
 use super::pack_overlay::{disabled_in_config, PackHarnessRoots};
 
-/// Single MCP server entry — used for both TOML manifest and JSON `mcp.json`.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// A single MCP server entry. Supports both stdio (`command` + `args`) and remote (`url`).
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct McpServerEntry {
-    pub command: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub command: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub args: Vec<String>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub env: BTreeMap<String, String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub disabled: Option<bool>,
 }
 
-/// Top-level JSON: `{ "mcpServers": { ... } }`
+impl McpServerEntry {
+    fn is_remote(&self) -> bool {
+        self.url.is_some() && self.command.is_none()
+    }
+}
+
+/// Top-level JSON: `{ "mcpServers": { ... } }` — used by Claude and Cursor.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct McpConfig {
     #[serde(rename = "mcpServers", default)]
@@ -120,7 +144,13 @@ pub(crate) fn collect_merged_mcp(
     Ok(merged)
 }
 
-/// Collect, merge, and write `mcp.json` to every harness staging root.
+type MergedEntries = BTreeMap<String, (McpServerEntry, McpSource)>;
+
+fn bare_entries(merged: &MergedEntries) -> BTreeMap<String, McpServerEntry> {
+    merged.iter().map(|(k, (v, _))| (k.clone(), v.clone())).collect()
+}
+
+/// Collect merged MCP servers and render each harness in its native format.
 pub(super) fn stage_merged_mcp(
     project_root: &Path,
     lock: &PackLock,
@@ -131,13 +161,287 @@ pub(super) fn stage_merged_mcp(
     if merged.is_empty() {
         return Ok(());
     }
-    let config = McpConfig {
-        mcp_servers: merged.into_iter().map(|(k, (v, _))| (k, v)).collect(),
-    };
-    let json = serde_json::to_string_pretty(&config)
-        .map_err(|e| AgentpackError::Staging(format!("mcp.json serialization: {e}")))?;
-    for dest in [dests.claude_bundle, dests.opencode, dests.codex, dests.cursor_pack] {
-        crate::fs_util::write_text_file(&dest.join("mcp.json"), &json)?;
-    }
+
+    write_mcp_servers_json(&dests.claude_bundle.join(".mcp.json"), &merged)?;
+    write_mcp_servers_json(&dests.cursor_pack.join("mcp.json"), &merged)?;
+    merge_into_opencode_config(&dests.opencode.join("opencode.json"), &merged)?;
+    merge_into_codex_config(&dests.codex.join("config.toml"), &merged)?;
     Ok(())
+}
+
+/// Write `{"mcpServers":{...}}` JSON (Claude `.mcp.json` + Cursor `mcp.json`).
+fn write_mcp_servers_json(dest: &Path, merged: &MergedEntries) -> Result<()> {
+    let cfg = McpConfig {
+        mcp_servers: bare_entries(merged),
+    };
+    let json = serde_json::to_string_pretty(&cfg)
+        .map_err(|e| AgentpackError::Staging(format!("{}: {e}", dest.display())))?;
+    crate::fs_util::write_text_file(dest, &json)
+}
+
+fn opencode_entry_value(entry: &McpServerEntry) -> serde_json::Value {
+    use serde_json::{json, Value};
+    let mut obj = serde_json::Map::new();
+    if entry.is_remote() {
+        obj.insert("type".into(), json!("remote"));
+        if let Some(url) = &entry.url {
+            obj.insert("url".into(), json!(url));
+        }
+    } else {
+        obj.insert("type".into(), json!("local"));
+        let mut cmd: Vec<Value> = Vec::with_capacity(1 + entry.args.len());
+        if let Some(c) = &entry.command {
+            cmd.push(json!(c));
+        }
+        cmd.extend(entry.args.iter().map(|a| json!(a)));
+        obj.insert("command".into(), Value::Array(cmd));
+        if !entry.env.is_empty() {
+            let env_obj: serde_json::Map<String, Value> = entry
+                .env
+                .iter()
+                .map(|(k, v)| (k.clone(), json!(v)))
+                .collect();
+            obj.insert("environment".into(), Value::Object(env_obj));
+        }
+    }
+    if entry.disabled != Some(true) {
+        obj.insert("enabled".into(), json!(true));
+    } else {
+        obj.insert("enabled".into(), json!(false));
+    }
+    Value::Object(obj)
+}
+
+/// Merge MCP entries into `opencode.json` under the top-level `mcp` object.
+/// User-seeded entries win: we only insert pack entries whose names are absent.
+fn merge_into_opencode_config(config_path: &Path, merged: &MergedEntries) -> Result<()> {
+    use serde_json::Value;
+
+    let mut root: Value = if config_path.is_file() {
+        let raw = fs::read_to_string(config_path).map_err(|e| AgentpackError::io(config_path, e))?;
+        crate::fs_util::parse_jsonc(&raw).map_err(|e| {
+            AgentpackError::Staging(format!("{}: {e}", config_path.display()))
+        })?
+    } else {
+        serde_json::json!({ "$schema": "https://opencode.ai/config.json" })
+    };
+
+    let obj = root
+        .as_object_mut()
+        .ok_or_else(|| AgentpackError::Staging(format!(
+            "{}: top-level must be a JSON object",
+            config_path.display()
+        )))?;
+    let mcp = obj
+        .entry("mcp".to_string())
+        .or_insert_with(|| Value::Object(serde_json::Map::new()));
+    let mcp_obj = mcp.as_object_mut().ok_or_else(|| AgentpackError::Staging(format!(
+        "{}: `mcp` must be a JSON object",
+        config_path.display()
+    )))?;
+    for (name, (entry, _)) in merged {
+        if mcp_obj.contains_key(name) {
+            continue;
+        }
+        mcp_obj.insert(name.clone(), opencode_entry_value(entry));
+    }
+
+    let out = serde_json::to_string_pretty(&root)
+        .map_err(|e| AgentpackError::Staging(format!("{}: {e}", config_path.display())))?;
+    crate::fs_util::write_text_file(config_path, &out)
+}
+
+fn codex_entry_table(entry: &McpServerEntry) -> toml::value::Table {
+    let mut t = toml::value::Table::new();
+    if entry.is_remote() {
+        if let Some(url) = &entry.url {
+            t.insert("url".into(), toml::Value::String(url.clone()));
+        }
+    } else {
+        if let Some(c) = &entry.command {
+            t.insert("command".into(), toml::Value::String(c.clone()));
+        }
+        if !entry.args.is_empty() {
+            let arr: Vec<toml::Value> = entry
+                .args
+                .iter()
+                .map(|a| toml::Value::String(a.clone()))
+                .collect();
+            t.insert("args".into(), toml::Value::Array(arr));
+        }
+        if !entry.env.is_empty() {
+            let mut env_tbl = toml::value::Table::new();
+            for (k, v) in &entry.env {
+                env_tbl.insert(k.clone(), toml::Value::String(v.clone()));
+            }
+            t.insert("env".into(), toml::Value::Table(env_tbl));
+        }
+    }
+    if entry.disabled == Some(true) {
+        t.insert("enabled".into(), toml::Value::Boolean(false));
+    }
+    t
+}
+
+/// Merge MCP entries into Codex `config.toml` under `[mcp_servers.<name>]` tables.
+/// User-seeded entries win: we only insert pack entries whose names are absent.
+fn merge_into_codex_config(config_path: &Path, merged: &MergedEntries) -> Result<()> {
+    let mut doc: toml::Value = if config_path.is_file() {
+        let raw = fs::read_to_string(config_path).map_err(|e| AgentpackError::io(config_path, e))?;
+        toml::from_str(&raw)
+            .map_err(|e| AgentpackError::Staging(format!("{}: {e}", config_path.display())))?
+    } else {
+        toml::Value::Table(Default::default())
+    };
+
+    let root = doc
+        .as_table_mut()
+        .ok_or_else(|| AgentpackError::Staging(format!(
+            "{}: top-level must be a TOML table",
+            config_path.display()
+        )))?;
+    let servers = root
+        .entry("mcp_servers".to_string())
+        .or_insert_with(|| toml::Value::Table(toml::value::Table::new()))
+        .as_table_mut()
+        .ok_or_else(|| AgentpackError::Staging(format!(
+            "{}: `mcp_servers` must be a table",
+            config_path.display()
+        )))?;
+    for (name, (entry, _)) in merged {
+        if servers.contains_key(name) {
+            continue;
+        }
+        servers.insert(name.clone(), toml::Value::Table(codex_entry_table(entry)));
+    }
+
+    let out = toml::to_string(&doc)
+        .map_err(|e| AgentpackError::Staging(format!("{}: {e}", config_path.display())))?;
+    crate::fs_util::write_text_file(config_path, &out)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    fn stdio_entry() -> McpServerEntry {
+        McpServerEntry {
+            command: Some("cargo".into()),
+            args: vec!["run".into(), "--".into(), "serve".into()],
+            env: BTreeMap::from([("RUST_LOG".to_string(), "info".to_string())]),
+            url: None,
+            disabled: None,
+        }
+    }
+
+    fn remote_entry() -> McpServerEntry {
+        McpServerEntry {
+            command: None,
+            args: Vec::new(),
+            env: BTreeMap::new(),
+            url: Some("https://mcp.example.com/mcp".into()),
+            disabled: None,
+        }
+    }
+
+    fn merged(pairs: &[(&str, McpServerEntry)]) -> MergedEntries {
+        pairs
+            .iter()
+            .map(|(n, e)| ((*n).to_string(), (e.clone(), McpSource::Plugin)))
+            .collect()
+    }
+
+    #[test]
+    fn claude_file_uses_dot_prefix_and_mcpservers_key() {
+        let dir = tempdir().unwrap();
+        let dest = dir.path().join(".mcp.json");
+        write_mcp_servers_json(&dest, &merged(&[("codesight", stdio_entry())])).unwrap();
+        let text = fs::read_to_string(&dest).unwrap();
+        assert!(text.contains("\"mcpServers\""));
+        assert!(text.contains("\"command\": \"cargo\""));
+        assert!(text.contains("\"RUST_LOG\": \"info\""));
+    }
+
+    #[test]
+    fn opencode_merge_converts_command_to_array_and_env_to_environment() {
+        let dir = tempdir().unwrap();
+        let cfg = dir.path().join("opencode.json");
+        fs::write(&cfg, "{\"$schema\":\"https://opencode.ai/config.json\"}").unwrap();
+        merge_into_opencode_config(&cfg, &merged(&[("codesight", stdio_entry())])).unwrap();
+        let v: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&cfg).unwrap()).unwrap();
+        let entry = &v["mcp"]["codesight"];
+        assert_eq!(entry["type"], "local");
+        assert_eq!(entry["command"][0], "cargo");
+        assert_eq!(entry["command"][1], "run");
+        assert_eq!(entry["environment"]["RUST_LOG"], "info");
+        assert!(entry.get("env").is_none());
+        assert!(entry.get("args").is_none());
+    }
+
+    #[test]
+    fn opencode_merge_remote_entry_uses_type_remote() {
+        let dir = tempdir().unwrap();
+        let cfg = dir.path().join("opencode.json");
+        merge_into_opencode_config(&cfg, &merged(&[("linear", remote_entry())])).unwrap();
+        let v: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&cfg).unwrap()).unwrap();
+        let entry = &v["mcp"]["linear"];
+        assert_eq!(entry["type"], "remote");
+        assert_eq!(entry["url"], "https://mcp.example.com/mcp");
+    }
+
+    #[test]
+    fn opencode_merge_user_wins_on_conflict() {
+        let dir = tempdir().unwrap();
+        let cfg = dir.path().join("opencode.json");
+        fs::write(
+            &cfg,
+            r#"{"mcp":{"linear":{"type":"remote","url":"https://user.example/mcp"}}}"#,
+        )
+        .unwrap();
+        merge_into_opencode_config(&cfg, &merged(&[("linear", remote_entry())])).unwrap();
+        let v: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&cfg).unwrap()).unwrap();
+        assert_eq!(v["mcp"]["linear"]["url"], "https://user.example/mcp");
+    }
+
+    #[test]
+    fn codex_merge_writes_mcp_servers_tables() {
+        let dir = tempdir().unwrap();
+        let cfg = dir.path().join("config.toml");
+        fs::write(&cfg, "model = \"gpt-5\"\n").unwrap();
+        merge_into_codex_config(&cfg, &merged(&[("codesight", stdio_entry())])).unwrap();
+        let text = fs::read_to_string(&cfg).unwrap();
+        assert!(text.contains("[mcp_servers.codesight]"));
+        assert!(text.contains("command = \"cargo\""));
+        assert!(text.contains("[mcp_servers.codesight.env]"));
+        assert!(text.contains("model = \"gpt-5\""));
+    }
+
+    #[test]
+    fn codex_merge_user_wins_on_conflict() {
+        let dir = tempdir().unwrap();
+        let cfg = dir.path().join("config.toml");
+        fs::write(
+            &cfg,
+            "[mcp_servers.codesight]\ncommand = \"user-cmd\"\n",
+        )
+        .unwrap();
+        merge_into_codex_config(&cfg, &merged(&[("codesight", stdio_entry())])).unwrap();
+        let text = fs::read_to_string(&cfg).unwrap();
+        assert!(text.contains("command = \"user-cmd\""));
+        assert!(!text.contains("\"cargo\""));
+    }
+
+    #[test]
+    fn codex_merge_remote_entry_uses_url_field() {
+        let dir = tempdir().unwrap();
+        let cfg = dir.path().join("config.toml");
+        merge_into_codex_config(&cfg, &merged(&[("linear", remote_entry())])).unwrap();
+        let text = fs::read_to_string(&cfg).unwrap();
+        assert!(text.contains("[mcp_servers.linear]"));
+        assert!(text.contains("url = \"https://mcp.example.com/mcp\""));
+    }
 }

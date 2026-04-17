@@ -80,9 +80,10 @@ fn run_mcp(root: &Path, action: McpAction, ui: &Ui) -> anyhow::Result<()> {
     match action {
         McpAction::Add { name, command, args, env, no_sync } => {
             let entry = crate::staging::mcp::McpServerEntry {
-                command,
+                command: Some(command),
                 args,
                 env: env.into_iter().collect(),
+                url: None,
                 disabled: None,
             };
             manifest::AgentpackManifest::add_mcp_server(root, &name, &entry)?;
@@ -107,8 +108,14 @@ fn run_mcp(root: &Path, action: McpAction, ui: &Ui) -> anyhow::Result<()> {
             } else {
                 for (name, (entry, source)) in &merged {
                     let disabled = if entry.disabled == Some(true) { " (disabled)" } else { "" };
-                    let args = entry.args.join(" ");
-                    ui.message(format!("  {name}: {} {args} [from {source}]{disabled}", entry.command));
+                    let shown = if let Some(url) = &entry.url {
+                        url.clone()
+                    } else {
+                        let args = entry.args.join(" ");
+                        let cmd = entry.command.as_deref().unwrap_or("");
+                        format!("{cmd} {args}").trim().to_string()
+                    };
+                    ui.message(format!("  {name}: {shown} [from {source}]{disabled}"));
                 }
             }
         }

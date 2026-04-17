@@ -82,15 +82,12 @@ impl HarnessTarget {
         }
     }
 
-    /// Default **`disable-model-invocation`** for staged skills when the source artifact did not set it.
+    /// Default **`disable-model-invocation`** for staged skills when the source artifact did not
+    /// set it. Only slash-commands converted to skills are disabled by default; rule-as-skill
+    /// fallbacks stay model-invocable so their description can match on intent (closest approximation
+    /// of Cursor's `alwaysApply` / glob-scoped rules on harnesses without native rule files).
     pub(super) fn disables_model_invocation_for_kind(self, kind: ArtifactKind) -> bool {
-        matches!(
-            (kind, self),
-            (ArtifactKind::Command, _)
-                | (ArtifactKind::Rule, HarnessTarget::Claude)
-                | (ArtifactKind::Rule, HarnessTarget::OpenCode)
-                | (ArtifactKind::Rule, HarnessTarget::Codex)
-        )
+        matches!((kind, self), (ArtifactKind::Command, _))
     }
 
 }

@@ -215,7 +215,12 @@ impl AgentpackManifest {
         entry: &crate::staging::mcp::McpServerEntry,
     ) -> Result<()> {
         let mut inline = toml_edit::InlineTable::new();
-        inline.insert("command", toml_edit::Value::from(entry.command.as_str()));
+        if let Some(cmd) = &entry.command {
+            inline.insert("command", toml_edit::Value::from(cmd.as_str()));
+        }
+        if let Some(url) = &entry.url {
+            inline.insert("url", toml_edit::Value::from(url.as_str()));
+        }
         if !entry.args.is_empty() {
             let arr: toml_edit::Array = entry.args.iter().map(|a| a.as_str()).collect();
             inline.insert("args", toml_edit::Value::Array(arr));

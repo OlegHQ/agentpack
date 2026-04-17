@@ -66,11 +66,20 @@ fn render_handler(
                 hook,
                 "wrapped command hook to preserve package-relative working directory",
             );
-            Ok(json!({
-                "type": "command",
-                "command": hook_exec_command("command", output_target_for(HarnessTarget::Claude), &spec_path),
-                "timeout": handler.timeout_secs,
-            }))
+            let mut obj = Map::new();
+            obj.insert("type".into(), Value::String("command".into()));
+            obj.insert(
+                "command".into(),
+                Value::String(hook_exec_command(
+                    "command",
+                    output_target_for(HarnessTarget::Claude),
+                    &spec_path,
+                )),
+            );
+            if let Some(secs) = handler.timeout_secs {
+                obj.insert("timeout".into(), json!(secs));
+            }
+            Ok(Value::Object(obj))
         }
         ClaudeHandler::Http(_) | ClaudeHandler::Prompt(_) | ClaudeHandler::Agent(_) => {
             let kind = hook.handler.kind_name();

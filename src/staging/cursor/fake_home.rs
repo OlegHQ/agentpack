@@ -182,6 +182,8 @@ pub(in crate::staging) fn materialize_cursor_fake_home(project_root: &Path) -> R
         symlink_or_copy_into_fake_home(&pack_mcp, &mcp_dest, false)?;
     }
 
+    merge_cursor_hooks_into_fake_home(&pack, real_cursor.as_deref(), &fake_cursor)?;
+
     if let Some(ref rc) = real_cursor {
         if rc.is_dir() {
             symlink_entries_into(rc, &fake_cursor, CURSOR_FAKE_HOME_CREDENTIAL_FILES)?;
@@ -206,4 +208,70 @@ pub(in crate::staging) fn materialize_cursor_fake_home(project_root: &Path) -> R
     }
 
     Ok(())
+}
+
+/// Cursor reads hooks from `~/.cursor/hooks.json`, not plugin directories. Concatenate user
+/// and pack entries per event so both fire. Pack entries come second, so user hooks observe
+/// tool invocations first and pack hooks run after (fine for observability; not a
+/// decision-precedence choice since Cursor runs all `failClosed=true` gates anyway).
+fn merge_cursor_hooks_into_fake_home(
+    pack: &Path,
+    real_cursor: Option<&Path>,
+    fake_cursor: &Path,
+) -> Result<()> {
+    use serde_json::{Map, Value};
+
+    let pack_hooks = pack.join("hooks/hooks.json");
+    let user_hooks = real_cursor.map(|rc| rc.join("hooks.json"));
+    let pack_present = pack_hooks.is_file();
+    let user_present = user_hooks.as_ref().is_some_and(|p| p.is_file());
+    if !pack_present && !user_present {
+        return Ok(());
+    }
+
+    fn read_hook_file(path: &Path) -> Result<Value> {
+        let raw = fs::read_to_string(path).map_err(|e| AgentpackError::io(path, e))?;
+        crate::fs_util::parse_jsonc(&raw)
+            .map_err(|e| AgentpackError::Staging(format!("{}: {e}", path.display())))
+    }
+
+    fn merge_event_arrays(dest: &mut Map<String, Value>, src: Value) {
+        let Value::Object(src_hooks) = src else { return };
+        for (event, entries) in src_hooks {
+            let Value::Array(new_entries) = entries else { continue };
+            let slot = dest
+                .entry(event)
+                .or_insert_with(|| Value::Array(Vec::new()));
+            if let Value::Array(existing) = slot {
+                existing.extend(new_entries);
+            }
+        }
+    }
+
+    let mut merged_hooks: Map<String, Value> = Map::new();
+    if let Some(user_path) = user_hooks.as_ref().filter(|p| p.is_file()) {
+        if let Value::Object(mut root) = read_hook_file(user_path)? {
+            if let Some(user_hooks_obj) = root.remove("hooks") {
+                merge_event_arrays(&mut merged_hooks, user_hooks_obj);
+            }
+        }
+    }
+    if pack_present {
+        if let Value::Object(mut root) = read_hook_file(&pack_hooks)? {
+            if let Some(pack_hooks_obj) = root.remove("hooks") {
+                merge_event_arrays(&mut merged_hooks, pack_hooks_obj);
+            }
+        }
+    }
+
+    if merged_hooks.is_empty() {
+        return Ok(());
+    }
+    let out = serde_json::json!({ "version": 1, "hooks": Value::Object(merged_hooks) });
+    let dest = fake_cursor.join("hooks.json");
+    crate::fs_util::write_text_file(
+        &dest,
+        &serde_json::to_string_pretty(&out)
+            .map_err(|e| AgentpackError::Staging(format!("hooks.json merge: {e}")))?,
+    )
 }

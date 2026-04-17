@@ -90,6 +90,12 @@ impl<'a> StagingPipeline<'a> {
         write_cursor_pack_plugin_readme(&cursor_pack)?;
         stage_dot_agents_overlay(self.project_root)?;
         super::mcp::stage_merged_mcp(self.project_root, self.lock, self.manifest, &pack_dests)?;
+        super::guidance::stage_guidance_all_harnesses(
+            self.project_root,
+            self.lock,
+            self.manifest,
+            &pack_dests,
+        )?;
         finalize_cursor_staging(self.project_root)?;
 
         Ok(vec![self.claude_bundle_dir()?])

@@ -30,6 +30,7 @@ dependencies = [
  "rayon",
  "redb",
  "reflink-copy",
+ "regex",
  "reqwest 0.12.28",
  "semver",
  "serde",
@@ -2583,6 +2584,18 @@ dependencies = [
  "libc",
  "rustix",
  "windows",
+]
+
+[[package]]
+name = "regex"
+version = "1.12.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e10754a14b9137dd7b1e3e5b0493cc9171fdd105e0ab477f51b72e7f3ac0e276"
+dependencies = [
+ "aho-corasick",
+ "memchr",
+ "regex-automata",
+ "regex-syntax",
 ]
 
 [[package]]

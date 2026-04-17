@@ -1,40 +1,85 @@
 use std::process;
 
-use crate::hooks::ir::NormalizedHookResult;
+use crate::hooks::ir::{ClaudeEvent, NormalizedHookResult};
 use crate::hooks::runtime::bridge::{
     forward_process_output, load_spec, read_stdin_bytes, write_json_stdout, HookExecutionSpec,
 };
-use crate::hooks::runtime::{agent, command, http, prompt};
+use crate::hooks::runtime::dispatch::{dispatch, DispatchArgs};
 use crate::hooks::runtime::translate::to_target_output;
+use crate::hooks::runtime::{agent, command, http, prompt};
 
-use super::{HookExecArgs, HookExecKind};
+use super::{
+    HookDispatchArgs, HookExecArgs, HookExecKind, HookExecSpecArgs, HookInjectGuidanceArgs,
+};
 
 pub fn run(args: HookExecArgs) -> anyhow::Result<()> {
     let stdin_bytes = read_stdin_bytes()?;
-    let spec = load_spec(&args.spec)?;
     match args.kind {
-        HookExecKind::Command => {
-            let result = command::execute(&spec, &stdin_bytes)?;
-            forward_process_output(&result.stdout, &result.stderr)?;
-            process::exit(result.exit_code);
-        }
-        kind => {
-            let result = execute_json_hook(kind, &spec, &stdin_bytes)?;
-            write_json_stdout(&to_target_output(args.target, spec.event, &result))?;
-            process::exit(0);
-        }
+        HookExecKind::Command(spec_args) => run_command(spec_args, &stdin_bytes),
+        HookExecKind::Http(spec_args) => run_json(JsonKind::Http, spec_args, &stdin_bytes),
+        HookExecKind::Prompt(spec_args) => run_json(JsonKind::Prompt, spec_args, &stdin_bytes),
+        HookExecKind::Agent(spec_args) => run_json(JsonKind::Agent, spec_args, &stdin_bytes),
+        HookExecKind::Dispatch(d) => run_dispatch(d, &stdin_bytes),
+        HookExecKind::InjectGuidance(args) => run_inject_guidance(args),
     }
 }
 
+fn run_command(args: HookExecSpecArgs, stdin_bytes: &[u8]) -> anyhow::Result<()> {
+    let spec = load_spec(&args.spec)?;
+    let result = command::execute(&spec, stdin_bytes)?;
+    forward_process_output(&result.stdout, &result.stderr)?;
+    process::exit(result.exit_code);
+}
+
+#[derive(Clone, Copy)]
+enum JsonKind {
+    Http,
+    Prompt,
+    Agent,
+}
+
+fn run_json(kind: JsonKind, args: HookExecSpecArgs, stdin_bytes: &[u8]) -> anyhow::Result<()> {
+    let spec = load_spec(&args.spec)?;
+    let result = execute_json_hook(kind, &spec, stdin_bytes)?;
+    write_json_stdout(&to_target_output(args.target, spec.event, &result))?;
+    process::exit(0);
+}
+
 fn execute_json_hook(
-    kind: HookExecKind,
+    kind: JsonKind,
     spec: &HookExecutionSpec,
     stdin_bytes: &[u8],
 ) -> anyhow::Result<NormalizedHookResult> {
     match kind {
-        HookExecKind::Http => http::execute(spec, stdin_bytes),
-        HookExecKind::Prompt => prompt::execute(spec, stdin_bytes),
-        HookExecKind::Agent => agent::execute(spec, stdin_bytes),
-        HookExecKind::Command => unreachable!(),
+        JsonKind::Http => http::execute(spec, stdin_bytes),
+        JsonKind::Prompt => prompt::execute(spec, stdin_bytes),
+        JsonKind::Agent => agent::execute(spec, stdin_bytes),
     }
+}
+
+fn run_dispatch(args: HookDispatchArgs, stdin_bytes: &[u8]) -> anyhow::Result<()> {
+    let event = parse_event(&args.event)?;
+    let outcome = dispatch(DispatchArgs {
+        target: args.target,
+        event,
+        specs_dir: &args.specs_dir,
+        stdin_bytes,
+    })?;
+    write_json_stdout(&outcome.json)?;
+    process::exit(outcome.exit_code);
+}
+
+fn parse_event(raw: &str) -> anyhow::Result<ClaudeEvent> {
+    ClaudeEvent::from_any_str(raw)
+        .ok_or_else(|| anyhow::anyhow!("unknown hook event `{raw}`"))
+}
+
+fn run_inject_guidance(args: HookInjectGuidanceArgs) -> anyhow::Result<()> {
+    let value = crate::staging::guidance::emit_injection_json(
+        &args.file,
+        &args.event,
+        args.target.as_str(),
+    )?;
+    write_json_stdout(&value)?;
+    process::exit(0);
 }
