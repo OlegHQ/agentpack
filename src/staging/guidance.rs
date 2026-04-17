@@ -105,7 +105,12 @@ pub(crate) fn collect_guidance_blob(
         walk_rules(&cache_root, &plugin.module, disabled, &mut rules)?;
     }
 
-    walk_rules(&project_dot_agents_dir(project_root), ".agents", &[], &mut rules)?;
+    walk_rules(
+        &project_dot_agents_dir(project_root),
+        ".agents",
+        &[],
+        &mut rules,
+    )?;
 
     if rules.is_empty() {
         return Ok(None);
@@ -172,8 +177,7 @@ fn add_claude_session_start_hook(bundle: &Path, guidance_file: &Path) -> Result<
 
     let hooks_path = bundle.join("hooks/hooks.json");
     let existing = fs::read_to_string(&hooks_path).unwrap_or_else(|_| "{\"hooks\":{}}".into());
-    let mut root: Value =
-        serde_json::from_str(&existing).unwrap_or_else(|_| json!({"hooks": {}}));
+    let mut root: Value = serde_json::from_str(&existing).unwrap_or_else(|_| json!({"hooks": {}}));
     let root_obj = root.as_object_mut().ok_or_else(|| {
         AgentpackError::Staging(format!("{}: not a JSON object", hooks_path.display()))
     })?;
@@ -181,7 +185,10 @@ fn add_claude_session_start_hook(bundle: &Path, guidance_file: &Path) -> Result<
         .entry("hooks".to_string())
         .or_insert_with(|| Value::Object(Map::new()));
     let hooks_obj = hooks.as_object_mut().ok_or_else(|| {
-        AgentpackError::Staging(format!("{}: `hooks` not a JSON object", hooks_path.display()))
+        AgentpackError::Staging(format!(
+            "{}: `hooks` not a JSON object",
+            hooks_path.display()
+        ))
     })?;
 
     let cmd = format!(
@@ -293,9 +300,7 @@ mod tests {
 
     #[test]
     fn strip_prior_block_removes_fenced_region() {
-        let text = format!(
-            "user text\n\n{AGENTS_MD_BEGIN}\ninjected\n{AGENTS_MD_END}\n"
-        );
+        let text = format!("user text\n\n{AGENTS_MD_BEGIN}\ninjected\n{AGENTS_MD_END}\n");
         let stripped = strip_prior_block(&text);
         assert!(stripped.contains("user text"));
         assert!(!stripped.contains("injected"));
@@ -383,7 +388,7 @@ mod tests {
         let parsed: serde_json::Value =
             serde_json::from_str(&fs::read_to_string(bundle.join("hooks/hooks.json")).unwrap())
                 .unwrap();
-        assert!(parsed["hooks"]["PreToolUse"].as_array().unwrap().len() >= 1);
+        assert!(!parsed["hooks"]["PreToolUse"].as_array().unwrap().is_empty());
         assert_eq!(parsed["hooks"]["SessionStart"].as_array().unwrap().len(), 1);
     }
 

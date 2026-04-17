@@ -14,8 +14,8 @@ use crate::artifacts::HarnessTarget;
 use crate::error::Result;
 
 use super::{
-    build_exec_spec_file, check_support, output_target_for, push_diag, HookRenderer,
-    RenderContext, RenderedHookFile, RenderedHookFileContents, RenderedHookOutput,
+    build_exec_spec_file, check_support, output_target_for, push_diag, HookRenderer, RenderContext,
+    RenderedHookFile, RenderedHookFileContents, RenderedHookOutput,
 };
 use crate::hooks::ir::{ClaudeEvent, HookBundle, NormalizedHook};
 use crate::hooks::paths::{hook_dispatch_command, specs_dispatch_root};
@@ -53,7 +53,8 @@ impl HookRenderer for CursorHookRenderer {
             }
             // Always write the spec so the dispatcher can find it; the command line emitted
             // in hooks.json is blanket (one per event) so we deliberately ignore the return path.
-            let _ = build_exec_spec_file(HarnessTarget::Cursor, hook, hook.event, ctx, &mut output)?;
+            let _ =
+                build_exec_spec_file(HarnessTarget::Cursor, hook, hook.event, ctx, &mut output)?;
 
             entries_per_event.entry(step).or_default();
             add_blanket_entry(

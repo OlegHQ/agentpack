@@ -78,7 +78,13 @@ pub fn run(cli: Cli) -> anyhow::Result<()> {
 
 fn run_mcp(root: &Path, action: McpAction, ui: &Ui) -> anyhow::Result<()> {
     match action {
-        McpAction::Add { name, command, args, env, no_sync } => {
+        McpAction::Add {
+            name,
+            command,
+            args,
+            env,
+            no_sync,
+        } => {
             let entry = crate::staging::mcp::McpServerEntry {
                 command: Some(command),
                 args,
@@ -107,7 +113,11 @@ fn run_mcp(root: &Path, action: McpAction, ui: &Ui) -> anyhow::Result<()> {
                 ui.message("No MCP servers configured.");
             } else {
                 for (name, (entry, source)) in &merged {
-                    let disabled = if entry.disabled == Some(true) { " (disabled)" } else { "" };
+                    let disabled = if entry.disabled == Some(true) {
+                        " (disabled)"
+                    } else {
+                        ""
+                    };
                     let shown = if let Some(url) = &entry.url {
                         url.clone()
                     } else {

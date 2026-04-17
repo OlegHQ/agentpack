@@ -299,14 +299,23 @@ pub(crate) fn skill_folder_name(pkg: &LockPackage) -> String {
 /// Check if a package is disabled in the lock config.
 pub(super) fn disabled_in_config(lock: &PackLock, pkg: &LockPackage) -> bool {
     let sid = crate::fs_util::truncate_str(&pkg.cache_key, 16);
-    lock.config.disabled_plugins.iter().any(|id| id == &pkg.cache_key || id.as_str() == sid)
+    lock.config
+        .disabled_plugins
+        .iter()
+        .any(|id| id == &pkg.cache_key || id.as_str() == sid)
 }
 
 /// True when this skill path is already provided by a full plugin at the same commit.
 pub fn skill_is_shadowed(skill: &LockPackage, plugins: &[&LockPackage]) -> bool {
     plugins
         .iter()
-        .filter(|p| p.kind == PackageKind::Plugin && !p.cache_key.is_empty() && !p.commit.is_empty() && !p.owner.is_empty() && !p.repo.is_empty())
+        .filter(|p| {
+            p.kind == PackageKind::Plugin
+                && !p.cache_key.is_empty()
+                && !p.commit.is_empty()
+                && !p.owner.is_empty()
+                && !p.repo.is_empty()
+        })
         .any(|p| {
             if skill.owner != p.owner || skill.repo != p.repo || skill.commit != p.commit {
                 return false;

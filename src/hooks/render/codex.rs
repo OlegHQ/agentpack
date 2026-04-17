@@ -76,8 +76,7 @@ fn render_handler(
         ClaudeHandler::Prompt(_) => Ok(handler_to_json_object(hook, false)),
         _ => {
             let kind = hook.handler.kind_name();
-            let spec_path =
-                build_exec_spec_file(HarnessTarget::Codex, hook, event, ctx, output)?;
+            let spec_path = build_exec_spec_file(HarnessTarget::Codex, hook, event, ctx, output)?;
             Ok(json!({
                 "type": "command",
                 "command": hook_exec_command(kind, output_target_for(HarnessTarget::Codex), &spec_path),

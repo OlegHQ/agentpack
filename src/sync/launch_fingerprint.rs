@@ -18,7 +18,6 @@ struct LaunchSyncState {
     digest: String,
 }
 
-
 fn hash_dot_agents_tree(dir: &Path) -> Result<Vec<u8>> {
     if !dir.is_dir() {
         return Ok(Vec::from(b"__dot_agents_absent__" as &[u8]));
@@ -68,7 +67,11 @@ pub fn compute_launch_sync_digest(project_root: &Path) -> Result<String> {
     hasher.update(hash_dot_agents_tree(&dot)?);
 
     hasher.update(b"staging_root\0");
-    hasher.update(env::var("AGENTPACK_STAGING_ROOT").unwrap_or_default().as_bytes());
+    hasher.update(
+        env::var("AGENTPACK_STAGING_ROOT")
+            .unwrap_or_default()
+            .as_bytes(),
+    );
 
     Ok(hex::encode(hasher.finalize()))
 }
@@ -96,7 +99,6 @@ pub fn write_launch_sync_state(project_root: &Path, digest: &str) -> Result<()> 
     fs::write(&path, json).map_err(|e| AgentpackError::io(&path, e))?;
     Ok(())
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -148,5 +150,4 @@ mod tests {
         let d2 = compute_launch_sync_digest(root).unwrap();
         assert_ne!(d1, d2);
     }
-
 }

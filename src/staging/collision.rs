@@ -196,7 +196,13 @@ pub(super) fn resolve_user_claude_bundle_collisions(
     cursor_pack: &Path,
 ) -> Result<StagingCollisionRemoval> {
     let home = dirs::home_dir();
-    resolve_user_claude_bundle_collisions_with_home(bundle, opencode, codex, cursor_pack, home.as_deref())
+    resolve_user_claude_bundle_collisions_with_home(
+        bundle,
+        opencode,
+        codex,
+        cursor_pack,
+        home.as_deref(),
+    )
 }
 
 #[cfg(test)]

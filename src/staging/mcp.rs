@@ -147,7 +147,10 @@ pub(crate) fn collect_merged_mcp(
 type MergedEntries = BTreeMap<String, (McpServerEntry, McpSource)>;
 
 fn bare_entries(merged: &MergedEntries) -> BTreeMap<String, McpServerEntry> {
-    merged.iter().map(|(k, (v, _))| (k.clone(), v.clone())).collect()
+    merged
+        .iter()
+        .map(|(k, (v, _))| (k.clone(), v.clone()))
+        .collect()
 }
 
 /// Collect merged MCP servers and render each harness in its native format.
@@ -218,27 +221,29 @@ fn merge_into_opencode_config(config_path: &Path, merged: &MergedEntries) -> Res
     use serde_json::Value;
 
     let mut root: Value = if config_path.is_file() {
-        let raw = fs::read_to_string(config_path).map_err(|e| AgentpackError::io(config_path, e))?;
-        crate::fs_util::parse_jsonc(&raw).map_err(|e| {
-            AgentpackError::Staging(format!("{}: {e}", config_path.display()))
-        })?
+        let raw =
+            fs::read_to_string(config_path).map_err(|e| AgentpackError::io(config_path, e))?;
+        crate::fs_util::parse_jsonc(&raw)
+            .map_err(|e| AgentpackError::Staging(format!("{}: {e}", config_path.display())))?
     } else {
         serde_json::json!({ "$schema": "https://opencode.ai/config.json" })
     };
 
-    let obj = root
-        .as_object_mut()
-        .ok_or_else(|| AgentpackError::Staging(format!(
+    let obj = root.as_object_mut().ok_or_else(|| {
+        AgentpackError::Staging(format!(
             "{}: top-level must be a JSON object",
             config_path.display()
-        )))?;
+        ))
+    })?;
     let mcp = obj
         .entry("mcp".to_string())
         .or_insert_with(|| Value::Object(serde_json::Map::new()));
-    let mcp_obj = mcp.as_object_mut().ok_or_else(|| AgentpackError::Staging(format!(
-        "{}: `mcp` must be a JSON object",
-        config_path.display()
-    )))?;
+    let mcp_obj = mcp.as_object_mut().ok_or_else(|| {
+        AgentpackError::Staging(format!(
+            "{}: `mcp` must be a JSON object",
+            config_path.display()
+        ))
+    })?;
     for (name, (entry, _)) in merged {
         if mcp_obj.contains_key(name) {
             continue;
@@ -287,27 +292,30 @@ fn codex_entry_table(entry: &McpServerEntry) -> toml::value::Table {
 /// User-seeded entries win: we only insert pack entries whose names are absent.
 fn merge_into_codex_config(config_path: &Path, merged: &MergedEntries) -> Result<()> {
     let mut doc: toml::Value = if config_path.is_file() {
-        let raw = fs::read_to_string(config_path).map_err(|e| AgentpackError::io(config_path, e))?;
+        let raw =
+            fs::read_to_string(config_path).map_err(|e| AgentpackError::io(config_path, e))?;
         toml::from_str(&raw)
             .map_err(|e| AgentpackError::Staging(format!("{}: {e}", config_path.display())))?
     } else {
         toml::Value::Table(Default::default())
     };
 
-    let root = doc
-        .as_table_mut()
-        .ok_or_else(|| AgentpackError::Staging(format!(
+    let root = doc.as_table_mut().ok_or_else(|| {
+        AgentpackError::Staging(format!(
             "{}: top-level must be a TOML table",
             config_path.display()
-        )))?;
+        ))
+    })?;
     let servers = root
         .entry("mcp_servers".to_string())
         .or_insert_with(|| toml::Value::Table(toml::value::Table::new()))
         .as_table_mut()
-        .ok_or_else(|| AgentpackError::Staging(format!(
-            "{}: `mcp_servers` must be a table",
-            config_path.display()
-        )))?;
+        .ok_or_else(|| {
+            AgentpackError::Staging(format!(
+                "{}: `mcp_servers` must be a table",
+                config_path.display()
+            ))
+        })?;
     for (name, (entry, _)) in merged {
         if servers.contains_key(name) {
             continue;
@@ -424,11 +432,7 @@ mod tests {
     fn codex_merge_user_wins_on_conflict() {
         let dir = tempdir().unwrap();
         let cfg = dir.path().join("config.toml");
-        fs::write(
-            &cfg,
-            "[mcp_servers.codesight]\ncommand = \"user-cmd\"\n",
-        )
-        .unwrap();
+        fs::write(&cfg, "[mcp_servers.codesight]\ncommand = \"user-cmd\"\n").unwrap();
         merge_into_codex_config(&cfg, &merged(&[("codesight", stdio_entry())])).unwrap();
         let text = fs::read_to_string(&cfg).unwrap();
         assert!(text.contains("command = \"user-cmd\""));

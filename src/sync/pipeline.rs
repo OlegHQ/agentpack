@@ -26,19 +26,33 @@ pub fn run_sync(
 
     let manifest = AgentpackManifest::load(project_root)?;
     if !dry_run {
-        maybe_refresh_lock_from_manifest(project_root, manifest.as_ref(), &client, ui, update_lock)?;
+        maybe_refresh_lock_from_manifest(
+            project_root,
+            manifest.as_ref(),
+            &client,
+            ui,
+            update_lock,
+        )?;
     }
 
     let lock = PackLock::load(project_root)?;
     let plugins: Vec<&LockPackage> = lock.plugins().collect();
-    let shadowed_skills = lock.skills().filter(|s| skill_is_shadowed(s, &plugins)).count();
+    let shadowed_skills = lock
+        .skills()
+        .filter(|s| skill_is_shadowed(s, &plugins))
+        .count();
 
     if dry_run {
         ui.message(format!(
             "Dry-run: would sync {} skill(s), {} plugin(s); {} skill(s) shadowed by plugins (omitted from staging); no changes made.",
             lock.skill_count(), lock.plugin_count(), shadowed_skills
         ));
-        tracing::info!(skills = lock.skill_count(), plugins = lock.plugin_count(), shadowed_skills, "dry-run");
+        tracing::info!(
+            skills = lock.skill_count(),
+            plugins = lock.plugin_count(),
+            shadowed_skills,
+            "dry-run"
+        );
         return Ok(());
     }
 
@@ -72,14 +86,18 @@ pub fn run_sync(
         if !ensure_lock_cached(&client, pkg, ui)? {
             warnings.push(format!(
                 "{} {} ({}): cache missing and source unavailable — omitted from staging",
-                pkg.kind_label(), crate::fs_util::truncate_str(&pkg.cache_key, 12), pkg.url
+                pkg.kind_label(),
+                crate::fs_util::truncate_str(&pkg.cache_key, 12),
+                pkg.url
             ));
         }
         upsert_entry(&pkg.cache_key, &index_record(pkg, fetched_at_unix), &[])?;
     }
 
     for warning in &warnings {
-        if !ui.quiet { ui.message(format!("Warning: {warning}")); }
+        if !ui.quiet {
+            ui.message(format!("Warning: {warning}"));
+        }
         tracing::warn!(message = %warning, "sync cache miss");
     }
     if shadowed_skills > 0 && !ui.quiet {
@@ -102,7 +120,12 @@ pub fn run_sync(
     Ui::finish_spinner(spinner.as_ref(), "Staging ready");
 
     let index_key_count = list_keys()?.len();
-    tracing::debug!(index_keys = index_key_count, skills = lock.skill_count(), plugins = lock.plugin_count(), "sync complete");
+    tracing::debug!(
+        index_keys = index_key_count,
+        skills = lock.skill_count(),
+        plugins = lock.plugin_count(),
+        "sync complete"
+    );
     if !ui.quiet {
         ui.message(format!(
             "Sync finished — {} skill(s), {} plugin(s), {} cache index entr(ies). One merged bundle: agentpack-bundle.",
@@ -119,7 +142,9 @@ fn maybe_refresh_lock_from_manifest(
     ui: &Ui,
     refresh_floating: bool,
 ) -> Result<()> {
-    let Some(manifest) = manifest else { return Ok(()); };
+    let Some(manifest) = manifest else {
+        return Ok(());
+    };
     if manifest.dependencies.is_empty() {
         return Ok(());
     }
@@ -128,7 +153,10 @@ fn maybe_refresh_lock_from_manifest(
         manifest,
         client,
         ui,
-        &ResolveLockOpts { previous: previous.as_ref(), refresh_floating },
+        &ResolveLockOpts {
+            previous: previous.as_ref(),
+            refresh_floating,
+        },
         project_root,
     )?;
     resolved.save(project_root)

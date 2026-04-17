@@ -99,7 +99,10 @@ fn load_specs(specs_dir: &Path) -> Vec<(std::path::PathBuf, HookExecutionSpec)> 
 /// Run the spec's handler and normalize the reply. Command handlers need special handling
 /// (they stream stdout/stderr to the harness directly, but here we aggregate, so we capture
 /// stdout as JSON and derive a decision from exit code).
-fn execute_spec(spec: &HookExecutionSpec, stdin_bytes: &[u8]) -> anyhow::Result<NormalizedHookResult> {
+fn execute_spec(
+    spec: &HookExecutionSpec,
+    stdin_bytes: &[u8],
+) -> anyhow::Result<NormalizedHookResult> {
     match &spec.handler {
         ClaudeHandler::Command(_) => {
             let result = command::execute(spec, stdin_bytes)?;
@@ -199,7 +202,10 @@ pub fn dispatch(args: DispatchArgs<'_>) -> anyhow::Result<DispatchOutcome> {
             Err(e) => {
                 tracing::warn!(spec = %path.display(), error = %e, "hook spec failed");
                 // Fail-closed for strict events: report deny with the error message.
-                if matches!(args.event, ClaudeEvent::PreToolUse | ClaudeEvent::PermissionRequest) {
+                if matches!(
+                    args.event,
+                    ClaudeEvent::PreToolUse | ClaudeEvent::PermissionRequest
+                ) {
                     merged.decision = HookDecision::Deny;
                     let msg = format!("hook dispatch error ({}): {e}", path.display());
                     merged.message = Some(match merged.message.take() {
@@ -219,7 +225,11 @@ pub fn dispatch(args: DispatchArgs<'_>) -> anyhow::Result<DispatchOutcome> {
         });
     }
 
-    let exit_code = if merged.decision == HookDecision::Deny { 2 } else { 0 };
+    let exit_code = if merged.decision == HookDecision::Deny {
+        2
+    } else {
+        0
+    };
     let json = to_target_output(args.target, args.event, &merged);
     Ok(DispatchOutcome { json, exit_code })
 }
@@ -300,5 +310,4 @@ mod tests {
         assert_eq!(acc.decision, HookDecision::Deny);
         assert_eq!(acc.message.as_deref(), Some("ok\nno"));
     }
-
 }

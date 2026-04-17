@@ -164,14 +164,18 @@ pub(in crate::staging) fn materialize_cursor_fake_home(project_root: &Path) -> R
 
     let real_home = dirs::home_dir();
     let real_cursor = real_home.as_ref().map(|h| h.join(".cursor"));
-    let user_mcp = real_cursor.as_ref().map(|rc| rc.join("mcp.json")).filter(|p| p.is_file());
+    let user_mcp = real_cursor
+        .as_ref()
+        .map(|rc| rc.join("mcp.json"))
+        .filter(|p| p.is_file());
     let pack_mcp = pack.join("mcp.json");
     let mcp_dest = fake_cursor.join("mcp.json");
     if let Some(ref user_path) = user_mcp {
         if pack_mcp.is_file() {
             // Merge: pack base (plugins + manifest + .agents), user entries win on conflict.
             let mut cfg = super::super::mcp::load_mcp_json(&pack_mcp)?;
-            cfg.mcp_servers.extend(super::super::mcp::load_mcp_json(user_path)?.mcp_servers);
+            cfg.mcp_servers
+                .extend(super::super::mcp::load_mcp_json(user_path)?.mcp_servers);
             let json = serde_json::to_string_pretty(&cfg)
                 .map_err(|e| AgentpackError::Staging(format!("mcp.json merge: {e}")))?;
             fs::write(&mcp_dest, json).map_err(|e| AgentpackError::io(&mcp_dest, e))?;
@@ -236,9 +240,13 @@ fn merge_cursor_hooks_into_fake_home(
     }
 
     fn merge_event_arrays(dest: &mut Map<String, Value>, src: Value) {
-        let Value::Object(src_hooks) = src else { return };
+        let Value::Object(src_hooks) = src else {
+            return;
+        };
         for (event, entries) in src_hooks {
-            let Value::Array(new_entries) = entries else { continue };
+            let Value::Array(new_entries) = entries else {
+                continue;
+            };
             let slot = dest
                 .entry(event)
                 .or_insert_with(|| Value::Array(Vec::new()));

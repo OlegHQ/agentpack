@@ -70,8 +70,7 @@ fn run_dispatch(args: HookDispatchArgs, stdin_bytes: &[u8]) -> anyhow::Result<()
 }
 
 fn parse_event(raw: &str) -> anyhow::Result<ClaudeEvent> {
-    ClaudeEvent::from_any_str(raw)
-        .ok_or_else(|| anyhow::anyhow!("unknown hook event `{raw}`"))
+    ClaudeEvent::from_any_str(raw).ok_or_else(|| anyhow::anyhow!("unknown hook event `{raw}`"))
 }
 
 fn run_inject_guidance(args: HookInjectGuidanceArgs) -> anyhow::Result<()> {

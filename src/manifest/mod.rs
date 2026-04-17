@@ -179,7 +179,12 @@ impl AgentpackManifest {
         with_manifest_document_mut(project_root, |doc| {
             let tab = get_or_insert_table(doc, "dependencies")?;
             if tab.get(module_key).is_none() {
-                tab.insert(module_key, toml_edit::Item::Value(toml_edit::Value::InlineTable(toml_edit::InlineTable::new())));
+                tab.insert(
+                    module_key,
+                    toml_edit::Item::Value(toml_edit::Value::InlineTable(
+                        toml_edit::InlineTable::new(),
+                    )),
+                );
             }
             Ok(())
         })
@@ -191,7 +196,10 @@ impl AgentpackManifest {
             let tab = get_or_insert_table(doc, "dependencies")?;
             let mut inline = toml_edit::InlineTable::new();
             inline.insert("path", toml_edit::Value::from(rel_path));
-            tab.insert(name, toml_edit::Item::Value(toml_edit::Value::InlineTable(inline)));
+            tab.insert(
+                name,
+                toml_edit::Item::Value(toml_edit::Value::InlineTable(inline)),
+            );
             Ok(())
         })
     }
@@ -239,7 +247,9 @@ impl AgentpackManifest {
                 .entry("servers")
                 .or_insert(toml_edit::Item::Table(toml_edit::Table::new()))
                 .as_table_mut()
-                .ok_or_else(|| AgentpackError::LockfileParse("[mcp.servers] must be a table".into()))?;
+                .ok_or_else(|| {
+                    AgentpackError::LockfileParse("[mcp.servers] must be a table".into())
+                })?;
             servers.insert(name, value);
             Ok(())
         })

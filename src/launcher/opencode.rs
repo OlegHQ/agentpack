@@ -1,8 +1,6 @@
 use anyhow::Context;
 
-use crate::launcher::common::{
-    apply_yolo_claude_opencode, exec_with_env, resolve_harness_binary,
-};
+use crate::launcher::common::{apply_yolo_claude_opencode, exec_with_env, resolve_harness_binary};
 use crate::paths;
 use crate::sync::sync_for_launch;
 use crate::ui::Ui;
@@ -20,10 +18,7 @@ pub fn run_opencode(
     }
 
     let config_dir = paths::staging_opencode_dir(project_root)?;
-    ui.debug_message(format!(
-        "OpenCode config dir: {}",
-        config_dir.display()
-    ));
+    ui.debug_message(format!("OpenCode config dir: {}", config_dir.display()));
 
     let opencode = resolve_harness_binary("OPENCODE_PATH", "opencode").with_context(|| {
         "OpenCode CLI (`opencode`) not found.\n\

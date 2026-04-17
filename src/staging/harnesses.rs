@@ -33,7 +33,11 @@ impl<'a> StagingPipeline<'a> {
         lock: &'a PackLock,
         manifest: Option<&'a AgentpackManifest>,
     ) -> Self {
-        Self { project_root, lock, manifest }
+        Self {
+            project_root,
+            lock,
+            manifest,
+        }
     }
 
     fn claude_bundle_dir(&self) -> Result<PathBuf> {
@@ -110,11 +114,15 @@ impl<'a> StagingPipeline<'a> {
 
         // OpenCode
         let root = self.opencode_root()?;
-        staging_require(root.is_dir(), || format!("opencode staging missing {}", root.display()))?;
+        staging_require(root.is_dir(), || {
+            format!("opencode staging missing {}", root.display())
+        })?;
 
         // Codex home
         let root = self.codex_home()?;
-        staging_require(root.is_dir(), || format!("codex home staging missing {}", root.display()))?;
+        staging_require(root.is_dir(), || {
+            format!("codex home staging missing {}", root.display())
+        })?;
 
         // Cursor
         let bundle_root = self.cursor_bundle_root()?;
@@ -123,12 +131,28 @@ impl<'a> StagingPipeline<'a> {
         staging_require(bundle_root.is_dir(), || {
             format!("cursor staging missing {}", bundle_root.display())
         })?;
-        staging_require(pack_plugin.join(".cursor-plugin/plugin.json").is_file(), || {
-            format!("cursor pack plugin missing {}", pack_plugin.join(".cursor-plugin/plugin.json").display())
-        })?;
-        staging_require(bundle_root.join(".cursor-plugin/marketplace.json").is_file(), || {
-            format!("cursor staging missing {}", bundle_root.join(".cursor-plugin/marketplace.json").display())
-        })?;
+        staging_require(
+            pack_plugin.join(".cursor-plugin/plugin.json").is_file(),
+            || {
+                format!(
+                    "cursor pack plugin missing {}",
+                    pack_plugin.join(".cursor-plugin/plugin.json").display()
+                )
+            },
+        )?;
+        staging_require(
+            bundle_root
+                .join(".cursor-plugin/marketplace.json")
+                .is_file(),
+            || {
+                format!(
+                    "cursor staging missing {}",
+                    bundle_root
+                        .join(".cursor-plugin/marketplace.json")
+                        .display()
+                )
+            },
+        )?;
         staging_require(home.join(".cursor").is_dir(), || {
             format!("cursor fake home missing .cursor/ under {}", home.display())
         })?;

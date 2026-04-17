@@ -96,7 +96,7 @@ fn collect_files_sorted(root: &Path) -> Vec<std::path::PathBuf> {
         .build();
     for entry in walker {
         let entry = entry.unwrap();
-        if entry.file_type().map_or(false, |ft| ft.is_file()) {
+        if entry.file_type().is_some_and(|ft| ft.is_file()) {
             let rel = entry.path().strip_prefix(root).unwrap();
             files.push(rel.to_path_buf());
         }

@@ -270,7 +270,6 @@ pub(super) fn upsert_fetched_index(
     upsert_entry(&fetched.cache_key, &rec, &aliases)
 }
 
-
 #[cfg(test)]
 mod tests {
     use std::fs;

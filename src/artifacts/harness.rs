@@ -89,5 +89,4 @@ impl HarnessTarget {
     pub(super) fn disables_model_invocation_for_kind(self, kind: ArtifactKind) -> bool {
         matches!((kind, self), (ArtifactKind::Command, _))
     }
-
 }

@@ -108,7 +108,11 @@ pub(crate) fn stage_dot_agents_overlay(project_root: &Path) -> Result<()> {
         merge_dot_agents_rules_mdc(&rules, &dest_rules)?;
     }
 
-    merge_dot_agents_subdir_into_dest_roots(&dot_agents, "skills", &[bundle.as_path(), codex.as_path()])?;
+    merge_dot_agents_subdir_into_dest_roots(
+        &dot_agents,
+        "skills",
+        &[bundle.as_path(), codex.as_path()],
+    )?;
     merge_dot_agents_subdir_into_dest_roots(&dot_agents, "agents", &[bundle.as_path()])?;
     merge_dot_agents_subdir_into_dest_roots(&dot_agents, "commands", &[bundle.as_path()])?;
 

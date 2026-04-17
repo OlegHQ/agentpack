@@ -115,9 +115,7 @@ pub(crate) fn write_text_file(path: &Path, contents: &str) -> Result<()> {
 }
 
 /// Parse a JSONC (JSON with comments) string into a typed value.
-pub(crate) fn parse_jsonc<T: serde::de::DeserializeOwned>(
-    raw: &str,
-) -> serde_json::Result<T> {
+pub(crate) fn parse_jsonc<T: serde::de::DeserializeOwned>(raw: &str) -> serde_json::Result<T> {
     let mut buf = raw.as_bytes().to_vec();
     let _ = json_strip_comments::strip_slice(&mut buf);
     serde_json::from_slice(&buf)
@@ -138,17 +136,16 @@ pub(crate) fn truncate_str(value: &str, max_chars: usize) -> String {
 }
 
 /// Stream a file's contents into a SHA-256 hasher in 8 KiB chunks.
-pub(crate) fn stream_file_into_hasher(
-    path: &Path,
-    hasher: &mut sha2::Sha256,
-) -> Result<()> {
+pub(crate) fn stream_file_into_hasher(path: &Path, hasher: &mut sha2::Sha256) -> Result<()> {
     use sha2::Digest;
     use std::io::Read;
     let file = fs::File::open(path).map_err(|e| AgentpackError::io(path, e))?;
     let mut reader = std::io::BufReader::new(file);
     let mut buf = [0u8; 8192];
     loop {
-        let n = reader.read(&mut buf).map_err(|e| AgentpackError::io(path, e))?;
+        let n = reader
+            .read(&mut buf)
+            .map_err(|e| AgentpackError::io(path, e))?;
         if n == 0 {
             break;
         }
