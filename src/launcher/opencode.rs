@@ -1,24 +1,25 @@
 use anyhow::Context;
 
-use crate::launcher::common::{apply_yolo_claude_opencode, exec_with_env, resolve_harness_binary};
+use crate::fs_util::{read_json_value_opt, write_json_value};
+use crate::launcher::common::{exec_with_env, resolve_harness_binary};
 use crate::paths;
 use crate::sync::sync_for_launch;
 use crate::ui::Ui;
 
 pub fn run_opencode(
     project_root: &std::path::Path,
-    mut passthrough: Vec<String>,
+    passthrough: Vec<String>,
     yolo: bool,
     ui: &Ui,
 ) -> anyhow::Result<()> {
     sync_for_launch(project_root, ui)?;
 
-    if yolo {
-        apply_yolo_claude_opencode(&mut passthrough);
-    }
-
     let config_dir = paths::staging_opencode_dir(project_root)?;
     ui.debug_message(format!("OpenCode config dir: {}", config_dir.display()));
+
+    if yolo {
+        apply_yolo_opencode_config(&config_dir)?;
+    }
 
     let opencode = resolve_harness_binary("OPENCODE_PATH", "opencode").with_context(|| {
         "OpenCode CLI (`opencode`) not found.\n\
@@ -29,4 +30,21 @@ pub fn run_opencode(
         &[("OPENCODE_CONFIG_DIR", config_dir.into())],
         passthrough,
     )
+}
+
+/// OpenCode has no CLI flag for bypassing permissions; it reads `permission` from
+/// `opencode.json`. Patch the staged config so `agentpack --yolo opencode` actually
+/// skips prompts instead of falling through to OpenCode's help screen.
+fn apply_yolo_opencode_config(config_dir: &std::path::Path) -> anyhow::Result<()> {
+    let config_path = config_dir.join("opencode.json");
+    let mut value = read_json_value_opt(&config_path)?.unwrap_or_else(|| serde_json::json!({}));
+    let Some(obj) = value.as_object_mut() else {
+        anyhow::bail!(
+            "staged {} is not a JSON object; cannot apply --yolo",
+            config_path.display()
+        );
+    };
+    obj.insert("permission".into(), serde_json::json!("allow"));
+    write_json_value(&config_path, &value)?;
+    Ok(())
 }

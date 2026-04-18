@@ -9,8 +9,8 @@ fn args_contain_any(args: &[String], needles: &[&str]) -> bool {
     args.iter().any(|a| needles.contains(&a.as_str()))
 }
 
-/// Injects Claude Code / OpenCode **`--dangerously-skip-permissions`** when **`agentpack --yolo`** is set.
-pub fn apply_yolo_claude_opencode(args: &mut Vec<String>) {
+/// Injects Claude Code **`--dangerously-skip-permissions`** when **`agentpack --yolo`** is set.
+pub fn apply_yolo_claude(args: &mut Vec<String>) {
     const FLAG: &str = "--dangerously-skip-permissions";
     if args_contain_any(args, &[FLAG]) {
         return;
@@ -167,9 +167,9 @@ mod tests {
     #[test]
     fn yolo_claude_prepends_once() {
         let mut a = vec!["chat".into()];
-        apply_yolo_claude_opencode(&mut a);
+        apply_yolo_claude(&mut a);
         assert_eq!(a, vec!["--dangerously-skip-permissions", "chat"]);
-        apply_yolo_claude_opencode(&mut a);
+        apply_yolo_claude(&mut a);
         assert_eq!(a, vec!["--dangerously-skip-permissions", "chat"]);
     }
 

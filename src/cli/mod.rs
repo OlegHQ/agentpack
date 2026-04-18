@@ -24,7 +24,7 @@ pub struct Cli {
     #[arg(long, global = true)]
     pub no_progress: bool,
 
-    /// Forward each harness's "skip permission prompts" / full-access mode (Claude/OpenCode: `--dangerously-skip-permissions`; Codex: `--dangerously-bypass-approvals-and-sandbox`; Cursor `agent`: `--force`)
+    /// Forward each harness's "skip permission prompts" / full-access mode (Claude: `--dangerously-skip-permissions`; OpenCode: stage `opencode.json` with `"permission": "allow"`; Codex: `--dangerously-bypass-approvals-and-sandbox`; Cursor `agent`: `--force`)
     #[arg(long, global = true)]
     pub yolo: bool,
 

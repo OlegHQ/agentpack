@@ -16,7 +16,7 @@ pub fn run_claude(
     sync_for_launch(project_root, ui)?;
 
     if yolo {
-        crate::launcher::common::apply_yolo_claude_opencode(&mut passthrough);
+        crate::launcher::common::apply_yolo_claude(&mut passthrough);
     }
 
     let plugin_dirs = staging::list_plugin_dirs(project_root)?;
