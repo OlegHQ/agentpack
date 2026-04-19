@@ -624,17 +624,13 @@ fn request_quit(app: &mut TuiApp) {
 fn handle_modes_key(app: &mut TuiApp, code: KeyCode) {
     let names = app.mode_names();
     match code {
-        KeyCode::Up | KeyCode::Char('k') => {
-            if app.modes_cursor > 0 {
-                app.modes_cursor -= 1;
-                app.state.selected_mode = names[app.modes_cursor].clone();
-            }
+        KeyCode::Up | KeyCode::Char('k') if app.modes_cursor > 0 => {
+            app.modes_cursor -= 1;
+            app.state.selected_mode = names[app.modes_cursor].clone();
         }
-        KeyCode::Down | KeyCode::Char('j') => {
-            if app.modes_cursor + 1 < names.len() {
-                app.modes_cursor += 1;
-                app.state.selected_mode = names[app.modes_cursor].clone();
-            }
+        KeyCode::Down | KeyCode::Char('j') if app.modes_cursor + 1 < names.len() => {
+            app.modes_cursor += 1;
+            app.state.selected_mode = names[app.modes_cursor].clone();
         }
         KeyCode::Enter | KeyCode::Right => app.focus = Focus::Tree,
         KeyCode::Char('n') => {
@@ -692,15 +688,11 @@ fn handle_tree_key(app: &mut TuiApp, code: KeyCode) {
     }
 
     match code {
-        KeyCode::Up | KeyCode::Char('k') => {
-            if app.tree_cursor > 0 {
-                app.tree_cursor -= 1;
-            }
+        KeyCode::Up | KeyCode::Char('k') if app.tree_cursor > 0 => {
+            app.tree_cursor -= 1;
         }
-        KeyCode::Down | KeyCode::Char('j') => {
-            if app.tree_cursor + 1 < snapshot.len() {
-                app.tree_cursor += 1;
-            }
+        KeyCode::Down | KeyCode::Char('j') if app.tree_cursor + 1 < snapshot.len() => {
+            app.tree_cursor += 1;
         }
         KeyCode::Left | KeyCode::Char('h') => {
             let (id, expandable, expanded) = &snapshot[app.tree_cursor];

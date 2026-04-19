@@ -973,24 +973,8 @@ fn sync_applies_default_and_selected_modes_to_staging() {
     });
     lock.save(&root).unwrap();
 
-    run(Cli {
-        project_root: Some(root.clone()),
-        quiet: true,
-        no_progress: true,
-        yolo: false,
-        mode: None,
-        debug: false,
-        command: Command::Mode {
-            action: ModeAction::Disable {
-                name: "default".into(),
-                selectors: vec![
-                    "package-path:github.com/acme/design-pack:commands/noisy.md".into(),
-                ],
-            },
-        },
-    })
-    .unwrap();
-
+    // Default mode is read-only (base=all, no selectors); plain sync stages every
+    // cached file untouched.
     run(Cli {
         project_root: Some(root.clone()),
         quiet: true,
@@ -1008,7 +992,27 @@ fn sync_applies_default_and_selected_modes_to_staging() {
 
     let default_bundle = staging_plugins_dir(&root).unwrap().join("agentpack-bundle");
     assert!(default_bundle.join("commands/useful.md").is_file());
-    assert!(!default_bundle.join("commands/noisy.md").exists());
+    assert!(default_bundle.join("commands/noisy.md").is_file());
+
+    // Editing `default` is rejected — read-only.
+    let default_edit = run(Cli {
+        project_root: Some(root.clone()),
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        mode: None,
+        debug: false,
+        command: Command::Mode {
+            action: ModeAction::Disable {
+                name: "default".into(),
+                selectors: vec!["package-path:github.com/acme/design-pack:commands/noisy.md".into()],
+            },
+        },
+    });
+    assert!(
+        default_edit.is_err(),
+        "default mode should be read-only and reject selector edits"
+    );
 
     run(Cli {
         project_root: Some(root.clone()),
