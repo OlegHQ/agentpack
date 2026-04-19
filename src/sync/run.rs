@@ -6,6 +6,8 @@ use crate::cache::verify_lock_cache_integrity;
 use crate::error::{AgentpackError, Result};
 use crate::lockfile::PackLock;
 use crate::manifest::AgentpackManifest;
+use crate::mode::catalog::CapabilityCatalog;
+use crate::mode::filter::EffectiveMode;
 use crate::paths;
 use crate::resolve::{resolve_lock_from_manifest, ResolveLockOpts};
 use crate::staging;
@@ -42,12 +44,17 @@ fn resolve_and_save_lock(
     Ok(lock)
 }
 
-fn sync_unless_skipped(project_root: &Path, no_sync: bool, ui: &Ui) -> Result<()> {
+fn sync_unless_skipped(
+    project_root: &Path,
+    selected_mode: Option<&str>,
+    no_sync: bool,
+    ui: &Ui,
+) -> Result<()> {
     if no_sync {
         ui.message("Skipping sync (--no-sync).");
         return Ok(());
     }
-    super::run_sync(project_root, false, false, false, ui)
+    super::run_sync(project_root, false, false, false, selected_mode, ui)
 }
 
 pub fn run_add(project_root: &Path, spec: &str, no_sync: bool, ui: &Ui) -> Result<()> {
@@ -73,7 +80,7 @@ pub fn run_add(project_root: &Path, spec: &str, no_sync: bool, ui: &Ui) -> Resul
         ui.message(format!(
             "Recorded {basename} = {{ path = \"{rel_str}\" }} in agentpack.toml and refreshed pack.lock."
         ));
-        return sync_unless_skipped(project_root, no_sync, ui);
+        return sync_unless_skipped(project_root, None, no_sync, ui);
     }
 
     let client = http_client()?;
@@ -93,7 +100,7 @@ pub fn run_add(project_root: &Path, spec: &str, no_sync: bool, ui: &Ui) -> Resul
         "Recorded {module_key} in agentpack.toml and refreshed pack.lock."
     ));
 
-    sync_unless_skipped(project_root, no_sync, ui)
+    sync_unless_skipped(project_root, None, no_sync, ui)
 }
 
 pub fn run_remove(project_root: &Path, spec: &str, no_sync: bool, ui: &Ui) -> Result<()> {
@@ -112,7 +119,7 @@ pub fn run_remove(project_root: &Path, spec: &str, no_sync: bool, ui: &Ui) -> Re
             paths::lock_path(project_root).display()
         ));
     }
-    sync_unless_skipped(project_root, no_sync, ui)
+    sync_unless_skipped(project_root, None, no_sync, ui)
 }
 
 pub fn run_lock(project_root: &Path, refresh_floating: bool, ui: &Ui) -> Result<()> {
@@ -134,20 +141,26 @@ pub fn run_lock(project_root: &Path, refresh_floating: bool, ui: &Ui) -> Result<
 ///
 /// When inputs are unchanged, skips full resolve/stage and reuses existing cache + staging after
 /// integrity checks.
-pub fn sync_for_launch(project_root: &Path, ui: &Ui) -> Result<()> {
+pub fn sync_for_launch(
+    project_root: &Path,
+    selected_mode: Option<&str>,
+    ui: &Ui,
+) -> Result<EffectiveMode> {
     paths::ensure_user_agentpack_layout()?;
+    let manifest = AgentpackManifest::load(project_root)?;
+    let lock = PackLock::load(project_root)?;
+    let mode = resolve_effective_mode(project_root, manifest.as_ref(), &lock, selected_mode)?;
 
-    if let Some(stored) = read_stored_launch_digest(project_root)? {
-        let current = compute_launch_sync_digest(project_root)?;
+    if let Some(stored) = read_stored_launch_digest(project_root, mode.name())? {
+        let current = compute_launch_sync_digest(project_root, &mode)?;
         if stored == current {
-            let lock = PackLock::load(project_root)?;
             match verify_lock_cache_integrity(&lock) {
-                Ok(()) => match staging::verify_staging(project_root, &lock) {
+                Ok(()) => match staging::verify_staging(project_root, &lock, &mode) {
                     Ok(()) => {
                         ui.debug_message(
                             "Launch sync skipped — manifest, lock, cache, and staging look unchanged.",
                         );
-                        return Ok(());
+                        return Ok(mode);
                     }
                     Err(e) => tracing::debug!(%e, "launch fast path: verify_staging failed"),
                 },
@@ -156,8 +169,18 @@ pub fn sync_for_launch(project_root: &Path, ui: &Ui) -> Result<()> {
         }
     }
 
-    super::run_sync(project_root, false, false, false, ui)?;
-    let digest = compute_launch_sync_digest(project_root)?;
-    write_launch_sync_state(project_root, &digest)?;
-    Ok(())
+    super::run_sync(project_root, false, false, false, Some(mode.name()), ui)?;
+    let digest = compute_launch_sync_digest(project_root, &mode)?;
+    write_launch_sync_state(project_root, mode.name(), &digest)?;
+    Ok(mode)
+}
+
+pub fn resolve_effective_mode(
+    project_root: &Path,
+    manifest: Option<&AgentpackManifest>,
+    lock: &PackLock,
+    selected_mode: Option<&str>,
+) -> Result<EffectiveMode> {
+    let catalog = CapabilityCatalog::build(project_root, Some(lock), manifest)?;
+    EffectiveMode::resolve(manifest, selected_mode, Some(&catalog))
 }

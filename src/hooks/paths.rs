@@ -7,9 +7,9 @@ use walkdir::WalkDir;
 use crate::artifacts::HarnessTarget;
 use crate::error::{AgentpackError, Result};
 use crate::fs_util::{fast_copy_file, write_json_value};
-use crate::staging::rel_is_disabled;
+use crate::mode::filter::EffectiveMode;
 
-use super::ir::{HookBundle, HookOrigin, HookOutputTarget, NormalizedHook};
+use super::ir::{HookBundle, HookLayer, HookOrigin, HookOutputTarget, NormalizedHook};
 use super::runtime::bridge::HookExecutionSpec;
 
 fn base_asset_root(target: HarnessTarget, target_root: &Path) -> PathBuf {
@@ -21,7 +21,22 @@ fn base_asset_root(target: HarnessTarget, target_root: &Path) -> PathBuf {
     }
 }
 
-fn copy_filtered_tree(src_root: &Path, dst_root: &Path, disabled: &[String]) -> Result<()> {
+fn origin_allows_path(mode: &EffectiveMode, origin: &HookOrigin, rel: &Path) -> Result<bool> {
+    match origin.layer {
+        HookLayer::SeededNative => Ok(true),
+        HookLayer::PackPlugin | HookLayer::BareSkill => {
+            mode.allows_package_path(&origin.module, rel)
+        }
+        HookLayer::DotAgents => mode.allows_dot_agents_path(rel),
+    }
+}
+
+fn copy_filtered_tree(
+    src_root: &Path,
+    dst_root: &Path,
+    origin: &HookOrigin,
+    mode: &EffectiveMode,
+) -> Result<()> {
     if !src_root.is_dir() {
         return Ok(());
     }
@@ -32,7 +47,7 @@ fn copy_filtered_tree(src_root: &Path, dst_root: &Path, disabled: &[String]) -> 
         let rel = path.strip_prefix(src_root).map_err(|_| {
             AgentpackError::Staging(format!("path outside source root {}", path.display()))
         })?;
-        if rel.as_os_str().is_empty() || rel_is_disabled(rel, disabled) {
+        if rel.as_os_str().is_empty() || !origin_allows_path(mode, origin, rel)? {
             continue;
         }
         if entry.file_type().is_dir() {
@@ -51,6 +66,7 @@ pub fn stage_origin_packages(
     bundle: &HookBundle,
     target: HarnessTarget,
     target_root: &Path,
+    mode: &EffectiveMode,
 ) -> Result<BTreeMap<String, PathBuf>> {
     let mut roots = BTreeMap::new();
     let mut seen = BTreeSet::new();
@@ -64,11 +80,7 @@ pub fn stage_origin_packages(
         let package_root = base_asset_root(target, target_root)
             .join(&hook.origin.package_key)
             .join("package");
-        copy_filtered_tree(
-            &hook.origin.source_root,
-            &package_root,
-            &hook.origin.disabled_paths,
-        )?;
+        copy_filtered_tree(&hook.origin.source_root, &package_root, &hook.origin, mode)?;
         roots.insert(hook.origin.package_key.clone(), package_root);
     }
     Ok(roots)

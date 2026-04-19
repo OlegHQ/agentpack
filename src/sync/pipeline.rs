@@ -19,6 +19,7 @@ pub fn run_sync(
     dry_run: bool,
     verify_only: bool,
     update_lock: bool,
+    selected_mode: Option<&str>,
     ui: &Ui,
 ) -> Result<()> {
     paths::ensure_user_agentpack_layout()?;
@@ -36,6 +37,8 @@ pub fn run_sync(
     }
 
     let lock = PackLock::load(project_root)?;
+    let mode =
+        super::run::resolve_effective_mode(project_root, manifest.as_ref(), &lock, selected_mode)?;
     let plugins: Vec<&LockPackage> = lock.plugins().collect();
     let shadowed_skills = lock
         .skills()
@@ -109,14 +112,14 @@ pub fn run_sync(
 
     if verify_only {
         let spinner = ui.spinner("Verify staging layout…");
-        staging::verify_staging(project_root, &lock)?;
+        staging::verify_staging(project_root, &lock, &mode)?;
         Ui::finish_spinner(spinner.as_ref(), "Staging checks passed");
         return Ok(());
     }
 
     let spinner = ui.spinner("Rebuild plugin staging…");
-    staging::rebuild_staging(project_root, &lock, manifest.as_ref())?;
-    staging::verify_staging(project_root, &lock)?;
+    staging::rebuild_staging(project_root, &lock, manifest.as_ref(), &mode)?;
+    staging::verify_staging(project_root, &lock, &mode)?;
     Ui::finish_spinner(spinner.as_ref(), "Staging ready");
 
     let index_key_count = list_keys()?.len();

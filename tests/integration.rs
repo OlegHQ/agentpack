@@ -2,12 +2,14 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use agentpack::cli::dispatch::run;
-use agentpack::cli::{Cli, Command};
+use agentpack::cli::{Cli, Command, ModeAction};
 use agentpack::lockfile::{LockPackage, PackLock, PackageKind};
+use agentpack::mode::filter::EffectiveMode;
 use agentpack::paths::{
     cache_dir, cursor_workspace_dir, project_dot_agents_dir, staging_codex_home_dir,
-    staging_cursor_bundle_dir, staging_cursor_home_dir, staging_cursor_pack_plugin_dir,
-    staging_opencode_dir, staging_plugins_dir,
+    staging_codex_home_dir_for_mode, staging_cursor_bundle_dir, staging_cursor_home_dir,
+    staging_cursor_pack_plugin_dir, staging_opencode_dir, staging_plugins_dir,
+    staging_plugins_dir_for_mode,
 };
 use agentpack::sync::launch_fingerprint::{
     compute_launch_sync_digest, read_stored_launch_digest, write_launch_sync_state,
@@ -30,6 +32,7 @@ fn init_writes_pack_lock_and_agentpack_dir() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        mode: None,
         debug: false,
         command: Command::Init {
             name: Some("myproj".into()),
@@ -53,6 +56,7 @@ fn init_refuses_existing_lock() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        mode: None,
         debug: false,
         command: Command::Init {
             name: None,
@@ -65,6 +69,7 @@ fn init_refuses_existing_lock() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        mode: None,
         debug: false,
         command: Command::Init {
             name: None,
@@ -92,11 +97,16 @@ fn launch_sync_state_roundtrip_under_isolated_home() {
     )
     .unwrap();
 
-    let d = compute_launch_sync_digest(&root).unwrap();
-    assert!(read_stored_launch_digest(&root).unwrap().is_none());
-    write_launch_sync_state(&root, &d).unwrap();
+    let mode = EffectiveMode::implicit_default();
+    let d = compute_launch_sync_digest(&root, &mode).unwrap();
+    assert!(read_stored_launch_digest(&root, mode.name())
+        .unwrap()
+        .is_none());
+    write_launch_sync_state(&root, mode.name(), &d).unwrap();
     assert_eq!(
-        read_stored_launch_digest(&root).unwrap().as_deref(),
+        read_stored_launch_digest(&root, mode.name())
+            .unwrap()
+            .as_deref(),
         Some(d.as_str())
     );
 }
@@ -112,6 +122,7 @@ fn sync_stages_full_plugin_and_shadows_contained_skill() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        mode: None,
         debug: false,
         command: Command::Init {
             name: None,
@@ -167,6 +178,7 @@ fn sync_stages_full_plugin_and_shadows_contained_skill() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        mode: None,
         debug: false,
         command: Command::Sync {
             dry_run: false,
@@ -244,6 +256,7 @@ fn sync_stages_bare_skills_for_all_launchers() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        mode: None,
         debug: false,
         command: Command::Init {
             name: None,
@@ -277,6 +290,7 @@ fn sync_stages_bare_skills_for_all_launchers() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        mode: None,
         debug: false,
         command: Command::Sync {
             dry_run: false,
@@ -324,6 +338,7 @@ fn sync_stages_bare_skill_under_lockfile_slug_when_frontmatter_name_differs() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        mode: None,
         debug: false,
         command: Command::Init {
             name: None,
@@ -362,6 +377,7 @@ fn sync_stages_bare_skill_under_lockfile_slug_when_frontmatter_name_differs() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        mode: None,
         debug: false,
         command: Command::Sync {
             dry_run: false,
@@ -395,6 +411,7 @@ fn sync_stages_cursor_and_claude_plugin_with_skill_support_and_command_sidecars(
         quiet: true,
         no_progress: true,
         yolo: false,
+        mode: None,
         debug: false,
         command: Command::Init {
             name: None,
@@ -450,6 +467,7 @@ fn sync_stages_cursor_and_claude_plugin_with_skill_support_and_command_sidecars(
         quiet: true,
         no_progress: true,
         yolo: false,
+        mode: None,
         debug: false,
         command: Command::Sync {
             dry_run: false,
@@ -500,6 +518,7 @@ fn sync_converts_markdown_artifacts_per_target_harness() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        mode: None,
         debug: false,
         command: Command::Init {
             name: None,
@@ -564,6 +583,7 @@ fn sync_converts_markdown_artifacts_per_target_harness() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        mode: None,
         debug: false,
         command: Command::Sync {
             dry_run: false,
@@ -633,6 +653,7 @@ fn sync_leaves_project_cursor_files_alone_when_pack_overlaps_names() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        mode: None,
         debug: false,
         command: Command::Init {
             name: None,
@@ -683,6 +704,7 @@ fn sync_leaves_project_cursor_files_alone_when_pack_overlaps_names() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        mode: None,
         debug: false,
         command: Command::Sync {
             dry_run: false,
@@ -717,6 +739,7 @@ fn sync_does_not_remove_user_cursor_files_when_pack_entries_removed() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        mode: None,
         debug: false,
         command: Command::Init {
             name: None,
@@ -760,6 +783,7 @@ fn sync_does_not_remove_user_cursor_files_when_pack_entries_removed() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        mode: None,
         debug: false,
         command: Command::Sync {
             dry_run: false,
@@ -782,6 +806,7 @@ fn sync_does_not_remove_user_cursor_files_when_pack_entries_removed() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        mode: None,
         debug: false,
         command: Command::Sync {
             dry_run: false,
@@ -814,6 +839,7 @@ fn sync_merges_dot_agents_into_staging() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        mode: None,
         debug: false,
         command: Command::Init {
             name: None,
@@ -845,6 +871,7 @@ fn sync_merges_dot_agents_into_staging() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        mode: None,
         debug: false,
         command: Command::Sync {
             dry_run: false,
@@ -882,6 +909,182 @@ fn sync_merges_dot_agents_into_staging() {
 
 #[test]
 #[serial]
+fn sync_applies_default_and_selected_modes_to_staging() {
+    let dir = tempdir().unwrap();
+    let root: PathBuf = dir.path().to_path_buf();
+    prep_store(&root);
+    run(Cli {
+        project_root: Some(root.clone()),
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        mode: None,
+        debug: false,
+        command: Command::Init {
+            name: None,
+            version: None,
+        },
+    })
+    .unwrap();
+
+    let cache_key = "d".repeat(64);
+    let cache_root = cache_dir().unwrap().join(&cache_key);
+    fs::create_dir_all(cache_root.join(".claude-plugin")).unwrap();
+    fs::write(
+        cache_root.join(".claude-plugin/plugin.json"),
+        r#"{"name":"design-pack","version":"1.0.0"}"#,
+    )
+    .unwrap();
+    fs::create_dir_all(cache_root.join("commands")).unwrap();
+    fs::write(cache_root.join("commands/noisy.md"), "# noisy\n").unwrap();
+    fs::write(cache_root.join("commands/useful.md"), "# useful\n").unwrap();
+    fs::create_dir_all(cache_root.join("rules")).unwrap();
+    fs::write(
+        cache_root.join("rules/always.mdc"),
+        "---\nalwaysApply: true\n---\n\n# Filtered Rule\n",
+    )
+    .unwrap();
+    fs::write(
+        cache_root.join("mcp.json"),
+        r#"{"mcpServers":{"filesystem":{"command":"npx","args":["-y","@modelcontextprotocol/server-filesystem"]}}}"#,
+    )
+    .unwrap();
+
+    let dot_agents = project_dot_agents_dir(&root);
+    fs::create_dir_all(dot_agents.join("skills/local-skill")).unwrap();
+    fs::write(
+        dot_agents.join("skills/local-skill/SKILL.md"),
+        "---\nname: local-skill\ndescription: local\n---\n",
+    )
+    .unwrap();
+
+    let mut lock = PackLock::load(&root).unwrap();
+    lock.packages.push(LockPackage {
+        module: "github.com/acme/design-pack".into(),
+        direct: true,
+        kind: PackageKind::Plugin,
+        url: "https://github.com/acme/design-pack/tree/main".into(),
+        owner: "acme".into(),
+        repo: "design-pack".into(),
+        path: String::new(),
+        commit: "c".repeat(40),
+        cache_key: cache_key.clone(),
+        name: String::new(),
+    });
+    lock.save(&root).unwrap();
+
+    run(Cli {
+        project_root: Some(root.clone()),
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        mode: None,
+        debug: false,
+        command: Command::Mode {
+            action: ModeAction::Disable {
+                name: "default".into(),
+                selectors: vec![
+                    "package-path:github.com/acme/design-pack:commands/noisy.md".into(),
+                ],
+            },
+        },
+    })
+    .unwrap();
+
+    run(Cli {
+        project_root: Some(root.clone()),
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        mode: None,
+        debug: false,
+        command: Command::Sync {
+            dry_run: false,
+            verify_only: false,
+            update_lock: false,
+        },
+    })
+    .unwrap();
+
+    let default_bundle = staging_plugins_dir(&root).unwrap().join("agentpack-bundle");
+    assert!(default_bundle.join("commands/useful.md").is_file());
+    assert!(!default_bundle.join("commands/noisy.md").exists());
+
+    run(Cli {
+        project_root: Some(root.clone()),
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        mode: None,
+        debug: false,
+        command: Command::Mode {
+            action: ModeAction::Create {
+                name: "design".into(),
+            },
+        },
+    })
+    .unwrap();
+    run(Cli {
+        project_root: Some(root.clone()),
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        mode: None,
+        debug: false,
+        command: Command::Mode {
+            action: ModeAction::Disable {
+                name: "design".into(),
+                selectors: vec![
+                    "package-path:github.com/acme/design-pack:commands/noisy.md".into(),
+                    "package-path:github.com/acme/design-pack:rules/always.mdc".into(),
+                    "mcp:filesystem".into(),
+                    ".agents:skills/local-skill/SKILL.md".into(),
+                ],
+            },
+        },
+    })
+    .unwrap();
+
+    run(Cli {
+        project_root: Some(root.clone()),
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        mode: Some("design".into()),
+        debug: false,
+        command: Command::Sync {
+            dry_run: false,
+            verify_only: false,
+            update_lock: false,
+        },
+    })
+    .unwrap();
+
+    let design_bundle = staging_plugins_dir_for_mode(&root, "design")
+        .unwrap()
+        .join("agentpack-bundle");
+    assert!(design_bundle.is_dir());
+    assert!(design_bundle.join("commands/useful.md").is_file());
+    assert!(!design_bundle.join("commands/noisy.md").exists());
+    assert!(
+        !design_bundle.join(".mcp.json").exists(),
+        "filtered MCP contributions should not be staged"
+    );
+
+    let design_codex = staging_codex_home_dir_for_mode(&root, "design").unwrap();
+    assert!(
+        !design_codex.join("skills/local-skill/SKILL.md").exists(),
+        "filtered .agents skill should not be merged into codex staging"
+    );
+    let guidance = fs::read_to_string(design_codex.join("AGENTS.md")).unwrap_or_default();
+    assert!(
+        !guidance.contains("Filtered Rule"),
+        "filtered always-apply rule should not be injected"
+    );
+}
+
+#[test]
+#[serial]
 #[ignore = "network: resolves GitHub API and downloads tarball"]
 fn add_real_github_skill() {
     let _ = tracing_subscriber::fmt::try_init();
@@ -893,6 +1096,7 @@ fn add_real_github_skill() {
         quiet: false,
         no_progress: true,
         yolo: false,
+        mode: None,
         debug: false,
         command: Command::Init {
             name: None,
@@ -905,6 +1109,7 @@ fn add_real_github_skill() {
         quiet: false,
         no_progress: true,
         yolo: false,
+        mode: None,
         debug: false,
         command: Command::Add {
             spec: "https://github.com/anthropics/skills/tree/main/skills/canvas-design".into(),
@@ -931,6 +1136,7 @@ fn sync_stages_hooks_for_all_harnesses() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        mode: None,
         debug: false,
         command: Command::Init {
             name: None,
@@ -1017,6 +1223,7 @@ fn sync_stages_hooks_for_all_harnesses() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        mode: None,
         debug: false,
         command: Command::Sync {
             dry_run: false,
@@ -1099,6 +1306,7 @@ fn sync_skips_unsupported_cursor_matcher_gracefully() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        mode: None,
         debug: false,
         command: Command::Init {
             name: None,
@@ -1155,6 +1363,7 @@ fn sync_skips_unsupported_cursor_matcher_gracefully() {
         quiet: true,
         no_progress: true,
         yolo: false,
+        mode: None,
         debug: false,
         command: Command::Sync {
             dry_run: false,

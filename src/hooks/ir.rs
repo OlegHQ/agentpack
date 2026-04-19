@@ -144,8 +144,6 @@ pub struct HookOrigin {
     pub source_root: PathBuf,
     pub source_file: PathBuf,
     pub package_key: String,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub disabled_paths: Vec<String>,
     pub event_index: usize,
     pub matcher_group_index: usize,
     pub hook_index: usize,

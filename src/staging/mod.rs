@@ -19,9 +19,8 @@ use crate::cache::cache_entry_dir;
 use crate::error::{AgentpackError, Result};
 use crate::lockfile::{LockPackage, PackLock};
 use crate::manifest::AgentpackManifest;
-use crate::paths::staging_plugins_dir;
-
-pub(crate) use pack_overlay::rel_is_disabled;
+use crate::mode::filter::EffectiveMode;
+use crate::paths::staging_plugins_dir_for_mode;
 pub(crate) use pack_overlay::skill_folder_name;
 pub use pack_overlay::skill_is_shadowed;
 
@@ -31,19 +30,18 @@ use pack_overlay::disabled_in_config;
 /// Build one plugin tree: optional copies of user **`settings.json`** / **`.claude.json`**, then
 /// plugin packages, then standalone skill packages. Later layers overwrite same relative paths
 /// under extension dirs (`agents`, `commands`, …).
-///
-/// When **`manifest`** is set, **`[overrides.<module>.disable]`** paths are omitted from staging for that package.
 pub fn rebuild_staging(
     project_root: &Path,
     lock: &PackLock,
     manifest: Option<&AgentpackManifest>,
+    mode: &EffectiveMode,
 ) -> Result<Vec<PathBuf>> {
-    StagingPipeline::new(project_root, lock, manifest).rebuild()
+    StagingPipeline::new(project_root, lock, manifest, mode).rebuild()
 }
 
 /// Enumerate plugin directories after `rebuild_staging` / `sync`.
-pub fn list_plugin_dirs(project_root: &Path) -> Result<Vec<PathBuf>> {
-    let base = staging_plugins_dir(project_root)?;
+pub fn list_plugin_dirs(project_root: &Path, mode_name: &str) -> Result<Vec<PathBuf>> {
+    let base = staging_plugins_dir_for_mode(project_root, mode_name)?;
     if !base.is_dir() {
         return Ok(Vec::new());
     }
@@ -59,11 +57,11 @@ pub fn list_plugin_dirs(project_root: &Path) -> Result<Vec<PathBuf>> {
 }
 
 /// Ensure staging layout: exactly one bundle and cache integrity for lockfile entries.
-pub fn verify_staging(project_root: &Path, lock: &PackLock) -> Result<()> {
-    let pipeline = StagingPipeline::new(project_root, lock, None);
+pub fn verify_staging(project_root: &Path, lock: &PackLock, mode: &EffectiveMode) -> Result<()> {
+    let pipeline = StagingPipeline::new(project_root, lock, None, mode);
     pipeline.verify()?;
 
-    let dirs = list_plugin_dirs(project_root)?;
+    let dirs = list_plugin_dirs(project_root, mode.name())?;
     if dirs.len() != 1 {
         return Err(AgentpackError::Staging(format!(
             "expected exactly one merged plugin dir (agentpack-bundle), got {}",
@@ -95,6 +93,9 @@ pub fn verify_staging(project_root: &Path, lock: &PackLock) -> Result<()> {
             continue;
         }
         if skill_is_shadowed(skill, &plugins) {
+            continue;
+        }
+        if !mode.allows_package_path(&skill.module, Path::new("SKILL.md"))? {
             continue;
         }
         let md = match cache_entry_dir(&skill.cache_key) {

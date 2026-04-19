@@ -10,3 +10,10 @@ version = "0.0.1"
 "github.com/oleghq/agent-configs/plugins/rust-dev" = {}
 "github.com/oleghq/agent-configs/plugins/simplifier" = {}
 
+[modes]
+
+[modes.test]
+base = "all"
+enable = ["package:github.com/anthropics/claude-plugins-official/plugins/code-review"]
+disable = ["package-path:github.com/anthropics/claude-plugins-official/plugins/code-review:.cursor-plugin"]
+

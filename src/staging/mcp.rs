@@ -25,6 +25,7 @@ use crate::cache::cache_entry_dir;
 use crate::error::{AgentpackError, Result};
 use crate::lockfile::PackLock;
 use crate::manifest::AgentpackManifest;
+use crate::mode::filter::EffectiveMode;
 use crate::paths::project_dot_agents_dir;
 
 use super::pack_overlay::{disabled_in_config, PackHarnessRoots};
@@ -67,11 +68,15 @@ pub(crate) fn load_mcp_json(path: &Path) -> Result<McpConfig> {
 fn merge_mcp_file(
     path: &Path,
     source: McpSource,
+    mode: Option<&EffectiveMode>,
     merged: &mut BTreeMap<String, (McpServerEntry, McpSource)>,
 ) {
     match load_mcp_json(path) {
         Ok(cfg) => {
             for (name, entry) in cfg.mcp_servers {
+                if mode.is_some_and(|mode| !mode.allows_mcp(&name)) {
+                    continue;
+                }
                 merged.insert(name, (entry, source));
             }
         }
@@ -103,6 +108,7 @@ pub(crate) fn collect_merged_mcp(
     project_root: &Path,
     lock: &PackLock,
     manifest: Option<&AgentpackManifest>,
+    mode: Option<&EffectiveMode>,
 ) -> Result<BTreeMap<String, (McpServerEntry, McpSource)>> {
     let mut merged: BTreeMap<String, (McpServerEntry, McpSource)> = BTreeMap::new();
 
@@ -113,10 +119,11 @@ pub(crate) fn collect_merged_mcp(
         if plugin.cache_key.is_empty() || disabled_in_config(lock, plugin) {
             continue;
         }
-        let disabled = manifest
-            .map(|m| m.disable_paths_for_module(&plugin.module))
-            .unwrap_or(&[]);
-        if crate::staging::rel_is_disabled(std::path::Path::new("mcp.json"), disabled) {
+        if mode.is_some_and(|mode| {
+            !mode
+                .allows_package_path(&plugin.module, std::path::Path::new("mcp.json"))
+                .unwrap_or(false)
+        }) {
             continue;
         }
         let Ok(cache_path) = cache_entry_dir(&plugin.cache_key) else {
@@ -124,21 +131,30 @@ pub(crate) fn collect_merged_mcp(
         };
         let mcp_file = cache_path.join("mcp.json");
         if mcp_file.is_file() {
-            merge_mcp_file(&mcp_file, McpSource::Plugin, &mut merged);
+            merge_mcp_file(&mcp_file, McpSource::Plugin, mode, &mut merged);
         }
     }
 
     // 2. Manifest [mcp.servers]
     if let Some(m) = manifest {
         for (name, entry) in &m.mcp.servers {
+            if mode.is_some_and(|mode| !mode.allows_mcp(name)) {
+                continue;
+            }
             merged.insert(name.clone(), (entry.clone(), McpSource::Manifest));
         }
     }
 
     // 3. .agents/mcp.json
     let dot_mcp = project_dot_agents_dir(project_root).join("mcp.json");
-    if dot_mcp.is_file() {
-        merge_mcp_file(&dot_mcp, McpSource::DotAgents, &mut merged);
+    if dot_mcp.is_file()
+        && !mode.is_some_and(|mode| {
+            !mode
+                .allows_dot_agents_path(std::path::Path::new("mcp.json"))
+                .unwrap_or(false)
+        })
+    {
+        merge_mcp_file(&dot_mcp, McpSource::DotAgents, mode, &mut merged);
     }
 
     Ok(merged)
@@ -158,9 +174,10 @@ pub(super) fn stage_merged_mcp(
     project_root: &Path,
     lock: &PackLock,
     manifest: Option<&AgentpackManifest>,
+    mode: &EffectiveMode,
     dests: &PackHarnessRoots<'_>,
 ) -> Result<()> {
-    let merged = collect_merged_mcp(project_root, lock, manifest)?;
+    let merged = collect_merged_mcp(project_root, lock, manifest, Some(mode))?;
     if merged.is_empty() {
         return Ok(());
     }

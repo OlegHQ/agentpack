@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use crate::error::{AgentpackError, Result};
 use crate::fs_util::remove_path_any;
 use crate::paths::{
-    cursor_overlay_manifest_path, cursor_workspace_dir, staging_cursor_pack_plugin_dir,
+    cursor_overlay_manifest_path, cursor_workspace_dir, staging_cursor_pack_plugin_dir_for_mode,
 };
 
 use super::super::constants::CURSOR_WORKSPACE_AGENTS_OVERLAY;
@@ -95,8 +95,10 @@ pub(in crate::staging) fn cleanup_cursor_overlay(project_root: &Path) -> Result<
 /// finds subagents under **`--workspace`**.
 pub(in crate::staging) fn materialize_workspace_cursor_agents_symlink(
     project_root: &Path,
+    mode_name: &str,
 ) -> Result<Vec<PathBuf>> {
-    let pack_agents = staging_cursor_pack_plugin_dir(project_root)?.join("agents");
+    let pack_agents =
+        staging_cursor_pack_plugin_dir_for_mode(project_root, mode_name)?.join("agents");
     if !pack_agents.is_dir() || !dir_has_cursor_agent_markdown(&pack_agents) {
         return Ok(Vec::new());
     }

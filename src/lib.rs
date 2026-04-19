@@ -8,6 +8,7 @@ pub mod hooks;
 pub mod launcher;
 pub mod lockfile;
 pub(crate) mod manifest;
+pub mod mode;
 pub mod paths;
 mod resolve;
 pub(crate) mod staging;

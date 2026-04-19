@@ -101,8 +101,8 @@ mod remove_spec_tests {
             version: "1".into(),
             description: String::new(),
             dependencies: deps,
-            overrides: BTreeMap::new(),
             mcp: Default::default(),
+            modes: BTreeMap::new(),
         }
     }
 

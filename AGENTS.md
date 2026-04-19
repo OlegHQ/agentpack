@@ -2,7 +2,7 @@
 
 `agentpack` is a Rust CLI that pins **GitHub-hosted skills** and **plugin directories** (`.claude-plugin` and/or `.cursor-plugin`) for a project.
 
-**Source of truth for what to install** is **`agentpack.toml`** at the repo root (direct dependencies and optional path overrides). **`pack.lock`** (v2) lists every resolved **package** (direct and transitive from nested `agentpack.toml` files inside dependencies) with pinned commits and `cache_key`s. Both files live in the **project repo**.
+**Source of truth for what to install** is **`agentpack.toml`** at the repo root (direct dependencies, project-local modes, and MCP settings). **`pack.lock`** (v2) lists every resolved **package** (direct and transitive from nested `agentpack.toml` files inside dependencies) with pinned commits and `cache_key`s. Both files live in the **project repo**.
 
 All downloaded trees, the RedDB index, and your **`local/`** mirror live under a **user-wide agentpack home** (see below)—not under a repo-local `.agentpack/` directory. Staging for harnesses still uses a **per-project temp** directory (or **`AGENTPACK_STAGING_ROOT`**).
 
@@ -36,7 +36,7 @@ Optional **`@ref`** may appear in human input; identity and `cache_key` always u
 | Section | Role |
 | --- | --- |
 | **`[dependencies]`** | Direct dependencies only. Each key is a **module id**; values are **`""`**, a **short string** (branch/tag/ref), or a **table** (`branch`, `tag`, `commit`, `version` for semver against tags, etc.). |
-| **`[overrides."github.com/o/r/pkg"]`** | Project-only tweaks. **`disable = ["commands/foo.md", "hooks"]`** — relative paths under that package root **omitted from staging** (converted markdown, raw plugin support dirs, and root files like `mcp.json` when listed). |
+| **`[modes.<name>]`** | Project-local staging presets. Use **`base = "all" | "none"`** plus **`enable = [...]`** / **`disable = [...]`** selectors such as **`package:...`**, **`package-path:...:...`**, **`mcp:...`**, and **`.agents:...`**. |
 | **`[mcp.servers.<name>]`** | Project-level MCP server definitions. Each key under **`[mcp.servers]`** is a server name; values are tables with **`command`**, **`args`** (string array), **`env`** (string map), and optional **`disabled`** (bool). Merged with plugin `mcp.json` files and **`.agents/mcp.json`** during **`sync`**, then written to every harness staging directory. |
 
 Transitive dependencies come **only** from a **`agentpack.toml`** (dependencies table) **inside** an fetched package cache root. There is no implicit scratchpad: **`add`** edits the project manifest; **`lock`** / **`sync`** (when dependencies are non-empty) recompute **`pack.lock`**.
@@ -109,7 +109,7 @@ The Cursor CLI also reads workspace **`.cursor/`** for some features; behavior m
    - **Rules**: Cursor `.mdc` rules preserved for Cursor; other harnesses get a best-effort skill fallback with original rule scope noted when the target lacks first-class rule files.
 4. **Claude bundle** — **`sync`** rebuilds **`$STAGING/plugins/agentpack-bundle/`** with **`.claude-plugin/plugin.json`** and:
    - **Optional:** copies **`~/.claude/settings.json`** → **`bundle/.claude/settings.json`** and **`~/.claude.json`** → **`bundle/.claude.json`** (parsed and rewritten as pretty JSON). No **`commands/`** / **`agents/`** / **`skills/`** from `~/.claude`.
-   - **Packages:** target-specific converted markdown artifacts plus raw Claude support dirs (`hooks`, `matchers`, `core`, `examples`, `utils`), respecting **`[overrides]`** **`disable`** paths when **`agentpack.toml`** is present.
+   - **Packages:** target-specific converted markdown artifacts plus raw Claude support dirs (`hooks`, `matchers`, `core`, `examples`, `utils`), filtered through the selected **mode**.
    - **MCP:** merged `mcp.json` written to bundle root (see MCP merge below).
 5. **OpenCode root** — **`sync`** rebuilds **`$STAGING/opencode/`**:
    - **Optional:** seeds from **`~/.config/opencode/`** (`opencode.json`, `agents`, `commands`, `modes`, `plugins`, `skills`) so provider/auth config still works when **`OPENCODE_CONFIG_DIR`** is redirected.
@@ -131,7 +131,7 @@ The Cursor CLI also reads workspace **`.cursor/`** for some features; behavior m
    - **`agentpack codex`** runs **`codex`** with **`CODEX_HOME=$STAGING/codex-home`**.
    - **`agentpack agent`** runs Cursor Agent with **`HOME=$STAGING/cursor-home`**. **`--workspace`** defaults to the **canonical project root** (same place you **`add` / `sync`**). **`CURSOR_CONFIG_DIR`** is **`$HOME/.cursor`** under the fake home. **Workspace trust** uses **`$CURSOR_DATA_DIR/projects/<slug>/.workspace-trusted`**; **`agentpack`** sets **`CURSOR_DATA_DIR`** to **real `~/.cursor`** when unset so trust state is not lost when **`$STAGING`** is recreated. It also preserves **`CARGO_HOME`**, **`RUSTUP_HOME`**, and **`DOCKER_CONFIG`** from the real home unless those env vars are already set. For a **stable** staging path when your OS rotates temp dirs, set **`AGENTPACK_STAGING_ROOT`**. Cursor’s **`agent`** only accepts **`--trust`** with **`--print`** / headless; **`agentpack`** prepends **`--trust`** automatically in that case.
 
-**MCP merge pipeline** — after pack content and **`.agents/`** overlay are staged, **`sync`** collects MCP server definitions from three sources (merge order; later wins on same server name): **(1)** plugin root **`mcp.json`** files (sorted by `cache_key`, respecting **`[overrides]`** `disable`), **(2)** manifest **`[mcp.servers]`**, **(3)** **`.agents/mcp.json`**. The merged result is written as `{"mcpServers":{…}}` JSON to all four harness staging roots. For the **Cursor fake HOME**, the merged pack `mcp.json` is further merged with the user’s real **`~/.cursor/mcp.json`** (user entries win on conflict) so agentpack-managed servers coexist with user-defined ones.
+**MCP merge pipeline** — after pack content and **`.agents/`** overlay are staged, **`sync`** collects MCP server definitions from three sources (merge order; later wins on same server name): **(1)** plugin root **`mcp.json`** files (sorted by `cache_key`, filtered through the selected **mode**), **(2)** manifest **`[mcp.servers]`**, **(3)** **`.agents/mcp.json`**. The merged result is written as `{"mcpServers":{…}}` JSON to all four harness staging roots. For the **Cursor fake HOME**, the merged pack `mcp.json` is further merged with the user’s real **`~/.cursor/mcp.json`** (user entries win on conflict) so agentpack-managed servers coexist with user-defined ones.
 
 After staging, **`sync`** verifies that **skill directory names** under **`bundle/skills/`** and **`.md` file stems** under **`bundle/commands/`** and **`bundle/agents/`** do not **also** appear under **`~/.claude/skills`**, **`commands`**, or **`agents`**. If they do, the staged pack copy is removed so the user install wins (Claude would otherwise list both **`/foo`** and **`/agentpack-bundle:foo`**).
 
@@ -163,7 +163,7 @@ A full plugin at repo path **`P`** (same **`owner` / `repo` / `commit`**) shadow
 - **`init`** — write stub **`agentpack.toml`**, **v2** **`pack.lock`**, and ensure **`AGENTPACK_HOME`**. Fails if **`agentpack.toml`** already exists.
 - **`lock`** — resolve **`agentpack.toml`** and overwrite **`pack.lock`** with all packages (direct + transitive).
 - **`add <spec>`** — append module to **`[dependencies]`**, resolve, save **`pack.lock`**, then **`sync`** unless **`--no-sync`** (requires manifest; see golden rules).
-- **`remove <spec>`** — remove matching **`[dependencies]`** key (and **`[overrides]`** for that module), resolve, save **`pack.lock`**, then **`sync`** unless **`--no-sync`**. Accepts the same shapes as **`add`** where sensible (module id, **`owner/repo/path`**, GitHub **`tree`/`blob`** URL); picks the **`[dependencies]`** entry by walking parent paths for blob file URLs, like **`add`**.
+- **`remove <spec>`** — remove matching **`[dependencies]`** key, prune any mode selectors that target that module, resolve, save **`pack.lock`**, then **`sync`** unless **`--no-sync`**. Accepts the same shapes as **`add`** where sensible (module id, **`owner/repo/path`**, GitHub **`tree`/`blob`** URL); picks the **`[dependencies]`** entry by walking parent paths for blob file URLs, like **`add`**.
 - **`sync`** — ensure cache + rebuild staging; recomputes **`pack.lock`** from the manifest when **`[dependencies]`** is non-empty.
 - **`mcp add <name> --command <cmd> [--args ...] [--env K=V ...]`** — add an MCP server to **`[mcp.servers]`** in **`agentpack.toml`**, then **`sync`** unless **`--no-sync`**.
 - **`mcp remove <name>`** — remove an MCP server from **`[mcp.servers]`**, then **`sync`** unless **`--no-sync`**.
@@ -181,8 +181,13 @@ version = "0.0.1"
 "github.com/anthropics/claude-plugins-official/plugins/hookify" = { version = "^1.0.0" }
 mcp-retrieval = { path = "../mcp-retrieval" }
 
-[overrides."github.com/someorg/heavy-pack"]
-disable = [ "commands/noise.md", "hooks" ]
+[modes.default]
+base = "all"
+disable = [ "package-path:github.com/someorg/heavy-pack:commands/noise.md" ]
+
+[modes.design]
+base = "all"
+disable = [ "mcp:filesystem" ]
 
 [mcp.servers.filesystem]
 command = "npx"

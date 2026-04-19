@@ -25,10 +25,10 @@ use crate::artifacts::{parse_markdown_artifact, ArtifactKind, MarkdownArtifact};
 use crate::cache::cache_entry_dir;
 use crate::error::{AgentpackError, Result};
 use crate::lockfile::PackLock;
-use crate::manifest::AgentpackManifest;
+use crate::mode::filter::EffectiveMode;
 use crate::paths::project_dot_agents_dir;
 
-use super::pack_overlay::{disabled_in_config, rel_is_disabled, PackHarnessRoots};
+use super::pack_overlay::{disabled_in_config, PackHarnessRoots};
 
 /// File in the bundle holding the raw blob that the Claude SessionStart hook reads.
 const BUNDLE_GUIDANCE_REL: &str = "_agentpack/guidance.md";
@@ -41,7 +41,7 @@ const AGENTS_MD_END: &str = "<!-- agentpack:guidance:end -->";
 fn walk_rules(
     root: &Path,
     origin: &str,
-    disabled: &[String],
+    mut is_enabled: impl FnMut(&Path) -> Result<bool>,
     into: &mut Vec<MarkdownArtifact>,
 ) -> Result<()> {
     if !root.is_dir() {
@@ -57,7 +57,7 @@ fn walk_rules(
             Ok(r) => r,
             Err(_) => continue,
         };
-        if rel_is_disabled(rel, disabled) {
+        if !is_enabled(rel)? {
             continue;
         }
         let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
@@ -85,7 +85,7 @@ fn walk_rules(
 pub(crate) fn collect_guidance_blob(
     project_root: &Path,
     lock: &PackLock,
-    manifest: Option<&AgentpackManifest>,
+    mode: &EffectiveMode,
 ) -> Result<Option<String>> {
     let mut rules: Vec<MarkdownArtifact> = Vec::new();
 
@@ -99,16 +99,18 @@ pub(crate) fn collect_guidance_blob(
             Ok(p) => p,
             Err(_) => continue,
         };
-        let disabled = manifest
-            .map(|m| m.disable_paths_for_module(&plugin.module))
-            .unwrap_or(&[]);
-        walk_rules(&cache_root, &plugin.module, disabled, &mut rules)?;
+        walk_rules(
+            &cache_root,
+            &plugin.module,
+            |rel| mode.allows_package_path(&plugin.module, rel),
+            &mut rules,
+        )?;
     }
 
     walk_rules(
         &project_dot_agents_dir(project_root),
         ".agents",
-        &[],
+        |rel| mode.allows_dot_agents_path(rel),
         &mut rules,
     )?;
 
@@ -241,10 +243,10 @@ fn add_claude_session_start_hook(bundle: &Path, guidance_file: &Path) -> Result<
 pub(super) fn stage_guidance_all_harnesses(
     project_root: &Path,
     lock: &PackLock,
-    manifest: Option<&AgentpackManifest>,
+    mode: &EffectiveMode,
     dests: &PackHarnessRoots<'_>,
 ) -> Result<()> {
-    let Some(blob) = collect_guidance_blob(project_root, lock, manifest)? else {
+    let Some(blob) = collect_guidance_blob(project_root, lock, mode)? else {
         return Ok(());
     };
 

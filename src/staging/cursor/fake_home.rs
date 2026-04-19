@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 use crate::error::{AgentpackError, Result};
 use crate::fs_util::remove_path_any;
-use crate::paths::{staging_cursor_home_dir, staging_cursor_pack_plugin_dir};
+use crate::paths::{staging_cursor_home_dir_for_mode, staging_cursor_pack_plugin_dir_for_mode};
 
 use super::super::constants::{
     CURSOR_FAKE_HOME_CREDENTIAL_FILES, CURSOR_FAKE_HOME_PACK_SUBDIRS,
@@ -151,15 +151,18 @@ fn symlink_entries_into(src_base: &Path, dst_base: &Path, names: &[&str]) -> Res
     Ok(())
 }
 
-pub(in crate::staging) fn materialize_cursor_fake_home(project_root: &Path) -> Result<()> {
-    let fake_home = staging_cursor_home_dir(project_root)?;
+pub(in crate::staging) fn materialize_cursor_fake_home(
+    project_root: &Path,
+    mode_name: &str,
+) -> Result<()> {
+    let fake_home = staging_cursor_home_dir_for_mode(project_root, mode_name)?;
     if fake_home.exists() {
         fs::remove_dir_all(&fake_home).map_err(|e| AgentpackError::io(&fake_home, e))?;
     }
     let fake_cursor = fake_home.join(".cursor");
     fs::create_dir_all(&fake_cursor).map_err(|e| AgentpackError::io(&fake_cursor, e))?;
 
-    let pack = staging_cursor_pack_plugin_dir(project_root)?;
+    let pack = staging_cursor_pack_plugin_dir_for_mode(project_root, mode_name)?;
     symlink_entries_into(&pack, &fake_cursor, CURSOR_FAKE_HOME_PACK_SUBDIRS)?;
 
     let real_home = dirs::home_dir();

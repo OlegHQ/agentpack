@@ -5,10 +5,11 @@ use crate::error::{AgentpackError, Result};
 use crate::hooks::stage::{stage_hooks_all_harnesses, HookHarnessRoots};
 use crate::lockfile::PackLock;
 use crate::manifest::AgentpackManifest;
+use crate::mode::filter::EffectiveMode;
 use crate::paths::{
-    cursor_workspace_dir, staging_codex_home_dir, staging_cursor_bundle_dir,
-    staging_cursor_home_dir, staging_cursor_pack_plugin_dir, staging_opencode_dir,
-    staging_plugins_dir, STAGED_AGENTPACK_BUNDLE_NAME,
+    cursor_workspace_dir, staging_codex_home_dir_for_mode, staging_cursor_bundle_dir_for_mode,
+    staging_cursor_home_dir_for_mode, staging_cursor_pack_plugin_dir_for_mode,
+    staging_opencode_dir_for_mode, staging_plugins_dir_for_mode, STAGED_AGENTPACK_BUNDLE_NAME,
 };
 
 use super::cursor::{
@@ -25,6 +26,7 @@ pub(super) struct StagingPipeline<'a> {
     project_root: &'a Path,
     lock: &'a PackLock,
     manifest: Option<&'a AgentpackManifest>,
+    mode: &'a EffectiveMode,
 }
 
 impl<'a> StagingPipeline<'a> {
@@ -32,36 +34,41 @@ impl<'a> StagingPipeline<'a> {
         project_root: &'a Path,
         lock: &'a PackLock,
         manifest: Option<&'a AgentpackManifest>,
+        mode: &'a EffectiveMode,
     ) -> Self {
         Self {
             project_root,
             lock,
             manifest,
+            mode,
         }
     }
 
     fn claude_bundle_dir(&self) -> Result<PathBuf> {
-        Ok(staging_plugins_dir(self.project_root)?.join(STAGED_AGENTPACK_BUNDLE_NAME))
+        Ok(
+            staging_plugins_dir_for_mode(self.project_root, self.mode.name())?
+                .join(STAGED_AGENTPACK_BUNDLE_NAME),
+        )
     }
 
     pub(super) fn opencode_root(&self) -> Result<PathBuf> {
-        staging_opencode_dir(self.project_root)
+        staging_opencode_dir_for_mode(self.project_root, self.mode.name())
     }
 
     pub(super) fn codex_home(&self) -> Result<PathBuf> {
-        staging_codex_home_dir(self.project_root)
+        staging_codex_home_dir_for_mode(self.project_root, self.mode.name())
     }
 
     pub(super) fn cursor_pack_plugin_dir(&self) -> Result<PathBuf> {
-        staging_cursor_pack_plugin_dir(self.project_root)
+        staging_cursor_pack_plugin_dir_for_mode(self.project_root, self.mode.name())
     }
 
     fn cursor_bundle_root(&self) -> Result<PathBuf> {
-        staging_cursor_bundle_dir(self.project_root)
+        staging_cursor_bundle_dir_for_mode(self.project_root, self.mode.name())
     }
 
     fn cursor_home(&self) -> Result<PathBuf> {
-        staging_cursor_home_dir(self.project_root)
+        staging_cursor_home_dir_for_mode(self.project_root, self.mode.name())
     }
 
     pub(super) fn rebuild(&self) -> Result<Vec<PathBuf>> {
@@ -78,12 +85,12 @@ impl<'a> StagingPipeline<'a> {
             codex: &codex,
             cursor_pack: &cursor_pack,
         };
-        stage_pack_plugins_all_harnesses(self.lock, &pack_dests, self.manifest)?;
-        stage_pack_skills_all_harnesses(self.lock, &pack_dests, self.manifest)?;
+        stage_pack_plugins_all_harnesses(self.lock, &pack_dests, self.mode)?;
+        stage_pack_skills_all_harnesses(self.lock, &pack_dests, self.mode)?;
         stage_hooks_all_harnesses(
             self.project_root,
             self.lock,
-            self.manifest,
+            self.mode,
             &HookHarnessRoots {
                 claude_bundle: &claude_bundle,
                 opencode_root: &opencode,
@@ -92,15 +99,21 @@ impl<'a> StagingPipeline<'a> {
             },
         )?;
         write_cursor_pack_plugin_readme(&cursor_pack)?;
-        stage_dot_agents_overlay(self.project_root)?;
-        super::mcp::stage_merged_mcp(self.project_root, self.lock, self.manifest, &pack_dests)?;
-        super::guidance::stage_guidance_all_harnesses(
+        stage_dot_agents_overlay(self.project_root, self.mode.name(), self.mode)?;
+        super::mcp::stage_merged_mcp(
             self.project_root,
             self.lock,
             self.manifest,
+            self.mode,
             &pack_dests,
         )?;
-        finalize_cursor_staging(self.project_root)?;
+        super::guidance::stage_guidance_all_harnesses(
+            self.project_root,
+            self.lock,
+            self.mode,
+            &pack_dests,
+        )?;
+        finalize_cursor_staging(self.project_root, self.mode.name())?;
 
         Ok(vec![self.claude_bundle_dir()?])
     }
@@ -170,7 +183,7 @@ impl<'a> StagingPipeline<'a> {
 
     fn prepare_all(&self) -> Result<()> {
         // Claude bundle
-        let plugins_base = staging_plugins_dir(self.project_root)?;
+        let plugins_base = staging_plugins_dir_for_mode(self.project_root, self.mode.name())?;
         fs::create_dir_all(&plugins_base).map_err(|e| AgentpackError::io(&plugins_base, e))?;
         let bundle = self.claude_bundle_dir()?;
         fs::create_dir_all(&bundle).map_err(|e| AgentpackError::io(&bundle, e))?;
@@ -188,13 +201,13 @@ impl<'a> StagingPipeline<'a> {
         seed_codex_home(&root)?;
 
         // Cursor
-        prepare_cursor_staging_without_pack_overlay(self.project_root)?;
+        prepare_cursor_staging_without_pack_overlay(self.project_root, self.mode.name())?;
         Ok(())
     }
 
     fn reset_all(&self) -> Result<()> {
         let mut paths = vec![
-            staging_plugins_dir(self.project_root)?,
+            staging_plugins_dir_for_mode(self.project_root, self.mode.name())?,
             self.opencode_root()?,
             self.codex_home()?,
             self.cursor_bundle_root()?,

@@ -124,7 +124,7 @@ pub fn project_path_hash(project_root: &Path) -> Result<String> {
 }
 
 /// Staging root: `std::env::temp_dir()/agentpack-<hash>` unless `AGENTPACK_STAGING_ROOT` is set.
-pub fn staging_root(project_root: &Path) -> Result<PathBuf> {
+fn staging_root_base(project_root: &Path) -> Result<PathBuf> {
     if let Ok(override_path) = env::var("AGENTPACK_STAGING_ROOT") {
         return Ok(PathBuf::from(override_path));
     }
@@ -132,17 +132,71 @@ pub fn staging_root(project_root: &Path) -> Result<PathBuf> {
     Ok(env::temp_dir().join(format!("agentpack-{hash}")))
 }
 
+pub fn mode_path_component(mode_name: &str) -> String {
+    if mode_name == "default" {
+        return "default".into();
+    }
+
+    let mut slug = mode_name
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() {
+                ch.to_ascii_lowercase()
+            } else {
+                '-'
+            }
+        })
+        .collect::<String>();
+    slug = slug.trim_matches('-').to_string();
+    if slug.is_empty() {
+        slug = "mode".into();
+    }
+    let mut hasher = Sha256::new();
+    hasher.update(mode_name.as_bytes());
+    let digest = hex::encode(&hasher.finalize()[..4]);
+    format!("{slug}-{digest}")
+}
+
+pub fn launch_sync_state_path(project_root: &Path, mode_name: &str) -> Result<PathBuf> {
+    Ok(project_state_dir(project_root)?.join(format!(
+        "launch-sync-{}.state",
+        mode_path_component(mode_name)
+    )))
+}
+
+pub fn staging_root_for_mode(project_root: &Path, mode_name: &str) -> Result<PathBuf> {
+    Ok(staging_root_base(project_root)?
+        .join("modes")
+        .join(mode_path_component(mode_name)))
+}
+
+pub fn staging_root(project_root: &Path) -> Result<PathBuf> {
+    staging_root_for_mode(project_root, "default")
+}
+
 /// Per-project plugin staging: each skill becomes a minimal plugin tree here.
+pub fn staging_plugins_dir_for_mode(project_root: &Path, mode_name: &str) -> Result<PathBuf> {
+    Ok(staging_root_for_mode(project_root, mode_name)?.join("plugins"))
+}
+
 pub fn staging_plugins_dir(project_root: &Path) -> Result<PathBuf> {
-    Ok(staging_root(project_root)?.join("plugins"))
+    staging_plugins_dir_for_mode(project_root, "default")
+}
+
+pub fn staging_opencode_dir_for_mode(project_root: &Path, mode_name: &str) -> Result<PathBuf> {
+    Ok(staging_root_for_mode(project_root, mode_name)?.join("opencode"))
 }
 
 pub fn staging_opencode_dir(project_root: &Path) -> Result<PathBuf> {
-    Ok(staging_root(project_root)?.join("opencode"))
+    staging_opencode_dir_for_mode(project_root, "default")
+}
+
+pub fn staging_codex_home_dir_for_mode(project_root: &Path, mode_name: &str) -> Result<PathBuf> {
+    Ok(staging_root_for_mode(project_root, mode_name)?.join("codex-home"))
 }
 
 pub fn staging_codex_home_dir(project_root: &Path) -> Result<PathBuf> {
-    Ok(staging_root(project_root)?.join("codex-home"))
+    staging_codex_home_dir_for_mode(project_root, "default")
 }
 
 /// Shared Codex credential cache for staged homes when the real user config uses keyring-backed
@@ -154,18 +208,34 @@ pub fn shared_codex_auth_path() -> Result<PathBuf> {
         .join("auth.json"))
 }
 
+pub fn staging_cursor_bundle_dir_for_mode(project_root: &Path, mode_name: &str) -> Result<PathBuf> {
+    Ok(staging_root_for_mode(project_root, mode_name)?.join("cursor"))
+}
+
 pub fn staging_cursor_bundle_dir(project_root: &Path) -> Result<PathBuf> {
-    Ok(staging_root(project_root)?.join("cursor"))
+    staging_cursor_bundle_dir_for_mode(project_root, "default")
 }
 
 /// Staged Cursor plugin root: **`$STAGING/cursor/<bundle>/`** with **`.cursor-plugin/plugin.json`**, sibling to **`$STAGING/cursor/.cursor-plugin/marketplace.json`** (Cursor multi-plugin repo layout).
+pub fn staging_cursor_pack_plugin_dir_for_mode(
+    project_root: &Path,
+    mode_name: &str,
+) -> Result<PathBuf> {
+    Ok(staging_cursor_bundle_dir_for_mode(project_root, mode_name)?
+        .join(STAGED_AGENTPACK_BUNDLE_NAME))
+}
+
 pub fn staging_cursor_pack_plugin_dir(project_root: &Path) -> Result<PathBuf> {
-    Ok(staging_cursor_bundle_dir(project_root)?.join(STAGED_AGENTPACK_BUNDLE_NAME))
+    staging_cursor_pack_plugin_dir_for_mode(project_root, "default")
 }
 
 /// Fake **`$HOME`** for **`agentpack agent`**: contains **`.cursor/`** with symlinks to pack content and to your real Cursor auth/session files.
+pub fn staging_cursor_home_dir_for_mode(project_root: &Path, mode_name: &str) -> Result<PathBuf> {
+    Ok(staging_root_for_mode(project_root, mode_name)?.join("cursor-home"))
+}
+
 pub fn staging_cursor_home_dir(project_root: &Path) -> Result<PathBuf> {
-    Ok(staging_root(project_root)?.join("cursor-home"))
+    staging_cursor_home_dir_for_mode(project_root, "default")
 }
 
 pub fn cursor_workspace_dir(project_root: &Path) -> PathBuf {
@@ -192,5 +262,21 @@ mod tests {
         fs::create_dir_all(&nested).unwrap();
         let found = find_project_root(&nested).unwrap();
         assert_eq!(found.canonicalize().unwrap(), root.canonicalize().unwrap());
+    }
+
+    #[test]
+    fn staging_roots_are_mode_specific() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        fs::write(root.join(MANIFEST_NAME), "name = \"t\"\nversion = \"1\"\n").unwrap();
+        fs::write(
+            root.join(LOCKFILE_NAME),
+            "lockfile-version = 2\n[meta]\nname = \"t\"\nversion = \"1\"\n",
+        )
+        .unwrap();
+        let default_root = staging_root_for_mode(root, "default").unwrap();
+        let design_root = staging_root_for_mode(root, "design").unwrap();
+        assert_ne!(default_root, design_root);
+        assert!(design_root.to_string_lossy().contains("design"));
     }
 }

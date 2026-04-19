@@ -5,12 +5,11 @@ use walkdir::WalkDir;
 
 use crate::error::{AgentpackError, Result};
 use crate::fs_util::remove_path_any;
+use crate::mode::filter::EffectiveMode;
 use crate::paths::{
-    project_dot_agents_dir, staging_codex_home_dir, staging_plugins_dir,
+    project_dot_agents_dir, staging_codex_home_dir_for_mode, staging_plugins_dir_for_mode,
     STAGED_AGENTPACK_BUNDLE_NAME,
 };
-
-use super::tree::copy_merge_tree;
 
 /// Hard link when possible so Cursor sees real rule files ([dot-agents](https://github.com/dot-agents/dot-agents) documents
 /// symlink issues for `.cursor/rules`); copy fallback (cross-device staging, Windows).
@@ -32,7 +31,11 @@ fn link_or_copy_for_dot_agent_file(src: &Path, dst: &Path) -> Result<()> {
 }
 
 /// Copy each **`.mdc`** under **`rules_root`** into **`dest_rules`**, flattened as **`dot-agents--<rel-with--slashes>`**.
-fn merge_dot_agents_rules_mdc(rules_root: &Path, dest_rules: &Path) -> Result<()> {
+fn merge_dot_agents_rules_mdc(
+    rules_root: &Path,
+    dest_rules: &Path,
+    mode: &EffectiveMode,
+) -> Result<()> {
     if !rules_root.is_dir() {
         return Ok(());
     }
@@ -47,6 +50,9 @@ fn merge_dot_agents_rules_mdc(rules_root: &Path, dest_rules: &Path) -> Result<()
         let rel = p.strip_prefix(rules_root).map_err(|_| {
             AgentpackError::Staging(format!("rule path outside rules root ({})", p.display()))
         })?;
+        if !mode.allows_dot_agents_path(&Path::new("rules").join(rel))? {
+            continue;
+        }
         let key = rel
             .to_string_lossy()
             .replace(std::path::MAIN_SEPARATOR, "--");
@@ -56,21 +62,59 @@ fn merge_dot_agents_rules_mdc(rules_root: &Path, dest_rules: &Path) -> Result<()
     Ok(())
 }
 
-fn merge_dot_agents_subdir_into_dest_roots(
-    dot_agents: &Path,
-    rel: &str,
-    dest_roots: &[&Path],
+fn copy_dot_agents_tree(
+    dot_agents_root: &Path,
+    source_rel: &str,
+    dest_root: &Path,
+    strip_source_prefix: bool,
+    mode: &EffectiveMode,
 ) -> Result<()> {
-    let src = dot_agents.join(rel);
+    let src = dot_agents_root.join(source_rel);
     if !src.is_dir() {
         return Ok(());
     }
-    for &root in dest_roots {
-        let dst = root.join(rel);
-        fs::create_dir_all(&dst).map_err(|e| AgentpackError::io(&dst, e))?;
-        copy_merge_tree(&src, &dst)?;
+    for entry in WalkDir::new(&src).follow_links(false) {
+        let entry = entry.map_err(|error| AgentpackError::Staging(error.to_string()))?;
+        let path = entry.path();
+        let rel = path.strip_prefix(&src).map_err(|_| {
+            AgentpackError::Staging(format!("dot-agents path outside root {}", path.display()))
+        })?;
+        if rel.as_os_str().is_empty() {
+            continue;
+        }
+        let selector_rel = Path::new(source_rel).join(rel);
+        if !mode.allows_dot_agents_path(&selector_rel)? {
+            continue;
+        }
+
+        let dest_rel = if strip_source_prefix {
+            rel
+        } else {
+            selector_rel.as_path()
+        };
+        let dest = dest_root.join(dest_rel);
+        if entry.file_type().is_dir() {
+            fs::create_dir_all(&dest).map_err(|error| AgentpackError::io(&dest, error))?;
+            continue;
+        }
+        if entry.file_type().is_file() {
+            link_or_copy_for_dot_agent_file(path, &dest)?;
+        }
     }
     Ok(())
+}
+
+fn copy_dot_agents_file(
+    dot_agents_root: &Path,
+    source_rel: &str,
+    dest: &Path,
+    mode: &EffectiveMode,
+) -> Result<()> {
+    let src = dot_agents_root.join(source_rel);
+    if !src.is_file() || !mode.allows_dot_agents_path(Path::new(source_rel))? {
+        return Ok(());
+    }
+    link_or_copy_for_dot_agent_file(&src, dest)
 }
 
 /// Merge **`./.agents/`** into staged harness trees that do **not** natively read the directory.
@@ -83,48 +127,40 @@ fn merge_dot_agents_subdir_into_dest_roots(
 /// **`CLAUDE.md`** (Claude bundle). **`mcp.json`** is handled centrally by [`super::mcp::stage_merged_mcp`].
 ///
 /// Set **`AGENTPACK_DOT_AGENTS=0`** to skip.
-pub(crate) fn stage_dot_agents_overlay(project_root: &Path) -> Result<()> {
+pub(crate) fn stage_dot_agents_overlay(
+    project_root: &Path,
+    mode_name: &str,
+    mode: &EffectiveMode,
+) -> Result<()> {
     let dot_agents = project_dot_agents_dir(project_root);
     if !dot_agents.is_dir() {
         return Ok(());
     }
 
-    let bundle = staging_plugins_dir(project_root)?.join(STAGED_AGENTPACK_BUNDLE_NAME);
-    let codex = staging_codex_home_dir(project_root)?;
+    let bundle =
+        staging_plugins_dir_for_mode(project_root, mode_name)?.join(STAGED_AGENTPACK_BUNDLE_NAME);
+    let codex = staging_codex_home_dir_for_mode(project_root, mode_name)?;
 
     // Cursor and OpenCode natively read `.agents/` from the workspace, so only
     // Claude and Codex need the overlay merged into their staging trees.
     for (sub, dest) in [("claude", bundle.as_path()), ("codex", codex.as_path())] {
-        let src = dot_agents.join(sub);
-        if src.is_dir() {
-            copy_merge_tree(&src, dest)?;
-        }
+        copy_dot_agents_tree(&dot_agents, sub, dest, true, mode)?;
     }
 
     let rules = dot_agents.join("rules");
     if rules.is_dir() {
         let dest_rules = bundle.join("rules");
         fs::create_dir_all(&dest_rules).map_err(|e| AgentpackError::io(&dest_rules, e))?;
-        merge_dot_agents_rules_mdc(&rules, &dest_rules)?;
+        merge_dot_agents_rules_mdc(&rules, &dest_rules, mode)?;
     }
 
-    merge_dot_agents_subdir_into_dest_roots(
-        &dot_agents,
-        "skills",
-        &[bundle.as_path(), codex.as_path()],
-    )?;
-    merge_dot_agents_subdir_into_dest_roots(&dot_agents, "agents", &[bundle.as_path()])?;
-    merge_dot_agents_subdir_into_dest_roots(&dot_agents, "commands", &[bundle.as_path()])?;
+    copy_dot_agents_tree(&dot_agents, "skills", &bundle, false, mode)?;
+    copy_dot_agents_tree(&dot_agents, "skills", &codex, false, mode)?;
+    copy_dot_agents_tree(&dot_agents, "agents", &bundle, false, mode)?;
+    copy_dot_agents_tree(&dot_agents, "commands", &bundle, false, mode)?;
 
-    let agents_md = dot_agents.join("AGENTS.md");
-    if agents_md.is_file() {
-        copy_merge_tree(&agents_md, &codex.join("AGENTS.md"))?;
-    }
-
-    let claude_md = dot_agents.join("CLAUDE.md");
-    if claude_md.is_file() {
-        copy_merge_tree(&claude_md, &bundle.join("CLAUDE.md"))?;
-    }
+    copy_dot_agents_file(&dot_agents, "AGENTS.md", &codex.join("AGENTS.md"), mode)?;
+    copy_dot_agents_file(&dot_agents, "CLAUDE.md", &bundle.join("CLAUDE.md"), mode)?;
 
     // `.agents/mcp.json` is collected centrally by `staging::mcp::stage_merged_mcp`.
 

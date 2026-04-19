@@ -60,12 +60,13 @@ fn push_env_if_absent(envs: &mut Vec<(&'static str, OsString)>, key: &'static st
 pub fn run_agent(
     project_root: &std::path::Path,
     passthrough: Vec<String>,
+    selected_mode: Option<&str>,
     yolo: bool,
     ui: &Ui,
 ) -> anyhow::Result<()> {
-    sync_for_launch(project_root, ui)?;
+    let mode = sync_for_launch(project_root, selected_mode, ui)?;
 
-    let fake_home_path = paths::staging_cursor_home_dir(project_root)?;
+    let fake_home_path = paths::staging_cursor_home_dir_for_mode(project_root, mode.name())?;
     let fake_home: OsString = fake_home_path.into_os_string();
 
     let project_norm = normalize_path(project_root);

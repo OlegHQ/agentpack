@@ -5,7 +5,7 @@ use std::path::Path;
 
 use anyhow::Context;
 
-use super::{Cli, Command, McpAction};
+use super::{Cli, Command, McpAction, ModeAction};
 use crate::ui::Ui;
 use crate::{launcher, lockfile, manifest, paths, sync};
 
@@ -55,22 +55,32 @@ pub fn run(cli: Cli) -> anyhow::Result<()> {
             verify_only,
             update_lock,
         } => {
-            sync::run_sync(&root, dry_run, verify_only, update_lock, &ui)?;
+            sync::run_sync(
+                &root,
+                dry_run,
+                verify_only,
+                update_lock,
+                cli.mode.as_deref(),
+                &ui,
+            )?;
         }
         Command::Claude { args } => {
-            launcher::run_claude(&root, args, cli.yolo, &ui)?;
+            launcher::run_claude(&root, args, cli.mode.as_deref(), cli.yolo, &ui)?;
         }
         Command::Opencode { args } => {
-            launcher::run_opencode(&root, args, cli.yolo, &ui)?;
+            launcher::run_opencode(&root, args, cli.mode.as_deref(), cli.yolo, &ui)?;
         }
         Command::Codex { args } => {
-            launcher::run_codex(&root, args, cli.yolo, &ui)?;
+            launcher::run_codex(&root, args, cli.mode.as_deref(), cli.yolo, &ui)?;
         }
         Command::Agent { args } => {
-            launcher::run_agent(&root, args, cli.yolo, &ui)?;
+            launcher::run_agent(&root, args, cli.mode.as_deref(), cli.yolo, &ui)?;
         }
         Command::Mcp { action } => {
             run_mcp(&root, action, &ui)?;
+        }
+        Command::Mode { action } => {
+            run_mode(&root, action, &ui)?;
         }
     }
     Ok(())
@@ -95,20 +105,21 @@ fn run_mcp(root: &Path, action: McpAction, ui: &Ui) -> anyhow::Result<()> {
             manifest::AgentpackManifest::add_mcp_server(root, &name, &entry)?;
             ui.message(format!("Added MCP server \"{name}\" to agentpack.toml"));
             if !no_sync {
-                sync::run_sync(root, false, false, false, ui)?;
+                sync::run_sync(root, false, false, false, None, ui)?;
             }
         }
         McpAction::Remove { name, no_sync } => {
             manifest::AgentpackManifest::remove_mcp_server(root, &name)?;
             ui.message(format!("Removed MCP server \"{name}\" from agentpack.toml"));
             if !no_sync {
-                sync::run_sync(root, false, false, false, ui)?;
+                sync::run_sync(root, false, false, false, None, ui)?;
             }
         }
         McpAction::List => {
             let lock = lockfile::PackLock::load(root).unwrap_or_default();
             let manifest = manifest::AgentpackManifest::load(root)?;
-            let merged = crate::staging::mcp::collect_merged_mcp(root, &lock, manifest.as_ref())?;
+            let merged =
+                crate::staging::mcp::collect_merged_mcp(root, &lock, manifest.as_ref(), None)?;
             if merged.is_empty() {
                 ui.message("No MCP servers configured.");
             } else {
@@ -129,6 +140,90 @@ fn run_mcp(root: &Path, action: McpAction, ui: &Ui) -> anyhow::Result<()> {
                 }
             }
         }
+    }
+    Ok(())
+}
+
+fn run_mode(root: &Path, action: ModeAction, ui: &Ui) -> anyhow::Result<()> {
+    let manifest = manifest::AgentpackManifest::load(root)?
+        .ok_or_else(|| anyhow::anyhow!("agentpack.toml required for mode management"))?;
+    let lock = lockfile::PackLock::load(root).ok();
+    let catalog =
+        crate::mode::catalog::CapabilityCatalog::build(root, lock.as_ref(), Some(&manifest))?;
+
+    match action {
+        ModeAction::List => {
+            for name in manifest.list_mode_names() {
+                let definition = manifest
+                    .mode_definition(&name)
+                    .expect("listed mode should resolve");
+                ui.message(format!(
+                    "{name}: base={}, enable={}, disable={}",
+                    definition.base,
+                    definition.enable.len(),
+                    definition.disable.len()
+                ));
+            }
+        }
+        ModeAction::Show { name } => {
+            let definition = manifest
+                .mode_definition(&name)
+                .ok_or_else(|| anyhow::anyhow!("unknown mode: {name}"))?;
+            ui.message(format!("mode: {name}"));
+            ui.message(format!("base: {}", definition.base));
+            ui.message(format!("enable: {:?}", definition.enable));
+            ui.message(format!("disable: {:?}", definition.disable));
+        }
+        ModeAction::Create { name } => {
+            manifest::AgentpackManifest::create_mode(root, &name)?;
+            ui.message(format!("Created mode \"{name}\"."));
+        }
+        ModeAction::Delete { name } => {
+            manifest::AgentpackManifest::delete_mode(root, &name)?;
+            ui.message(format!("Deleted mode \"{name}\"."));
+        }
+        ModeAction::Enable { name, selectors } => {
+            require_known_mode(&manifest, &name)?;
+            validate_selectors(&catalog, &selectors)?;
+            manifest::AgentpackManifest::add_mode_selectors(root, &name, true, &selectors)?;
+            ui.message(format!("Updated mode \"{name}\"."));
+        }
+        ModeAction::Disable { name, selectors } => {
+            require_known_mode(&manifest, &name)?;
+            validate_selectors(&catalog, &selectors)?;
+            manifest::AgentpackManifest::add_mode_selectors(root, &name, false, &selectors)?;
+            ui.message(format!("Updated mode \"{name}\"."));
+        }
+        ModeAction::Base { name, base } => {
+            require_known_mode(&manifest, &name)?;
+            manifest::AgentpackManifest::set_mode_base(root, &name, base.into())?;
+            ui.message(format!(
+                "Set mode \"{name}\" base to {}.",
+                crate::mode::ModeBase::from(base)
+            ));
+        }
+        ModeAction::Tui { name } => {
+            crate::mode::tui::run_mode_tui(root, &manifest, &catalog, name.as_deref())?;
+        }
+    }
+
+    Ok(())
+}
+
+fn require_known_mode(manifest: &manifest::AgentpackManifest, name: &str) -> anyhow::Result<()> {
+    if manifest.mode_definition(name).is_some() {
+        return Ok(());
+    }
+    Err(anyhow::anyhow!("unknown mode: {name}"))
+}
+
+fn validate_selectors(
+    catalog: &crate::mode::catalog::CapabilityCatalog,
+    selectors: &[String],
+) -> anyhow::Result<()> {
+    for raw in selectors {
+        let selector = crate::mode::selectors::Selector::parse(raw)?;
+        catalog.validate_selector(&selector)?;
     }
     Ok(())
 }

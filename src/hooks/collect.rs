@@ -3,22 +3,13 @@ use std::path::{Path, PathBuf};
 use crate::cache::cache_entry_dir;
 use crate::error::Result;
 use crate::lockfile::{LockPackage, PackLock};
-use crate::manifest::AgentpackManifest;
+use crate::mode::filter::EffectiveMode;
 use crate::paths::project_dot_agents_dir;
-use crate::staging::{rel_is_disabled, skill_is_shadowed};
+use crate::staging::skill_is_shadowed;
 
 use super::ir::{HookBundle, HookLayer, HookOrigin};
 use super::merge::sort_bundle;
 use super::parse::{parse_claude_hooks, parse_codex_hooks};
-
-fn disabled_paths_for_module<'a>(
-    manifest: Option<&'a AgentpackManifest>,
-    module: &str,
-) -> &'a [String] {
-    manifest
-        .map(|manifest| manifest.disable_paths_for_module(module))
-        .unwrap_or(&[])
-}
 
 fn package_key(cache_key: Option<&str>, module: &str, layer: HookLayer) -> String {
     if let Some(cache_key) = cache_key.filter(|value| !value.is_empty()) {
@@ -44,7 +35,6 @@ fn parse_source_file(
     source_root: PathBuf,
     source_file: PathBuf,
     source_rel: &str,
-    disabled_paths: Vec<String>,
 ) -> Result<HookBundle> {
     let value = crate::fs_util::read_json_value(&source_file)?;
     let origin = HookOrigin {
@@ -55,7 +45,6 @@ fn parse_source_file(
         package_key: package_key(cache_key.as_deref(), &module, layer),
         source_root,
         source_file: source_file.clone(),
-        disabled_paths,
         event_index: 0,
         matcher_group_index: 0,
         hook_index: 0,
@@ -71,17 +60,14 @@ fn parse_source_file(
 fn collect_from_packages(
     packages: &[&LockPackage],
     layer: HookLayer,
-    manifest: Option<&AgentpackManifest>,
     bundle: &mut HookBundle,
+    mode: &EffectiveMode,
 ) -> Result<()> {
     for pkg in packages {
         if pkg.cache_key.is_empty() {
             continue;
         }
-        let disabled_paths = disabled_paths_for_module(manifest, &pkg.module).to_vec();
-        if rel_is_disabled(Path::new("hooks"), &disabled_paths)
-            || rel_is_disabled(Path::new("hooks/hooks.json"), &disabled_paths)
-        {
+        if !mode.allows_package_path(&pkg.module, Path::new("hooks/hooks.json"))? {
             continue;
         }
         let root = cache_entry_dir(&pkg.cache_key)?;
@@ -96,7 +82,6 @@ fn collect_from_packages(
             root,
             hooks_path,
             "hooks/hooks.json",
-            disabled_paths,
         )?;
         bundle.hooks.extend(parsed.hooks);
     }
@@ -106,8 +91,8 @@ fn collect_from_packages(
 pub fn collect_hooks(
     project_root: &Path,
     lock: &PackLock,
-    manifest: Option<&AgentpackManifest>,
     seeded_codex_hooks: Option<&Path>,
+    mode: &EffectiveMode,
 ) -> Result<HookBundle> {
     let mut bundle = HookBundle::default();
 
@@ -123,14 +108,13 @@ pub fn collect_hooks(
             seed_root,
             seed_path.to_path_buf(),
             "hooks.json",
-            Vec::new(),
         )?;
         bundle.hooks.extend(parsed.hooks);
     }
 
     let mut plugins: Vec<&LockPackage> = lock.plugins().collect();
     plugins.sort_by(|a, b| a.module.cmp(&b.module));
-    collect_from_packages(&plugins, HookLayer::PackPlugin, manifest, &mut bundle)?;
+    collect_from_packages(&plugins, HookLayer::PackPlugin, &mut bundle, mode)?;
 
     let mut skills: Vec<&LockPackage> = lock.skills().collect();
     skills.sort_by(|a, b| a.module.cmp(&b.module));
@@ -138,11 +122,11 @@ pub fn collect_hooks(
         .into_iter()
         .filter(|skill| !skill_is_shadowed(skill, &plugins))
         .collect();
-    collect_from_packages(&skills, HookLayer::BareSkill, manifest, &mut bundle)?;
+    collect_from_packages(&skills, HookLayer::BareSkill, &mut bundle, mode)?;
 
     let dot_agents = project_dot_agents_dir(project_root);
     let dot_hooks = dot_agents.join("hooks/hooks.json");
-    if dot_hooks.is_file() {
+    if dot_hooks.is_file() && mode.allows_dot_agents_path(Path::new("hooks/hooks.json"))? {
         let parsed = parse_source_file(
             HookLayer::DotAgents,
             "dot-agents".to_string(),
@@ -150,7 +134,6 @@ pub fn collect_hooks(
             dot_agents,
             dot_hooks,
             "hooks/hooks.json",
-            Vec::new(),
         )?;
         bundle.hooks.extend(parsed.hooks);
     }

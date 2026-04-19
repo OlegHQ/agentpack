@@ -110,8 +110,13 @@ version = "0.1.0"
 "github.com/anthropics/claude-plugins-official/plugins/hookify" = { version = "^1.0.0" }
 "github.com/my-org/internal-tools/skills/deploy" = { tag = "v2.1.0" }
 
-[overrides."github.com/someorg/heavy-pack"]
-disable = ["commands/noise.md", "hooks"]
+[modes.default]
+base = "all"
+disable = ["package-path:github.com/my-org/internal-tools/skills/deploy:commands/noise.md"]
+
+[modes.design]
+base = "all"
+disable = ["mcp:filesystem"]
 ```
 
 ## Key Features
@@ -123,7 +128,7 @@ disable = ["commands/noise.md", "hooks"]
 - **No workspace pollution** — Pack content lives in staging directories, not in your git repo. Nothing is materialized into `.cursor/` or `.claude/`.
 - **Offline-first** — Local mirrors (`$AGENTPACK_HOME/local/`) and cached metadata reduce network calls. Git protocol fallback when REST API is throttled.
 - **Fast launch path** — Launchers skip full re-sync when inputs haven't changed since the last successful run.
-- **Selective overrides** — Disable specific commands, hooks, or directories per-package via `[overrides]`.
+- **Project-local modes** — Define `[modes]` once, then launch with `agentpack --mode <name> ...` to selectively enable or disable package paths, `.agents` content, and MCP servers.
 - **Project-local agent config** — Optional `.agents/` directory (dot-agents style) merges project-specific rules, skills, and agents into staged bundles.
 
 ## Comparison
@@ -147,6 +152,7 @@ disable = ["commands/noise.md", "hooks"]
 | `remove <spec>` | Remove a dependency and re-sync |
 | `lock` | Resolve manifest and regenerate `pack.lock` |
 | `sync` | Download, cache, and rebuild staging for all harnesses |
+| `mode ...` | Create, inspect, edit, and interactively manage project-local modes |
 | `claude` | Sync + launch Claude Code with `--plugin-dir` |
 | `agent` | Sync + launch Cursor Agent with staged HOME |
 | `opencode` | Sync + launch OpenCode with staged config root |

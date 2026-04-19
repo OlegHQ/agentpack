@@ -3,7 +3,7 @@ pub mod hook_exec;
 
 use std::path::PathBuf;
 
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 
 #[derive(Parser)]
 #[command(
@@ -27,6 +27,10 @@ pub struct Cli {
     /// Forward each harness's "skip permission prompts" / full-access mode (Claude: `--dangerously-skip-permissions`; OpenCode: stage `opencode.json` with `"permission": "allow"`; Codex: `--dangerously-bypass-approvals-and-sandbox`; Cursor `agent`: `--force`)
     #[arg(long, global = true)]
     pub yolo: bool,
+
+    /// Select a project-local mode from `agentpack.toml [modes]` (defaults to the reserved `default` mode)
+    #[arg(long, global = true)]
+    pub mode: Option<String>,
 
     /// Print launcher diagnostics (workspace paths, env overrides, fast-sync skip reason)
     #[arg(long, global = true)]
@@ -57,7 +61,7 @@ pub enum Command {
         #[arg(long)]
         no_sync: bool,
     },
-    /// Drop a direct dependency from **agentpack.toml** (and its **[overrides]**), refresh **pack.lock**, then **sync** unless `--no-sync`
+    /// Drop a direct dependency from **agentpack.toml**, refresh **pack.lock**, then **sync** unless `--no-sync`
     Remove {
         spec: String,
         #[arg(long)]
@@ -98,8 +102,28 @@ pub enum Command {
         #[command(subcommand)]
         action: McpAction,
     },
+    /// Manage project-local modes stored in `agentpack.toml`
+    Mode {
+        #[command(subcommand)]
+        action: ModeAction,
+    },
     /// Internal bridge used by rendered hook configs across harnesses
     HookExec(HookExecArgs),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
+pub enum ModeBaseArg {
+    All,
+    None,
+}
+
+impl From<ModeBaseArg> for crate::mode::ModeBase {
+    fn from(value: ModeBaseArg) -> Self {
+        match value {
+            ModeBaseArg::All => crate::mode::ModeBase::All,
+            ModeBaseArg::None => crate::mode::ModeBase::None,
+        }
+    }
 }
 
 #[derive(Subcommand)]
@@ -131,6 +155,32 @@ pub enum McpAction {
     },
     /// List all MCP servers (from manifest, plugins, and .agents)
     List,
+}
+
+#[derive(Subcommand)]
+pub enum ModeAction {
+    /// List all modes declared in `agentpack.toml`
+    List,
+    /// Show one mode's base, enable list, and disable list
+    Show { name: String },
+    /// Create a new mode
+    Create { name: String },
+    /// Delete a mode (`default` is reserved and cannot be deleted)
+    Delete { name: String },
+    /// Enable one or more selectors within a mode
+    Enable {
+        name: String,
+        selectors: Vec<String>,
+    },
+    /// Disable one or more selectors within a mode
+    Disable {
+        name: String,
+        selectors: Vec<String>,
+    },
+    /// Set a mode's base to `all` or `none`
+    Base { name: String, base: ModeBaseArg },
+    /// Open the interactive mode editor
+    Tui { name: Option<String> },
 }
 
 fn parse_env_pair(s: &str) -> std::result::Result<(String, String), String> {

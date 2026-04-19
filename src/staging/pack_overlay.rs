@@ -9,7 +9,7 @@ use crate::artifacts::{parse_markdown_artifact, staged_skill_support_path, Harne
 use crate::cache::{cache_entry_dir, cache_has_plugin_manifest};
 use crate::error::{AgentpackError, Result};
 use crate::lockfile::{LockPackage, PackLock, PackageKind};
-use crate::manifest::AgentpackManifest;
+use crate::mode::filter::EffectiveMode;
 
 use crate::fs_util::{fast_copy_file, write_text_file};
 
@@ -29,42 +29,6 @@ where
         visitor(path, rel)?;
     }
     Ok(())
-}
-
-fn rel_key(rel: &Path) -> String {
-    rel.to_string_lossy()
-        .replace(std::path::MAIN_SEPARATOR, "/")
-}
-
-/// Paths are package-root-relative (forward slashes). A pattern matches the exact path or any file under it as a directory prefix.
-pub(crate) fn rel_is_disabled(rel: &Path, disabled: &[String]) -> bool {
-    if disabled.is_empty() {
-        return false;
-    }
-    let rel_str = rel_key(rel);
-    for raw in disabled {
-        let d = raw.trim().replace('\\', "/");
-        let d = d.trim_start_matches("./");
-        if d.is_empty() {
-            continue;
-        }
-        if rel_str == d || rel_str.starts_with(&format!("{d}/")) {
-            return true;
-        }
-    }
-    false
-}
-
-fn disable_list_for_entry<'a>(
-    manifest: Option<&'a AgentpackManifest>,
-    module: &str,
-) -> &'a [String] {
-    if module.is_empty() {
-        return &[];
-    }
-    manifest
-        .map(|m| m.disable_paths_for_module(module))
-        .unwrap_or(&[])
 }
 
 /// Destination roots for the four harness trees that receive merged pack content.
@@ -93,7 +57,8 @@ fn stage_source_tree_all_harnesses(
     src_root: &Path,
     dests: &PackHarnessRoots<'_>,
     bare_skill_name: Option<&str>,
-    disabled: &[String],
+    module: &str,
+    mode: &EffectiveMode,
 ) -> Result<()> {
     if !src_root.is_dir() {
         return Ok(());
@@ -101,7 +66,7 @@ fn stage_source_tree_all_harnesses(
 
     let pairs = dests.targets_and_roots();
     walk_source_files(src_root, &mut |src, rel| {
-        if rel_is_disabled(rel, disabled) {
+        if !mode.allows_package_path(module, rel)? {
             return Ok(());
         }
         if let Some(dest_rel) = staged_skill_support_path(rel, bare_skill_name) {
@@ -141,7 +106,8 @@ fn stage_source_tree_all_harnesses(
 fn copy_raw_plugin_support_dirs_all_harnesses(
     src_root: &Path,
     dests: &PackHarnessRoots<'_>,
-    disabled: &[String],
+    module: &str,
+    mode: &EffectiveMode,
 ) -> Result<()> {
     // Build subdir → [dest_root per interested target] map. Preserve insertion order for
     // deterministic debug logs; BTreeMap also gives consistent ordering across runs.
@@ -171,7 +137,7 @@ fn copy_raw_plugin_support_dirs_all_harnesses(
             }
             walk_source_files(&s, &mut |src, rel| {
                 let full_rel = Path::new(sub).join(rel);
-                if rel_is_disabled(&full_rel, disabled) {
+                if !mode.allows_package_path(module, &full_rel)? {
                     return Ok(());
                 }
                 for dest_root in *dest_roots {
@@ -187,25 +153,27 @@ fn stage_bare_skill_cache_all_harnesses(
     cache_root: &Path,
     dests: &PackHarnessRoots<'_>,
     skill_name: &str,
-    disabled: &[String],
+    module: &str,
+    mode: &EffectiveMode,
 ) -> Result<()> {
-    stage_source_tree_all_harnesses(cache_root, dests, Some(skill_name), disabled)
+    stage_source_tree_all_harnesses(cache_root, dests, Some(skill_name), module, mode)
 }
 
 fn stage_plugin_cache_all_harnesses(
     cache_root: &Path,
     dests: &PackHarnessRoots<'_>,
-    disabled: &[String],
+    module: &str,
+    mode: &EffectiveMode,
 ) -> Result<()> {
-    copy_raw_plugin_support_dirs_all_harnesses(cache_root, dests, disabled)?;
+    copy_raw_plugin_support_dirs_all_harnesses(cache_root, dests, module, mode)?;
     // Plugin root `mcp.json` is collected centrally by `staging::mcp::stage_merged_mcp`.
-    stage_source_tree_all_harnesses(cache_root, dests, None, disabled)
+    stage_source_tree_all_harnesses(cache_root, dests, None, module, mode)
 }
 
 pub(super) fn stage_pack_plugins_all_harnesses(
     lock: &PackLock,
     dests: &PackHarnessRoots<'_>,
-    manifest: Option<&AgentpackManifest>,
+    mode: &EffectiveMode,
 ) -> Result<()> {
     let mut plug_list: Vec<&LockPackage> = lock.plugins().collect();
     plug_list.sort_by(|a, b| a.cache_key.cmp(&b.cache_key));
@@ -232,8 +200,7 @@ pub(super) fn stage_pack_plugins_all_harnesses(
             );
             continue;
         }
-        let disabled = disable_list_for_entry(manifest, &plugin.module);
-        stage_plugin_cache_all_harnesses(&cache_path, dests, disabled)?;
+        stage_plugin_cache_all_harnesses(&cache_path, dests, &plugin.module, mode)?;
     }
     Ok(())
 }
@@ -241,7 +208,7 @@ pub(super) fn stage_pack_plugins_all_harnesses(
 pub(super) fn stage_pack_skills_all_harnesses(
     lock: &PackLock,
     dests: &PackHarnessRoots<'_>,
-    manifest: Option<&AgentpackManifest>,
+    mode: &EffectiveMode,
 ) -> Result<()> {
     let plugins: Vec<&LockPackage> = lock.plugins().collect();
     let mut skill_list: Vec<&LockPackage> = lock.skills().collect();
@@ -273,7 +240,6 @@ pub(super) fn stage_pack_skills_all_harnesses(
                 }
             };
             let name = skill_folder_name(skill);
-            let disabled = disable_list_for_entry(manifest, &skill.module);
             if !cache_path.join("SKILL.md").is_file() {
                 tracing::warn!(
                     path = %cache_path.display(),
@@ -281,7 +247,7 @@ pub(super) fn stage_pack_skills_all_harnesses(
                 );
                 return Ok(());
             }
-            stage_bare_skill_cache_all_harnesses(&cache_path, dests, &name, disabled)
+            stage_bare_skill_cache_all_harnesses(&cache_path, dests, &name, &skill.module, mode)
         })?;
     Ok(())
 }

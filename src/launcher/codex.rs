@@ -8,16 +8,17 @@ use crate::ui::Ui;
 pub fn run_codex(
     project_root: &std::path::Path,
     mut passthrough: Vec<String>,
+    selected_mode: Option<&str>,
     yolo: bool,
     ui: &Ui,
 ) -> anyhow::Result<()> {
-    sync_for_launch(project_root, ui)?;
+    let mode = sync_for_launch(project_root, selected_mode, ui)?;
 
     if yolo {
         apply_yolo_codex(&mut passthrough);
     }
 
-    let codex_home = paths::staging_codex_home_dir(project_root)?;
+    let codex_home = paths::staging_codex_home_dir_for_mode(project_root, mode.name())?;
     ui.debug_message(format!("Codex home: {}", codex_home.display()));
 
     let codex = resolve_harness_binary("CODEX_PATH", "codex").with_context(|| {

@@ -9,9 +9,8 @@ use sha2::{Digest, Sha256};
 use walkdir::WalkDir;
 
 use crate::error::{AgentpackError, Result};
+use crate::mode::filter::EffectiveMode;
 use crate::paths;
-
-const LAUNCH_SYNC_STATE: &str = "launch-sync.state";
 
 #[derive(Serialize, Deserialize)]
 struct LaunchSyncState {
@@ -44,8 +43,8 @@ fn hash_dot_agents_tree(dir: &Path) -> Result<Vec<u8>> {
     Ok(hasher.finalize().to_vec())
 }
 
-/// Stable digest of everything that affects `run_sync` staging output for this project.
-pub fn compute_launch_sync_digest(project_root: &Path) -> Result<String> {
+/// Stable digest of everything that affects `run_sync` staging output for this project and mode.
+pub fn compute_launch_sync_digest(project_root: &Path, mode: &EffectiveMode) -> Result<String> {
     let mut hasher = Sha256::new();
 
     let manifest_path = paths::manifest_path(project_root);
@@ -73,11 +72,14 @@ pub fn compute_launch_sync_digest(project_root: &Path) -> Result<String> {
             .as_bytes(),
     );
 
+    hasher.update(b"mode\0");
+    hasher.update(mode.fingerprint_material().as_bytes());
+
     Ok(hex::encode(hasher.finalize()))
 }
 
-pub fn read_stored_launch_digest(project_root: &Path) -> Result<Option<String>> {
-    let path = paths::project_state_dir(project_root)?.join(LAUNCH_SYNC_STATE);
+pub fn read_stored_launch_digest(project_root: &Path, mode_name: &str) -> Result<Option<String>> {
+    let path = paths::launch_sync_state_path(project_root, mode_name)?;
     if !path.is_file() {
         return Ok(None);
     }
@@ -87,10 +89,10 @@ pub fn read_stored_launch_digest(project_root: &Path) -> Result<Option<String>> 
     Ok(Some(state.digest))
 }
 
-pub fn write_launch_sync_state(project_root: &Path, digest: &str) -> Result<()> {
+pub fn write_launch_sync_state(project_root: &Path, mode_name: &str, digest: &str) -> Result<()> {
     let dir = paths::project_state_dir(project_root)?;
     fs::create_dir_all(&dir).map_err(|e| AgentpackError::io(&dir, e))?;
-    let path = dir.join(LAUNCH_SYNC_STATE);
+    let path = paths::launch_sync_state_path(project_root, mode_name)?;
     let state = LaunchSyncState {
         digest: digest.into(),
     };
@@ -121,8 +123,9 @@ mod tests {
         let root = t.path();
         write_file(root, "agentpack.toml", b"name=\"x\"\nversion=\"1\"\n");
         write_file(root, "pack.lock", b"lockfile-version=2\n");
-        let a = compute_launch_sync_digest(root).unwrap();
-        let b = compute_launch_sync_digest(root).unwrap();
+        let mode = EffectiveMode::implicit_default();
+        let a = compute_launch_sync_digest(root, &mode).unwrap();
+        let b = compute_launch_sync_digest(root, &mode).unwrap();
         assert_eq!(a, b);
     }
 
@@ -132,9 +135,10 @@ mod tests {
         let root = t.path();
         write_file(root, "agentpack.toml", b"a");
         write_file(root, "pack.lock", b"lock");
-        let d1 = compute_launch_sync_digest(root).unwrap();
+        let mode = EffectiveMode::implicit_default();
+        let d1 = compute_launch_sync_digest(root, &mode).unwrap();
         write_file(root, "agentpack.toml", b"b");
-        let d2 = compute_launch_sync_digest(root).unwrap();
+        let d2 = compute_launch_sync_digest(root, &mode).unwrap();
         assert_ne!(d1, d2);
     }
 
@@ -145,9 +149,32 @@ mod tests {
         write_file(root, "agentpack.toml", b"n=\"x\"\nv=\"1\"\n");
         write_file(root, "pack.lock", b"lockfile-version=2\n");
         write_file(root, ".agents/foo.md", b"1");
-        let d1 = compute_launch_sync_digest(root).unwrap();
+        let mode = EffectiveMode::implicit_default();
+        let d1 = compute_launch_sync_digest(root, &mode).unwrap();
         write_file(root, ".agents/foo.md", b"2");
-        let d2 = compute_launch_sync_digest(root).unwrap();
+        let d2 = compute_launch_sync_digest(root, &mode).unwrap();
+        assert_ne!(d1, d2);
+    }
+
+    #[test]
+    fn digest_changes_when_mode_changes() {
+        let t = TempDir::new().unwrap();
+        let root = t.path();
+        write_file(root, "agentpack.toml", b"name=\"x\"\nversion=\"1\"\n");
+        write_file(root, "pack.lock", b"lockfile-version=2\n");
+
+        let default_mode = EffectiveMode::implicit_default();
+        let d1 = compute_launch_sync_digest(root, &default_mode).unwrap();
+        let selective_mode = EffectiveMode::from_definition(
+            "design",
+            crate::mode::ModeDefinition {
+                base: crate::mode::ModeBase::None,
+                enable: vec!["mcp:filesystem".into()],
+                disable: Vec::new(),
+            },
+        )
+        .unwrap();
+        let d2 = compute_launch_sync_digest(root, &selective_mode).unwrap();
         assert_ne!(d1, d2);
     }
 }

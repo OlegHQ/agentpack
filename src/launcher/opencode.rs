@@ -9,12 +9,13 @@ use crate::ui::Ui;
 pub fn run_opencode(
     project_root: &std::path::Path,
     passthrough: Vec<String>,
+    selected_mode: Option<&str>,
     yolo: bool,
     ui: &Ui,
 ) -> anyhow::Result<()> {
-    sync_for_launch(project_root, ui)?;
+    let mode = sync_for_launch(project_root, selected_mode, ui)?;
 
-    let config_dir = paths::staging_opencode_dir(project_root)?;
+    let config_dir = paths::staging_opencode_dir_for_mode(project_root, mode.name())?;
     ui.debug_message(format!("OpenCode config dir: {}", config_dir.display()));
 
     if yolo {

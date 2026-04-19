@@ -44,6 +44,9 @@ pub enum AgentpackError {
     #[error("database error: {0}")]
     Database(String),
 
+    #[error("mode error: {0}")]
+    Mode(String),
+
     #[error("sync/staging error: {0}")]
     Staging(String),
 

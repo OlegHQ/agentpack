@@ -1,6 +1,6 @@
 use crate::error::Result;
 use crate::lockfile::PackLock;
-use crate::manifest::AgentpackManifest;
+use crate::mode::filter::EffectiveMode;
 
 use super::collect::collect_hooks;
 use super::paths::stage_origin_packages;
@@ -19,14 +19,14 @@ pub struct HookHarnessRoots<'a> {
 pub fn stage_hooks_all_harnesses(
     project_root: &std::path::Path,
     lock: &PackLock,
-    manifest: Option<&AgentpackManifest>,
+    mode: &EffectiveMode,
     roots: &HookHarnessRoots<'_>,
 ) -> Result<()> {
     let bundle = collect_hooks(
         project_root,
         lock,
-        manifest,
         Some(&roots.codex_home.join("hooks.json")),
+        mode,
     )?;
     if bundle.hooks.is_empty() {
         return Ok(());
@@ -40,7 +40,7 @@ pub fn stage_hooks_all_harnesses(
     ];
 
     for (renderer, target_root) in renderers {
-        let staged_packages = stage_origin_packages(&bundle, renderer.target(), target_root)?;
+        let staged_packages = stage_origin_packages(&bundle, renderer.target(), target_root, mode)?;
         let ctx = RenderContext {
             project_root,
             target_root,

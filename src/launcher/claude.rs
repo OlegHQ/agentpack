@@ -10,16 +10,17 @@ use crate::ui::Ui;
 pub fn run_claude(
     project_root: &std::path::Path,
     mut passthrough: Vec<String>,
+    selected_mode: Option<&str>,
     yolo: bool,
     ui: &Ui,
 ) -> anyhow::Result<()> {
-    sync_for_launch(project_root, ui)?;
+    let mode = sync_for_launch(project_root, selected_mode, ui)?;
 
     if yolo {
         crate::launcher::common::apply_yolo_claude(&mut passthrough);
     }
 
-    let plugin_dirs = staging::list_plugin_dirs(project_root)?;
+    let plugin_dirs = staging::list_plugin_dirs(project_root, mode.name())?;
     if !plugin_dirs.is_empty() {
         let rendered = plugin_dirs
             .iter()

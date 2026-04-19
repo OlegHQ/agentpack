@@ -6,6 +6,7 @@
 |---|---|
 | `--help`, `-h` | Print help for the command |
 | `--version`, `-V` | Print the agentpack version |
+| `--mode <name>` | Select the project-local mode used for `sync` and launcher commands |
 
 ---
 
@@ -66,9 +67,23 @@ Download all packages listed in `pack.lock` into the cache and materialize stagi
 
 ```sh
 agentpack sync
+agentpack --mode design sync
 ```
 
 Skips packages whose content hash is already in the cache. Always re-stages all harnesses.
+
+## `agentpack mode`
+
+Manage project-local modes stored in `agentpack.toml`.
+
+```sh
+agentpack mode list
+agentpack mode show default
+agentpack mode create design
+agentpack mode disable design package-path:github.com/acme/rules:commands/noisy.md
+agentpack mode base design none
+agentpack mode tui
+```
 
 ---
 

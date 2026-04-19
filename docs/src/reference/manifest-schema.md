@@ -7,6 +7,8 @@ Full reference for `agentpack.toml`.
 ```toml
 [package]       # required
 [dependencies]  # optional
+[modes]         # optional
+[mcp.servers]   # optional
 ```
 
 ---
@@ -97,4 +99,39 @@ version = "0.5.0"
 "github.com/acme/monorepo"              = { version = "^2.0", path = "packages/agent" }
 "github.com/acme/experimental"          = { branch = "main" }
 "github.com/acme/local-dev"             = { path = "../local-dev" }
+
+[modes.default]
+base = "all"
+disable = ["package-path:github.com/acme/shared-rules:commands/noisy.md"]
+
+[modes.review]
+base = "none"
+enable = ["package:github.com/acme/shared-rules", ".agents:rules/backend.mdc"]
 ```
+
+## `[modes.<name>]`
+
+Modes are project-local staging presets. The reserved `default` mode is used whenever `--mode` is omitted.
+
+```toml
+[modes.default]
+base = "all"
+disable = ["mcp:filesystem"]
+
+[modes.design]
+base = "none"
+enable = ["package:github.com/acme/shared-rules"]
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `base` | `"all"` or `"none"` | Baseline capability state before selectors are applied |
+| `enable` | string array | Selectors to turn on |
+| `disable` | string array | Selectors to turn off |
+
+Supported selectors:
+
+- `package:<module>`
+- `package-path:<module>:<relative-path>`
+- `mcp:<name>`
+- `.agents:<relative-path>`
