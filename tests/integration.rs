@@ -6,7 +6,7 @@ use agentpack::cli::{Cli, Command, ModeAction};
 use agentpack::lockfile::{LockPackage, PackLock, PackageKind};
 use agentpack::mode::filter::EffectiveMode;
 use agentpack::paths::{
-    cache_dir, cursor_workspace_dir, project_dot_agents_dir, staging_claude_config_dir,
+    agentpack_claude_settings_path, cache_dir, cursor_workspace_dir, project_dot_agents_dir,
     staging_codex_home_dir, staging_codex_home_dir_for_mode, staging_cursor_bundle_dir,
     staging_cursor_home_dir, staging_cursor_pack_plugin_dir, staging_opencode_dir,
     staging_plugins_dir, staging_plugins_dir_for_mode,
@@ -1414,15 +1414,14 @@ fn sync_disables_attribution_in_all_supported_harnesses_by_default() {
     })
     .unwrap();
 
-    // Claude config dir (CLAUDE_CONFIG_DIR target): <staged>/settings.json must exist as a real
-    // file with attribution forced off, regardless of whether the user has settings.
-    let claude_settings = staging_claude_config_dir(&root)
-        .unwrap()
-        .join("settings.json");
+    // Claude attribution overlay (passed via `claude --settings <path>`). Lives under
+    // $AGENTPACK_HOME, NOT under per-project staging — Claude Code namespaces credentials by
+    // CLAUDE_CONFIG_DIR, so a per-project path would forget login on every project switch.
+    let claude_settings = agentpack_claude_settings_path().unwrap();
     let meta = fs::symlink_metadata(&claude_settings).unwrap();
     assert!(
         !meta.file_type().is_symlink(),
-        "staged claude settings.json must not be a symlink to ~/.claude"
+        "claude --settings overlay must not be a symlink"
     );
     let v: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&claude_settings).unwrap()).unwrap();
@@ -1510,14 +1509,12 @@ fn sync_keeps_attribution_when_env_opt_in() {
     .unwrap();
     std::env::remove_var("AGENTPACK_KEEP_ATTRIBUTION");
 
-    // Claude config dir: staged settings.json must NOT contain forced attribution keys.
-    let claude_settings = staging_claude_config_dir(&root)
-        .unwrap()
-        .join("settings.json");
-    let v: serde_json::Value =
-        serde_json::from_str(&fs::read_to_string(&claude_settings).unwrap()).unwrap();
-    assert!(v.get("attribution").is_none());
-    assert!(v.get("includeCoAuthoredBy").is_none());
+    // Claude attribution overlay must be absent so the launcher omits `--settings`.
+    let claude_settings = agentpack_claude_settings_path().unwrap();
+    assert!(
+        !claude_settings.exists(),
+        "claude --settings overlay must not exist when AGENTPACK_KEEP_ATTRIBUTION=1"
+    );
 
     // Codex: commit_attribution must not be present.
     let codex_config = staging_codex_home_dir(&root).unwrap().join("config.toml");

@@ -12,7 +12,6 @@ use crate::paths::{staging_cursor_bundle_dir_for_mode, staging_cursor_pack_plugi
 
 use super::seed::seed_cursor_root;
 
-pub(super) use fake_home::symlink_or_copy_into_fake_home;
 pub(super) use manifests::write_cursor_pack_plugin_readme;
 pub(super) use overlay::read_cursor_overlay_manifest;
 

@@ -3,8 +3,11 @@
 //! sessions launched through agentpack — the user's real `~/.claude`, `~/.codex`, `~/.cursor`,
 //! and `~/.config/opencode` are never modified.
 //!
-//! Claude is handled by `claude_home.rs` (it needs a full `CLAUDE_CONFIG_DIR` redirect, not just
-//! a settings write). The helpers below cover Codex, Cursor, and OpenCode.
+//! Claude is handled by `claude_home.rs`, which writes a stable
+//! `$AGENTPACK_HOME/claude-settings.json` overlay loaded via `claude --settings <path>` (the
+//! launcher passes the flag). We deliberately do **not** redirect `CLAUDE_CONFIG_DIR` because
+//! Claude Code namespaces credential storage by `sha256(CLAUDE_CONFIG_DIR)`. The helpers below
+//! cover Codex, Cursor, and OpenCode.
 //!
 //! Per-harness keys (last verified 2026-04 against vendor docs):
 //!

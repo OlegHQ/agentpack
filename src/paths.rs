@@ -238,15 +238,17 @@ pub fn staging_cursor_home_dir(project_root: &Path) -> Result<PathBuf> {
     staging_cursor_home_dir_for_mode(project_root, "default")
 }
 
-/// Staged Claude config dir set as `CLAUDE_CONFIG_DIR` so `claude` reads our `settings.json`
-/// (with attribution forced off) instead of the user's real `~/.claude/settings.json`. User
-/// auth/projects/commands are symlinked in.
-pub fn staging_claude_config_dir_for_mode(project_root: &Path, mode_name: &str) -> Result<PathBuf> {
-    Ok(staging_root_for_mode(project_root, mode_name)?.join("claude-home"))
-}
-
-pub fn staging_claude_config_dir(project_root: &Path) -> Result<PathBuf> {
-    staging_claude_config_dir_for_mode(project_root, "default")
+/// Stable settings overlay file passed to `claude --settings <path>`. Lives under
+/// `$AGENTPACK_HOME` (not staging) so its location does not depend on the project, mode, or temp
+/// dir. This is load-bearing: Claude Code (verified against the v2.1.119 bundle) namespaces both
+/// the macOS keychain service name (`Claude Code-credentials-<sha256(CLAUDE_CONFIG_DIR)[:8]>`) and
+/// the file fallback path (`$CLAUDE_CONFIG_DIR/.credentials.json`) by `CLAUDE_CONFIG_DIR`. Putting
+/// our overrides under per-project staging would forget login on every project switch and macOS
+/// reboot. So we don't redirect `CLAUDE_CONFIG_DIR` at all — we pass `--settings` instead, which
+/// loads as `flagSettings` (precedence above user/project/local) without touching the keychain
+/// namespace.
+pub fn agentpack_claude_settings_path() -> Result<PathBuf> {
+    Ok(user_agentpack_home()?.join("claude-settings.json"))
 }
 
 pub fn cursor_workspace_dir(project_root: &Path) -> PathBuf {

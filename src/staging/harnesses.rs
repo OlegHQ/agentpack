@@ -7,7 +7,7 @@ use crate::lockfile::PackLock;
 use crate::manifest::AgentpackManifest;
 use crate::mode::filter::EffectiveMode;
 use crate::paths::{
-    cursor_workspace_dir, staging_claude_config_dir_for_mode, staging_codex_home_dir_for_mode,
+    agentpack_claude_settings_path, cursor_workspace_dir, staging_codex_home_dir_for_mode,
     staging_cursor_bundle_dir_for_mode, staging_cursor_home_dir_for_mode,
     staging_cursor_pack_plugin_dir_for_mode, staging_opencode_dir_for_mode,
     staging_plugins_dir_for_mode, STAGED_AGENTPACK_BUNDLE_NAME,
@@ -16,7 +16,7 @@ use crate::paths::{
 use super::attribution::{
     force_codex_attribution_off, force_cursor_attribution_off, force_opencode_attribution_off,
 };
-use super::claude_home::materialize_claude_config_dir;
+use super::claude_home::materialize_claude_settings_overlay;
 use super::cursor::{
     finalize_cursor_staging, prepare_cursor_staging_without_pack_overlay,
     read_cursor_overlay_manifest, write_cursor_pack_plugin_readme,
@@ -62,10 +62,6 @@ impl<'a> StagingPipeline<'a> {
 
     pub(super) fn codex_home(&self) -> Result<PathBuf> {
         staging_codex_home_dir_for_mode(self.project_root, self.mode.name())
-    }
-
-    pub(super) fn claude_config_dir(&self) -> Result<PathBuf> {
-        staging_claude_config_dir_for_mode(self.project_root, self.mode.name())
     }
 
     pub(super) fn cursor_pack_plugin_dir(&self) -> Result<PathBuf> {
@@ -134,17 +130,15 @@ impl<'a> StagingPipeline<'a> {
             format!("bundle missing manifest {}", bundle.display())
         })?;
 
-        // Claude config dir (CLAUDE_CONFIG_DIR target). Claude reads `<env>/settings.json`
-        // (env var IS the dir) but `<env>/.claude.json` (env var is parent), so both live at the
-        // root of the staged dir.
-        let claude_cfg = self.claude_config_dir()?;
-        let staged_settings = claude_cfg.join("settings.json");
-        staging_require(staged_settings.is_file(), || {
-            format!(
-                "claude config staging missing settings.json {}",
-                staged_settings.display()
-            )
-        })?;
+        // Claude attribution overlay (passed via `claude --settings`). Lives under
+        // `$AGENTPACK_HOME` so credentials stay in the user-global keychain entry; see
+        // `claude_home.rs` for the full rationale.
+        if !keep_attribution() {
+            let overlay = agentpack_claude_settings_path()?;
+            staging_require(overlay.is_file(), || {
+                format!("claude --settings overlay missing {}", overlay.display())
+            })?;
+        }
 
         // OpenCode
         let root = self.opencode_root()?;
@@ -210,8 +204,8 @@ impl<'a> StagingPipeline<'a> {
         fs::create_dir_all(&bundle).map_err(|e| AgentpackError::io(&bundle, e))?;
         write_bundle_manifest(&bundle)?;
 
-        // Staged Claude config dir set as `CLAUDE_CONFIG_DIR` (`~`-style parent of `.claude`/`.claude.json`).
-        materialize_claude_config_dir(self.project_root, self.mode.name())?;
+        // Claude attribution overlay (consumed by the launcher via `claude --settings <path>`).
+        materialize_claude_settings_overlay()?;
 
         // OpenCode
         let root = self.opencode_root()?;
@@ -239,7 +233,6 @@ impl<'a> StagingPipeline<'a> {
             staging_plugins_dir_for_mode(self.project_root, self.mode.name())?,
             self.opencode_root()?,
             self.codex_home()?,
-            self.claude_config_dir()?,
             self.cursor_bundle_root()?,
             self.cursor_home()?,
         ];
@@ -259,6 +252,13 @@ fn staging_require(cond: bool, message: impl FnOnce() -> String) -> Result<()> {
         return Err(AgentpackError::Staging(message()));
     }
     Ok(())
+}
+
+fn keep_attribution() -> bool {
+    matches!(
+        std::env::var("AGENTPACK_KEEP_ATTRIBUTION").ok().as_deref(),
+        Some("1") | Some("true") | Some("yes")
+    )
 }
 
 fn write_bundle_manifest(bundle: &Path) -> Result<()> {

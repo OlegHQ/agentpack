@@ -3,7 +3,7 @@ use std::process::Command;
 use anyhow::Context;
 
 use crate::launcher::common::{exec_inherit, resolve_harness_binary};
-use crate::paths::staging_claude_config_dir_for_mode;
+use crate::paths::agentpack_claude_settings_path;
 use crate::staging;
 use crate::sync::sync_for_launch;
 use crate::ui::Ui;
@@ -36,11 +36,17 @@ pub fn run_claude(
          Install Claude Code and ensure `claude` is on your PATH, or set CLAUDE_CODE_PATH to the executable."
     })?;
 
-    let claude_cfg = staging_claude_config_dir_for_mode(project_root, mode.name())?;
-    ui.debug_message(format!("CLAUDE_CONFIG_DIR={}", claude_cfg.display()));
-
     let mut cmd = Command::new(&claude);
-    cmd.env("CLAUDE_CONFIG_DIR", &claude_cfg);
+
+    // We deliberately do NOT set `CLAUDE_CONFIG_DIR`. Claude Code namespaces credential storage
+    // (keychain service name and `.credentials.json` path) by `sha256(CLAUDE_CONFIG_DIR)`, so any
+    // staging-style override would forget login on every project switch and macOS reboot. The
+    // attribution-off overlay is loaded via the `--settings` flag instead.
+    let settings_overlay = agentpack_claude_settings_path()?;
+    if settings_overlay.is_file() {
+        ui.debug_message(format!("--settings {}", settings_overlay.display()));
+        cmd.arg("--settings").arg(&settings_overlay);
+    }
     for d in &plugin_dirs {
         cmd.arg("--plugin-dir").arg(d);
     }
