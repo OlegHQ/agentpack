@@ -108,9 +108,12 @@ The Cursor CLI also reads workspace **`.cursor/`** for some features; behavior m
    - **Skills**: skill frontmatter normalized and rendered as target skills.
    - **Rules**: Cursor `.mdc` rules preserved for Cursor; other harnesses get a best-effort skill fallback with original rule scope noted when the target lacks first-class rule files.
 4. **Claude bundle** — **`sync`** rebuilds **`$STAGING/plugins/agentpack-bundle/`** with **`.claude-plugin/plugin.json`** and:
-   - **Optional:** copies **`~/.claude/settings.json`** → **`bundle/.claude/settings.json`** and **`~/.claude.json`** → **`bundle/.claude.json`** (parsed and rewritten as pretty JSON). No **`commands/`** / **`agents/`** / **`skills/`** from `~/.claude`.
    - **Packages:** target-specific converted markdown artifacts plus raw Claude support dirs (`hooks`, `matchers`, `core`, `examples`, `utils`), filtered through the selected **mode**.
    - **MCP:** merged `mcp.json` written to bundle root (see MCP merge below).
+4a. **Claude config dir** — **`sync`** also rebuilds **`$STAGING/claude-home/`** as the **`CLAUDE_CONFIG_DIR`** target. The env var is read **asymmetrically** by Claude (verified against the v2.1.x bundle): for `settings.json` it IS the dir (`<env>/settings.json`); for `.claude.json` it is the parent (`<env>/.claude.json`). Both live at the root of the staged dir:
+   - **`$STAGING/claude-home/settings.json`** is **materialized as a real file** (not a symlink) merged from **`~/.claude/settings.json`** with **attribution forced off**. Other user keys (e.g. **`skipDangerousModePermissionPrompt`**) are preserved so the staged session keeps the user's behavior. Writes from agentpack do not leak into the user's real settings.
+   - **`$STAGING/claude-home/.claude.json`** is a **symlink** to **`~/.claude.json`** so per-project trust/auth/MCP state continues to read/write the user's real file.
+   - Every other entry from **`~/.claude/`** (auth, `projects/`, `commands/`, `agents/`, `skills/`, `hooks/`, etc.) is **symlinked** at the root of `claude-home/` so it resolves to the user's real on-disk files.
 5. **OpenCode root** — **`sync`** rebuilds **`$STAGING/opencode/`**:
    - **Optional:** seeds from **`~/.config/opencode/`** (`opencode.json`, `agents`, `commands`, `modes`, `plugins`, `skills`) so provider/auth config still works when **`OPENCODE_CONFIG_DIR`** is redirected.
    - **Overlay:** converted pack commands / agents / skills / rules written into OpenCode’s supported markdown locations.
@@ -126,7 +129,7 @@ The Cursor CLI also reads workspace **`.cursor/`** for some features; behavior m
    - **Workspace subagents symlink:** **`./.cursor/agents`** → staged pack **`agents/`** (Cursor **`--workspace`** only). **`cursor-overlay.manifest`** tracks agentpack-owned overlay paths for safe cleanup (symlinks/files only — never deletes a real directory).
    - **Migration:** older **`cursor-overlay.manifest`** entries under **`$AGENTPACK_HOME/projects/<hash>/`** are still removed at the start of **`sync`** when present.
 8. **Launchers**
-   - **`agentpack claude`** runs **`claude`** with **`--plugin-dir`** pointing at **`agentpack-bundle`**.
+   - **`agentpack claude`** runs **`claude`** with **`--plugin-dir`** pointing at **`agentpack-bundle`** and **`CLAUDE_CONFIG_DIR=$STAGING/claude-home`** so attribution-forced settings are honored without modifying real **`~/.claude`**.
    - **`agentpack opencode`** runs **`opencode`** with **`OPENCODE_CONFIG_DIR=$STAGING/opencode`**.
    - **`agentpack codex`** runs **`codex`** with **`CODEX_HOME=$STAGING/codex-home`**.
    - **`agentpack agent`** runs Cursor Agent with **`HOME=$STAGING/cursor-home`**. **`--workspace`** defaults to the **canonical project root** (same place you **`add` / `sync`**). **`CURSOR_CONFIG_DIR`** is **`$HOME/.cursor`** under the fake home. **Workspace trust** uses **`$CURSOR_DATA_DIR/projects/<slug>/.workspace-trusted`**; **`agentpack`** sets **`CURSOR_DATA_DIR`** to **real `~/.cursor`** when unset so trust state is not lost when **`$STAGING`** is recreated. It also preserves **`CARGO_HOME`**, **`RUSTUP_HOME`**, and **`DOCKER_CONFIG`** from the real home unless those env vars are already set. For a **stable** staging path when your OS rotates temp dirs, set **`AGENTPACK_STAGING_ROOT`**. Cursor’s **`agent`** only accepts **`--trust`** with **`--print`** / headless; **`agentpack`** prepends **`--trust`** automatically in that case.
@@ -143,12 +146,26 @@ Overlay order for staged roots: user config copies first, then **plugins** (by `
 
 A full plugin at repo path **`P`** (same **`owner` / `repo` / `commit`**) shadows **skills** whose path is **`P`** or under **`P/`**. Empty **`P`** shadows all skills for that repo at that commit.
 
+### Attribution defaults
+
+**`sync`** force-disables AI attribution (Co-Authored-By trailers, "Generated with X" footers) in every staged harness so projects do not pick up agent credit lines unintentionally. The user's real **`~/.claude`**, **`~/.codex`**, **`~/.cursor`**, and **`~/.config/opencode`** are never modified — only the staged copies under **`$STAGING`**. Set **`AGENTPACK_KEEP_ATTRIBUTION=1`** to preserve the user's existing values.
+
+| Harness | Staged file | Forced setting |
+| --- | --- | --- |
+| Claude Code | **`$STAGING/claude-home/settings.json`** (`CLAUDE_CONFIG_DIR=$STAGING/claude-home`) | **`attribution.commit = ""`**, **`attribution.pr = ""`**, **`includeCoAuthoredBy = false`** ([docs](https://code.claude.com/docs/en/settings)). The plugin dir is not a settings source — the redirect points Claude at our staged `settings.json` and the sibling `.claude.json` symlink. |
+| Codex | **`$STAGING/codex-home/config.toml`** | **`commit_attribution = ""`** ([docs](https://developers.openai.com/codex/config-reference)) |
+| Cursor | **`$STAGING/cursor/cli-config.json`**, **`$STAGING/cursor-home/.cursor/cli-config.json`** | **`attribution.attributeCommitsToAgent = false`**, **`attribution.attributePRsToAgent = false`** ([docs](https://cursor.com/docs/cli/reference/configuration)) |
+| OpenCode | **`$STAGING/opencode/opencode.json`** + **`agentpack-no-attribution.md`** | OpenCode has no first-class attribution setting (sst/opencode#919, sst/opencode#1135 — both auto-closed inactive). agentpack writes a system-prompt file and adds it to **`instructions[]`** as a best-effort prompt-level instruction. |
+
+For Cursor specifically, **`$STAGING/cursor-home/.cursor/cli-config.json`** is materialized as a **real file** (not a symlink to **`~/.cursor/cli-config.json`**) so writes from agentpack do not bleed back into the user's real Cursor profile.
+
 ### Environment
 
 | Variable | Meaning |
 | --- | --- |
 | **`AGENTPACK_HOME`** | User agentpack root (`cache/`, `local/`, `projects/`, `db.reddb`). Overrides XDG / OS defaults. |
 | **`AGENTPACK_STAGING_ROOT`** | Staging root override (default: `temp_dir()/agentpack-<hash>`). |
+| **`AGENTPACK_KEEP_ATTRIBUTION`** | Set to **`1`** / **`true`** / **`yes`** to keep AI attribution settings (Co-Authored-By trailers, "Generated with X" footers) in staged harness configs. Default: drop attribution (see below). |
 | **`CLAUDE_CODE_PATH`** | Path to the **`claude`** binary. |
 | **`OPENCODE_PATH`** | Path to the **`opencode`** binary. |
 | **`CODEX_PATH`** | Path to the **`codex`** binary. |

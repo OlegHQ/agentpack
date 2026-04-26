@@ -2,35 +2,10 @@ use std::path::Path;
 
 use super::codex_auth;
 use crate::error::Result;
-use crate::fs_util::{read_json_value_opt, write_json_value};
+use crate::fs_util::write_json_value;
 
 use super::constants::{CODEX_HOME_ENTRIES, CURSOR_USER_ROOT_ENTRIES, OPENCODE_USER_ROOT_ENTRIES};
 use super::tree::copy_merge_tree;
-
-/// Copies **`~/.claude/settings.json`** and **`~/.claude.json`** into the bundle.
-/// Does **not** copy `commands/`, `agents/`, `skills/`, etc. (those stay user-scoped so slash
-/// commands are not duplicated under `(agentpack-bundle)`).
-pub(super) fn merge_user_settings_files_into_bundle(bundle: &Path) -> Result<()> {
-    let Some(home) = dirs::home_dir() else {
-        return Ok(());
-    };
-
-    let user_settings = home.join(".claude").join("settings.json");
-    if let Some(v) = read_json_value_opt(&user_settings)? {
-        let dst = bundle.join(".claude").join("settings.json");
-        write_json_value(&dst, &v)?;
-        tracing::debug!(from = %user_settings.display(), "copied user settings.json into bundle");
-    }
-
-    let user_app = home.join(".claude.json");
-    if let Some(v) = read_json_value_opt(&user_app)? {
-        let dst = bundle.join(".claude.json");
-        write_json_value(&dst, &v)?;
-        tracing::debug!(from = %user_app.display(), "copied user .claude.json into bundle");
-    }
-
-    Ok(())
-}
 
 fn copy_selected_entries(src_root: &Path, dst_root: &Path, entries: &[&str]) -> Result<()> {
     if !src_root.is_dir() {

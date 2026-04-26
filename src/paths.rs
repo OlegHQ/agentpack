@@ -238,6 +238,17 @@ pub fn staging_cursor_home_dir(project_root: &Path) -> Result<PathBuf> {
     staging_cursor_home_dir_for_mode(project_root, "default")
 }
 
+/// Staged Claude config dir set as `CLAUDE_CONFIG_DIR` so `claude` reads our `settings.json`
+/// (with attribution forced off) instead of the user's real `~/.claude/settings.json`. User
+/// auth/projects/commands are symlinked in.
+pub fn staging_claude_config_dir_for_mode(project_root: &Path, mode_name: &str) -> Result<PathBuf> {
+    Ok(staging_root_for_mode(project_root, mode_name)?.join("claude-home"))
+}
+
+pub fn staging_claude_config_dir(project_root: &Path) -> Result<PathBuf> {
+    staging_claude_config_dir_for_mode(project_root, "default")
+}
+
 pub fn cursor_workspace_dir(project_root: &Path) -> PathBuf {
     project_root.join(".cursor")
 }

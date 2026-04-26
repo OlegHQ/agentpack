@@ -1,0 +1,270 @@
+//! Force-disable AI attribution (Co-Authored-By trailers, "Generated with X" footers, etc.) in
+//! every staged harness. Settings are written into the staged config files so they only affect
+//! sessions launched through agentpack — the user's real `~/.claude`, `~/.codex`, `~/.cursor`,
+//! and `~/.config/opencode` are never modified.
+//!
+//! Claude is handled by `claude_home.rs` (it needs a full `CLAUDE_CONFIG_DIR` redirect, not just
+//! a settings write). The helpers below cover Codex, Cursor, and OpenCode.
+//!
+//! Per-harness keys (last verified 2026-04 against vendor docs):
+//!
+//! | Harness  | File                              | Keys / values                                           |
+//! | -------- | --------------------------------- | ------------------------------------------------------- |
+//! | Codex    | `config.toml` (top-level)         | `commit_attribution = ""`                               |
+//! | Cursor   | `.cursor/cli-config.json`         | `attribution.attributeCommitsToAgent = false`,          |
+//! |          |                                   | `attribution.attributePRsToAgent = false`               |
+//! | OpenCode | `opencode.json` + instruction file| no first-class setting; injected via `instructions[]`   |
+//!
+//! Set `AGENTPACK_KEEP_ATTRIBUTION=1` to opt out and preserve the user's existing values.
+//!
+//! Source documents:
+//!  - <https://developers.openai.com/codex/config-reference>
+//!  - <https://cursor.com/docs/cli/reference/configuration>
+//!  - sst/opencode#919, sst/opencode#1135 (no setting; OpenCode reads `instructions[]` files).
+
+use std::fs;
+use std::path::Path;
+
+use serde_json::{json, Value};
+
+use crate::error::{AgentpackError, Result};
+use crate::fs_util::{read_json_value_opt, remove_path_any, write_json_value, write_text_file};
+
+const KEEP_ENV: &str = "AGENTPACK_KEEP_ATTRIBUTION";
+const OPENCODE_INSTRUCTIONS_FILE: &str = "agentpack-no-attribution.md";
+const OPENCODE_INSTRUCTIONS_BODY: &str = "# Attribution policy
+
+Do not add any AI-attribution lines to git commits, pull requests, or other artifacts you author.
+Specifically, do not include:
+
+- `Co-Authored-By: <model> <noreply@...>` trailers.
+- `Generated with [agent name]` footers, banners, or similar credit lines.
+- Tool/agent name signatures in commit messages or PR descriptions.
+
+Write commit messages and PR descriptions as if a human author wrote them.
+";
+
+fn keep_attribution() -> bool {
+    matches!(
+        std::env::var(KEEP_ENV).ok().as_deref(),
+        Some("1") | Some("true") | Some("yes")
+    )
+}
+
+/// Force-disable Codex commit attribution in `<codex_home>/config.toml`.
+pub(super) fn force_codex_attribution_off(codex_home: &Path) -> Result<()> {
+    if keep_attribution() {
+        return Ok(());
+    }
+    let path = codex_home.join("config.toml");
+    let mut value = if path.is_file() {
+        let raw = fs::read_to_string(&path).map_err(|e| AgentpackError::io(&path, e))?;
+        toml::from_str::<toml::Value>(&raw)
+            .map_err(|e| AgentpackError::Staging(format!("{}: {e}", path.display())))?
+    } else {
+        toml::Value::Table(Default::default())
+    };
+    let Some(table) = value.as_table_mut() else {
+        return Ok(());
+    };
+    table.insert(
+        "commit_attribution".into(),
+        toml::Value::String(String::new()),
+    );
+    let out = toml::to_string(&value)
+        .map_err(|e| AgentpackError::Staging(format!("serialize {}: {e}", path.display())))?;
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| AgentpackError::io(parent, e))?;
+    }
+    fs::write(&path, out).map_err(|e| AgentpackError::io(&path, e))?;
+    tracing::debug!(path = %path.display(), "forced Codex commit_attribution off");
+    Ok(())
+}
+
+/// Patch a Cursor `cli-config.json` value: force `attribution.attributeCommitsToAgent` and
+/// `attribution.attributePRsToAgent` to `false`. Returns the modified JSON.
+fn patch_cursor_cli_config(mut value: Value) -> Value {
+    if !value.is_object() {
+        value = json!({});
+    }
+    let obj = value.as_object_mut().expect("ensured object above");
+    let attribution = obj
+        .entry("attribution".to_string())
+        .or_insert_with(|| json!({}));
+    if !attribution.is_object() {
+        *attribution = json!({});
+    }
+    let attr_obj = attribution.as_object_mut().expect("ensured object above");
+    attr_obj.insert("attributeCommitsToAgent".into(), Value::Bool(false));
+    attr_obj.insert("attributePRsToAgent".into(), Value::Bool(false));
+    value
+}
+
+/// Force-disable Cursor attribution in `<root>/cli-config.json`. Reads the existing file (if
+/// present) so user fields like `editor`, `permissions`, `mcpServers` survive.
+pub(super) fn force_cursor_attribution_off(root: &Path) -> Result<()> {
+    if keep_attribution() {
+        return Ok(());
+    }
+    let path = root.join("cli-config.json");
+    let value = read_json_value_opt(&path)?.unwrap_or_else(|| json!({}));
+    let patched = patch_cursor_cli_config(value);
+    write_json_value(&path, &patched)?;
+    tracing::debug!(path = %path.display(), "forced Cursor attribution off");
+    Ok(())
+}
+
+/// Materialize a non-symlink Cursor `cli-config.json` inside the fake-home so writes from agentpack
+/// don't bleed back into the user's real `~/.cursor/cli-config.json`. Reads the user's file first
+/// when present, then forces attribution off.
+pub(super) fn force_cursor_fake_home_attribution_off(
+    fake_cursor: &Path,
+    real_cursor_cli_config: Option<&Path>,
+) -> Result<()> {
+    if keep_attribution() {
+        return Ok(());
+    }
+    let dest = fake_cursor.join("cli-config.json");
+    remove_path_any(&dest)?;
+    let base = match real_cursor_cli_config {
+        Some(p) => read_json_value_opt(p)?.unwrap_or_else(|| json!({})),
+        None => json!({}),
+    };
+    let patched = patch_cursor_cli_config(base);
+    write_json_value(&dest, &patched)?;
+    tracing::debug!(path = %dest.display(), "forced Cursor fake-home attribution off");
+    Ok(())
+}
+
+/// Force-disable OpenCode attribution by writing an instruction file under the staged config root
+/// and adding it to the `instructions` array in `opencode.json`. OpenCode has no first-class
+/// attribution setting (sst/opencode#919, sst/opencode#1135) so this is a system-prompt nudge.
+pub(super) fn force_opencode_attribution_off(root: &Path) -> Result<()> {
+    if keep_attribution() {
+        return Ok(());
+    }
+    let instructions_path = root.join(OPENCODE_INSTRUCTIONS_FILE);
+    write_text_file(&instructions_path, OPENCODE_INSTRUCTIONS_BODY)?;
+
+    let config_path = root.join("opencode.json");
+    let mut value = read_json_value_opt(&config_path)?.unwrap_or_else(|| json!({}));
+    if !value.is_object() {
+        value = json!({});
+    }
+    let obj = value.as_object_mut().expect("ensured object above");
+    let entry = obj
+        .entry("instructions".to_string())
+        .or_insert_with(|| Value::Array(Vec::new()));
+    if !entry.is_array() {
+        *entry = Value::Array(Vec::new());
+    }
+    let arr = entry.as_array_mut().expect("ensured array above");
+    let already = arr
+        .iter()
+        .any(|v| v.as_str() == Some(OPENCODE_INSTRUCTIONS_FILE));
+    if !already {
+        arr.push(Value::String(OPENCODE_INSTRUCTIONS_FILE.to_string()));
+    }
+    write_json_value(&config_path, &value)?;
+    tracing::debug!(path = %config_path.display(), "forced OpenCode attribution off via instructions[]");
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn with_keep_unset<F: FnOnce()>(f: F) {
+        let prev = std::env::var_os(KEEP_ENV);
+        std::env::remove_var(KEEP_ENV);
+        f();
+        if let Some(v) = prev {
+            std::env::set_var(KEEP_ENV, v);
+        }
+    }
+
+    #[test]
+    fn codex_attribution_inserts_top_level_field() {
+        with_keep_unset(|| {
+            let dir = tempfile::tempdir().unwrap();
+            std::fs::write(dir.path().join("config.toml"), "model = \"o-vega\"\n").unwrap();
+            force_codex_attribution_off(dir.path()).unwrap();
+            let s = std::fs::read_to_string(dir.path().join("config.toml")).unwrap();
+            assert!(s.contains("commit_attribution = \"\""));
+            assert!(s.contains("model = \"o-vega\""));
+        });
+    }
+
+    #[test]
+    fn codex_attribution_creates_missing_config() {
+        with_keep_unset(|| {
+            let dir = tempfile::tempdir().unwrap();
+            force_codex_attribution_off(dir.path()).unwrap();
+            let s = std::fs::read_to_string(dir.path().join("config.toml")).unwrap();
+            assert!(s.contains("commit_attribution = \"\""));
+        });
+    }
+
+    #[test]
+    fn cursor_attribution_writes_both_flags() {
+        with_keep_unset(|| {
+            let dir = tempfile::tempdir().unwrap();
+            force_cursor_attribution_off(dir.path()).unwrap();
+            let v = read_json_value_opt(&dir.path().join("cli-config.json"))
+                .unwrap()
+                .unwrap();
+            assert_eq!(v["attribution"]["attributeCommitsToAgent"], false);
+            assert_eq!(v["attribution"]["attributePRsToAgent"], false);
+        });
+    }
+
+    #[test]
+    fn cursor_fake_home_breaks_symlink_via_real_copy() {
+        with_keep_unset(|| {
+            let dir = tempfile::tempdir().unwrap();
+            let real = dir.path().join("real-cli-config.json");
+            std::fs::write(
+                &real,
+                r#"{"editor":{"vimMode":true},"attribution":{"attributeCommitsToAgent":true}}"#,
+            )
+            .unwrap();
+            let fake = dir.path().join("fake/.cursor");
+            std::fs::create_dir_all(&fake).unwrap();
+            force_cursor_fake_home_attribution_off(&fake, Some(&real)).unwrap();
+            let v = read_json_value_opt(&fake.join("cli-config.json"))
+                .unwrap()
+                .unwrap();
+            assert_eq!(v["editor"]["vimMode"], true);
+            assert_eq!(v["attribution"]["attributeCommitsToAgent"], false);
+            assert_eq!(v["attribution"]["attributePRsToAgent"], false);
+            // Source untouched.
+            let src = std::fs::read_to_string(&real).unwrap();
+            assert!(src.contains("\"attributeCommitsToAgent\":true"));
+        });
+    }
+
+    #[test]
+    fn opencode_attribution_adds_instructions_entry_idempotently() {
+        with_keep_unset(|| {
+            let dir = tempfile::tempdir().unwrap();
+            std::fs::write(
+                dir.path().join("opencode.json"),
+                r#"{"$schema":"https://opencode.ai/config.json","instructions":["docs/team.md"]}"#,
+            )
+            .unwrap();
+            force_opencode_attribution_off(dir.path()).unwrap();
+            force_opencode_attribution_off(dir.path()).unwrap();
+            let v = read_json_value_opt(&dir.path().join("opencode.json"))
+                .unwrap()
+                .unwrap();
+            let arr = v["instructions"].as_array().unwrap();
+            assert!(arr.iter().any(|x| x == "docs/team.md"));
+            let count = arr
+                .iter()
+                .filter(|x| x.as_str() == Some(OPENCODE_INSTRUCTIONS_FILE))
+                .count();
+            assert_eq!(count, 1);
+            assert!(dir.path().join(OPENCODE_INSTRUCTIONS_FILE).is_file());
+        });
+    }
+}

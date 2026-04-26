@@ -3,6 +3,7 @@ use std::process::Command;
 use anyhow::Context;
 
 use crate::launcher::common::{exec_inherit, resolve_harness_binary};
+use crate::paths::staging_claude_config_dir_for_mode;
 use crate::staging;
 use crate::sync::sync_for_launch;
 use crate::ui::Ui;
@@ -35,7 +36,11 @@ pub fn run_claude(
          Install Claude Code and ensure `claude` is on your PATH, or set CLAUDE_CODE_PATH to the executable."
     })?;
 
+    let claude_cfg = staging_claude_config_dir_for_mode(project_root, mode.name())?;
+    ui.debug_message(format!("CLAUDE_CONFIG_DIR={}", claude_cfg.display()));
+
     let mut cmd = Command::new(&claude);
+    cmd.env("CLAUDE_CONFIG_DIR", &claude_cfg);
     for d in &plugin_dirs {
         cmd.arg("--plugin-dir").arg(d);
     }

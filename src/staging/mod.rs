@@ -1,5 +1,7 @@
 //! Staging: merge pack.lock trees into per-harness directories under `$STAGING`.
 
+mod attribution;
+mod claude_home;
 mod codex_auth;
 mod collision;
 mod constants;

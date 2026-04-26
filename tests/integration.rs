@@ -6,10 +6,10 @@ use agentpack::cli::{Cli, Command, ModeAction};
 use agentpack::lockfile::{LockPackage, PackLock, PackageKind};
 use agentpack::mode::filter::EffectiveMode;
 use agentpack::paths::{
-    cache_dir, cursor_workspace_dir, project_dot_agents_dir, staging_codex_home_dir,
-    staging_codex_home_dir_for_mode, staging_cursor_bundle_dir, staging_cursor_home_dir,
-    staging_cursor_pack_plugin_dir, staging_opencode_dir, staging_plugins_dir,
-    staging_plugins_dir_for_mode,
+    cache_dir, cursor_workspace_dir, project_dot_agents_dir, staging_claude_config_dir,
+    staging_codex_home_dir, staging_codex_home_dir_for_mode, staging_cursor_bundle_dir,
+    staging_cursor_home_dir, staging_cursor_pack_plugin_dir, staging_opencode_dir,
+    staging_plugins_dir, staging_plugins_dir_for_mode,
 };
 use agentpack::sync::launch_fingerprint::{
     compute_launch_sync_digest, read_stored_launch_digest, write_launch_sync_state,
@@ -1376,4 +1376,164 @@ fn sync_skips_unsupported_cursor_matcher_gracefully() {
         },
     })
     .unwrap();
+}
+
+#[test]
+#[serial]
+fn sync_disables_attribution_in_all_supported_harnesses_by_default() {
+    let dir = tempdir().unwrap();
+    let root: PathBuf = dir.path().to_path_buf();
+    prep_store(&root);
+    std::env::remove_var("AGENTPACK_KEEP_ATTRIBUTION");
+    run(Cli {
+        project_root: Some(root.clone()),
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        mode: None,
+        debug: false,
+        command: Command::Init {
+            name: None,
+            version: None,
+        },
+    })
+    .unwrap();
+
+    run(Cli {
+        project_root: Some(root.clone()),
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        mode: None,
+        debug: false,
+        command: Command::Sync {
+            dry_run: false,
+            verify_only: false,
+            update_lock: false,
+        },
+    })
+    .unwrap();
+
+    // Claude config dir (CLAUDE_CONFIG_DIR target): <staged>/settings.json must exist as a real
+    // file with attribution forced off, regardless of whether the user has settings.
+    let claude_settings = staging_claude_config_dir(&root)
+        .unwrap()
+        .join("settings.json");
+    let meta = fs::symlink_metadata(&claude_settings).unwrap();
+    assert!(
+        !meta.file_type().is_symlink(),
+        "staged claude settings.json must not be a symlink to ~/.claude"
+    );
+    let v: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&claude_settings).unwrap()).unwrap();
+    assert_eq!(v["attribution"]["commit"], "");
+    assert_eq!(v["attribution"]["pr"], "");
+    assert_eq!(v["includeCoAuthoredBy"], false);
+
+    // Codex home: <codex_home>/config.toml
+    let codex_config = staging_codex_home_dir(&root).unwrap().join("config.toml");
+    let codex_toml: toml::Value =
+        toml::from_str(&fs::read_to_string(&codex_config).unwrap()).unwrap();
+    assert_eq!(codex_toml["commit_attribution"].as_str(), Some(""));
+
+    // Cursor pack root and bundle root: cli-config.json
+    for cursor_root in [
+        staging_cursor_bundle_dir(&root).unwrap(),
+        staging_cursor_pack_plugin_dir(&root).unwrap(),
+    ] {
+        let cfg_path = cursor_root.join("cli-config.json");
+        let cfg: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&cfg_path).unwrap()).unwrap();
+        assert_eq!(cfg["attribution"]["attributeCommitsToAgent"], false);
+        assert_eq!(cfg["attribution"]["attributePRsToAgent"], false);
+    }
+
+    // Cursor fake-home cli-config.json must be a real file (not a symlink), with attribution off.
+    let fake_cli = staging_cursor_home_dir(&root)
+        .unwrap()
+        .join(".cursor/cli-config.json");
+    let meta = fs::symlink_metadata(&fake_cli).unwrap();
+    assert!(
+        !meta.file_type().is_symlink(),
+        "fake-home cli-config.json must not be a symlink to ~/.cursor"
+    );
+    let fake_cfg: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&fake_cli).unwrap()).unwrap();
+    assert_eq!(fake_cfg["attribution"]["attributeCommitsToAgent"], false);
+    assert_eq!(fake_cfg["attribution"]["attributePRsToAgent"], false);
+
+    // OpenCode: opencode.json `instructions[]` references the staged file.
+    let opencode_root = staging_opencode_dir(&root).unwrap();
+    let opencode_json: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(opencode_root.join("opencode.json")).unwrap())
+            .unwrap();
+    let instructions = opencode_json["instructions"].as_array().unwrap();
+    assert!(instructions
+        .iter()
+        .any(|x| x.as_str() == Some("agentpack-no-attribution.md")));
+    assert!(opencode_root.join("agentpack-no-attribution.md").is_file());
+}
+
+#[test]
+#[serial]
+fn sync_keeps_attribution_when_env_opt_in() {
+    let dir = tempdir().unwrap();
+    let root: PathBuf = dir.path().to_path_buf();
+    prep_store(&root);
+    std::env::set_var("AGENTPACK_KEEP_ATTRIBUTION", "1");
+    run(Cli {
+        project_root: Some(root.clone()),
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        mode: None,
+        debug: false,
+        command: Command::Init {
+            name: None,
+            version: None,
+        },
+    })
+    .unwrap();
+    run(Cli {
+        project_root: Some(root.clone()),
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        mode: None,
+        debug: false,
+        command: Command::Sync {
+            dry_run: false,
+            verify_only: false,
+            update_lock: false,
+        },
+    })
+    .unwrap();
+    std::env::remove_var("AGENTPACK_KEEP_ATTRIBUTION");
+
+    // Claude config dir: staged settings.json must NOT contain forced attribution keys.
+    let claude_settings = staging_claude_config_dir(&root)
+        .unwrap()
+        .join("settings.json");
+    let v: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&claude_settings).unwrap()).unwrap();
+    assert!(v.get("attribution").is_none());
+    assert!(v.get("includeCoAuthoredBy").is_none());
+
+    // Codex: commit_attribution must not be present.
+    let codex_config = staging_codex_home_dir(&root).unwrap().join("config.toml");
+    if codex_config.is_file() {
+        let codex_toml: toml::Value =
+            toml::from_str(&fs::read_to_string(&codex_config).unwrap()).unwrap();
+        assert!(codex_toml.get("commit_attribution").is_none());
+    }
+
+    // OpenCode: no instructions entry referencing our file.
+    let opencode_json_path = staging_opencode_dir(&root).unwrap().join("opencode.json");
+    let opencode_json: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&opencode_json_path).unwrap()).unwrap();
+    if let Some(arr) = opencode_json.get("instructions").and_then(|v| v.as_array()) {
+        assert!(!arr
+            .iter()
+            .any(|x| x.as_str() == Some("agentpack-no-attribution.md")));
+    }
 }

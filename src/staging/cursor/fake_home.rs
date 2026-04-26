@@ -8,6 +8,7 @@ use crate::error::{AgentpackError, Result};
 use crate::fs_util::remove_path_any;
 use crate::paths::{staging_cursor_home_dir_for_mode, staging_cursor_pack_plugin_dir_for_mode};
 
+use super::super::attribution::force_cursor_fake_home_attribution_off;
 use super::super::constants::{
     CURSOR_FAKE_HOME_CREDENTIAL_FILES, CURSOR_FAKE_HOME_PACK_SUBDIRS,
     CURSOR_USER_SUBDIRS_IN_FAKE_HOME,
@@ -196,6 +197,14 @@ pub(in crate::staging) fn materialize_cursor_fake_home(
             symlink_entries_into(rc, &fake_cursor, CURSOR_FAKE_HOME_CREDENTIAL_FILES)?;
         }
     }
+
+    // Replace any `cli-config.json` symlink with a real file containing forced attribution off.
+    // Otherwise writes from agentpack would bleed back into the user's real `~/.cursor`.
+    let real_cli_config = real_cursor
+        .as_ref()
+        .map(|rc| rc.join("cli-config.json"))
+        .filter(|p| p.is_file());
+    force_cursor_fake_home_attribution_off(&fake_cursor, real_cli_config.as_deref())?;
 
     if let Some(ref rh) = real_home {
         let dot_cursor = rh.join(".cursor");
