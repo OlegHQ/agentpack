@@ -41,6 +41,13 @@ pub fn execute(spec: &HookExecutionSpec, stdin_bytes: &[u8]) -> anyhow::Result<C
 }
 
 fn shell_command(command: &str) -> Command {
+    // Match Claude Code's native hook semantics: `/bin/sh -c <cmd>` on Unix,
+    // `cmd /C <cmd>` on Windows. Using `$SHELL -lc` would (a) run plugin hooks under
+    // the user's interactive shell (fish/zsh/etc.) even though hook scripts target
+    // POSIX, and (b) trigger `-l` login-profile re-init that often resets PATH —
+    // e.g. fish login shells that don't re-add `~/.cargo/bin` cause `cargo`-based
+    // hooks to fail with "Unknown command: cargo" despite the parent claude having
+    // cargo on PATH.
     #[cfg(windows)]
     {
         let mut cmd = Command::new("cmd");
@@ -49,9 +56,8 @@ fn shell_command(command: &str) -> Command {
     }
     #[cfg(not(windows))]
     {
-        let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string());
-        let mut cmd = Command::new(shell);
-        cmd.arg("-lc").arg(command);
+        let mut cmd = Command::new("/bin/sh");
+        cmd.arg("-c").arg(command);
         cmd
     }
 }

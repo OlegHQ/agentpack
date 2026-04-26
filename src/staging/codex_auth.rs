@@ -61,8 +61,16 @@ pub(super) fn try_materialize_codex_auth_json_from_user_keyring(
     dest_auth_json: &Path,
 ) -> Result<bool> {
     let account = codex_cli_keyring_account(user_codex_home);
-    let entry = Entry::new(CODEX_AUTH_KEYRING_SERVICE, &account)
-        .map_err(|e| AgentpackError::Staging(format!("codex keyring entry: {e}")))?;
+    let entry = match Entry::new(CODEX_AUTH_KEYRING_SERVICE, &account) {
+        Ok(e) => e,
+        Err(e) => {
+            tracing::debug!(
+                "could not open Codex CLI keychain entry ({}): {e}",
+                user_codex_home.display()
+            );
+            return Ok(false);
+        }
+    };
 
     let json = match entry.get_password() {
         Ok(s) => s,
@@ -82,11 +90,13 @@ pub(super) fn try_materialize_codex_auth_json_from_user_keyring(
         }
     };
 
-    serde_json::from_str::<serde_json::Value>(&json).map_err(|e| {
-        AgentpackError::Staging(format!(
-            "codex keychain auth payload is not valid JSON: {e}"
-        ))
-    })?;
+    if serde_json::from_str::<serde_json::Value>(&json).is_err() {
+        tracing::debug!(
+            "Codex keychain auth payload is not valid JSON ({}); skipping bridge",
+            user_codex_home.display()
+        );
+        return Ok(false);
+    }
 
     write_codex_auth_json(dest_auth_json, &json)?;
 
@@ -97,20 +107,26 @@ pub(super) fn try_materialize_codex_auth_json_from_user_keyring(
     Ok(true)
 }
 
-fn shared_codex_auth_source(user_codex_home: &Path) -> Result<PathBuf> {
+fn shared_codex_auth_source(user_codex_home: &Path) -> Result<Option<PathBuf>> {
     let user_auth = user_codex_home.join("auth.json");
     if user_auth.is_file() {
-        return Ok(user_auth);
+        return Ok(Some(user_auth));
     }
 
     let shared = paths::shared_codex_auth_path()?;
     if let Some(parent) = shared.parent() {
         fs::create_dir_all(parent).map_err(|e| AgentpackError::io(parent, e))?;
     }
-    if !shared.is_file() {
-        let _ = try_materialize_codex_auth_json_from_user_keyring(user_codex_home, &shared)?;
+    if shared.is_file() {
+        return Ok(Some(shared));
     }
-    Ok(shared)
+    let materialized =
+        try_materialize_codex_auth_json_from_user_keyring(user_codex_home, &shared)?;
+    if materialized {
+        Ok(Some(shared))
+    } else {
+        Ok(None)
+    }
 }
 
 fn link_staged_codex_auth(source: &Path, staged_auth: &Path) -> Result<()> {
@@ -162,7 +178,15 @@ fn link_staged_codex_auth(source: &Path, staged_auth: &Path) -> Result<()> {
 }
 
 pub(super) fn prepare_staged_codex_auth(user_codex_home: &Path, staging_root: &Path) -> Result<()> {
-    let source = shared_codex_auth_source(user_codex_home)?;
+    let Some(source) = shared_codex_auth_source(user_codex_home)? else {
+        tracing::debug!(
+            "no Codex auth source available ({}); skipping staged auth.json link",
+            user_codex_home.display()
+        );
+        let staged_auth = staging_root.join("auth.json");
+        let _ = remove_path_any(&staged_auth);
+        return Ok(());
+    };
     let staged_auth = staging_root.join("auth.json");
     link_staged_codex_auth(&source, &staged_auth)
 }

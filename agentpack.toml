@@ -1,19 +1,4 @@
-# Agentpack project manifest — direct dependencies only. Run `agentpack lock` to refresh pack.lock.
-
-name = "github.com/OlegHQ/agentpack"
+name = "test"
 version = "0.0.1"
 
 [dependencies]
-"github.com/anthropics/claude-plugins-official/plugins/code-simplifier" = {}
-"github.com/anthropics/claude-plugins-official/plugins/code-review" = {}
-"github.com/anthropics/skills/skills/skill-creator" = {}
-"github.com/oleghq/agent-configs/plugins/rust-dev" = {}
-"github.com/oleghq/agent-configs/plugins/simplifier" = {}
-
-[modes]
-
-[modes.test]
-base = "all"
-enable = ["package:github.com/anthropics/claude-plugins-official/plugins/code-review"]
-disable = ["package-path:github.com/anthropics/claude-plugins-official/plugins/code-review:.cursor-plugin"]
-
