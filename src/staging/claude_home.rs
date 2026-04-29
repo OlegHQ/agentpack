@@ -18,13 +18,19 @@
 //!
 //! The overlay file lives at `$AGENTPACK_HOME/claude-settings.json` so all projects share it.
 //! When `AGENTPACK_KEEP_ATTRIBUTION=1` we delete the file (and the launcher omits `--settings`).
+//!
+//! The overlay also pre-approves MCP servers that agentpack just staged into the bundle's
+//! `.mcp.json`, otherwise Claude treats them as untrusted project-scope MCPs and silently
+//! drops them. We use `enabledMcpjsonServers: [<names>]` (per-name) instead of
+//! `enableAllProjectMcpServers: true` so unrelated `.mcp.json` files in other projects don't
+//! get auto-trusted by this same launcher overlay.
 
 use std::fs;
 
-use serde_json::json;
+use serde_json::{json, Value};
 
 use crate::error::{AgentpackError, Result};
-use crate::fs_util::{remove_path_any, write_json_value};
+use crate::fs_util::{read_json_value_opt, remove_path_any, write_json_value};
 use crate::paths::agentpack_claude_settings_path;
 
 pub(super) fn materialize_claude_settings_overlay() -> Result<()> {
@@ -43,6 +49,32 @@ pub(super) fn materialize_claude_settings_overlay() -> Result<()> {
     });
     write_json_value(&dest, &value)?;
     tracing::debug!(path = %dest.display(), "wrote claude --settings overlay (attribution off)");
+    Ok(())
+}
+
+/// Set `enabledMcpjsonServers` to exactly `names` in the agentpack `--settings` overlay.
+/// This pre-approves only the staged MCP names; other `.mcp.json` servers still require
+/// interactive approval.
+pub(super) fn set_claude_settings_mcp_allowlist(names: &[String]) -> Result<()> {
+    let dest = agentpack_claude_settings_path()?;
+    if !dest.is_file() {
+        return Ok(());
+    }
+    let mut value = read_json_value_opt(&dest)?.unwrap_or_else(|| json!({}));
+    let obj = value.as_object_mut().ok_or_else(|| {
+        AgentpackError::Staging(format!(
+            "{}: claude settings overlay must be a JSON object",
+            dest.display()
+        ))
+    })?;
+    let arr: Vec<Value> = names.iter().map(|n| Value::String(n.clone())).collect();
+    obj.insert("enabledMcpjsonServers".into(), Value::Array(arr));
+    write_json_value(&dest, &value)?;
+    tracing::debug!(
+        path = %dest.display(),
+        count = names.len(),
+        "set claude --settings enabledMcpjsonServers"
+    );
     Ok(())
 }
 

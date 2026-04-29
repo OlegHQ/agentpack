@@ -96,6 +96,7 @@ fn run_mcp(root: &Path, action: McpAction, ui: &Ui) -> anyhow::Result<()> {
             no_sync,
         } => {
             let entry = crate::staging::mcp::McpServerEntry {
+                kind: None,
                 command: Some(command),
                 args,
                 env: env.into_iter().collect(),

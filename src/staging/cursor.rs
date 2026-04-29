@@ -1,5 +1,6 @@
 //! Cursor harness staging: pack tree, fake HOME, and workspace overlay.
 
+mod approvals;
 mod fake_home;
 mod manifests;
 mod overlay;
@@ -10,6 +11,7 @@ use std::path::Path;
 use crate::error::{AgentpackError, Result};
 use crate::paths::{staging_cursor_bundle_dir_for_mode, staging_cursor_pack_plugin_dir_for_mode};
 
+use super::mcp::StagedMcpEntries;
 use super::seed::seed_cursor_root;
 
 pub(super) use manifests::write_cursor_pack_plugin_readme;
@@ -32,8 +34,13 @@ pub(super) fn prepare_cursor_staging_without_pack_overlay(
 }
 
 /// Runs after pack **and** dot-agents overlay so staged **`agents/`** reflects merged content.
-pub(super) fn finalize_cursor_staging(project_root: &Path, mode_name: &str) -> Result<()> {
+pub(super) fn finalize_cursor_staging(
+    project_root: &Path,
+    mode_name: &str,
+    merged_mcp: &StagedMcpEntries,
+) -> Result<()> {
     fake_home::materialize_cursor_fake_home(project_root, mode_name)?;
+    approvals::seed_workspace_mcp_approvals(project_root, merged_mcp)?;
     let cursor_overlay =
         overlay::materialize_workspace_cursor_agents_symlink(project_root, mode_name)?;
     overlay::write_overlay_manifest(project_root, &cursor_overlay)?;

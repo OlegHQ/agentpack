@@ -16,7 +16,7 @@ use crate::paths::{
 use super::attribution::{
     force_codex_attribution_off, force_cursor_attribution_off, force_opencode_attribution_off,
 };
-use super::claude_home::materialize_claude_settings_overlay;
+use super::claude_home::{materialize_claude_settings_overlay, set_claude_settings_mcp_allowlist};
 use super::cursor::{
     finalize_cursor_staging, prepare_cursor_staging_without_pack_overlay,
     read_cursor_overlay_manifest, write_cursor_pack_plugin_readme,
@@ -105,20 +105,24 @@ impl<'a> StagingPipeline<'a> {
         )?;
         write_cursor_pack_plugin_readme(&cursor_pack)?;
         stage_dot_agents_overlay(self.project_root, self.mode.name(), self.mode)?;
-        super::mcp::stage_merged_mcp(
+        let merged_mcp = super::mcp::stage_merged_mcp(
             self.project_root,
             self.lock,
             self.manifest,
             self.mode,
             &pack_dests,
         )?;
+        if !merged_mcp.is_empty() && !keep_attribution() {
+            let names: Vec<String> = merged_mcp.keys().cloned().collect();
+            set_claude_settings_mcp_allowlist(&names)?;
+        }
         super::guidance::stage_guidance_all_harnesses(
             self.project_root,
             self.lock,
             self.mode,
             &pack_dests,
         )?;
-        finalize_cursor_staging(self.project_root, self.mode.name())?;
+        finalize_cursor_staging(self.project_root, self.mode.name(), &merged_mcp)?;
 
         Ok(vec![self.claude_bundle_dir()?])
     }

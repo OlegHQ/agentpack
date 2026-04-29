@@ -31,8 +31,15 @@ use crate::paths::project_dot_agents_dir;
 use super::pack_overlay::{disabled_in_config, PackHarnessRoots};
 
 /// A single MCP server entry. Supports both stdio (`command` + `args`) and remote (`url`).
+///
+/// `type` is preserved from source `mcp.json` when present (`"stdio"`, `"http"`, `"sse"`, …).
+/// Claude requires the discriminator on remote entries; OpenCode/Codex/Cursor accept the field
+/// but don't require it. The Claude renderer fills in `type: "http"` for url-only entries that
+/// lack one.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct McpServerEntry {
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub command: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -170,29 +177,53 @@ fn bare_entries(merged: &MergedEntries) -> BTreeMap<String, McpServerEntry> {
 }
 
 /// Collect merged MCP servers and render each harness in its native format.
+/// Returns the merged entries so callers (Claude allowlist overlay, Cursor approvals
+/// pre-seed) can use the resolved server set.
 pub(super) fn stage_merged_mcp(
     project_root: &Path,
     lock: &PackLock,
     manifest: Option<&AgentpackManifest>,
     mode: &EffectiveMode,
     dests: &PackHarnessRoots<'_>,
-) -> Result<()> {
+) -> Result<MergedEntries> {
     let merged = collect_merged_mcp(project_root, lock, manifest, Some(mode))?;
     if merged.is_empty() {
-        return Ok(());
+        return Ok(merged);
     }
 
-    write_mcp_servers_json(&dests.claude_bundle.join(".mcp.json"), &merged)?;
+    write_claude_mcp_servers_json(&dests.claude_bundle.join(".mcp.json"), &merged)?;
     write_mcp_servers_json(&dests.cursor_pack.join("mcp.json"), &merged)?;
     merge_into_opencode_config(&dests.opencode.join("opencode.json"), &merged)?;
     merge_into_codex_config(&dests.codex.join("config.toml"), &merged)?;
-    Ok(())
+    Ok(merged)
 }
 
-/// Write `{"mcpServers":{...}}` JSON (Claude `.mcp.json` + Cursor `mcp.json`).
+pub(super) type StagedMcpEntries = MergedEntries;
+
+/// Write `{"mcpServers":{...}}` JSON (Cursor `mcp.json`). Cursor accepts entries without a
+/// `type` discriminator, so we serialize as-is.
 fn write_mcp_servers_json(dest: &Path, merged: &MergedEntries) -> Result<()> {
     let cfg = McpConfig {
         mcp_servers: bare_entries(merged),
+    };
+    let json = serde_json::to_string_pretty(&cfg)
+        .map_err(|e| AgentpackError::Staging(format!("{}: {e}", dest.display())))?;
+    crate::fs_util::write_text_file(dest, &json)
+}
+
+/// Write Claude's plugin `.mcp.json`. Claude rejects remote entries without a `type`
+/// discriminator — its zod schema is a `discriminatedUnion("type", ...)` over
+/// `stdio`/`sse`/`http`/`sse-ide`/`ws-ide`/`sdk`. We default to `"http"` (Streamable HTTP, the
+/// modern remote transport) for url-only entries that don't already specify one.
+fn write_claude_mcp_servers_json(dest: &Path, merged: &MergedEntries) -> Result<()> {
+    let mut entries = bare_entries(merged);
+    for entry in entries.values_mut() {
+        if entry.kind.is_none() && entry.is_remote() {
+            entry.kind = Some("http".into());
+        }
+    }
+    let cfg = McpConfig {
+        mcp_servers: entries,
     };
     let json = serde_json::to_string_pretty(&cfg)
         .map_err(|e| AgentpackError::Staging(format!("{}: {e}", dest.display())))?;
@@ -352,6 +383,7 @@ mod tests {
 
     fn stdio_entry() -> McpServerEntry {
         McpServerEntry {
+            kind: None,
             command: Some("cargo".into()),
             args: vec!["run".into(), "--".into(), "serve".into()],
             env: BTreeMap::from([("RUST_LOG".to_string(), "info".to_string())]),
@@ -362,6 +394,7 @@ mod tests {
 
     fn remote_entry() -> McpServerEntry {
         McpServerEntry {
+            kind: None,
             command: None,
             args: Vec::new(),
             env: BTreeMap::new(),
