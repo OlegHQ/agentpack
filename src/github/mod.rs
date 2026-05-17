@@ -4,6 +4,7 @@ mod list_tags;
 mod metadata_cache;
 mod parse_url;
 mod resolve_ref;
+mod tarball_sources;
 
 pub use download::{
     archive_no_files_for_repo_path, choose_package_prefix_for_blob_path,

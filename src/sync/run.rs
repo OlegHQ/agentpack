@@ -4,7 +4,7 @@ use reqwest::blocking::Client;
 
 use crate::cache::verify_lock_cache_integrity;
 use crate::error::{AgentpackError, Result};
-use crate::lockfile::PackLock;
+use crate::lockfile::{LockPackage, PackLock};
 use crate::manifest::AgentpackManifest;
 use crate::mode::catalog::CapabilityCatalog;
 use crate::mode::filter::EffectiveMode;
@@ -33,8 +33,20 @@ fn resolve_and_save_lock(
     client: &Client,
     ui: &Ui,
     refresh_floating: bool,
+    primed: &[LockPackage],
 ) -> Result<PackLock> {
-    let previous = PackLock::load(project_root).ok();
+    let mut previous = PackLock::load(project_root).ok();
+    // Splice freshly-fetched packages into the previous lock so
+    // `pick_effective_git_ref` reuses their commits instead of re-resolving
+    // (and re-downloading) the same module within a single `add` call.
+    // Later entries win on duplicate module id.
+    if !primed.is_empty() {
+        let prev = previous.get_or_insert_with(PackLock::default);
+        for pkg in primed {
+            prev.packages.retain(|p| p.module != pkg.module);
+            prev.packages.push(pkg.clone());
+        }
+    }
     let opts = ResolveLockOpts {
         previous: previous.as_ref(),
         refresh_floating,
@@ -76,7 +88,7 @@ pub fn run_add(project_root: &Path, spec: &str, no_sync: bool, ui: &Ui) -> Resul
         AgentpackManifest::append_path_dependency(project_root, basename, rel_str)?;
         let manifest = require_manifest(project_root)?;
         let client = http_client()?;
-        resolve_and_save_lock(project_root, &manifest, &client, ui, false)?;
+        resolve_and_save_lock(project_root, &manifest, &client, ui, false, &[])?;
         ui.message(format!(
             "Recorded {basename} = {{ path = \"{rel_str}\" }} in agentpack.toml and refreshed pack.lock."
         ));
@@ -93,9 +105,12 @@ pub fn run_add(project_root: &Path, spec: &str, no_sync: bool, ui: &Ui) -> Resul
         &fetched.path,
     );
     AgentpackManifest::append_dependency_key(project_root, &module_key)?;
-    let manifest = require_manifest(project_root)?;
-    resolve_and_save_lock(project_root, &manifest, &client, ui, false)?;
+    // Update the cache alias index before resolving so transitive lookups via
+    // shorthand can reuse the just-fetched cache_key.
     upsert_fetched_index(&fetched, shorthand.as_deref())?;
+    let manifest = require_manifest(project_root)?;
+    let primed = [fetched];
+    resolve_and_save_lock(project_root, &manifest, &client, ui, false, &primed)?;
     ui.message(format!(
         "Recorded {module_key} in agentpack.toml and refreshed pack.lock."
     ));
@@ -110,7 +125,7 @@ pub fn run_remove(project_root: &Path, spec: &str, no_sync: bool, ui: &Ui) -> Re
     AgentpackManifest::remove_dependency_entry(project_root, &key)?;
     let manifest = require_manifest(project_root)?;
     let client = http_client()?;
-    resolve_and_save_lock(project_root, &manifest, &client, ui, false)?;
+    resolve_and_save_lock(project_root, &manifest, &client, ui, false, &[])?;
     if !ui.quiet {
         ui.message(format!(
             "Removed {} from {} and refreshed {}.",
@@ -126,7 +141,7 @@ pub fn run_lock(project_root: &Path, refresh_floating: bool, ui: &Ui) -> Result<
     paths::ensure_user_agentpack_layout()?;
     let manifest = require_manifest(project_root)?;
     let client = http_client()?;
-    let lock = resolve_and_save_lock(project_root, &manifest, &client, ui, refresh_floating)?;
+    let lock = resolve_and_save_lock(project_root, &manifest, &client, ui, refresh_floating, &[])?;
     if !ui.quiet {
         ui.message(format!(
             "Wrote {} ({} package(s)).",

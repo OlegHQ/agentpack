@@ -2,7 +2,6 @@ use std::collections::HashSet;
 use std::fs;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
-use std::time::Duration;
 
 use flate2::read::GzDecoder;
 use reqwest::blocking::Client;
@@ -12,6 +11,15 @@ use crate::cache::repo_dir_is_package_root;
 use crate::error::{AgentpackError, Result};
 use crate::ui::Ui;
 
+use super::tarball_sources::{default_chain, run_chain};
+
+/// Fetch `<owner>/<repo>@<commit_sha>` as a codeload-shaped `tar.gz` byte buffer.
+///
+/// Delegates to a chain of [`super::tarball_sources::TarballSource`]
+/// strategies: anonymous codeload → authenticated codeload (only if a token
+/// is set) → gix git-protocol clone. Anonymous-first deliberately sidesteps
+/// codeload's "fine-grained PAT → 404 instead of 401" trap that breaks
+/// public-repo fetches when an unrelated `GITHUB_TOKEN` is in the environment.
 pub fn download_tarball_bytes(
     client: &Client,
     owner: &str,
@@ -19,27 +27,8 @@ pub fn download_tarball_bytes(
     commit_sha: &str,
     ui: &Ui,
 ) -> Result<Vec<u8>> {
-    let url = format!("https://codeload.github.com/{owner}/{repo}/tar.gz/{commit_sha}");
-    let mut req = client.get(&url);
-    if let Some(token) = super::github_token() {
-        req = req.header("Authorization", format!("Bearer {token}"));
-    }
-    let resp = req
-        .timeout(Duration::from_secs(300))
-        .send()
-        .map_err(|e| AgentpackError::Archive(e.to_string()))?;
-    if !resp.status().is_success() {
-        return Err(AgentpackError::Archive(format!(
-            "GET {url} -> {}",
-            resp.status()
-        )));
-    }
-    let total = resp.content_length();
-    let mut reader = resp;
-    let buf = ui
-        .read_to_end_with_progress(&mut reader, total, "Download tarball")
-        .map_err(|e| AgentpackError::Archive(e.to_string()))?;
-    Ok(buf)
+    let chain = default_chain(client);
+    run_chain(&chain, owner, repo, commit_sha, ui)
 }
 
 pub fn collect_repo_relative_paths(buf: &[u8]) -> Result<HashSet<String>> {

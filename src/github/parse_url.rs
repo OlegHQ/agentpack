@@ -121,13 +121,16 @@ pub fn parse_github_url(raw: &str) -> Result<GitHubSource> {
 }
 
 /// Identity string for cache key: **resolved `commit_hex` only** (no branch/tag name).
-/// Same `owner` / `repo` / `path` / **SHA** always dedupes — `main`, `HEAD`, or a full SHA in the URL
-/// are equivalent after resolution.
+/// `owner` / `repo` are lowercased to match GitHub's case-insensitive routing (and the
+/// canonical lowercased form used by [`crate::resolve::module_id::ModuleId`]), so a URL spec
+/// like `OlegHQ/agent-configs` and a module id `github.com/oleghq/agent-configs` share one
+/// `cache_key`. Same `owner` / `repo` / `path` / **SHA** always dedupes — `main`, `HEAD`, or
+/// a full SHA in the URL are equivalent after resolution.
 pub fn normalized_identity(source: &GitHubSource, commit_hex: &str) -> String {
     format!(
         "github:{}/{}\0{}\0{}",
-        source.owner,
-        source.repo,
+        source.owner.to_lowercase(),
+        source.repo.to_lowercase(),
         source.path,
         commit_hex.trim().to_lowercase()
     )
@@ -176,5 +179,26 @@ mod tests {
         let s = parse_github_url("https://github.com/o/r/blob/main/plugins/pkg/agents/agent.md")
             .unwrap();
         assert_eq!(s.path, "plugins/pkg/agents/agent.md");
+    }
+
+    #[test]
+    fn normalized_identity_is_case_insensitive_on_owner_repo() {
+        let sha = "0123456789abcdef0123456789abcdef01234567";
+        let mixed = GitHubSource {
+            owner: "OlegHQ".into(),
+            repo: "Agent-Configs".into(),
+            git_ref: "dev".into(),
+            path: "plugins/rust-dev".into(),
+        };
+        let lower = GitHubSource {
+            owner: "oleghq".into(),
+            repo: "agent-configs".into(),
+            git_ref: "HEAD".into(),
+            path: "plugins/rust-dev".into(),
+        };
+        assert_eq!(
+            normalized_identity(&mixed, sha),
+            normalized_identity(&lower, sha)
+        );
     }
 }
