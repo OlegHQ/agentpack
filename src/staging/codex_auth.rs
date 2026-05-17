@@ -120,8 +120,7 @@ fn shared_codex_auth_source(user_codex_home: &Path) -> Result<Option<PathBuf>> {
     if shared.is_file() {
         return Ok(Some(shared));
     }
-    let materialized =
-        try_materialize_codex_auth_json_from_user_keyring(user_codex_home, &shared)?;
+    let materialized = try_materialize_codex_auth_json_from_user_keyring(user_codex_home, &shared)?;
     if materialized {
         Ok(Some(shared))
     } else {

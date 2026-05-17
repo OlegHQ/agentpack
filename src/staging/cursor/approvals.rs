@@ -61,7 +61,8 @@ pub(super) fn seed_workspace_mcp_approvals(
         return Ok(());
     }
 
-    let existing = read_json_value_opt(&approvals_path)?.unwrap_or_else(|| Value::Array(Vec::new()));
+    let existing =
+        read_json_value_opt(&approvals_path)?.unwrap_or_else(|| Value::Array(Vec::new()));
     let mut arr = match existing {
         Value::Array(a) => a,
         _ => Vec::new(),
@@ -104,7 +105,12 @@ fn cursor_data_dir() -> Option<PathBuf> {
 fn workspace_approvals_path(project_root: &Path) -> Option<PathBuf> {
     let data_dir = cursor_data_dir()?;
     let slug = slugify_path(&canonical_workspace_string(project_root));
-    Some(data_dir.join("projects").join(slug).join("mcp-approvals.json"))
+    Some(
+        data_dir
+            .join("projects")
+            .join(slug)
+            .join("mcp-approvals.json"),
+    )
 }
 
 fn canonical_workspace_string(project_root: &Path) -> String {
@@ -139,12 +145,10 @@ fn slugify_path(s: &str) -> String {
 }
 
 fn approval_id(name: &str, entry: &McpServerEntry, workspace: &str) -> Result<String> {
-    let server_json = serde_json::to_string(entry).map_err(|e| {
-        AgentpackError::Staging(format!("serialize mcp entry {name}: {e}"))
-    })?;
-    let path_json = serde_json::to_string(workspace).map_err(|e| {
-        AgentpackError::Staging(format!("serialize workspace path: {e}"))
-    })?;
+    let server_json = serde_json::to_string(entry)
+        .map_err(|e| AgentpackError::Staging(format!("serialize mcp entry {name}: {e}")))?;
+    let path_json = serde_json::to_string(workspace)
+        .map_err(|e| AgentpackError::Staging(format!("serialize workspace path: {e}")))?;
     // Build the JSON exactly as `JSON.stringify({path, server})` does: keys in object-literal
     // insertion order (`path`, then `server`), no whitespace.
     let payload = format!("{{\"path\":{path_json},\"server\":{server_json}}}");
