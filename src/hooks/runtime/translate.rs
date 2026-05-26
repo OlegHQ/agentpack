@@ -12,6 +12,8 @@ pub fn to_target_output(
         HookOutputTarget::Codex => codex_output(result),
         HookOutputTarget::Cursor => cursor_output(event, result),
         HookOutputTarget::Claude => claude_fallback_output(result),
+        HookOutputTarget::Grok => claude_fallback_output(result),
+        HookOutputTarget::Agy => codex_output(result),
     }
 }
 

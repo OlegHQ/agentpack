@@ -259,6 +259,7 @@ pub(super) fn stage_guidance_all_harnesses(
 
     write_agents_md(&dests.codex.join("AGENTS.md"), &blob)?;
     write_agents_md(&dests.opencode.join("AGENTS.md"), &blob)?;
+    write_agents_md(&dests.grok_home.join("AGENTS.md"), &blob)?;
     add_claude_session_start_hook(dests.claude_bundle, &guidance_file)?;
     // Cursor: nothing — native `rules/*.mdc` with `alwaysApply: true` are already staged in the
     // pack bundle and symlinked into the Cursor fake HOME by the standard staging path.
@@ -290,6 +291,16 @@ pub fn emit_injection_json(
             "additional_context": body,
         }),
         "opencode" => json!({"additional_context": body}),
+        "grok" => json!({
+            "hookSpecificOutput": {
+                "hookEventName": event,
+                "additionalContext": body,
+            }
+        }),
+        "agy" => json!({
+            "additionalContext": body,
+            "continue": true,
+        }),
         _ => json!({"additional_context": body}),
     };
     Ok(value)

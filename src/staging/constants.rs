@@ -12,6 +12,14 @@ pub(super) const OPENCODE_USER_ROOT_ENTRIES: &[&str] = &[
 /// `auth.json` is linked separately so every staged `CODEX_HOME` shares the same refresh state.
 pub(super) const CODEX_HOME_ENTRIES: &[&str] = &["config.toml", "hooks.json", "skills", "themes"];
 
+/// Grok user-home entries preserved before overlaying pack content. Credentials are linked
+/// separately so staged homes can reuse login without copying volatile auth material.
+pub(super) const GROK_HOME_ENTRIES: &[&str] =
+    &["config.toml", "skills", "agents", "commands", "plugins"];
+
+/// Grok credential/session files linked from the real user home when present.
+pub(super) const GROK_HOME_CREDENTIAL_FILES: &[&str] = &["auth.json", "mcp_credentials.json"];
+
 /// Cursor files copied from `~/.cursor` into **`$STAGING/cursor/`** before pack overlay.
 /// Omit **`agents` / `commands` / `skills` / `rules`**: those come from **`pack.lock`** under
 /// **`agentpack-bundle/`**; copying from the real profile pulls dangling symlinks and duplicates UX.
@@ -38,3 +46,6 @@ pub(super) const CURSOR_FAKE_HOME_PACK_SUBDIRS: &[&str] = &[
 
 /// Relative to **`./.cursor/`** — symlink **`./.cursor/agents`** → staged pack agents for Cursor **`agent`** (`computeAgentsDirs`).
 pub(super) const CURSOR_WORKSPACE_AGENTS_OVERLAY: &str = "agents";
+
+/// Relative to the project root. Antigravity discovers workspace plugins here.
+pub(super) const AGY_WORKSPACE_PLUGIN_OVERLAY: &str = ".agents/plugins/agentpack-bundle";

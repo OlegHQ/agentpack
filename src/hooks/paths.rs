@@ -15,9 +15,11 @@ use super::runtime::bridge::HookExecutionSpec;
 fn base_asset_root(target: HarnessTarget, target_root: &Path) -> PathBuf {
     match target {
         HarnessTarget::OpenCode => target_root.join("plugins/agentpack-hooks/assets"),
-        HarnessTarget::Claude | HarnessTarget::Cursor | HarnessTarget::Codex => {
-            target_root.join("hooks/_packages")
-        }
+        HarnessTarget::Claude
+        | HarnessTarget::Cursor
+        | HarnessTarget::Codex
+        | HarnessTarget::Grok
+        | HarnessTarget::Agy => target_root.join("hooks/_packages"),
     }
 }
 

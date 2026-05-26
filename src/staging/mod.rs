@@ -1,5 +1,6 @@
 //! Staging: merge pack.lock trees into per-harness directories under `$STAGING`.
 
+mod agy;
 mod attribution;
 mod claude_home;
 mod codex_auth;
@@ -74,12 +75,16 @@ pub fn verify_staging(project_root: &Path, lock: &PackLock, mode: &EffectiveMode
     let opencode_root = pipeline.opencode_root()?;
     let codex_home = pipeline.codex_home()?;
     let cursor_pack = pipeline.cursor_pack_plugin_dir()?;
+    let grok_bundle = pipeline.grok_bundle_dir()?;
+    let agy_bundle = pipeline.agy_bundle_dir()?;
 
     let collision_removed = collision::resolve_user_claude_bundle_collisions(
         bundle,
         &opencode_root,
         &codex_home,
         &cursor_pack,
+        &grok_bundle,
+        &agy_bundle,
     )?;
 
     let harness_roots: &[(&Path, &str)] = &[
@@ -87,6 +92,8 @@ pub fn verify_staging(project_root: &Path, lock: &PackLock, mode: &EffectiveMode
         (&opencode_root, "opencode"),
         (&codex_home, "codex"),
         (&cursor_pack, "cursor"),
+        (&grok_bundle, "grok"),
+        (&agy_bundle, "agy"),
     ];
 
     let plugins: Vec<&LockPackage> = lock.plugins().collect();

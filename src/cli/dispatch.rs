@@ -73,6 +73,12 @@ pub fn run(cli: Cli) -> anyhow::Result<()> {
         Command::Codex { args } => {
             launcher::run_codex(&root, args, cli.mode.as_deref(), cli.yolo, &ui)?;
         }
+        Command::Grok { args } => {
+            launcher::run_grok(&root, args, cli.mode.as_deref(), cli.yolo, &ui)?;
+        }
+        Command::Agy { args } => {
+            launcher::run_agy(&root, args, cli.mode.as_deref(), cli.yolo, &ui)?;
+        }
         Command::Agent { args } => {
             launcher::run_agent(&root, args, cli.mode.as_deref(), cli.yolo, &ui)?;
         }

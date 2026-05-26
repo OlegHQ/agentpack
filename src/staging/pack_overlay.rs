@@ -31,21 +31,26 @@ where
     Ok(())
 }
 
-/// Destination roots for the four harness trees that receive merged pack content.
+/// Destination roots for the harness trees that receive merged pack content.
 pub(super) struct PackHarnessRoots<'a> {
     pub claude_bundle: &'a Path,
     pub opencode: &'a Path,
     pub codex: &'a Path,
     pub cursor_pack: &'a Path,
+    pub grok_home: &'a Path,
+    pub grok_bundle: &'a Path,
+    pub agy_bundle: &'a Path,
 }
 
 impl PackHarnessRoots<'_> {
-    fn targets_and_roots(&self) -> [(HarnessTarget, &Path); 4] {
+    fn targets_and_roots(&self) -> [(HarnessTarget, &Path); 6] {
         [
             (HarnessTarget::Claude, self.claude_bundle),
             (HarnessTarget::OpenCode, self.opencode),
             (HarnessTarget::Codex, self.codex),
             (HarnessTarget::Cursor, self.cursor_pack),
+            (HarnessTarget::Grok, self.grok_bundle),
+            (HarnessTarget::Agy, self.agy_bundle),
         ]
     }
 }

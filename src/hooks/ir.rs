@@ -230,6 +230,8 @@ pub enum HookOutputTarget {
     #[default]
     Codex,
     Opencode,
+    Grok,
+    Agy,
 }
 
 impl HookOutputTarget {
@@ -239,6 +241,8 @@ impl HookOutputTarget {
             Self::Cursor => HarnessTarget::Cursor,
             Self::Codex => HarnessTarget::Codex,
             Self::Opencode => HarnessTarget::OpenCode,
+            Self::Grok => HarnessTarget::Grok,
+            Self::Agy => HarnessTarget::Agy,
         }
     }
 
@@ -248,6 +252,8 @@ impl HookOutputTarget {
             Self::Cursor => "cursor",
             Self::Codex => "codex",
             Self::Opencode => "opencode",
+            Self::Grok => "grok",
+            Self::Agy => "agy",
         }
     }
 }

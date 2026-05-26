@@ -172,7 +172,7 @@ pub(super) fn detect_named_markdown_extensions(
 }
 
 pub(super) fn strip_harness_prefix(path: &Path) -> &Path {
-    for prefix in [".claude", ".cursor", ".opencode", ".agents"] {
+    for prefix in [".claude", ".cursor", ".opencode", ".agents", ".grok"] {
         if let Ok(stripped) = path.strip_prefix(prefix) {
             return stripped;
         }

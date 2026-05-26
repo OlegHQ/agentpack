@@ -18,6 +18,7 @@ All downloaded trees, the RedDB index, and your **`local/`** mirror live under a
 | **`$AGENTPACK_HOME/cache/db.reddb`** | Metadata + alias map for fast repeat **`add`**, plus cached GitHub ref/tag lookups to reduce API calls. |
 | **`$AGENTPACK_HOME/local/<owner>/<repo>/…`** | Optional offline mirror; same slash layout as **`owner/repo/…`** specs. |
 | **`$AGENTPACK_HOME/projects/<hash>/cursor-overlay.manifest`** | Per-project Cursor overlay bookkeeping (not stored in the repo). |
+| **`$AGENTPACK_HOME/projects/<hash>/agy-overlay.manifest`** | Per-project Antigravity workspace plugin overlay bookkeeping (not stored in the repo). |
 | **`$AGENTPACK_HOME/shared/codex/auth.json`** | Shared Codex auth cache used by staged **`CODEX_HOME`** trees when the real user config stores credentials in the OS keychain instead of **`~/.codex/auth.json`**. |
 | **`$AGENTPACK_HOME/claude-settings.json`** | Stable attribution-off overlay passed to Claude as **`--settings <path>`**. Project-independent so Claude Code's keychain credential namespace stays user-global (see "Claude attribution" below). |
 
@@ -89,9 +90,13 @@ OpenCode uses a **config root override** instead of an additive plugin dir. Offi
 
 Codex uses a **home root override** instead of an additive plugin dir. Official docs and source use **`CODEX_HOME`** for the user config root (default **`~/.codex`**) and still auto-discover user skills from **`$CODEX_HOME/skills`**. Codex plugin marketplaces are repo- or home-rooted **`.agents/plugins/marketplace.json`** files, so this is **not** equivalent to Claude’s additive **`--plugin-dir`** model.
 
+Grok uses a **home root override** via **`GROK_HOME`**. The installed `grok 0.1.219` rejects **`--plugin-dir`** and **`--settings`**, even after login, so agentpack stages **`$STAGING/grok-home`**, writes pack plugin paths into staged **`config.toml`** under **`[plugins].paths`**, and launches with **`GROK_HOME=$STAGING/grok-home`**. Grok still reads Claude-compatible user sources from the real **`~/.claude`**, so duplicate handling must account for both **`~/.grok`** and **`~/.claude`**.
+
 **`agentpack agent`** runs the Cursor CLI with **`HOME=$STAGING/cursor-home`**. **`$HOME/.cursor/commands`** (etc.) symlink into the staged **`pack.lock`** tree. **`agentpack`** also sets **`CURSOR_CONFIG_DIR=$HOME/.cursor`** on the child process. Cursor workspace trust still uses **`CURSOR_DATA_DIR`**; when it is unset, **`agentpack`** points it at real **`~/.cursor`** so trust state survives staging rebuilds. To keep shell tools working inside the staged HOME, agentpack also bridges **`CARGO_HOME=~/.cargo`**, **`RUSTUP_HOME=~/.rustup`**, and **`DOCKER_CONFIG=~/.docker`** unless the user already set them.
 
 The Cursor CLI also reads workspace **`.cursor/`** for some features; behavior may combine configured **`CURSOR_CONFIG_DIR`**, **`--workspace`**, and **`CURSOR_DATA_DIR`** (workspace trust / projects).
+
+Antigravity (`agy`) has no config-root override in the installed CLI and shares auth/settings with the desktop app under the user's real profile. agentpack therefore leaves **`HOME`** and **`~/.gemini`** untouched and exposes pack content as a workspace plugin: **`./.agents/plugins/agentpack-bundle`** symlinks to **`$STAGING/agy/agentpack-bundle`**. Add **`.agents/plugins/agentpack-bundle`** to **`.gitignore`** if you do not want the symlink in version control.
 
 ## What agentpack does
 
@@ -99,7 +104,7 @@ The Cursor CLI also reads workspace **`.cursor/`** for some features; behavior m
 
 **Cursor `agent` subagents —** The bundled **`agent`** CLI resolves [subagents](https://cursor.com/docs/subagents) from **`resolve(--workspace)/.cursor/agents`** only (not from fake **`$HOME/.cursor/agents`** for that list). **`sync`** therefore creates **`./.cursor/agents`** as a **symlink** into **`$STAGING/cursor/agentpack-bundle/agents`** when the pack exposes agent markdown, and records the path in **`cursor-overlay.manifest`** under **`$AGENTPACK_HOME/projects/<hash>/`** so the next **`sync`** can replace the symlink safely. If **`./.cursor/agents`** already exists as a **directory** or **file**, **`sync`** leaves it alone and logs a warning. Add **`./.cursor/agents`** (or **`.cursor/agents`**) to **`.gitignore`** if you do not want the symlink in version control.
 
-**Project `./.agents/` ([dot-agents](https://github.com/dot-agents/dot-agents)-style)** — Optional. After pack content is staged, **`sync`** merges **`./.agents/`** into harness trees under **`$STAGING`** that do **not** natively read the directory: **Claude bundle** and **Codex home**. Shared **`rules/**/*.mdc`** (hard-linked into staged **`rules/`** when possible), **`skills/`**, **`agents/`**, **`commands/`**, **`hooks/`**, top-level **`AGENTS.md`** (Codex), **`CLAUDE.md`** (Claude bundle), **`mcp.json`**, and optional subtrees **`claude/`**, **`codex/`** that mirror each harness layout. **Cursor and OpenCode are excluded** — both natively discover **`.agents/`** from the workspace (skills, commands, agents, rules all appear as project-scoped), so merging into their staging would duplicate content. The only workspace pointer **`agentpack`** may still add is **`./.cursor/agents`** → merged staged **`agents/`** (for pack content subagent discovery, not dot-agents). Set **`AGENTPACK_DOT_AGENTS=0`** to skip.
+**Project `./.agents/` ([dot-agents](https://github.com/dot-agents/dot-agents)-style)** — Optional. After pack content is staged, **`sync`** merges **`./.agents/`** into harness trees under **`$STAGING`** that do **not** natively read the directory: **Claude bundle** and **Codex home**. Shared **`rules/**/*.mdc`** (hard-linked into staged **`rules/`** when possible), **`skills/`**, **`agents/`**, **`commands/`**, **`hooks/`**, top-level **`AGENTS.md`** (Codex), **`CLAUDE.md`** (Claude bundle), **`mcp.json`**, and optional subtrees **`claude/`**, **`codex/`** that mirror each harness layout. **Cursor, OpenCode, and Antigravity are excluded** — they natively discover workspace-scoped customization, and merging into their staging would duplicate content. The workspace pointers agentpack may add are **`./.cursor/agents`** for Cursor subagents and **`./.agents/plugins/agentpack-bundle`** for Antigravity pack content. Set **`AGENTPACK_DOT_AGENTS=0`** to skip dot-agents merging.
 
 1. **Cache** — **`add`**, **`lock`**, and **`sync`** populate **`$AGENTPACK_HOME/cache/<cache_key>/`**.  
 2. **Index** — **`$AGENTPACK_HOME/cache/db.reddb`** stores metadata (`kind`: `skill` | `plugin`) and shorthand **aliases** → `cache_key`.  
@@ -107,7 +112,7 @@ The Cursor CLI also reads workspace **`.cursor/`** for some features; behavior m
    - **Commands**: Cursor plain markdown, OpenCode markdown frontmatter, Claude command/skill frontmatter, Codex skill fallback.
    - **Agents**: Claude / OpenCode / Cursor agent markdown frontmatter, Codex skill fallback.
    - **Skills**: skill frontmatter normalized and rendered as target skills.
-   - **Rules**: Cursor `.mdc` rules preserved for Cursor; other harnesses get a best-effort skill fallback with original rule scope noted when the target lacks first-class rule files.
+   - **Rules**: Cursor and Antigravity rules are preserved as rules; other harnesses get a best-effort skill fallback with original rule scope noted when the target lacks first-class rule files.
 4. **Claude bundle** — **`sync`** rebuilds **`$STAGING/plugins/agentpack-bundle/`** with **`.claude-plugin/plugin.json`** and:
    - **Packages:** target-specific converted markdown artifacts plus raw Claude support dirs (`hooks`, `matchers`, `core`, `examples`, `utils`), filtered through the selected **mode**.
    - **MCP:** merged `mcp.json` written to bundle root (see MCP merge below).
@@ -126,19 +131,30 @@ The Cursor CLI also reads workspace **`.cursor/`** for some features; behavior m
    - **Optional:** copies **`cli-config.json`** and **`mcp.json`** from **`~/.cursor/`** into **`$STAGING/cursor/`** when user-settings seeding is enabled. User **`agents/`**, **`commands`**, and similar are not merged from **`~/.cursor`** into the pack tree.
    - **Workspace subagents symlink:** **`./.cursor/agents`** → staged pack **`agents/`** (Cursor **`--workspace`** only). **`cursor-overlay.manifest`** tracks agentpack-owned overlay paths for safe cleanup (symlinks/files only — never deletes a real directory).
    - **Migration:** older **`cursor-overlay.manifest`** entries under **`$AGENTPACK_HOME/projects/<hash>/`** are still removed at the start of **`sync`** when present.
-8. **Launchers**
+8. **Grok home** — **`sync`** rebuilds **`$STAGING/grok-home/`** and **`$STAGING/grok/agentpack-bundle/`**:
+   - **Optional:** seeds from **`~/.grok/`** (`config.toml`, `skills`, `agents`, `commands`, `plugins`) so user Grok config still works when **`GROK_HOME`** is redirected.
+   - **Auth:** links real **`~/.grok/auth.json`** and **`mcp_credentials.json`** when present so login survives staging rebuilds.
+   - **Overlay:** converted pack content is rendered into **`$STAGING/grok/agentpack-bundle`** with root **`plugin.json`**, and staged **`config.toml`** gets **`[plugins].paths`** pointing at that bundle.
+   - **MCP:** merged MCP is written as Grok-native **`[mcp_servers]`** TOML in staged **`config.toml`**.
+   - **Hooks:** not staged today. Current Grok only loaded hooks from real/fake **`HOME`** or trusted project roots in smoke tests.
+9. **Antigravity staging** — **`sync`** rebuilds **`$STAGING/agy/agentpack-bundle/`** with root **`plugin.json`**, plus **`skills/`**, **`agents/`**, **`commands/`**, **`rules/`**, **`hooks/`**, and **`mcp_config.json`** when present.
+   - **Workspace plugin symlink:** **`./.agents/plugins/agentpack-bundle`** → staged pack plugin. **`agy-overlay.manifest`** tracks agentpack-owned overlay paths for safe cleanup (symlinks/files only — never deletes a real directory).
+   - **Hooks:** plugin-local hook rendering remains gated behind runtime smoke tests. Existing plugin hook files may be copied through, but agentpack does not synthesize Agy hook configs yet.
+10. **Launchers**
    - **`agentpack claude`** runs **`claude`** with **`--plugin-dir`** pointing at **`agentpack-bundle`** and (when attribution is forced off) **`--settings $AGENTPACK_HOME/claude-settings.json`**. **`CLAUDE_CONFIG_DIR`** is **never** set so the user's keychain login (`Claude Code-credentials`) is reused as-is across all projects.
    - **`agentpack opencode`** runs **`opencode`** with **`OPENCODE_CONFIG_DIR=$STAGING/opencode`**.
    - **`agentpack codex`** runs **`codex`** with **`CODEX_HOME=$STAGING/codex-home`**.
+   - **`agentpack grok`** runs **`grok`** with **`GROK_HOME=$STAGING/grok-home`** and injects **`--cwd <project-root>`** when absent. It does **not** pass **`--plugin-dir`** or **`--settings`** for `grok 0.1.219`.
    - **`agentpack agent`** runs Cursor Agent with **`HOME=$STAGING/cursor-home`**. **`--workspace`** defaults to the **canonical project root** (same place you **`add` / `sync`**). **`CURSOR_CONFIG_DIR`** is **`$HOME/.cursor`** under the fake home. **Workspace trust** uses **`$CURSOR_DATA_DIR/projects/<slug>/.workspace-trusted`**; **`agentpack`** sets **`CURSOR_DATA_DIR`** to **real `~/.cursor`** when unset so trust state is not lost when **`$STAGING`** is recreated. It also preserves **`CARGO_HOME`**, **`RUSTUP_HOME`**, and **`DOCKER_CONFIG`** from the real home unless those env vars are already set. For a **stable** staging path when your OS rotates temp dirs, set **`AGENTPACK_STAGING_ROOT`**. Cursor’s **`agent`** only accepts **`--trust`** with **`--print`** / headless; **`agentpack`** prepends **`--trust`** automatically in that case.
+   - **`agentpack agy`** runs **`agy`** with **`--add-dir <project-root>`** when absent and leaves **`HOME`** / **`~/.gemini`** untouched.
 
-**MCP merge pipeline** — after pack content and **`.agents/`** overlay are staged, **`sync`** collects MCP server definitions from three sources (merge order; later wins on same server name): **(1)** plugin root **`mcp.json`** files (sorted by `cache_key`, filtered through the selected **mode**), **(2)** manifest **`[mcp.servers]`**, **(3)** **`.agents/mcp.json`**. The merged result is written as `{"mcpServers":{…}}` JSON to all four harness staging roots. For the **Cursor fake HOME**, the merged pack `mcp.json` is further merged with the user’s real **`~/.cursor/mcp.json`** (user entries win on conflict) so agentpack-managed servers coexist with user-defined ones.
+**MCP merge pipeline** — after pack content and **`.agents/`** overlay are staged, **`sync`** collects MCP server definitions from three sources (merge order; later wins on same server name): **(1)** plugin root **`mcp.json`** files (sorted by `cache_key`, filtered through the selected **mode**), **(2)** manifest **`[mcp.servers]`**, **(3)** **`.agents/mcp.json`**. The merged result is written in each harness's native format: Claude/Cursor JSON **`mcpServers`**, OpenCode **`opencode.json`**, Codex/Grok **`[mcp_servers]`** TOML, and Antigravity plugin **`mcp_config.json`** using **`serverUrl`** for remote servers. For the **Cursor fake HOME**, the merged pack `mcp.json` is further merged with the user’s real **`~/.cursor/mcp.json`** (user entries win on conflict) so agentpack-managed servers coexist with user-defined ones.
 
-After staging, **`sync`** verifies that **skill directory names** under **`bundle/skills/`** and **`.md` file stems** under **`bundle/commands/`** and **`bundle/agents/`** do not **also** appear under **`~/.claude/skills`**, **`commands`**, or **`agents`**. If they do, the staged pack copy is removed so the user install wins (Claude would otherwise list both **`/foo`** and **`/agentpack-bundle:foo`**).
+After staging, **`sync`** verifies that **skill directory names** under **`bundle/skills/`** and **`.md` file stems** under **`bundle/commands/`** and **`bundle/agents/`** do not **also** appear under **`~/.claude`** or **`~/.grok`** user roots. If they do, the staged pack copy is removed so the user install wins.
 
 Overlay order for staged roots: user config copies first, then **plugins** (by `cache_key`), then **bare skills**, then **project `./.agents/`** — **later layers win** on the same relative path inside `agents`, `commands`, `skills`, etc.
 
-**`~/.claude.json`**, **`~/.config/opencode/opencode.json`**, **`~/.codex/config.toml`**, **`~/.codex/auth.json`**, and files under **`~/.cursor`** may contain sensitive settings or session state. These are copied into a temp staging directory to preserve user config when harness roots are redirected; Codex keychain bridging can materialize a shared **`$AGENTPACK_HOME/shared/codex/auth.json`** file so staged homes share refresh-token updates.
+**`~/.claude.json`**, **`~/.config/opencode/opencode.json`**, **`~/.codex/config.toml`**, **`~/.codex/auth.json`**, **`~/.grok/config.toml`**, **`~/.grok/auth.json`**, and files under **`~/.cursor`** may contain sensitive settings or session state. These are copied or linked into temp staging directories to preserve user config when harness roots are redirected; Codex keychain bridging can materialize a shared **`$AGENTPACK_HOME/shared/codex/auth.json`** file so staged homes share refresh-token updates.
 
 ### Skill shadowing
 
@@ -154,6 +170,8 @@ A full plugin at repo path **`P`** (same **`owner` / `repo` / `commit`**) shadow
 | Codex | **`$STAGING/codex-home/config.toml`** | **`commit_attribution = ""`** ([docs](https://developers.openai.com/codex/config-reference)) |
 | Cursor | **`$STAGING/cursor/cli-config.json`**, **`$STAGING/cursor-home/.cursor/cli-config.json`** | **`attribution.attributeCommitsToAgent = false`**, **`attribution.attributePRsToAgent = false`** ([docs](https://cursor.com/docs/cli/reference/configuration)) |
 | OpenCode | **`$STAGING/opencode/opencode.json`** + **`agentpack-no-attribution.md`** | OpenCode has no first-class attribution setting (sst/opencode#919, sst/opencode#1135 — both auto-closed inactive). agentpack writes a system-prompt file and adds it to **`instructions[]`** as a best-effort prompt-level instruction. |
+| Grok | **`$STAGING/grok-home/AGENTS.md`** | No verified first-class attribution-off setting in `grok 0.1.219`; agentpack stages prompt-level guidance only and does not modify real **`~/.grok`**. |
+| Antigravity | **`$STAGING/agy/agentpack-bundle/rules/agentpack-no-attribution.md`** | No verified first-class attribution-off setting; agentpack stages an always-apply plugin rule as prompt-level guidance only. |
 
 For Cursor specifically, **`$STAGING/cursor-home/.cursor/cli-config.json`** is materialized as a **real file** (not a symlink to **`~/.cursor/cli-config.json`**) so writes from agentpack do not bleed back into the user's real Cursor profile.
 
@@ -168,6 +186,8 @@ For Cursor specifically, **`$STAGING/cursor-home/.cursor/cli-config.json`** is m
 | **`OPENCODE_PATH`** | Path to the **`opencode`** binary. |
 | **`CODEX_PATH`** | Path to the **`codex`** binary. |
 | **`CURSOR_AGENT_PATH`** | Path to the **`agent`** binary. |
+| **`GROK_PATH`** | Path to the **`grok`** binary. |
+| **`AGY_PATH`** | Path to the **`agy`** binary. |
 
 ### Global CLI flags
 
@@ -183,7 +203,7 @@ For Cursor specifically, **`$STAGING/cursor-home/.cursor/cli-config.json`** is m
 - **`mcp add <name> --command <cmd> [--args ...] [--env K=V ...]`** — add an MCP server to **`[mcp.servers]`** in **`agentpack.toml`**, then **`sync`** unless **`--no-sync`**.
 - **`mcp remove <name>`** — remove an MCP server from **`[mcp.servers]`**, then **`sync`** unless **`--no-sync`**.
 - **`mcp list`** — show all MCP servers (from manifest, plugins, and **`.agents/mcp.json`**) with provenance.
-- **`claude`**, **`opencode`**, **`codex`**, **`agent`** — refresh staging via **`sync`** (fast path when nothing changed) then exec with the staged harness roots (see Launchers).
+- **`claude`**, **`opencode`**, **`codex`**, **`grok`**, **`agent`**, **`agy`** — refresh staging via **`sync`** (fast path when nothing changed) then exec with the staged harness roots (see Launchers).
 
 ### `agentpack.toml` sketch
 
@@ -253,4 +273,4 @@ name = "hookify"
 
 ### Limits
 
-OpenCode is launched by replacing its config root, not by adding a plugin dir. **`agentpack agent`** rewrites **`HOME`** to **`$STAGING/cursor-home`** so **`$HOME/.cursor`** blends staged **`pack.lock`** symlinks with symlinks to your real Cursor credential/session files, while preserving **`CARGO_HOME`**, **`RUSTUP_HOME`**, and **`DOCKER_CONFIG`** for toolchain commands. Some auth may live in OS keychains or paths outside **`~/.cursor`**; those are not redirected. Codex is launched by replacing **`CODEX_HOME`** and currently only gets the **portable skill** subset of pack content; agentpack does **not** synthesize Codex plugin marketplaces from cached Claude plugins.
+OpenCode is launched by replacing its config root, not by adding a plugin dir. **`agentpack agent`** rewrites **`HOME`** to **`$STAGING/cursor-home`** so **`$HOME/.cursor`** blends staged **`pack.lock`** symlinks with symlinks to your real Cursor credential/session files, while preserving **`CARGO_HOME`**, **`RUSTUP_HOME`**, and **`DOCKER_CONFIG`** for toolchain commands. Some auth may live in OS keychains or paths outside **`~/.cursor`**; those are not redirected. Codex is launched by replacing **`CODEX_HOME`** and currently only gets the **portable skill** subset of pack content; agentpack does **not** synthesize Codex plugin marketplaces from cached Claude plugins. Grok is launched by replacing **`GROK_HOME`** because the installed CLI does not accept additive **`--plugin-dir`**. Antigravity is launched without config redirection; pack content reaches it through **`./.agents/plugins/agentpack-bundle`**.

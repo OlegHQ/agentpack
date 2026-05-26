@@ -228,4 +228,38 @@ mod tests {
             .contents
             .contains("name: vercel-react-best-practices"));
     }
+
+    #[test]
+    fn agy_agent_drops_claude_only_frontmatter() {
+        let artifact = parse_markdown_artifact(
+            Path::new("agents/review.md"),
+            "---\ndescription: Review code\nmodel: opus\ncolor: blue\n---\n\nReview carefully.\n",
+            None,
+        )
+        .unwrap()
+        .unwrap();
+
+        let rendered = artifact.render(HarnessTarget::Agy);
+        assert_eq!(rendered.relative_path, PathBuf::from("agents/review.md"));
+        assert!(rendered.contents.contains("description: Review code"));
+        assert!(!rendered.contents.contains("model:"));
+        assert!(!rendered.contents.contains("color:"));
+    }
+
+    #[test]
+    fn agy_keeps_rules_as_rules() {
+        let artifact = parse_markdown_artifact(
+            Path::new(".cursor/rules/typescript.mdc"),
+            "---\ndescription: TypeScript standards\nglobs: **/*.ts\nalwaysApply: true\n---\n\nUse strict types.\n",
+            None,
+        )
+        .unwrap()
+        .unwrap();
+
+        let rendered = artifact.render(HarnessTarget::Agy);
+        assert_eq!(
+            rendered.relative_path,
+            PathBuf::from("rules/typescript.mdc")
+        );
+    }
 }

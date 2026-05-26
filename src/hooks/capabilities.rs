@@ -31,6 +31,12 @@ pub fn support_for(
         HarnessTarget::Cursor => cursor_support(event, handler),
         HarnessTarget::Codex => codex_support(event, handler),
         HarnessTarget::OpenCode => opencode_support(event, handler),
+        HarnessTarget::Grok => SupportLevel::Unsupported {
+            reason: "Grok hooks are not staged because current Grok only loaded hooks from HOME/project-trusted roots in smoke tests",
+        },
+        HarnessTarget::Agy => SupportLevel::Unsupported {
+            reason: "Antigravity hook rendering is gated until plugin-local hook runtime smoke tests pass",
+        },
     }
 }
 

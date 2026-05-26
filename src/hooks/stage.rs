@@ -14,6 +14,8 @@ pub struct HookHarnessRoots<'a> {
     pub opencode_root: &'a std::path::Path,
     pub codex_home: &'a std::path::Path,
     pub cursor_pack: &'a std::path::Path,
+    pub grok_bundle: &'a std::path::Path,
+    pub agy_bundle: &'a std::path::Path,
 }
 
 pub fn stage_hooks_all_harnesses(
@@ -31,6 +33,11 @@ pub fn stage_hooks_all_harnesses(
     if bundle.hooks.is_empty() {
         return Ok(());
     }
+    tracing::warn!(
+        grok = %roots.grok_bundle.display(),
+        agy = %roots.agy_bundle.display(),
+        "Grok and Antigravity hook staging is disabled pending CLI smoke-test coverage"
+    );
 
     let renderers: Vec<(&dyn HookRenderer, &std::path::Path)> = vec![
         (&ClaudeHookRenderer, roots.claude_bundle),

@@ -85,6 +85,10 @@ pub fn cursor_overlay_manifest_path(project_root: &Path) -> Result<PathBuf> {
     Ok(project_state_dir(project_root)?.join("cursor-overlay.manifest"))
 }
 
+pub fn agy_overlay_manifest_path(project_root: &Path) -> Result<PathBuf> {
+    Ok(project_state_dir(project_root)?.join("agy-overlay.manifest"))
+}
+
 /// Resolve project root by walking ancestors until **`agentpack.toml`** or **`pack.lock`** is found.
 pub fn find_project_root(start: &Path) -> Result<PathBuf> {
     for dir in start.ancestors() {
@@ -197,6 +201,46 @@ pub fn staging_codex_home_dir_for_mode(project_root: &Path, mode_name: &str) -> 
 
 pub fn staging_codex_home_dir(project_root: &Path) -> Result<PathBuf> {
     staging_codex_home_dir_for_mode(project_root, "default")
+}
+
+pub fn staging_grok_home_dir_for_mode(project_root: &Path, mode_name: &str) -> Result<PathBuf> {
+    Ok(staging_root_for_mode(project_root, mode_name)?.join("grok-home"))
+}
+
+pub fn staging_grok_home_dir(project_root: &Path) -> Result<PathBuf> {
+    staging_grok_home_dir_for_mode(project_root, "default")
+}
+
+pub fn staging_grok_dir_for_mode(project_root: &Path, mode_name: &str) -> Result<PathBuf> {
+    Ok(staging_root_for_mode(project_root, mode_name)?.join("grok"))
+}
+
+pub fn staging_grok_dir(project_root: &Path) -> Result<PathBuf> {
+    staging_grok_dir_for_mode(project_root, "default")
+}
+
+pub fn staging_grok_bundle_dir_for_mode(project_root: &Path, mode_name: &str) -> Result<PathBuf> {
+    Ok(staging_grok_dir_for_mode(project_root, mode_name)?.join(STAGED_AGENTPACK_BUNDLE_NAME))
+}
+
+pub fn staging_grok_bundle_dir(project_root: &Path) -> Result<PathBuf> {
+    staging_grok_bundle_dir_for_mode(project_root, "default")
+}
+
+pub fn staging_agy_dir_for_mode(project_root: &Path, mode_name: &str) -> Result<PathBuf> {
+    Ok(staging_root_for_mode(project_root, mode_name)?.join("agy"))
+}
+
+pub fn staging_agy_dir(project_root: &Path) -> Result<PathBuf> {
+    staging_agy_dir_for_mode(project_root, "default")
+}
+
+pub fn staging_agy_bundle_dir_for_mode(project_root: &Path, mode_name: &str) -> Result<PathBuf> {
+    Ok(staging_agy_dir_for_mode(project_root, mode_name)?.join(STAGED_AGENTPACK_BUNDLE_NAME))
+}
+
+pub fn staging_agy_bundle_dir(project_root: &Path) -> Result<PathBuf> {
+    staging_agy_bundle_dir_for_mode(project_root, "default")
 }
 
 /// Shared Codex credential cache for staged homes when the real user config uses keyring-backed

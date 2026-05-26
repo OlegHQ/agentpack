@@ -9,6 +9,8 @@ pub enum HarnessTarget {
     OpenCode,
     Codex,
     Cursor,
+    Grok,
+    Agy,
 }
 
 /// Portable plugin subtrees copied verbatim from cached plugins (per harness).
@@ -16,7 +18,7 @@ impl HarnessTarget {
     pub fn raw_plugin_subdirs(self) -> &'static [&'static str] {
         match self {
             // Same extension-dir merge as Cursor: verbatim copy then markdown overlay (see `stage_source_tree`).
-            HarnessTarget::Claude => &[
+            HarnessTarget::Claude | HarnessTarget::Grok => &[
                 "hooks", "matchers", "core", "examples", "utils", "commands", "agents", "rules",
                 "skills",
             ],
@@ -27,6 +29,7 @@ impl HarnessTarget {
             HarnessTarget::Cursor => &[
                 "hooks", "assets", "scripts", "commands", "agents", "rules", "skills",
             ],
+            HarnessTarget::Agy => &["hooks", "commands", "agents", "rules", "skills"],
             HarnessTarget::OpenCode | HarnessTarget::Codex => &[],
         }
     }
@@ -38,11 +41,11 @@ impl HarnessTarget {
                 insert_string(m, "name", name);
                 insert_string(m, "description", description);
             }
-            HarnessTarget::Claude => {
+            HarnessTarget::Claude | HarnessTarget::Grok => {
                 insert_string(m, "description", description);
                 insert_string(m, "name", name);
             }
-            HarnessTarget::OpenCode | HarnessTarget::Codex => {
+            HarnessTarget::OpenCode | HarnessTarget::Codex | HarnessTarget::Agy => {
                 insert_string(m, "description", description);
             }
         }
@@ -50,6 +53,7 @@ impl HarnessTarget {
 
     pub(super) fn command_allowed_extra_frontmatter_keys(self) -> &'static [&'static str] {
         match self {
+            HarnessTarget::Agy => &[],
             HarnessTarget::Cursor => &[
                 "agent",
                 "allowed-tools",
@@ -70,13 +74,52 @@ impl HarnessTarget {
         }
     }
 
+    pub(super) fn skill_allowed_extra_frontmatter_keys(self) -> &'static [&'static str] {
+        match self {
+            HarnessTarget::Agy => &[],
+            _ => &[
+                "allowed-tools",
+                "agent",
+                "compatibility",
+                "context",
+                "disallowedTools",
+                "license",
+                "mcpServers",
+                "metadata",
+                "mode",
+                "model",
+                "permission",
+                "subtask",
+                "tools",
+            ],
+        }
+    }
+
+    pub(super) fn agent_allowed_extra_frontmatter_keys(self) -> &'static [&'static str] {
+        match self {
+            HarnessTarget::Agy => &[],
+            _ => &[
+                "color",
+                "disallowedTools",
+                "hidden",
+                "hooks",
+                "mcpServers",
+                "mode",
+                "model",
+                "permission",
+                "subtask",
+                "tools",
+            ],
+        }
+    }
+
     /// Staged artifact kind after target-specific folding (e.g. Codex skills, Cursor rules).
     pub(super) fn rendered_artifact_kind(self, source: ArtifactKind) -> ArtifactKind {
         match (source, self) {
             (ArtifactKind::Skill, _) => ArtifactKind::Skill,
             (ArtifactKind::Command, HarnessTarget::Codex) => ArtifactKind::Skill,
             (ArtifactKind::Agent, HarnessTarget::Codex) => ArtifactKind::Skill,
-            (ArtifactKind::Rule, HarnessTarget::Cursor) => ArtifactKind::Rule,
+            (ArtifactKind::Rule, HarnessTarget::Cursor | HarnessTarget::Agy) => ArtifactKind::Rule,
             (ArtifactKind::Rule, _) => ArtifactKind::Skill,
             (kind, _) => kind,
         }

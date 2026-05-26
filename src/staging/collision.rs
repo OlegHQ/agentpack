@@ -1,6 +1,7 @@
-//! Detect overlaps between the merged `agentpack-bundle` and the user's `~/.claude/` extension
-//! dirs. Claude loads both, which produces duplicate slash commands (e.g. `/code-tutor` and
-//! `/agentpack-bundle:code-tutor`). By default we drop the staged pack copy and keep `~/.claude`.
+//! Detect overlaps between the merged `agentpack-bundle` and user-installed extension dirs
+//! (`~/.claude` and `~/.grok`). Claude and Grok load both user content and the staged bundle,
+//! which can produce duplicate slash commands. By default we drop the staged pack copy and keep the
+//! user install.
 
 use std::collections::HashSet;
 use std::fs;
@@ -117,6 +118,8 @@ pub(super) fn resolve_user_claude_bundle_collisions_with_home(
     opencode: &Path,
     codex: &Path,
     cursor_pack: &Path,
+    grok_bundle: &Path,
+    agy_bundle: &Path,
     home_dir: Option<&Path>,
 ) -> Result<StagingCollisionRemoval> {
     let no_removals = || StagingCollisionRemoval {
@@ -127,20 +130,31 @@ pub(super) fn resolve_user_claude_bundle_collisions_with_home(
         return Ok(no_removals());
     };
     let uc = home.join(".claude");
+    let ug = home.join(".grok");
 
     let mut user_skills = HashSet::new();
     collect_skill_slugs(&uc.join("skills"), &mut user_skills)?;
+    collect_skill_slugs(&ug.join("skills"), &mut user_skills)?;
     let mut user_cmd = HashSet::new();
     collect_md_stems_recursive(&uc.join("commands"), &mut user_cmd)?;
+    collect_md_stems_recursive(&ug.join("commands"), &mut user_cmd)?;
     let mut user_agents = HashSet::new();
     collect_md_stems_recursive(&uc.join("agents"), &mut user_agents)?;
+    collect_md_stems_recursive(&ug.join("agents"), &mut user_agents)?;
 
     if user_skills.is_empty() && user_cmd.is_empty() && user_agents.is_empty() {
         return Ok(no_removals());
     }
 
     let mut removed_skills = HashSet::new();
-    let harness_roots = [bundle, opencode, codex, cursor_pack];
+    let harness_roots = [
+        bundle,
+        opencode,
+        codex,
+        cursor_pack,
+        grok_bundle,
+        agy_bundle,
+    ];
 
     let mut bundle_skills = HashSet::new();
     collect_skill_slugs(&bundle.join("skills"), &mut bundle_skills)?;
@@ -155,7 +169,7 @@ pub(super) fn resolve_user_claude_bundle_collisions_with_home(
     for k in skill_keys {
         removed_skills.insert(k.clone());
         eprint_collision_warning(&format!(
-            "Using ~/.claude skill `{k}`; omitted pack duplicate from staged bundle (and other harness trees)"
+            "Using user-installed skill `{k}`; omitted pack duplicate from staged bundle (and other harness trees)"
         ));
         for root in &harness_roots {
             remove_skill_slug_dir(&root.join("skills"), k)?;
@@ -164,7 +178,7 @@ pub(super) fn resolve_user_claude_bundle_collisions_with_home(
 
     // Commands and agents: remove matching .md stems from applicable harness roots.
     // Codex doesn't have commands/ or agents/ trees, so we skip it.
-    let md_roots = [bundle, opencode, cursor_pack];
+    let md_roots = [bundle, opencode, cursor_pack, grok_bundle, agy_bundle];
     for (user_set, bundle_set, dir_name, label) in [
         (&user_cmd, &bundle_cmd, "commands", "command"),
         (&user_agents, &bundle_agents, "agents", "agent"),
@@ -173,7 +187,7 @@ pub(super) fn resolve_user_claude_bundle_collisions_with_home(
         keys.sort();
         for k in keys {
             eprint_collision_warning(&format!(
-                "Using ~/.claude {label} `{k}`; omitted pack duplicate from staged bundle (and other harness trees)"
+                "Using user-installed {label} `{k}`; omitted pack duplicate from staged bundle (and other harness trees)"
             ));
             for root in &md_roots {
                 remove_md_stems_under_tree(&root.join(dir_name), k)?;
@@ -186,14 +200,16 @@ pub(super) fn resolve_user_claude_bundle_collisions_with_home(
     })
 }
 
-/// Remove staged pack copies that duplicate `~/.claude` skills / commands / agents so the user
-/// install wins. Prints yellow warnings to stderr. When **`IGNORE_ENV=1`**, does nothing (duplicates
-/// remain). Returns lowercase skill slugs removed from **`skills/`** for staging verification.
+/// Remove staged pack copies that duplicate user skills / commands / agents so the user install
+/// wins. Prints yellow warnings to stderr. Returns lowercase skill slugs removed from **`skills/`**
+/// for staging verification.
 pub(super) fn resolve_user_claude_bundle_collisions(
     bundle: &Path,
     opencode: &Path,
     codex: &Path,
     cursor_pack: &Path,
+    grok_bundle: &Path,
+    agy_bundle: &Path,
 ) -> Result<StagingCollisionRemoval> {
     let home = dirs::home_dir();
     resolve_user_claude_bundle_collisions_with_home(
@@ -201,6 +217,8 @@ pub(super) fn resolve_user_claude_bundle_collisions(
         opencode,
         codex,
         cursor_pack,
+        grok_bundle,
+        agy_bundle,
         home.as_deref(),
     )
 }
@@ -217,6 +235,8 @@ mod tests {
         let b = t.path().join("b");
         fs::create_dir_all(&b).unwrap();
         assert!(super::resolve_user_claude_bundle_collisions_with_home(
+            &b,
+            &b,
             &b,
             &b,
             &b,
@@ -247,6 +267,8 @@ mod tests {
             &op,
             &op,
             &op,
+            &op,
+            &op,
             Some(t.path()),
         )
         .unwrap();
@@ -267,6 +289,8 @@ mod tests {
         fs::write(bundle.join("agents/foo.md"), "---\n---\n").unwrap();
 
         super::resolve_user_claude_bundle_collisions_with_home(
+            &bundle,
+            &bundle,
             &bundle,
             &bundle,
             &bundle,

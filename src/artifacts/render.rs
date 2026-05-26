@@ -29,21 +29,7 @@ impl MarkdownArtifact {
         merge_allowed_frontmatter(
             &mut frontmatter,
             &self.extra_frontmatter,
-            &[
-                "allowed-tools",
-                "agent",
-                "compatibility",
-                "context",
-                "disallowedTools",
-                "license",
-                "mcpServers",
-                "metadata",
-                "mode",
-                "model",
-                "permission",
-                "subtask",
-                "tools",
-            ],
+            target.skill_allowed_extra_frontmatter_keys(),
         );
 
         RenderedArtifact {
@@ -69,25 +55,14 @@ impl MarkdownArtifact {
         }
     }
 
-    fn render_agent(&self, _target: HarnessTarget) -> RenderedArtifact {
+    fn render_agent(&self, target: HarnessTarget) -> RenderedArtifact {
         let mut frontmatter = Mapping::new();
         insert_string(&mut frontmatter, "name", &self.name);
         insert_string(&mut frontmatter, "description", &self.description);
         merge_allowed_frontmatter(
             &mut frontmatter,
             &self.extra_frontmatter,
-            &[
-                "color",
-                "disallowedTools",
-                "hidden",
-                "hooks",
-                "mcpServers",
-                "mode",
-                "model",
-                "permission",
-                "subtask",
-                "tools",
-            ],
+            target.agent_allowed_extra_frontmatter_keys(),
         );
 
         RenderedArtifact {

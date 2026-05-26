@@ -24,7 +24,7 @@ pub struct Cli {
     #[arg(long, global = true)]
     pub no_progress: bool,
 
-    /// Forward each harness's "skip permission prompts" / full-access mode (Claude: `--dangerously-skip-permissions`; OpenCode: stage `opencode.json` with `"permission": "allow"`; Codex: `--dangerously-bypass-approvals-and-sandbox`; Cursor `agent`: `--force`)
+    /// Forward each harness's "skip permission prompts" / full-access mode (Claude: `--dangerously-skip-permissions`; OpenCode: stage `opencode.json` with `"permission": "allow"`; Codex: `--dangerously-bypass-approvals-and-sandbox`; Cursor `agent`: `--force`; Grok: `--always-approve`; Antigravity: `--dangerously-skip-permissions`)
     #[arg(long, global = true)]
     pub yolo: bool,
 
@@ -89,6 +89,16 @@ pub enum Command {
     },
     /// Run `codex` with `CODEX_HOME` pointing at the staged agentpack home
     Codex {
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+    /// Run `grok` with `GROK_HOME` pointing at the staged agentpack home
+    Grok {
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+    /// Run Antigravity CLI (`agy`) with the project added as a workspace directory
+    Agy {
         #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
         args: Vec<String>,
     },

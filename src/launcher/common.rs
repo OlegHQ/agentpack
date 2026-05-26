@@ -40,6 +40,24 @@ pub fn apply_yolo_cursor_agent(args: &mut Vec<String>) {
     args.insert(0, "--force".into());
 }
 
+/// Injects Grok's auto-approve flag when **`agentpack --yolo`** is set.
+pub fn apply_yolo_grok(args: &mut Vec<String>) {
+    const FLAG: &str = "--always-approve";
+    if args_contain_any(args, &[FLAG]) {
+        return;
+    }
+    args.insert(0, FLAG.into());
+}
+
+/// Injects Antigravity's permission bypass flag when **`agentpack --yolo`** is set.
+pub fn apply_yolo_agy(args: &mut Vec<String>) {
+    const FLAG: &str = "--dangerously-skip-permissions";
+    if args_contain_any(args, &[FLAG]) {
+        return;
+    }
+    args.insert(0, FLAG.into());
+}
+
 fn program_has_separator(program: &str) -> bool {
     program.contains(std::path::MAIN_SEPARATOR) || program.contains('/')
 }
@@ -195,6 +213,20 @@ mod tests {
         let mut a = vec!["--print".into(), "ok".into()];
         apply_yolo_cursor_agent(&mut a);
         assert_eq!(a, vec!["--force", "--print", "ok"]);
+    }
+
+    #[test]
+    fn yolo_grok_prepends_always_approve() {
+        let mut a = vec!["inspect".into()];
+        apply_yolo_grok(&mut a);
+        assert_eq!(a, vec!["--always-approve", "inspect"]);
+    }
+
+    #[test]
+    fn yolo_agy_prepends_skip_permissions() {
+        let mut a = vec!["--print".into(), "ok".into()];
+        apply_yolo_agy(&mut a);
+        assert_eq!(a, vec!["--dangerously-skip-permissions", "--print", "ok"]);
     }
 
     #[test]

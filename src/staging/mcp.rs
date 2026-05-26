@@ -2,7 +2,7 @@
 //! `.agents/mcp.json`, merge them, then fan out to each harness using its native format.
 //!
 //! Per-harness formats are **not** identical. A single JSON blob will not do. This module owns the
-//! merge and the four render targets:
+//! merge and the per-harness render targets:
 //!
 //! | Harness  | Target file                                 | Shape                                                       |
 //! |----------|---------------------------------------------|-------------------------------------------------------------|
@@ -10,6 +10,8 @@
 //! | Cursor   | `<cursor_pack>/mcp.json`                    | `{"mcpServers": { name: { command, args, env, url, ... }}}` |
 //! | OpenCode | `<opencode>/opencode.json` `mcp` field      | `{"mcp": { name: { type, command: [..], environment, url }}}` |
 //! | Codex    | `<codex_home>/config.toml` `[mcp_servers]`  | TOML tables `[mcp_servers.<name>]`                          |
+//! | Grok     | `<grok_home>/config.toml` `[mcp_servers]`   | TOML tables `[mcp_servers.<name>]`                          |
+//! | Agy      | `<agy_bundle>/mcp_config.json`              | `{"mcpServers": { name: { command, args, env, serverUrl }}}` |
 //!
 //! For OpenCode and Codex the render is additive: pack entries never clobber user-seeded entries
 //! under the same server name (user wins on conflict). Cursor's fake HOME merge with user
@@ -195,6 +197,8 @@ pub(super) fn stage_merged_mcp(
     write_mcp_servers_json(&dests.cursor_pack.join("mcp.json"), &merged)?;
     merge_into_opencode_config(&dests.opencode.join("opencode.json"), &merged)?;
     merge_into_codex_config(&dests.codex.join("config.toml"), &merged)?;
+    merge_into_grok_config(&dests.grok_home.join("config.toml"), &merged)?;
+    write_agy_mcp_config_json(&dests.agy_bundle.join("mcp_config.json"), &merged)?;
     Ok(merged)
 }
 
@@ -336,6 +340,38 @@ fn codex_entry_table(entry: &McpServerEntry) -> toml::value::Table {
     t
 }
 
+fn grok_entry_table(entry: &McpServerEntry) -> toml::value::Table {
+    let mut t = toml::value::Table::new();
+    if entry.is_remote() {
+        if let Some(url) = &entry.url {
+            t.insert("url".into(), toml::Value::String(url.clone()));
+        }
+    } else {
+        if let Some(c) = &entry.command {
+            t.insert("command".into(), toml::Value::String(c.clone()));
+        }
+        if !entry.args.is_empty() {
+            let arr: Vec<toml::Value> = entry
+                .args
+                .iter()
+                .map(|a| toml::Value::String(a.clone()))
+                .collect();
+            t.insert("args".into(), toml::Value::Array(arr));
+        }
+        if !entry.env.is_empty() {
+            let mut env_tbl = toml::value::Table::new();
+            for (k, v) in &entry.env {
+                env_tbl.insert(k.clone(), toml::Value::String(v.clone()));
+            }
+            t.insert("env".into(), toml::Value::Table(env_tbl));
+        }
+    }
+    if entry.disabled == Some(true) {
+        t.insert("enabled".into(), toml::Value::Boolean(false));
+    }
+    t
+}
+
 /// Merge MCP entries into Codex `config.toml` under `[mcp_servers.<name>]` tables.
 /// User-seeded entries win: we only insert pack entries whose names are absent.
 fn merge_into_codex_config(config_path: &Path, merged: &MergedEntries) -> Result<()> {
@@ -374,6 +410,87 @@ fn merge_into_codex_config(config_path: &Path, merged: &MergedEntries) -> Result
     let out = toml::to_string(&doc)
         .map_err(|e| AgentpackError::Staging(format!("{}: {e}", config_path.display())))?;
     crate::fs_util::write_text_file(config_path, &out)
+}
+
+/// Merge MCP entries into Grok `config.toml` under `[mcp_servers.<name>]` tables. User-seeded
+/// entries win on conflict.
+fn merge_into_grok_config(config_path: &Path, merged: &MergedEntries) -> Result<()> {
+    let mut doc: toml::Value = if config_path.is_file() {
+        let raw =
+            fs::read_to_string(config_path).map_err(|e| AgentpackError::io(config_path, e))?;
+        toml::from_str(&raw)
+            .map_err(|e| AgentpackError::Staging(format!("{}: {e}", config_path.display())))?
+    } else {
+        toml::Value::Table(Default::default())
+    };
+
+    let root = doc.as_table_mut().ok_or_else(|| {
+        AgentpackError::Staging(format!(
+            "{}: top-level must be a TOML table",
+            config_path.display()
+        ))
+    })?;
+    let servers = root
+        .entry("mcp_servers".to_string())
+        .or_insert_with(|| toml::Value::Table(toml::value::Table::new()))
+        .as_table_mut()
+        .ok_or_else(|| {
+            AgentpackError::Staging(format!(
+                "{}: `mcp_servers` must be a table",
+                config_path.display()
+            ))
+        })?;
+    for (name, (entry, _)) in merged {
+        if servers.contains_key(name) {
+            continue;
+        }
+        servers.insert(name.clone(), toml::Value::Table(grok_entry_table(entry)));
+    }
+
+    let out = toml::to_string(&doc)
+        .map_err(|e| AgentpackError::Staging(format!("{}: {e}", config_path.display())))?;
+    crate::fs_util::write_text_file(config_path, &out)
+}
+
+fn agy_entry_value(entry: &McpServerEntry) -> serde_json::Value {
+    use serde_json::{json, Value};
+    let mut obj = serde_json::Map::new();
+    if entry.is_remote() {
+        if let Some(url) = &entry.url {
+            obj.insert("serverUrl".into(), json!(url));
+        }
+    } else {
+        if let Some(command) = &entry.command {
+            obj.insert("command".into(), json!(command));
+        }
+        if !entry.args.is_empty() {
+            obj.insert("args".into(), json!(entry.args));
+        }
+        if !entry.env.is_empty() {
+            let env_obj: serde_json::Map<String, Value> = entry
+                .env
+                .iter()
+                .map(|(k, v)| (k.clone(), json!(v)))
+                .collect();
+            obj.insert("env".into(), Value::Object(env_obj));
+        }
+    }
+    if let Some(disabled) = entry.disabled {
+        obj.insert("disabled".into(), json!(disabled));
+    }
+    Value::Object(obj)
+}
+
+fn write_agy_mcp_config_json(dest: &Path, merged: &MergedEntries) -> Result<()> {
+    use serde_json::Value;
+    let entries: serde_json::Map<String, Value> = merged
+        .iter()
+        .map(|(name, (entry, _))| (name.clone(), agy_entry_value(entry)))
+        .collect();
+    let cfg = serde_json::json!({ "mcpServers": entries });
+    let json = serde_json::to_string_pretty(&cfg)
+        .map_err(|e| AgentpackError::Staging(format!("{}: {e}", dest.display())))?;
+    crate::fs_util::write_text_file(dest, &json)
 }
 
 #[cfg(test)]
@@ -497,5 +614,52 @@ mod tests {
         let text = fs::read_to_string(&cfg).unwrap();
         assert!(text.contains("[mcp_servers.linear]"));
         assert!(text.contains("url = \"https://mcp.example.com/mcp\""));
+    }
+
+    #[test]
+    fn grok_merge_writes_native_mcp_servers_tables() {
+        let dir = tempdir().unwrap();
+        let cfg = dir.path().join("config.toml");
+        merge_into_grok_config(&cfg, &merged(&[("codesight", stdio_entry())])).unwrap();
+        let text = fs::read_to_string(&cfg).unwrap();
+        assert!(text.contains("[mcp_servers.codesight]"));
+        assert!(text.contains("command = \"cargo\""));
+        assert!(text.contains("[mcp_servers.codesight.env]"));
+    }
+
+    #[test]
+    fn grok_merge_remote_entry_uses_url_field() {
+        let dir = tempdir().unwrap();
+        let cfg = dir.path().join("config.toml");
+        merge_into_grok_config(&cfg, &merged(&[("linear", remote_entry())])).unwrap();
+        let text = fs::read_to_string(&cfg).unwrap();
+        assert!(text.contains("[mcp_servers.linear]"));
+        assert!(text.contains("url = \"https://mcp.example.com/mcp\""));
+    }
+
+    #[test]
+    fn agy_mcp_remote_uses_server_url() {
+        let dir = tempdir().unwrap();
+        let cfg = dir.path().join("mcp_config.json");
+        write_agy_mcp_config_json(&cfg, &merged(&[("linear", remote_entry())])).unwrap();
+        let v: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&cfg).unwrap()).unwrap();
+        let entry = &v["mcpServers"]["linear"];
+        assert_eq!(entry["serverUrl"], "https://mcp.example.com/mcp");
+        assert!(entry.get("url").is_none());
+        assert!(entry.get("httpUrl").is_none());
+    }
+
+    #[test]
+    fn agy_mcp_local_uses_command_args_env() {
+        let dir = tempdir().unwrap();
+        let cfg = dir.path().join("mcp_config.json");
+        write_agy_mcp_config_json(&cfg, &merged(&[("codesight", stdio_entry())])).unwrap();
+        let v: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&cfg).unwrap()).unwrap();
+        let entry = &v["mcpServers"]["codesight"];
+        assert_eq!(entry["command"], "cargo");
+        assert_eq!(entry["args"][0], "run");
+        assert_eq!(entry["env"]["RUST_LOG"], "info");
     }
 }

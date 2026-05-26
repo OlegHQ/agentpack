@@ -72,6 +72,8 @@ pub fn output_target_for(target: HarnessTarget) -> HookOutputTarget {
         HarnessTarget::Cursor => HookOutputTarget::Cursor,
         HarnessTarget::Codex => HookOutputTarget::Codex,
         HarnessTarget::OpenCode => HookOutputTarget::Opencode,
+        HarnessTarget::Grok => HookOutputTarget::Grok,
+        HarnessTarget::Agy => HookOutputTarget::Agy,
     }
 }
 
