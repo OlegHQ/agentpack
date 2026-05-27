@@ -3,6 +3,7 @@ use anyhow::Context;
 use crate::fs_util::{read_json_value_opt, write_json_value};
 use crate::launcher::common::{exec_with_env, resolve_harness_binary};
 use crate::paths;
+use crate::staging::LaunchTarget;
 use crate::sync::sync_for_launch;
 use crate::ui::Ui;
 
@@ -13,7 +14,7 @@ pub fn run_opencode(
     yolo: bool,
     ui: &Ui,
 ) -> anyhow::Result<()> {
-    let mode = sync_for_launch(project_root, selected_mode, ui)?;
+    let mode = sync_for_launch(project_root, selected_mode, LaunchTarget::OpenCode, ui)?;
 
     let config_dir = paths::staging_opencode_dir_for_mode(project_root, mode.name())?;
     ui.debug_message(format!("OpenCode config dir: {}", config_dir.display()));

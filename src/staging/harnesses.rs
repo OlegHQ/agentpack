@@ -21,20 +21,23 @@ use super::attribution::{
 };
 use super::claude_home::{materialize_claude_settings_overlay, set_claude_settings_mcp_allowlist};
 use super::cursor::{
-    finalize_cursor_staging, prepare_cursor_staging_without_pack_overlay,
-    read_cursor_overlay_manifest, write_cursor_pack_plugin_readme,
+    finalize_cursor_staging_common, finalize_cursor_workspace_overlay,
+    prepare_cursor_staging_without_pack_overlay, read_cursor_overlay_manifest,
+    write_cursor_pack_plugin_readme,
 };
 use super::dot_agents::stage_dot_agents_overlay;
 use super::pack_overlay::{
     stage_pack_plugins_all_harnesses, stage_pack_skills_all_harnesses, PackHarnessRoots,
 };
 use super::seed::{seed_codex_home, seed_grok_home, seed_opencode_root};
+use super::LaunchTarget;
 
 pub(super) struct StagingPipeline<'a> {
     project_root: &'a Path,
     lock: &'a PackLock,
     manifest: Option<&'a AgentpackManifest>,
     mode: &'a EffectiveMode,
+    target: Option<LaunchTarget>,
 }
 
 impl<'a> StagingPipeline<'a> {
@@ -43,12 +46,14 @@ impl<'a> StagingPipeline<'a> {
         lock: &'a PackLock,
         manifest: Option<&'a AgentpackManifest>,
         mode: &'a EffectiveMode,
+        target: Option<LaunchTarget>,
     ) -> Self {
         Self {
             project_root,
             lock,
             manifest,
             mode,
+            target,
         }
     }
 
@@ -145,8 +150,13 @@ impl<'a> StagingPipeline<'a> {
             self.mode,
             &pack_dests,
         )?;
-        finalize_cursor_staging(self.project_root, self.mode.name(), &merged_mcp)?;
-        finalize_agy_staging(self.project_root, self.mode.name())?;
+        finalize_cursor_staging_common(self.project_root, self.mode.name(), &merged_mcp)?;
+        if matches!(self.target, Some(LaunchTarget::Cursor)) {
+            finalize_cursor_workspace_overlay(self.project_root, self.mode.name())?;
+        }
+        if matches!(self.target, Some(LaunchTarget::Agy)) {
+            finalize_agy_staging(self.project_root, self.mode.name())?;
+        }
 
         Ok(vec![self.claude_bundle_dir()?])
     }
@@ -212,13 +222,15 @@ impl<'a> StagingPipeline<'a> {
         staging_require(home.join(".cursor").is_dir(), || {
             format!("cursor fake home missing .cursor/ under {}", home.display())
         })?;
-        for rel in read_cursor_overlay_manifest(self.project_root)? {
-            let tracked = cursor_workspace_dir(self.project_root).join(&rel);
-            if !tracked.exists() {
-                return Err(AgentpackError::Staging(format!(
-                    "cursor workspace overlay missing at {} (from cursor-overlay.manifest entry {})",
-                    tracked.display(), rel.display()
-                )));
+        if matches!(self.target, Some(LaunchTarget::Cursor)) {
+            for rel in read_cursor_overlay_manifest(self.project_root)? {
+                let tracked = cursor_workspace_dir(self.project_root).join(&rel);
+                if !tracked.exists() {
+                    return Err(AgentpackError::Staging(format!(
+                        "cursor workspace overlay missing at {} (from cursor-overlay.manifest entry {})",
+                        tracked.display(), rel.display()
+                    )));
+                }
             }
         }
 
@@ -246,12 +258,14 @@ impl<'a> StagingPipeline<'a> {
                 agy_bundle.join("plugin.json").display()
             )
         })?;
-        for tracked in super::agy::agy_workspace_overlay_paths(self.project_root)? {
-            if !tracked.exists() {
-                return Err(AgentpackError::Staging(format!(
-                    "agy workspace overlay missing at {}",
-                    tracked.display()
-                )));
+        if matches!(self.target, Some(LaunchTarget::Agy)) {
+            for tracked in super::agy::agy_workspace_overlay_paths(self.project_root)? {
+                if !tracked.exists() {
+                    return Err(AgentpackError::Staging(format!(
+                        "agy workspace overlay missing at {}",
+                        tracked.display()
+                    )));
+                }
             }
         }
         Ok(())

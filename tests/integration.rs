@@ -98,7 +98,7 @@ fn launch_sync_state_roundtrip_under_isolated_home() {
     .unwrap();
 
     let mode = EffectiveMode::implicit_default();
-    let d = compute_launch_sync_digest(&root, &mode).unwrap();
+    let d = compute_launch_sync_digest(&root, &mode, None).unwrap();
     assert!(read_stored_launch_digest(&root, mode.name())
         .unwrap()
         .is_none());
@@ -237,11 +237,66 @@ fn sync_stages_full_plugin_and_shadows_contained_skill() {
         cursor_home.join(".cursor/agents/from-plugin.md").is_file(),
         "fake HOME .cursor should symlink to pack agents"
     );
+    // Bare `agentpack sync` is target-agnostic, so the project-side `./.cursor/agents` symlink
+    // (only needed by `agentpack agent`) should not be materialized here.
+    assert!(
+        !cursor_workspace_dir(&root).join("agents").exists(),
+        "bare sync must not drop the Cursor workspace overlay into the project"
+    );
+
+    // Re-running sync with `LaunchTarget::Cursor` materializes the workspace symlink, and
+    // following up with `LaunchTarget::Claude` cleans it back up — proving the overlay is
+    // truly target-scoped, not a side effect of having Cursor content cached.
+    let ui = agentpack::ui::Ui::new(true, true, false);
+    agentpack::sync::run_sync(
+        &root,
+        false,
+        false,
+        false,
+        None,
+        Some(agentpack::sync::LaunchTarget::Cursor),
+        &ui,
+    )
+    .unwrap();
     assert!(
         cursor_workspace_dir(&root)
             .join("agents/from-plugin.md")
             .is_file(),
-        "project ./.cursor/agents should symlink to staged pack agents for Cursor agent --workspace"
+        "Cursor target should drop the ./.cursor/agents symlink"
+    );
+
+    agentpack::sync::run_sync(
+        &root,
+        false,
+        false,
+        false,
+        None,
+        Some(agentpack::sync::LaunchTarget::Claude),
+        &ui,
+    )
+    .unwrap();
+    assert!(
+        !cursor_workspace_dir(&root).join("agents").exists(),
+        "Claude target should leave the Cursor workspace overlay absent"
+    );
+    assert!(
+        !root.join(".agents/plugins/agentpack-bundle").exists(),
+        "Claude target must not create the Antigravity workspace overlay"
+    );
+
+    agentpack::sync::run_sync(
+        &root,
+        false,
+        false,
+        false,
+        None,
+        Some(agentpack::sync::LaunchTarget::Agy),
+        &ui,
+    )
+    .unwrap();
+    assert!(
+        root.join(".agents/plugins/agentpack-bundle").exists(),
+        "Agy target should create the workspace plugin symlink"
     );
 }
 
@@ -625,11 +680,11 @@ fn sync_converts_markdown_artifacts_per_target_harness() {
             .exists(),
         "cursor pack commands must not be written into the project workspace"
     );
+    // Bare `Command::Sync` (no harness target) must not write the `./.cursor/agents` symlink.
+    // That overlay belongs to `agentpack agent` and is exercised separately.
     assert!(
-        cursor_workspace_dir(&root)
-            .join("agents/reviewer.md")
-            .is_file(),
-        "cursor subagents symlink ./.cursor/agents -> pack agents"
+        !cursor_workspace_dir(&root).join("agents").exists(),
+        "bare sync must not drop the Cursor workspace overlay into the project"
     );
 
     let codex_home = staging_codex_home_dir(&root).unwrap();

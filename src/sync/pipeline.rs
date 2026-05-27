@@ -9,7 +9,7 @@ use crate::lockfile::{LockPackage, PackLock, PackageKind};
 use crate::manifest::AgentpackManifest;
 use crate::paths;
 use crate::resolve::{resolve_lock_from_manifest, ResolveLockOpts};
-use crate::staging::{self, skill_is_shadowed};
+use crate::staging::{self, skill_is_shadowed, LaunchTarget};
 use crate::ui::Ui;
 
 use super::add_fetch::http_client;
@@ -20,6 +20,7 @@ pub fn run_sync(
     verify_only: bool,
     update_lock: bool,
     selected_mode: Option<&str>,
+    target: Option<LaunchTarget>,
     ui: &Ui,
 ) -> Result<()> {
     paths::ensure_user_agentpack_layout()?;
@@ -112,14 +113,14 @@ pub fn run_sync(
 
     if verify_only {
         let spinner = ui.spinner("Verify staging layout…");
-        staging::verify_staging(project_root, &lock, &mode)?;
+        staging::verify_staging(project_root, &lock, &mode, target)?;
         Ui::finish_spinner(spinner.as_ref(), "Staging checks passed");
         return Ok(());
     }
 
     let spinner = ui.spinner("Rebuild plugin staging…");
-    staging::rebuild_staging(project_root, &lock, manifest.as_ref(), &mode)?;
-    staging::verify_staging(project_root, &lock, &mode)?;
+    staging::rebuild_staging(project_root, &lock, manifest.as_ref(), &mode, target)?;
+    staging::verify_staging(project_root, &lock, &mode, target)?;
     Ui::finish_spinner(spinner.as_ref(), "Staging ready");
 
     let index_key_count = list_keys()?.len();
