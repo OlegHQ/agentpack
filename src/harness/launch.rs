@@ -52,6 +52,17 @@ pub(super) fn args_have_flag_with_value(args: &[String], flag: &str) -> bool {
     })
 }
 
+/// The directory a workspace-based harness (Cursor `--workspace`, Antigravity `--add-dir`) should
+/// treat as its workspace: the user's **CWD** where they invoked `agentpack` — *not* the pack root
+/// (`project_root`, which in a monorepo may be a parent holding `agentpack.toml` above the subproject
+/// they `cd`'d into). The workspace overlay (`.cursor/agents` / `.agents/plugins/...`) and the
+/// harness's workspace trust follow this same dir. Falls back to `project_root` if the CWD can't be
+/// read. Returns a canonicalized absolute path.
+pub(super) fn workspace_root(project_root: &Path) -> PathBuf {
+    let raw = std::env::current_dir().unwrap_or_else(|_| project_root.to_path_buf());
+    raw.canonicalize().unwrap_or(raw)
+}
+
 /// Injects Claude Code **`--dangerously-skip-permissions`** when **`agentpack --yolo`** is set.
 pub(super) fn apply_yolo_claude(args: &mut Vec<String>) {
     const FLAG: &str = "--dangerously-skip-permissions";

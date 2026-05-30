@@ -12,7 +12,7 @@ use anyhow::Context;
 use serde_json::{json, Value};
 use serde_norway::Mapping;
 
-use super::launch::{apply_yolo_cursor_agent, resolve_harness_binary};
+use super::launch::{apply_yolo_cursor_agent, resolve_harness_binary, workspace_root};
 use super::{require, Harness, HarnessTarget, LaunchCtx, StageCtx};
 use crate::artifacts::yaml::insert_string;
 use crate::artifacts::ArtifactKind;
@@ -103,7 +103,7 @@ impl Harness for Cursor {
     fn finalize_workspace_overlay(&self, ctx: &StageCtx) -> Result<()> {
         // The `.cursor/agents` overlay must sit under the workspace Cursor will use (the CWD), so it
         // matches `--workspace` — not necessarily the pack root.
-        let workspace = cursor_workspace_root(ctx.project_root);
+        let workspace = workspace_root(ctx.project_root);
         let entries = overlay::materialize_workspace_cursor_agents_symlink(
             ctx.project_root,
             &workspace,
@@ -213,7 +213,7 @@ impl Harness for Cursor {
         let workspace = match explicit_workspace_arg(&args) {
             Some(p) => normalize_path(&p),
             None => {
-                let ws = cursor_workspace_root(ctx.project_root);
+                let ws = workspace_root(ctx.project_root);
                 args.splice(0..0, ["--workspace".to_string(), ws.display().to_string()]);
                 ws
             }
@@ -398,19 +398,6 @@ fn prepend_trust_if_needed(args: &mut Vec<String>) {
 
 fn normalize_path(path: &Path) -> PathBuf {
     path.canonicalize().unwrap_or_else(|_| path.to_path_buf())
-}
-
-/// The directory Cursor Agent treats as its workspace. Cursor's own `--workspace` defaults to the
-/// current directory; agentpack mirrors that — the user's **CWD**, not the pack root
-/// (`project_root`, which in a monorepo may be a *parent* where `agentpack.toml` lives, above the
-/// subproject you actually `cd`'d into). The workspace `.cursor/agents` subagent overlay and Cursor's
-/// workspace-trust both key off this same dir, so they follow the CWD too. Falls back to
-/// `project_root` only if the CWD can't be read.
-fn cursor_workspace_root(project_root: &Path) -> PathBuf {
-    match std::env::current_dir() {
-        Ok(cwd) => normalize_path(&cwd),
-        Err(_) => normalize_path(project_root),
-    }
 }
 
 fn push_env_if_absent(envs: &mut Vec<(&'static str, OsString)>, key: &'static str, value: PathBuf) {

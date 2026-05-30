@@ -66,8 +66,10 @@ fn remove_agy_overlay_path_safe(path: &Path) -> Result<()> {
 }
 
 pub(super) fn cleanup_agy_overlay(project_root: &Path) -> Result<()> {
-    for rel in read_agy_overlay_manifest(project_root)? {
-        remove_agy_overlay_path_safe(&project_root.join(rel))?;
+    // Manifest entries are absolute (the overlay follows the CWD workspace, which may differ from
+    // `project_root`), so remove them directly.
+    for tracked in read_agy_overlay_manifest(project_root)? {
+        remove_agy_overlay_path_safe(&tracked)?;
     }
     write_overlay_manifest(project_root, &[])?;
     Ok(())
@@ -98,14 +100,14 @@ fn symlink_or_copy_dir(src: &Path, dst: &Path) -> Result<()> {
 
 pub(super) fn materialize_workspace_agy_plugin_symlink(
     project_root: &Path,
+    workspace_root: &Path,
     mode_name: &str,
 ) -> Result<Vec<PathBuf>> {
     let bundle = staging_agy_bundle_dir_for_mode(project_root, mode_name)?;
     if !bundle.join("plugin.json").is_file() {
         return Ok(Vec::new());
     }
-    let overlay_rel = PathBuf::from(AGY_WORKSPACE_PLUGIN_OVERLAY);
-    let overlay_path = project_root.join(&overlay_rel);
+    let overlay_path = workspace_root.join(AGY_WORKSPACE_PLUGIN_OVERLAY);
 
     match fs::symlink_metadata(&overlay_path) {
         Ok(meta) if meta.is_dir() && !meta.file_type().is_symlink() => {
@@ -130,5 +132,5 @@ pub(super) fn materialize_workspace_agy_plugin_symlink(
     }
 
     symlink_or_copy_dir(&bundle, &overlay_path)?;
-    Ok(vec![overlay_rel])
+    Ok(vec![overlay_path])
 }

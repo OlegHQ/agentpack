@@ -7,7 +7,9 @@ use std::process::Command;
 use anyhow::Context;
 use serde_json::Value;
 
-use super::launch::{apply_yolo_agy, args_have_flag_with_value, resolve_harness_binary};
+use super::launch::{
+    apply_yolo_agy, args_have_flag_with_value, resolve_harness_binary, workspace_root,
+};
 use super::{require, Harness, HarnessTarget, LaunchCtx, StageCtx};
 use crate::artifacts::ArtifactKind;
 use crate::error::{AgentpackError, Result};
@@ -101,8 +103,8 @@ impl Harness for Agy {
             )
         })?;
         if ctx.launch_target == Some(HarnessTarget::Agy) {
-            for rel in overlay::read_agy_overlay_manifest(ctx.project_root)? {
-                let tracked = ctx.project_root.join(rel);
+            // Manifest entries are absolute (the overlay follows the CWD workspace), so check directly.
+            for tracked in overlay::read_agy_overlay_manifest(ctx.project_root)? {
                 if !tracked.exists() {
                     return Err(AgentpackError::Staging(format!(
                         "agy workspace overlay missing at {}",
@@ -116,13 +118,13 @@ impl Harness for Agy {
 
     fn launch_command(&self, ctx: LaunchCtx) -> anyhow::Result<Command> {
         let mut passthrough = ctx.passthrough;
+        // Default the workspace to the user's CWD (where they ran agentpack), not the pack root —
+        // matches where the `.agents/plugins/agentpack-bundle` overlay is staged.
+        let workspace = workspace_root(ctx.project_root);
         if !args_have_flag_with_value(&passthrough, "--add-dir") {
             passthrough.splice(
                 0..0,
-                [
-                    "--add-dir".to_string(),
-                    ctx.project_root.display().to_string(),
-                ],
+                ["--add-dir".to_string(), workspace.display().to_string()],
             );
         }
         if ctx.yolo {
@@ -130,7 +132,7 @@ impl Harness for Agy {
         }
         ctx.ui.debug_message(format!(
             "Antigravity workspace (--add-dir): {}",
-            ctx.project_root.display()
+            workspace.display()
         ));
         let agy = resolve_harness_binary("AGY_PATH", "agy").with_context(|| {
             "Antigravity CLI (`agy`) not found.\n\
@@ -142,8 +144,14 @@ impl Harness for Agy {
     }
 
     fn finalize_workspace_overlay(&self, ctx: &StageCtx) -> Result<()> {
-        let entries =
-            overlay::materialize_workspace_agy_plugin_symlink(ctx.project_root, ctx.mode.name())?;
+        // The `.agents/plugins/agentpack-bundle` overlay must sit under the workspace agy will use
+        // (the CWD `--add-dir`), not necessarily the pack root.
+        let workspace = workspace_root(ctx.project_root);
+        let entries = overlay::materialize_workspace_agy_plugin_symlink(
+            ctx.project_root,
+            &workspace,
+            ctx.mode.name(),
+        )?;
         overlay::write_overlay_manifest(ctx.project_root, &entries)
     }
 }
