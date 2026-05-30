@@ -46,26 +46,3 @@ pub(crate) fn cursor_support(event: ClaudeEvent, handler: &ClaudeHandler) -> Sup
         },
     }
 }
-
-pub(crate) fn codex_support(event: ClaudeEvent, handler: &ClaudeHandler) -> SupportLevel {
-    let event_level = match event {
-        ClaudeEvent::PreToolUse
-        | ClaudeEvent::PostToolUse
-        | ClaudeEvent::UserPromptSubmit
-        | ClaudeEvent::SessionStart
-        | ClaudeEvent::Stop => None,
-        ClaudeEvent::PermissionRequest => Some(SupportLevel::Degraded {
-            reason: "Codex permission checks are approximated with pre-tool-use hooks",
-        }),
-        _ => Some(SupportLevel::Unsupported {
-            reason: "Codex does not expose this Claude lifecycle event natively",
-        }),
-    };
-    if let Some(level) = event_level {
-        return level;
-    }
-    match handler {
-        ClaudeHandler::Command(_) | ClaudeHandler::Prompt(_) => SupportLevel::Native,
-        ClaudeHandler::Http(_) | ClaudeHandler::Agent(_) => SupportLevel::Emulated,
-    }
-}

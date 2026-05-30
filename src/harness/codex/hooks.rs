@@ -1,16 +1,19 @@
+//! Codex hook rendering: emits native `hooks.json` (PascalCase events), wrapping non-prompt
+//! handlers through `agentpack hook-exec`.
+
 use serde_json::{json, Map, Value};
 
 use crate::artifacts::HarnessTarget;
 use crate::error::Result;
-
-use super::{
+use crate::hooks::capabilities::SupportLevel;
+use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, HookBundle, HookLayer, NormalizedHook};
+use crate::hooks::paths::hook_exec_command;
+use crate::hooks::render::{
     build_exec_spec_file, check_support, handler_to_json_object, HookRenderer, RenderContext,
     RenderedHookFile, RenderedHookFileContents, RenderedHookOutput,
 };
-use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, HookBundle, HookLayer, NormalizedHook};
-use crate::hooks::paths::hook_exec_command;
 
-pub struct CodexHookRenderer;
+pub(super) struct CodexHookRenderer;
 
 impl HookRenderer for CodexHookRenderer {
     fn target(&self) -> HarnessTarget {
@@ -60,6 +63,30 @@ impl HookRenderer for CodexHookRenderer {
             });
         }
         Ok(output)
+    }
+}
+
+/// Support level for emulating a Claude hook event+handler on Codex.
+pub(super) fn codex_support(event: ClaudeEvent, handler: &ClaudeHandler) -> SupportLevel {
+    let event_level = match event {
+        ClaudeEvent::PreToolUse
+        | ClaudeEvent::PostToolUse
+        | ClaudeEvent::UserPromptSubmit
+        | ClaudeEvent::SessionStart
+        | ClaudeEvent::Stop => None,
+        ClaudeEvent::PermissionRequest => Some(SupportLevel::Degraded {
+            reason: "Codex permission checks are approximated with pre-tool-use hooks",
+        }),
+        _ => Some(SupportLevel::Unsupported {
+            reason: "Codex does not expose this Claude lifecycle event natively",
+        }),
+    };
+    if let Some(level) = event_level {
+        return level;
+    }
+    match handler {
+        ClaudeHandler::Command(_) | ClaudeHandler::Prompt(_) => SupportLevel::Native,
+        ClaudeHandler::Http(_) | ClaudeHandler::Agent(_) => SupportLevel::Emulated,
     }
 }
 

@@ -27,12 +27,11 @@
 //!  - <https://cursor.com/docs/cli/reference/configuration>
 //!  - sst/opencode#919, sst/opencode#1135 (no setting; OpenCode reads `instructions[]` files).
 
-use std::fs;
 use std::path::Path;
 
 use serde_json::{json, Value};
 
-use crate::error::{AgentpackError, Result};
+use crate::error::Result;
 use crate::fs_util::{read_json_value_opt, remove_path_any, write_json_value};
 
 const KEEP_ENV: &str = "AGENTPACK_KEEP_ATTRIBUTION";
@@ -58,30 +57,6 @@ pub(crate) fn keep_attribution() -> bool {
         std::env::var(KEEP_ENV).ok().as_deref(),
         Some("1") | Some("true") | Some("yes")
     )
-}
-
-/// Force-disable Codex commit attribution in `<codex_home>/config.toml`.
-pub(crate) fn force_codex_attribution_off(codex_home: &Path) -> Result<()> {
-    if keep_attribution() {
-        return Ok(());
-    }
-    let path = codex_home.join("config.toml");
-    let mut value = crate::fs_util::read_toml_value_or_default(&path)?;
-    let Some(table) = value.as_table_mut() else {
-        return Ok(());
-    };
-    table.insert(
-        "commit_attribution".into(),
-        toml::Value::String(String::new()),
-    );
-    let out = toml::to_string(&value)
-        .map_err(|e| AgentpackError::Staging(format!("serialize {}: {e}", path.display())))?;
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|e| AgentpackError::io(parent, e))?;
-    }
-    fs::write(&path, out).map_err(|e| AgentpackError::io(&path, e))?;
-    tracing::debug!(path = %path.display(), "forced Codex commit_attribution off");
-    Ok(())
 }
 
 /// Patch a Cursor `cli-config.json` value: force `attribution.attributeCommitsToAgent` and
@@ -166,28 +141,6 @@ mod tests {
         if let Some(v) = prev {
             std::env::set_var(KEEP_ENV, v);
         }
-    }
-
-    #[test]
-    fn codex_attribution_inserts_top_level_field() {
-        with_keep_unset(|| {
-            let dir = tempfile::tempdir().unwrap();
-            std::fs::write(dir.path().join("config.toml"), "model = \"o-vega\"\n").unwrap();
-            force_codex_attribution_off(dir.path()).unwrap();
-            let s = std::fs::read_to_string(dir.path().join("config.toml")).unwrap();
-            assert!(s.contains("commit_attribution = \"\""));
-            assert!(s.contains("model = \"o-vega\""));
-        });
-    }
-
-    #[test]
-    fn codex_attribution_creates_missing_config() {
-        with_keep_unset(|| {
-            let dir = tempfile::tempdir().unwrap();
-            force_codex_attribution_off(dir.path()).unwrap();
-            let s = std::fs::read_to_string(dir.path().join("config.toml")).unwrap();
-            assert!(s.contains("commit_attribution = \"\""));
-        });
     }
 
     #[test]

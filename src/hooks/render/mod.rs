@@ -1,5 +1,4 @@
 mod claude;
-mod codex;
 mod cursor;
 
 use std::collections::BTreeMap;
@@ -16,7 +15,6 @@ use super::paths::{spec_path_for_hook, staged_package_root};
 use super::runtime::bridge::HookExecutionSpec;
 
 pub use claude::ClaudeHookRenderer;
-pub use codex::CodexHookRenderer;
 pub use cursor::CursorHookRenderer;
 
 #[derive(Clone, Debug)]
