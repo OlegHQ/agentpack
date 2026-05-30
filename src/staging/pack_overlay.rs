@@ -118,7 +118,7 @@ fn copy_raw_plugin_support_dirs_all_harnesses(
     // deterministic debug logs; BTreeMap also gives consistent ordering across runs.
     let mut subdir_dests: BTreeMap<&'static str, Vec<PathBuf>> = BTreeMap::new();
     for (target, dest_root) in dests.targets_and_roots() {
-        for sub in target.raw_plugin_subdirs() {
+        for sub in target.harness().raw_plugin_subdirs() {
             subdir_dests
                 .entry(*sub)
                 .or_default()

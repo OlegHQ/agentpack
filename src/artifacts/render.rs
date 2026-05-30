@@ -11,7 +11,7 @@ use super::{ArtifactKind, MarkdownArtifact, RenderedArtifact};
 
 impl MarkdownArtifact {
     pub fn render(&self, target: HarnessTarget) -> RenderedArtifact {
-        match target.rendered_artifact_kind(self.kind) {
+        match target.harness().rendered_artifact_kind(self.kind) {
             ArtifactKind::Skill => self.render_skill(target),
             ArtifactKind::Command => self.render_command(target),
             ArtifactKind::Agent => self.render_agent(target),
@@ -29,7 +29,7 @@ impl MarkdownArtifact {
         merge_allowed_frontmatter(
             &mut frontmatter,
             &self.extra_frontmatter,
-            target.skill_allowed_extra_frontmatter_keys(),
+            target.harness().skill_allowed_extra_frontmatter_keys(),
         );
 
         RenderedArtifact {
@@ -43,11 +43,13 @@ impl MarkdownArtifact {
     fn render_command(&self, target: HarnessTarget) -> RenderedArtifact {
         let relative_path = PathBuf::from("commands").join(&self.tail_path);
         let mut frontmatter = Mapping::new();
-        target.seed_command_frontmatter(&mut frontmatter, &self.name, &self.description);
+        target
+            .harness()
+            .seed_command_frontmatter(&mut frontmatter, &self.name, &self.description);
         merge_allowed_frontmatter(
             &mut frontmatter,
             &self.extra_frontmatter,
-            target.command_allowed_extra_frontmatter_keys(),
+            target.harness().command_allowed_extra_frontmatter_keys(),
         );
         RenderedArtifact {
             relative_path,
@@ -62,7 +64,7 @@ impl MarkdownArtifact {
         merge_allowed_frontmatter(
             &mut frontmatter,
             &self.extra_frontmatter,
-            target.agent_allowed_extra_frontmatter_keys(),
+            target.harness().agent_allowed_extra_frontmatter_keys(),
         );
 
         RenderedArtifact {
@@ -91,7 +93,9 @@ impl MarkdownArtifact {
         if self.disable_model_invocation {
             return true;
         }
-        target.disables_model_invocation_for_kind(self.kind)
+        target
+            .harness()
+            .disables_model_invocation_for_kind(self.kind)
     }
 
     fn skill_body(&self, target: HarnessTarget) -> String {

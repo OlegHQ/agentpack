@@ -17,6 +17,8 @@ mod cursor;
 mod grok;
 mod opencode;
 
+use serde_norway::Mapping;
+
 use agy::Agy;
 use claude::Claude;
 use codex::Codex;
@@ -24,6 +26,8 @@ use cursor::Cursor;
 use grok::Grok;
 use opencode::OpenCode;
 
+use crate::artifacts::yaml::insert_string;
+use crate::artifacts::ArtifactKind;
 pub use crate::artifacts::HarnessTarget;
 
 /// One coding-agent integration. Each impl owns all of that harness's quirks. Zero-field unit
@@ -31,6 +35,84 @@ pub use crate::artifacts::HarnessTarget;
 /// out `&'static dyn Harness`.
 pub trait Harness: Sync {
     fn id(&self) -> HarnessTarget;
+
+    // ---- artifact rendering knobs (was: 5 `match self` tables in artifacts/harness.rs) ----
+
+    /// Portable plugin subtrees copied verbatim from cached plugins before the markdown overlay
+    /// renders artifacts on top. Default: none (config-root harnesses get content via rendering).
+    fn raw_plugin_subdirs(&self) -> &'static [&'static str] {
+        &[]
+    }
+
+    /// Seed `commands/*.md` YAML before merging allowed extra keys. Key insertion order differs
+    /// per harness, so this is a side-effecting writer rather than a returned list. Default: a
+    /// lone `description` (OpenCode / Codex / Agy).
+    fn seed_command_frontmatter(&self, m: &mut Mapping, _name: &str, description: &str) {
+        insert_string(m, "description", description);
+    }
+
+    /// Extra `commands/*.md` frontmatter keys preserved verbatim during rendering.
+    fn command_allowed_extra_frontmatter_keys(&self) -> &'static [&'static str] {
+        &[
+            "agent",
+            "allowed-tools",
+            "context",
+            "disable-model-invocation",
+            "model",
+            "subtask",
+        ]
+    }
+
+    /// Extra `SKILL.md` frontmatter keys preserved verbatim during rendering.
+    fn skill_allowed_extra_frontmatter_keys(&self) -> &'static [&'static str] {
+        &[
+            "allowed-tools",
+            "agent",
+            "compatibility",
+            "context",
+            "disallowedTools",
+            "license",
+            "mcpServers",
+            "metadata",
+            "mode",
+            "model",
+            "permission",
+            "subtask",
+            "tools",
+        ]
+    }
+
+    /// Extra `agents/*.md` frontmatter keys preserved verbatim during rendering.
+    fn agent_allowed_extra_frontmatter_keys(&self) -> &'static [&'static str] {
+        &[
+            "color",
+            "disallowedTools",
+            "hidden",
+            "hooks",
+            "mcpServers",
+            "mode",
+            "model",
+            "permission",
+            "subtask",
+            "tools",
+        ]
+    }
+
+    /// Staged artifact kind after target-specific folding. Default: skills stay skills, commands
+    /// and agents pass through, rules degrade to a skill fallback (no native rule files).
+    fn rendered_artifact_kind(&self, source: ArtifactKind) -> ArtifactKind {
+        match source {
+            ArtifactKind::Rule => ArtifactKind::Skill,
+            other => other,
+        }
+    }
+
+    /// Default `disable-model-invocation` for staged skills when the source artifact did not set
+    /// it. Only slash-commands-converted-to-skills are disabled by default; this does not diverge
+    /// per harness today, so it is a shared default with no overrides.
+    fn disables_model_invocation_for_kind(&self, kind: ArtifactKind) -> bool {
+        kind == ArtifactKind::Command
+    }
 }
 
 /// The single source of truth for "what harnesses exist". Unit structs are const-constructible,

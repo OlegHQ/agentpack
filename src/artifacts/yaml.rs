@@ -128,7 +128,7 @@ pub(super) fn remove_globs(map: &mut Mapping, key: &str) -> Vec<String> {
     }
 }
 
-pub(super) fn insert_string(map: &mut Mapping, key: &str, value: &str) {
+pub(crate) fn insert_string(map: &mut Mapping, key: &str, value: &str) {
     map.insert(
         Value::String(key.to_string()),
         Value::String(value.to_string()),
