@@ -48,7 +48,7 @@ pub(in crate::staging) fn write_cursor_pack_plugin_manifests(cursor_root: &Path)
     Ok(())
 }
 
-pub(in crate::staging) fn write_cursor_pack_plugin_readme(pack_plugin: &Path) -> Result<()> {
+pub(crate) fn write_cursor_pack_plugin_readme(pack_plugin: &Path) -> Result<()> {
     let readme = pack_plugin.join("README.md");
     let body = r#"# agentpack bundle
 

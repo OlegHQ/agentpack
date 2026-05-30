@@ -4,10 +4,29 @@ use std::path::Path;
 use crate::error::{AgentpackError, Result};
 use crate::fs_util::{fast_copy_file, resolve_tree_copy_source};
 
+/// Copy the named top-level `entries` from `src_root` into `dst_root`, merging directories. Shared
+/// by every harness's user-config seeding step.
+pub(crate) fn copy_selected_entries(
+    src_root: &Path,
+    dst_root: &Path,
+    entries: &[&str],
+) -> Result<()> {
+    if !src_root.is_dir() {
+        return Ok(());
+    }
+    for entry in entries {
+        let src = src_root.join(entry);
+        if src.exists() {
+            copy_merge_tree(&src, &dst_root.join(entry))?;
+        }
+    }
+    Ok(())
+}
+
 /// Copy `src` onto `dst`, merging directories. Uses `fast_copy_file` (reflink on APFS/btrfs/XFS,
 /// plain `fs::copy` fallback) for leaf files and walks directories via `DirEntry::file_type()`
 /// to avoid extra `stat` syscalls per child.
-pub(super) fn copy_merge_tree(src: &Path, dst: &Path) -> Result<()> {
+pub(crate) fn copy_merge_tree(src: &Path, dst: &Path) -> Result<()> {
     let Some(effective) =
         resolve_tree_copy_source(src, "skipping dangling symlink while merging trees")?
     else {

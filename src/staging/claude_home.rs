@@ -56,7 +56,7 @@ pub(crate) fn materialize_claude_settings_overlay() -> Result<()> {
 /// Set `enabledMcpjsonServers` to exactly `names` in the agentpack `--settings` overlay.
 /// This pre-approves only the staged MCP names; other `.mcp.json` servers still require
 /// interactive approval.
-pub(super) fn set_claude_settings_mcp_allowlist(names: &[String]) -> Result<()> {
+pub(crate) fn set_claude_settings_mcp_allowlist(names: &[String]) -> Result<()> {
     let dest = agentpack_claude_settings_path()?;
     if !dest.is_file() {
         return Ok(());

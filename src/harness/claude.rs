@@ -18,7 +18,10 @@ use crate::paths::{
     agentpack_claude_settings_path, staging_plugins_dir_for_mode, STAGED_AGENTPACK_BUNDLE_NAME,
 };
 use crate::staging::mcp::{write_claude_mcp_servers_json, StagedMcpEntries};
-use crate::staging::{keep_attribution, list_plugin_dirs, materialize_claude_settings_overlay};
+use crate::staging::{
+    keep_attribution, list_plugin_dirs, materialize_claude_settings_overlay,
+    set_claude_settings_mcp_allowlist,
+};
 
 /// Claude Code: staged as a `--plugin-dir` bundle; attribution overlay via `--settings`.
 pub(super) struct Claude;
@@ -72,6 +75,16 @@ impl Harness for Claude {
     fn write_mcp(&self, merged: &StagedMcpEntries, ctx: &StageCtx) -> Result<()> {
         let bundle = self.staged_root(ctx.project_root, ctx.mode.name())?;
         write_claude_mcp_servers_json(&bundle.join(".mcp.json"), merged)
+    }
+
+    fn finalize(&self, merged: &StagedMcpEntries, _ctx: &StageCtx) -> Result<()> {
+        // Pre-approve the staged MCP servers in the `--settings` overlay so Claude doesn't drop
+        // them as untrusted project-scope MCPs.
+        if !merged.is_empty() && !keep_attribution() {
+            let names: Vec<String> = merged.keys().cloned().collect();
+            set_claude_settings_mcp_allowlist(&names)?;
+        }
+        Ok(())
     }
 
     fn hook_support(&self, _event: ClaudeEvent, _handler: &ClaudeHandler) -> SupportLevel {

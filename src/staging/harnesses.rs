@@ -12,10 +12,7 @@ use crate::paths::{
     staging_opencode_dir_for_mode, staging_plugins_dir_for_mode, STAGED_AGENTPACK_BUNDLE_NAME,
 };
 
-use super::claude_home::set_claude_settings_mcp_allowlist;
-use super::cursor::{finalize_cursor_staging_common, write_cursor_pack_plugin_readme};
 use super::dot_agents::stage_dot_agents_overlay;
-use super::keep_attribution;
 use super::pack_overlay::{
     stage_pack_plugins_all_harnesses, stage_pack_skills_all_harnesses, PackHarnessRoots,
 };
@@ -100,23 +97,19 @@ impl<'a> StagingPipeline<'a> {
         stage_pack_plugins_all_harnesses(self.lock, &pack_dests, self.mode)?;
         stage_pack_skills_all_harnesses(self.lock, &pack_dests, self.mode)?;
         stage_hooks_all_harnesses(self.project_root, self.lock, self.mode)?;
-        write_cursor_pack_plugin_readme(&cursor_pack)?;
         stage_dot_agents_overlay(self.project_root, self.mode.name(), self.mode)?;
-        // Merge once, then let each harness render its own native format.
+        // Merge once, then let each harness render its own native format and run any post-staging
+        // finalize (Claude MCP allowlist; Cursor fake-home + approvals).
         let merged_mcp = super::mcp::collect_merged_mcp(
             self.project_root,
             self.lock,
             self.manifest,
             Some(self.mode),
         )?;
+        let ctx = self.stage_ctx();
         if !merged_mcp.is_empty() {
-            let ctx = self.stage_ctx();
             for harness in crate::harness::all() {
                 harness.write_mcp(&merged_mcp, &ctx)?;
-            }
-            if !keep_attribution() {
-                let names: Vec<String> = merged_mcp.keys().cloned().collect();
-                set_claude_settings_mcp_allowlist(&names)?;
             }
         }
         super::guidance::stage_guidance_all_harnesses(
@@ -125,13 +118,13 @@ impl<'a> StagingPipeline<'a> {
             self.mode,
             &pack_dests,
         )?;
-        finalize_cursor_staging_common(self.project_root, self.mode.name(), &merged_mcp)?;
+        for harness in crate::harness::all() {
+            harness.finalize(&merged_mcp, &ctx)?;
+        }
         // Workspace overlays (Cursor `.cursor/agents`, Agy `.agents/plugins/...`) are only created
         // for the harness being launched; each impl knows its own overlay (default: none).
         if let Some(target) = self.target {
-            target
-                .harness()
-                .finalize_workspace_overlay(&self.stage_ctx())?;
+            target.harness().finalize_workspace_overlay(&ctx)?;
         }
 
         Ok(vec![self.claude_bundle_dir()?])

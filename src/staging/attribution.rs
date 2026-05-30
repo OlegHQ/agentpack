@@ -41,7 +41,9 @@ const AGY_ATTRIBUTION_RULE_FILE: &str = "agentpack-no-attribution.md";
 const GROK_ATTRIBUTION_FILE: &str = "AGENTS.md";
 const GROK_ATTRIBUTION_BEGIN: &str = "<!-- agentpack:no-attribution:begin -->";
 const GROK_ATTRIBUTION_END: &str = "<!-- agentpack:no-attribution:end -->";
-const OPENCODE_INSTRUCTIONS_BODY: &str = "# Attribution policy
+/// Prose attribution-off guidance shared by the prompt-level harnesses (OpenCode / Grok / Agy)
+/// that have no first-class attribution setting.
+pub(crate) const NO_ATTRIBUTION_BODY: &str = "# Attribution policy
 
 Do not add any AI-attribution lines to git commits, pull requests, or other artifacts you author.
 Specifically, do not include:
@@ -149,7 +151,7 @@ pub(crate) fn force_opencode_attribution_off(root: &Path) -> Result<()> {
         return Ok(());
     }
     let instructions_path = root.join(OPENCODE_INSTRUCTIONS_FILE);
-    write_text_file(&instructions_path, OPENCODE_INSTRUCTIONS_BODY)?;
+    write_text_file(&instructions_path, NO_ATTRIBUTION_BODY)?;
 
     let config_path = root.join("opencode.json");
     let mut value = read_json_value_opt(&config_path)?.unwrap_or_else(|| json!({}));
@@ -184,7 +186,7 @@ pub(crate) fn force_agy_attribution_off(bundle: &Path) -> Result<()> {
     let path = bundle.join("rules").join(AGY_ATTRIBUTION_RULE_FILE);
     let body = format!(
         "---\ndescription: Disable AI attribution footers\nalwaysApply: true\n---\n\n{}\n",
-        OPENCODE_INSTRUCTIONS_BODY.trim()
+        NO_ATTRIBUTION_BODY.trim()
     );
     crate::fs_util::write_text_file(&path, &body)?;
     tracing::debug!(path = %path.display(), "staged Antigravity attribution-off rule");
@@ -209,7 +211,7 @@ pub(crate) fn force_grok_attribution_off(grok_home: &Path) -> Result<()> {
     out.push_str("\n\n");
     out.push_str(GROK_ATTRIBUTION_BEGIN);
     out.push('\n');
-    out.push_str(OPENCODE_INSTRUCTIONS_BODY.trim());
+    out.push_str(NO_ATTRIBUTION_BODY.trim());
     out.push('\n');
     out.push_str(GROK_ATTRIBUTION_END);
     out.push('\n');

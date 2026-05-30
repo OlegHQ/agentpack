@@ -31,10 +31,13 @@ pub(crate) use attribution::{
     force_agy_attribution_off, force_codex_attribution_off, force_cursor_attribution_off,
     force_grok_attribution_off, force_opencode_attribution_off, keep_attribution,
 };
-pub(crate) use claude_home::materialize_claude_settings_overlay;
+pub(crate) use claude_home::{
+    materialize_claude_settings_overlay, set_claude_settings_mcp_allowlist,
+};
 pub(crate) use cursor::{
-    finalize_cursor_workspace_overlay, prepare_cursor_staging_without_pack_overlay,
-    read_cursor_overlay_manifest,
+    finalize_cursor_staging_common, finalize_cursor_workspace_overlay,
+    prepare_cursor_staging_without_pack_overlay, read_cursor_overlay_manifest,
+    write_cursor_pack_plugin_readme,
 };
 pub(crate) use pack_overlay::skill_folder_name;
 pub use pack_overlay::skill_is_shadowed;

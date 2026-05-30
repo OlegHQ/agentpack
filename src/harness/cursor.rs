@@ -21,8 +21,9 @@ use crate::paths::{
 };
 use crate::staging::mcp::{write_mcp_servers_json, StagedMcpEntries};
 use crate::staging::{
-    finalize_cursor_workspace_overlay, force_cursor_attribution_off,
-    prepare_cursor_staging_without_pack_overlay, read_cursor_overlay_manifest,
+    finalize_cursor_staging_common, finalize_cursor_workspace_overlay,
+    force_cursor_attribution_off, prepare_cursor_staging_without_pack_overlay,
+    read_cursor_overlay_manifest, write_cursor_pack_plugin_readme,
 };
 
 /// Cursor: pack plugin tree plus a fake `HOME` and an optional workspace `.cursor/agents` overlay.
@@ -248,6 +249,14 @@ impl Harness for Cursor {
         }
         cmd.args(args);
         Ok(cmd)
+    }
+
+    fn finalize(&self, merged: &StagedMcpEntries, ctx: &StageCtx) -> Result<()> {
+        // After pack content is staged: write the pack README, build the fake HOME (symlinks pack
+        // dirs), and pre-seed `~/.cursor` MCP approvals from the merged set.
+        let mode = ctx.mode.name();
+        write_cursor_pack_plugin_readme(&self.staged_root(ctx.project_root, mode)?)?;
+        finalize_cursor_staging_common(ctx.project_root, mode, merged)
     }
 
     fn finalize_workspace_overlay(&self, ctx: &StageCtx) -> Result<()> {

@@ -9,20 +9,7 @@ use super::constants::{
     CODEX_HOME_ENTRIES, CURSOR_USER_ROOT_ENTRIES, GROK_HOME_CREDENTIAL_FILES, GROK_HOME_ENTRIES,
     OPENCODE_USER_ROOT_ENTRIES,
 };
-use super::tree::copy_merge_tree;
-
-fn copy_selected_entries(src_root: &Path, dst_root: &Path, entries: &[&str]) -> Result<()> {
-    if !src_root.is_dir() {
-        return Ok(());
-    }
-    for entry in entries {
-        let src = src_root.join(entry);
-        if src.exists() {
-            copy_merge_tree(&src, &dst_root.join(entry))?;
-        }
-    }
-    Ok(())
-}
+use super::tree::copy_selected_entries;
 
 fn write_opencode_config_stub(root: &Path) -> Result<()> {
     let config_path = root.join("opencode.json");

@@ -174,7 +174,7 @@ type MergedEntries = BTreeMap<String, (McpServerEntry, McpSource)>;
 /// The resolved, merged MCP server set handed to each harness's `write_mcp`.
 pub(crate) type StagedMcpEntries = MergedEntries;
 
-fn bare_entries(merged: &MergedEntries) -> BTreeMap<String, McpServerEntry> {
+pub(crate) fn bare_entries(merged: &MergedEntries) -> BTreeMap<String, McpServerEntry> {
     merged
         .iter()
         .map(|(k, (v, _))| (k.clone(), v.clone()))
@@ -285,7 +285,7 @@ pub(crate) fn merge_into_opencode_config(config_path: &Path, merged: &MergedEntr
     crate::fs_util::write_text_file(config_path, &out)
 }
 
-fn toml_mcp_entry_table(entry: &McpServerEntry) -> toml::value::Table {
+pub(crate) fn toml_mcp_entry_table(entry: &McpServerEntry) -> toml::value::Table {
     let mut t = toml::value::Table::new();
     if entry.is_remote() {
         if let Some(url) = &entry.url {

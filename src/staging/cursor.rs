@@ -14,7 +14,7 @@ use crate::paths::{staging_cursor_bundle_dir_for_mode, staging_cursor_pack_plugi
 use super::mcp::StagedMcpEntries;
 use super::seed::seed_cursor_root;
 
-pub(super) use manifests::write_cursor_pack_plugin_readme;
+pub(crate) use manifests::write_cursor_pack_plugin_readme;
 pub(crate) use overlay::read_cursor_overlay_manifest;
 
 /// Cursor marketplace layout and optional user **`~/.cursor`** seeds only. Pack trees are merged in
@@ -36,7 +36,7 @@ pub(crate) fn prepare_cursor_staging_without_pack_overlay(
 /// Workspace-agnostic Cursor finalization: builds the staged fake-`HOME` and seeds the user's
 /// real `~/.cursor/projects/<slug>/mcp-approvals.json` so MCP servers are pre-approved. Safe to
 /// run for every harness target — does **not** touch the project's `./.cursor/` tree.
-pub(super) fn finalize_cursor_staging_common(
+pub(crate) fn finalize_cursor_staging_common(
     project_root: &Path,
     mode_name: &str,
     merged_mcp: &StagedMcpEntries,

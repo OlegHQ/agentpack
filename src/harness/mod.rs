@@ -222,6 +222,15 @@ pub(crate) trait Harness: Sync {
     /// first, then execs the returned `Command`.
     fn launch_command(&self, ctx: LaunchCtx) -> anyhow::Result<Command>;
 
+    // ---- always-run post-staging finalize (Claude MCP allowlist, Cursor fake-home/approvals) ----
+
+    /// Per-harness step run for every harness after the shared MCP merge and pack/guidance staging,
+    /// before any launch-scoped workspace overlay. Receives the merged MCP set (may be empty).
+    /// Default: nothing.
+    fn finalize(&self, _merged: &StagedMcpEntries, _ctx: &StageCtx) -> Result<()> {
+        Ok(())
+    }
+
     // ---- optional workspace overlay (only Cursor + Agy) ----
 
     /// Materialize this harness's project-side workspace overlay symlink (Cursor `.cursor/agents`,
