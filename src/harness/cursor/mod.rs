@@ -1,4 +1,3 @@
-mod approvals;
 mod fake_home;
 mod hooks;
 mod manifests;
@@ -92,13 +91,13 @@ impl Harness for Cursor {
         write_mcp_servers_json(&pack.join("mcp.json"), merged)
     }
 
-    fn finalize(&self, merged: &StagedMcpEntries, ctx: &StageCtx) -> Result<()> {
-        // After pack content is staged: write the pack README, build the fake HOME (symlinks pack
-        // dirs), and pre-seed `~/.cursor` MCP approvals from the merged set.
+    fn finalize(&self, _merged: &StagedMcpEntries, ctx: &StageCtx) -> Result<()> {
+        // After pack content is staged: write the pack README and build the fake HOME (symlinks pack
+        // dirs). agentpack writes NOTHING to the real `~/.cursor` — cursor itself manages workspace
+        // trust + MCP approvals (auto under `--trust`/`--force`; a one-time prompt otherwise).
         let mode = ctx.mode.name();
         manifests::write_cursor_pack_plugin_readme(&self.staged_root(ctx.project_root, mode)?)?;
-        fake_home::materialize_cursor_fake_home(ctx.project_root, mode)?;
-        approvals::seed_workspace_mcp_approvals(ctx.project_root, merged)
+        fake_home::materialize_cursor_fake_home(ctx.project_root, mode)
     }
 
     fn finalize_workspace_overlay(&self, ctx: &StageCtx) -> Result<()> {
