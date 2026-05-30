@@ -5,12 +5,6 @@ use crate::paths;
 use crate::sync::sync_for_launch;
 use crate::ui::Ui;
 
-fn args_have_cwd(args: &[String]) -> bool {
-    args.iter().enumerate().any(|(idx, arg)| {
-        (arg == "--cwd" && args.get(idx + 1).is_some()) || arg.starts_with("--cwd=")
-    })
-}
-
 pub fn run_grok(
     project_root: &std::path::Path,
     mut passthrough: Vec<String>,
@@ -20,12 +14,6 @@ pub fn run_grok(
 ) -> anyhow::Result<()> {
     let mode = sync_for_launch(project_root, selected_mode, ui)?;
 
-    if !args_have_cwd(&passthrough) {
-        passthrough.splice(
-            0..0,
-            ["--cwd".to_string(), project_root.display().to_string()],
-        );
-    }
     if yolo {
         apply_yolo_grok(&mut passthrough);
     }

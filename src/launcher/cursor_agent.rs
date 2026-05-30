@@ -1,5 +1,5 @@
 use std::ffi::OsString;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use anyhow::Context;
 
@@ -7,18 +7,6 @@ use crate::launcher::common::{apply_yolo_cursor_agent, exec_with_env, resolve_ha
 use crate::paths;
 use crate::sync::sync_for_launch;
 use crate::ui::Ui;
-
-fn explicit_workspace_arg(args: &[String]) -> Option<PathBuf> {
-    for (idx, arg) in args.iter().enumerate() {
-        if arg == "--workspace" {
-            return args.get(idx + 1).map(PathBuf::from);
-        }
-        if let Some(value) = arg.strip_prefix("--workspace=") {
-            return Some(PathBuf::from(value));
-        }
-    }
-    None
-}
 
 fn args_contain_trust_flag(args: &[String]) -> bool {
     args.iter().any(|a| a == "--trust")
@@ -47,11 +35,11 @@ fn prepend_trust_if_needed(args: &mut Vec<String>) {
     }
 }
 
-fn normalize_path(path: &Path) -> PathBuf {
-    path.canonicalize().unwrap_or_else(|_| path.to_path_buf())
-}
-
-fn push_env_if_absent(envs: &mut Vec<(&'static str, OsString)>, key: &'static str, value: PathBuf) {
+fn push_env_if_absent(
+    envs: &mut Vec<(&'static str, OsString)>,
+    key: &'static str,
+    value: std::path::PathBuf,
+) {
     if std::env::var_os(key).is_none() {
         envs.push((key, value.into_os_string()));
     }
@@ -69,22 +57,7 @@ pub fn run_agent(
     let fake_home_path = paths::staging_cursor_home_dir_for_mode(project_root, mode.name())?;
     let fake_home: OsString = fake_home_path.into_os_string();
 
-    let project_norm = normalize_path(project_root);
-
     let mut args = passthrough;
-    let workspace = match explicit_workspace_arg(&args) {
-        Some(p) => normalize_path(&p),
-        None => {
-            args.splice(
-                0..0,
-                [
-                    "--workspace".to_string(),
-                    project_norm.display().to_string(),
-                ],
-            );
-            project_norm.clone()
-        }
-    };
 
     let mut envs: Vec<(&str, OsString)> = vec![("HOME", fake_home.clone())];
     #[cfg(windows)]
@@ -128,8 +101,7 @@ pub fn run_agent(
     }
 
     let mut msg = format!(
-        "Cursor Agent workspace (--workspace): {}\nCursor fake HOME (agentpack): {}",
-        workspace.display(),
+        "Cursor fake HOME (agentpack): {}",
         Path::new(&fake_home).display()
     );
     msg.push_str("\nCURSOR_CONFIG_DIR: fake HOME .cursor (pack agents/commands)");
@@ -151,9 +123,9 @@ pub fn run_agent(
     prepend_trust_if_needed(&mut args);
     ui.debug_message(msg);
 
-    let agent = resolve_harness_binary("CURSOR_AGENT_PATH", "agent").with_context(|| {
-        "Cursor Agent CLI (`agent`) not found.\n\
-         Install Cursor with the Agent CLI available on your PATH, or set CURSOR_AGENT_PATH to the `agent` executable."
+    let agent = resolve_harness_binary("CURSOR_AGENT_PATH", "cursor-agent").with_context(|| {
+        "Cursor Agent CLI (`cursor-agent`) not found.\n\
+         Install Cursor with the Agent CLI available on your PATH, or set CURSOR_AGENT_PATH to the `cursor-agent` executable."
     })?;
     exec_with_env(&agent, &envs, args)
 }
