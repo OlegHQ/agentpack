@@ -8,6 +8,7 @@ use serde_norway::Mapping;
 
 use super::claude::{seed_description_then_name, CLAUDE_RAW_PLUGIN_SUBDIRS};
 use super::launch::{apply_yolo_grok, args_have_flag_with_value, resolve_harness_binary};
+use super::mcp_toml::merge_into_toml_mcp_config;
 use super::{require, Harness, HarnessTarget, LaunchCtx, StageCtx};
 use crate::error::{AgentpackError, Result};
 use crate::fs_util::{read_toml_value_or_default, remove_path_any, write_text_file};
@@ -17,7 +18,7 @@ use crate::hooks::runtime::output::claude_fallback_output;
 use crate::paths::{
     staging_grok_bundle_dir_for_mode, staging_grok_dir_for_mode, staging_grok_home_dir_for_mode,
 };
-use crate::staging::mcp::{merge_into_toml_mcp_config, StagedMcpEntries};
+use crate::staging::mcp::StagedMcpEntries;
 use crate::staging::{copy_selected_entries, keep_attribution, NO_ATTRIBUTION_BODY};
 
 /// Grok user-home entries preserved before overlaying pack content.

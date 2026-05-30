@@ -13,6 +13,7 @@ use super::launch::{apply_yolo_claude, resolve_harness_binary};
 use super::{require, Harness, HarnessTarget, LaunchCtx, StageCtx};
 use crate::artifacts::yaml::insert_string;
 use crate::error::{AgentpackError, Result};
+use crate::fs_util::write_text_file;
 use crate::hooks::capabilities::SupportLevel;
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
 use crate::hooks::render::HookRenderer;
@@ -22,7 +23,7 @@ use crate::paths::{
 };
 use crate::staging::keep_attribution;
 use crate::staging::list_plugin_dirs;
-use crate::staging::mcp::{write_claude_mcp_servers_json, StagedMcpEntries};
+use crate::staging::mcp::{bare_entries, McpConfig, StagedMcpEntries};
 
 /// Claude Code: staged as a `--plugin-dir` bundle; attribution overlay via `--settings`.
 pub(super) struct Claude;
@@ -163,5 +164,45 @@ impl Harness for Claude {
         }
         cmd.args(passthrough);
         Ok(cmd)
+    }
+}
+
+/// Write Claude's plugin `.mcp.json`. Claude rejects remote entries without a `type` discriminator
+/// (its zod schema is a `discriminatedUnion("type", …)`), so default url-only entries to `"http"`
+/// (Streamable HTTP, the modern remote transport).
+fn write_claude_mcp_servers_json(dest: &Path, merged: &StagedMcpEntries) -> Result<()> {
+    let mut entries = bare_entries(merged);
+    for entry in entries.values_mut() {
+        if entry.kind.is_none() && entry.is_remote() {
+            entry.kind = Some("http".into());
+        }
+    }
+    let cfg = McpConfig {
+        mcp_servers: entries,
+    };
+    let json = serde_json::to_string_pretty(&cfg)
+        .map_err(|e| AgentpackError::Staging(format!("{}: {e}", dest.display())))?;
+    write_text_file(dest, &json)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::staging::mcp::test_support::{merged, remote_entry, stdio_entry};
+
+    #[test]
+    fn claude_mcp_json_uses_mcpservers_key_and_defaults_remote_type_http() {
+        let dir = tempfile::tempdir().unwrap();
+        let dest = dir.path().join(".mcp.json");
+        write_claude_mcp_servers_json(
+            &dest,
+            &merged(&[("codesight", stdio_entry()), ("linear", remote_entry())]),
+        )
+        .unwrap();
+        let text = std::fs::read_to_string(&dest).unwrap();
+        assert!(text.contains("\"mcpServers\""));
+        assert!(text.contains("\"command\": \"cargo\""));
+        // url-only remote entry gets a default `type: "http"`.
+        assert!(text.contains("\"type\": \"http\""));
     }
 }

@@ -16,7 +16,7 @@ use crate::hooks::capabilities::SupportLevel;
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
 use crate::hooks::runtime::output::codex_output;
 use crate::paths::{staging_agy_bundle_dir_for_mode, staging_agy_dir_for_mode};
-use crate::staging::mcp::{write_agy_mcp_config_json, StagedMcpEntries};
+use crate::staging::mcp::{McpServerEntry, StagedMcpEntries};
 use crate::staging::{keep_attribution, NO_ATTRIBUTION_BODY};
 
 const AGY_ATTRIBUTION_RULE_FILE: &str = "agentpack-no-attribution.md";
@@ -163,4 +163,75 @@ fn force_agy_attribution_off(bundle: &Path) -> Result<()> {
     write_text_file(&path, &body)?;
     tracing::debug!(path = %path.display(), "staged Antigravity attribution-off rule");
     Ok(())
+}
+
+/// Write Antigravity's `mcp_config.json` (`{"mcpServers": …}` with `serverUrl` for remotes).
+fn write_agy_mcp_config_json(dest: &Path, merged: &StagedMcpEntries) -> Result<()> {
+    let entries: serde_json::Map<String, Value> = merged
+        .iter()
+        .map(|(name, (entry, _))| (name.clone(), agy_entry_value(entry)))
+        .collect();
+    let cfg = serde_json::json!({ "mcpServers": entries });
+    let json = serde_json::to_string_pretty(&cfg)
+        .map_err(|e| AgentpackError::Staging(format!("{}: {e}", dest.display())))?;
+    write_text_file(dest, &json)
+}
+
+fn agy_entry_value(entry: &McpServerEntry) -> Value {
+    use serde_json::json;
+    let mut obj = serde_json::Map::new();
+    if entry.is_remote() {
+        if let Some(url) = &entry.url {
+            obj.insert("serverUrl".into(), json!(url));
+        }
+    } else {
+        if let Some(command) = &entry.command {
+            obj.insert("command".into(), json!(command));
+        }
+        if !entry.args.is_empty() {
+            obj.insert("args".into(), json!(entry.args));
+        }
+        if !entry.env.is_empty() {
+            let env_obj: serde_json::Map<String, Value> = entry
+                .env
+                .iter()
+                .map(|(k, v)| (k.clone(), json!(v)))
+                .collect();
+            obj.insert("env".into(), Value::Object(env_obj));
+        }
+    }
+    if let Some(disabled) = entry.disabled {
+        obj.insert("disabled".into(), json!(disabled));
+    }
+    Value::Object(obj)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::staging::mcp::test_support::{merged, remote_entry, stdio_entry};
+
+    #[test]
+    fn agy_mcp_remote_uses_server_url() {
+        let dir = tempfile::tempdir().unwrap();
+        let cfg = dir.path().join("mcp_config.json");
+        write_agy_mcp_config_json(&cfg, &merged(&[("linear", remote_entry())])).unwrap();
+        let v: Value = serde_json::from_str(&std::fs::read_to_string(&cfg).unwrap()).unwrap();
+        let entry = &v["mcpServers"]["linear"];
+        assert_eq!(entry["serverUrl"], "https://mcp.example.com/mcp");
+        assert!(entry.get("url").is_none());
+        assert!(entry.get("httpUrl").is_none());
+    }
+
+    #[test]
+    fn agy_mcp_local_uses_command_args_env() {
+        let dir = tempfile::tempdir().unwrap();
+        let cfg = dir.path().join("mcp_config.json");
+        write_agy_mcp_config_json(&cfg, &merged(&[("codesight", stdio_entry())])).unwrap();
+        let v: Value = serde_json::from_str(&std::fs::read_to_string(&cfg).unwrap()).unwrap();
+        let entry = &v["mcpServers"]["codesight"];
+        assert_eq!(entry["command"], "cargo");
+        assert_eq!(entry["args"][0], "run");
+        assert_eq!(entry["env"]["RUST_LOG"], "info");
+    }
 }

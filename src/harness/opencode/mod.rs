@@ -15,7 +15,7 @@ use crate::hooks::capabilities::SupportLevel;
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
 use crate::hooks::render::HookRenderer;
 use crate::paths::staging_opencode_dir_for_mode;
-use crate::staging::mcp::{merge_into_opencode_config, StagedMcpEntries};
+use crate::staging::mcp::{McpServerEntry, StagedMcpEntries};
 use crate::staging::{copy_selected_entries, keep_attribution, NO_ATTRIBUTION_BODY};
 
 /// OpenCode config-root entries preserved before overlaying pack content.
@@ -166,9 +166,119 @@ fn apply_yolo_opencode_config(config_dir: &Path) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Merge MCP entries into `opencode.json` under the top-level `mcp` object. User-seeded entries
+/// win: only insert pack entries whose names are absent.
+fn merge_into_opencode_config(config_path: &Path, merged: &StagedMcpEntries) -> Result<()> {
+    let mut root: Value = if config_path.is_file() {
+        let raw =
+            std::fs::read_to_string(config_path).map_err(|e| AgentpackError::io(config_path, e))?;
+        crate::fs_util::parse_jsonc(&raw)
+            .map_err(|e| AgentpackError::Staging(format!("{}: {e}", config_path.display())))?
+    } else {
+        serde_json::json!({ "$schema": "https://opencode.ai/config.json" })
+    };
+
+    let obj = root.as_object_mut().ok_or_else(|| {
+        AgentpackError::Staging(format!(
+            "{}: top-level must be a JSON object",
+            config_path.display()
+        ))
+    })?;
+    let mcp = obj
+        .entry("mcp".to_string())
+        .or_insert_with(|| Value::Object(serde_json::Map::new()));
+    let mcp_obj = mcp.as_object_mut().ok_or_else(|| {
+        AgentpackError::Staging(format!(
+            "{}: `mcp` must be a JSON object",
+            config_path.display()
+        ))
+    })?;
+    for (name, (entry, _)) in merged {
+        if mcp_obj.contains_key(name) {
+            continue;
+        }
+        mcp_obj.insert(name.clone(), opencode_entry_value(entry));
+    }
+
+    let out = serde_json::to_string_pretty(&root)
+        .map_err(|e| AgentpackError::Staging(format!("{}: {e}", config_path.display())))?;
+    write_text_file(config_path, &out)
+}
+
+fn opencode_entry_value(entry: &McpServerEntry) -> Value {
+    use serde_json::json;
+    let mut obj = serde_json::Map::new();
+    if entry.is_remote() {
+        obj.insert("type".into(), json!("remote"));
+        if let Some(url) = &entry.url {
+            obj.insert("url".into(), json!(url));
+        }
+    } else {
+        obj.insert("type".into(), json!("local"));
+        let mut cmd: Vec<Value> = Vec::with_capacity(1 + entry.args.len());
+        if let Some(c) = &entry.command {
+            cmd.push(json!(c));
+        }
+        cmd.extend(entry.args.iter().map(|a| json!(a)));
+        obj.insert("command".into(), Value::Array(cmd));
+        if !entry.env.is_empty() {
+            let env_obj: serde_json::Map<String, Value> = entry
+                .env
+                .iter()
+                .map(|(k, v)| (k.clone(), json!(v)))
+                .collect();
+            obj.insert("environment".into(), Value::Object(env_obj));
+        }
+    }
+    obj.insert("enabled".into(), json!(entry.disabled != Some(true)));
+    Value::Object(obj)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::staging::mcp::test_support::{merged, remote_entry, stdio_entry};
+
+    #[test]
+    fn opencode_merge_converts_command_to_array_and_env_to_environment() {
+        let dir = tempfile::tempdir().unwrap();
+        let cfg = dir.path().join("opencode.json");
+        std::fs::write(&cfg, "{\"$schema\":\"https://opencode.ai/config.json\"}").unwrap();
+        merge_into_opencode_config(&cfg, &merged(&[("codesight", stdio_entry())])).unwrap();
+        let v: Value = serde_json::from_str(&std::fs::read_to_string(&cfg).unwrap()).unwrap();
+        let entry = &v["mcp"]["codesight"];
+        assert_eq!(entry["type"], "local");
+        assert_eq!(entry["command"][0], "cargo");
+        assert_eq!(entry["command"][1], "run");
+        assert_eq!(entry["environment"]["RUST_LOG"], "info");
+        assert!(entry.get("env").is_none());
+        assert!(entry.get("args").is_none());
+    }
+
+    #[test]
+    fn opencode_merge_remote_entry_uses_type_remote() {
+        let dir = tempfile::tempdir().unwrap();
+        let cfg = dir.path().join("opencode.json");
+        merge_into_opencode_config(&cfg, &merged(&[("linear", remote_entry())])).unwrap();
+        let v: Value = serde_json::from_str(&std::fs::read_to_string(&cfg).unwrap()).unwrap();
+        let entry = &v["mcp"]["linear"];
+        assert_eq!(entry["type"], "remote");
+        assert_eq!(entry["url"], "https://mcp.example.com/mcp");
+    }
+
+    #[test]
+    fn opencode_merge_user_wins_on_conflict() {
+        let dir = tempfile::tempdir().unwrap();
+        let cfg = dir.path().join("opencode.json");
+        std::fs::write(
+            &cfg,
+            r#"{"mcp":{"linear":{"type":"remote","url":"https://user.example/mcp"}}}"#,
+        )
+        .unwrap();
+        merge_into_opencode_config(&cfg, &merged(&[("linear", remote_entry())])).unwrap();
+        let v: Value = serde_json::from_str(&std::fs::read_to_string(&cfg).unwrap()).unwrap();
+        assert_eq!(v["mcp"]["linear"]["url"], "https://user.example/mcp");
+    }
 
     #[test]
     fn opencode_attribution_adds_instructions_entry_idempotently() {

@@ -18,7 +18,7 @@ use super::{require, Harness, HarnessTarget, LaunchCtx, StageCtx};
 use crate::artifacts::yaml::insert_string;
 use crate::artifacts::ArtifactKind;
 use crate::error::{AgentpackError, Result};
-use crate::fs_util::{read_json_value_opt, remove_path_any, write_json_value};
+use crate::fs_util::{read_json_value_opt, remove_path_any, write_json_value, write_text_file};
 use crate::hooks::capabilities::SupportLevel;
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
 use crate::hooks::render::HookRenderer;
@@ -29,7 +29,7 @@ use crate::paths::{
 };
 use crate::staging::copy_selected_entries;
 use crate::staging::keep_attribution;
-use crate::staging::mcp::{write_mcp_servers_json, StagedMcpEntries};
+use crate::staging::mcp::{bare_entries, McpConfig, StagedMcpEntries};
 
 /// Cursor files copied from `~/.cursor` into `$STAGING/cursor/` before pack overlay. Omit
 /// `agents`/`commands`/`skills`/`rules` — those come from `pack.lock`.
@@ -410,9 +410,32 @@ fn push_env_if_absent(envs: &mut Vec<(&'static str, OsString)>, key: &'static st
     }
 }
 
+/// Write `{"mcpServers":{…}}` JSON (Cursor `mcp.json`). Cursor accepts entries without a `type`
+/// discriminator, so serialize as-is.
+fn write_mcp_servers_json(dest: &Path, merged: &StagedMcpEntries) -> Result<()> {
+    let cfg = McpConfig {
+        mcp_servers: bare_entries(merged),
+    };
+    let json = serde_json::to_string_pretty(&cfg)
+        .map_err(|e| AgentpackError::Staging(format!("{}: {e}", dest.display())))?;
+    write_text_file(dest, &json)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::staging::mcp::test_support::{merged, stdio_entry};
+
+    #[test]
+    fn cursor_mcp_json_uses_mcpservers_key() {
+        let dir = tempfile::tempdir().unwrap();
+        let dest = dir.path().join("mcp.json");
+        write_mcp_servers_json(&dest, &merged(&[("codesight", stdio_entry())])).unwrap();
+        let text = std::fs::read_to_string(&dest).unwrap();
+        assert!(text.contains("\"mcpServers\""));
+        assert!(text.contains("\"command\": \"cargo\""));
+        assert!(text.contains("\"RUST_LOG\": \"info\""));
+    }
 
     fn with_keep_unset<F: FnOnce()>(f: F) {
         let prev = std::env::var_os("AGENTPACK_KEEP_ATTRIBUTION");

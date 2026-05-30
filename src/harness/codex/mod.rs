@@ -9,6 +9,7 @@ use anyhow::Context;
 use serde_json::Value;
 
 use super::launch::{apply_yolo_codex, resolve_harness_binary};
+use super::mcp_toml::merge_into_toml_mcp_config;
 use super::{require, Harness, HarnessTarget, LaunchCtx, StageCtx};
 use crate::artifacts::ArtifactKind;
 use crate::error::{AgentpackError, Result};
@@ -17,7 +18,7 @@ use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
 use crate::hooks::render::HookRenderer;
 use crate::hooks::runtime::output::codex_output;
 use crate::paths::staging_codex_home_dir_for_mode;
-use crate::staging::mcp::{merge_into_toml_mcp_config, StagedMcpEntries};
+use crate::staging::mcp::StagedMcpEntries;
 use crate::staging::{copy_selected_entries, keep_attribution};
 
 /// Codex home entries preserved before overlaying pack content. `auth.json` is linked separately

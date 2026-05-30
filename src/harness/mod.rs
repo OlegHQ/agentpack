@@ -16,6 +16,7 @@ mod codex;
 mod cursor;
 mod grok;
 mod launch;
+mod mcp_toml;
 mod opencode;
 mod target;
 
