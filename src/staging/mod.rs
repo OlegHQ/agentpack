@@ -30,23 +30,10 @@ pub use pack_overlay::skill_is_shadowed;
 use harnesses::StagingPipeline;
 use pack_overlay::disabled_in_config;
 
-// `HarnessTarget` was merged into the canonical `HarnessTarget`; re-exported here so the
-// `staging` module path keeps resolving. The `impl HarnessTarget` block below carries the
-// launch/staging-specific behavior that used to live on `HarnessTarget`.
+// Re-exported here so the `staging` module path keeps resolving for downstream callers. The
+// identity helpers (`as_str`, `all`, `harness`) now live with the canonical enum in
+// `artifacts/harness.rs`.
 pub use crate::artifacts::HarnessTarget;
-
-impl HarnessTarget {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            HarnessTarget::Claude => "claude",
-            HarnessTarget::Cursor => "cursor",
-            HarnessTarget::Codex => "codex",
-            HarnessTarget::OpenCode => "opencode",
-            HarnessTarget::Grok => "grok",
-            HarnessTarget::Agy => "agy",
-        }
-    }
-}
 
 /// Build one plugin tree: optional copies of user **`settings.json`** / **`.claude.json`**, then
 /// plugin packages, then standalone skill packages. Later layers overwrite same relative paths

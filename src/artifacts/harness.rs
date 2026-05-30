@@ -45,6 +45,24 @@ impl HarnessTarget {
         ]
     }
 
+    /// Stable lowercase identifier used in CLI args (`hook-exec --target`), staging directory
+    /// labels, and launch fingerprints.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            HarnessTarget::Claude => "claude",
+            HarnessTarget::Cursor => "cursor",
+            HarnessTarget::Codex => "codex",
+            HarnessTarget::OpenCode => "opencode",
+            HarnessTarget::Grok => "grok",
+            HarnessTarget::Agy => "agy",
+        }
+    }
+
+    /// Resolve this identity to its [`Harness`](crate::harness::Harness) implementor.
+    pub fn harness(self) -> &'static dyn crate::harness::Harness {
+        crate::harness::get(self)
+    }
+
     pub fn raw_plugin_subdirs(self) -> &'static [&'static str] {
         match self {
             // Same extension-dir merge as Cursor: verbatim copy then markdown overlay (see `stage_source_tree`).
