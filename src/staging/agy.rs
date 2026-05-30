@@ -33,7 +33,7 @@ pub(super) fn write_agy_plugin_manifest(bundle: &Path) -> Result<()> {
     crate::fs_util::write_json_value(&bundle.join("plugin.json"), &manifest)
 }
 
-pub(super) fn agy_workspace_overlay_paths(project_root: &Path) -> Result<Vec<PathBuf>> {
+pub(crate) fn agy_workspace_overlay_paths(project_root: &Path) -> Result<Vec<PathBuf>> {
     let root = project_root.to_path_buf();
     Ok(read_agy_overlay_manifest(project_root)?
         .into_iter()

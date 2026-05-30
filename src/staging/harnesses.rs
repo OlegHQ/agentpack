@@ -7,11 +7,10 @@ use crate::lockfile::PackLock;
 use crate::manifest::AgentpackManifest;
 use crate::mode::filter::EffectiveMode;
 use crate::paths::{
-    agentpack_claude_settings_path, cursor_workspace_dir, staging_codex_home_dir_for_mode,
-    staging_cursor_bundle_dir_for_mode, staging_cursor_home_dir_for_mode,
-    staging_cursor_pack_plugin_dir_for_mode, staging_grok_bundle_dir_for_mode,
-    staging_grok_dir_for_mode, staging_grok_home_dir_for_mode, staging_opencode_dir_for_mode,
-    staging_plugins_dir_for_mode, STAGED_AGENTPACK_BUNDLE_NAME,
+    staging_codex_home_dir_for_mode, staging_cursor_bundle_dir_for_mode,
+    staging_cursor_home_dir_for_mode, staging_cursor_pack_plugin_dir_for_mode,
+    staging_grok_bundle_dir_for_mode, staging_grok_dir_for_mode, staging_grok_home_dir_for_mode,
+    staging_opencode_dir_for_mode, staging_plugins_dir_for_mode, STAGED_AGENTPACK_BUNDLE_NAME,
 };
 
 use super::agy::{finalize_agy_staging, prepare_agy_staging_without_pack_overlay};
@@ -22,13 +21,13 @@ use super::attribution::{
 use super::claude_home::{materialize_claude_settings_overlay, set_claude_settings_mcp_allowlist};
 use super::cursor::{
     finalize_cursor_staging_common, finalize_cursor_workspace_overlay,
-    prepare_cursor_staging_without_pack_overlay, read_cursor_overlay_manifest,
-    write_cursor_pack_plugin_readme,
+    prepare_cursor_staging_without_pack_overlay, write_cursor_pack_plugin_readme,
 };
 use super::dot_agents::stage_dot_agents_overlay;
 use super::pack_overlay::{
     stage_pack_plugins_all_harnesses, stage_pack_skills_all_harnesses, PackHarnessRoots,
 };
+use super::keep_attribution;
 use super::seed::{seed_codex_home, seed_grok_home, seed_opencode_root};
 use super::HarnessTarget;
 
@@ -161,128 +160,19 @@ impl<'a> StagingPipeline<'a> {
         Ok(vec![self.claude_bundle_dir()?])
     }
 
+    /// Borrowed context handed to each [`Harness`](crate::harness::Harness) staging method.
+    fn stage_ctx(&self) -> crate::harness::StageCtx<'a> {
+        crate::harness::StageCtx {
+            project_root: self.project_root,
+            mode: self.mode,
+            launch_target: self.target,
+        }
+    }
+
     pub(super) fn verify(&self) -> Result<()> {
-        self.verify_claude()?;
-        self.verify_opencode()?;
-        self.verify_codex()?;
-        self.verify_cursor()?;
-        self.verify_grok()?;
-        self.verify_agy()?;
-        Ok(())
-    }
-
-    fn verify_claude(&self) -> Result<()> {
-        let bundle = self.claude_bundle_dir()?;
-        staging_require(bundle.join(".claude-plugin/plugin.json").is_file(), || {
-            format!("bundle missing manifest {}", bundle.display())
-        })?;
-
-        // Claude attribution overlay (passed via `claude --settings`). Lives under
-        // `$AGENTPACK_HOME` so credentials stay in the user-global keychain entry; see
-        // `claude_home.rs` for the full rationale.
-        if !keep_attribution() {
-            let overlay = agentpack_claude_settings_path()?;
-            staging_require(overlay.is_file(), || {
-                format!("claude --settings overlay missing {}", overlay.display())
-            })?;
-        }
-        Ok(())
-    }
-
-    fn verify_opencode(&self) -> Result<()> {
-        let root = self.opencode_root()?;
-        staging_require(root.is_dir(), || {
-            format!("opencode staging missing {}", root.display())
-        })
-    }
-
-    fn verify_codex(&self) -> Result<()> {
-        let root = self.codex_home()?;
-        staging_require(root.is_dir(), || {
-            format!("codex home staging missing {}", root.display())
-        })
-    }
-
-    fn verify_cursor(&self) -> Result<()> {
-        let bundle_root = self.cursor_bundle_root()?;
-        let pack_plugin = self.cursor_pack_plugin_dir()?;
-        let home = self.cursor_home()?;
-        staging_require(bundle_root.is_dir(), || {
-            format!("cursor staging missing {}", bundle_root.display())
-        })?;
-        staging_require(
-            pack_plugin.join(".cursor-plugin/plugin.json").is_file(),
-            || {
-                format!(
-                    "cursor pack plugin missing {}",
-                    pack_plugin.join(".cursor-plugin/plugin.json").display()
-                )
-            },
-        )?;
-        staging_require(
-            bundle_root
-                .join(".cursor-plugin/marketplace.json")
-                .is_file(),
-            || {
-                format!(
-                    "cursor staging missing {}",
-                    bundle_root
-                        .join(".cursor-plugin/marketplace.json")
-                        .display()
-                )
-            },
-        )?;
-        staging_require(home.join(".cursor").is_dir(), || {
-            format!("cursor fake home missing .cursor/ under {}", home.display())
-        })?;
-        if matches!(self.target, Some(HarnessTarget::Cursor)) {
-            for rel in read_cursor_overlay_manifest(self.project_root)? {
-                let tracked = cursor_workspace_dir(self.project_root).join(&rel);
-                if !tracked.exists() {
-                    return Err(AgentpackError::Staging(format!(
-                        "cursor workspace overlay missing at {} (from cursor-overlay.manifest entry {})",
-                        tracked.display(), rel.display()
-                    )));
-                }
-            }
-        }
-        Ok(())
-    }
-
-    fn verify_grok(&self) -> Result<()> {
-        let grok_home = self.grok_home()?;
-        let grok_bundle = self.grok_bundle_dir()?;
-        staging_require(grok_home.join("config.toml").is_file(), || {
-            format!(
-                "grok home missing config.toml under {}",
-                grok_home.display()
-            )
-        })?;
-        staging_require(grok_bundle.join("plugin.json").is_file(), || {
-            format!(
-                "grok bundle missing {}",
-                grok_bundle.join("plugin.json").display()
-            )
-        })
-    }
-
-    fn verify_agy(&self) -> Result<()> {
-        let agy_bundle = self.agy_bundle_dir()?;
-        staging_require(agy_bundle.join("plugin.json").is_file(), || {
-            format!(
-                "agy bundle missing {}",
-                agy_bundle.join("plugin.json").display()
-            )
-        })?;
-        if matches!(self.target, Some(HarnessTarget::Agy)) {
-            for tracked in super::agy::agy_workspace_overlay_paths(self.project_root)? {
-                if !tracked.exists() {
-                    return Err(AgentpackError::Staging(format!(
-                        "agy workspace overlay missing at {}",
-                        tracked.display()
-                    )));
-                }
-            }
+        let ctx = self.stage_ctx();
+        for harness in crate::harness::all() {
+            harness.verify(&ctx)?;
         }
         Ok(())
     }
@@ -354,20 +244,6 @@ impl<'a> StagingPipeline<'a> {
         }
         Ok(())
     }
-}
-
-fn staging_require(cond: bool, message: impl FnOnce() -> String) -> Result<()> {
-    if !cond {
-        return Err(AgentpackError::Staging(message()));
-    }
-    Ok(())
-}
-
-fn keep_attribution() -> bool {
-    matches!(
-        std::env::var("AGENTPACK_KEEP_ATTRIBUTION").ok().as_deref(),
-        Some("1") | Some("true") | Some("yes")
-    )
 }
 
 fn write_bundle_manifest(bundle: &Path) -> Result<()> {

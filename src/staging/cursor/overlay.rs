@@ -13,9 +13,7 @@ use crate::paths::{
 use super::super::constants::CURSOR_WORKSPACE_AGENTS_OVERLAY;
 use super::fake_home::symlink_or_copy_into_fake_home;
 
-pub(in crate::staging) fn read_cursor_overlay_manifest(
-    project_root: &Path,
-) -> Result<Vec<PathBuf>> {
+pub(crate) fn read_cursor_overlay_manifest(project_root: &Path) -> Result<Vec<PathBuf>> {
     let manifest = cursor_overlay_manifest_path(project_root)?;
     match fs::read_to_string(&manifest) {
         Ok(contents) => Ok(contents

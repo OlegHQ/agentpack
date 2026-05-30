@@ -24,6 +24,9 @@ use crate::lockfile::{LockPackage, PackLock};
 use crate::manifest::AgentpackManifest;
 use crate::mode::filter::EffectiveMode;
 use crate::paths::staging_plugins_dir_for_mode;
+pub(crate) use agy::agy_workspace_overlay_paths;
+pub(crate) use attribution::keep_attribution;
+pub(crate) use cursor::read_cursor_overlay_manifest;
 pub(crate) use pack_overlay::skill_folder_name;
 pub use pack_overlay::skill_is_shadowed;
 

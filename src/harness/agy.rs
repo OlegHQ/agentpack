@@ -1,5 +1,8 @@
-use super::{Harness, HarnessTarget};
+use super::{require, Harness, HarnessTarget, StageCtx};
 use crate::artifacts::ArtifactKind;
+use crate::error::{AgentpackError, Result};
+use crate::paths::staging_agy_bundle_dir_for_mode;
+use crate::staging::agy_workspace_overlay_paths;
 
 /// Antigravity (`agy`): pack content reaches it via a workspace plugin overlay; `HOME` untouched.
 pub(super) struct Agy;
@@ -32,5 +35,26 @@ impl Harness for Agy {
             ArtifactKind::Rule => ArtifactKind::Rule,
             other => other,
         }
+    }
+
+    fn verify(&self, ctx: &StageCtx) -> Result<()> {
+        let agy_bundle = staging_agy_bundle_dir_for_mode(ctx.project_root, ctx.mode.name())?;
+        require(agy_bundle.join("plugin.json").is_file(), || {
+            format!(
+                "agy bundle missing {}",
+                agy_bundle.join("plugin.json").display()
+            )
+        })?;
+        if ctx.launch_target == Some(HarnessTarget::Agy) {
+            for tracked in agy_workspace_overlay_paths(ctx.project_root)? {
+                if !tracked.exists() {
+                    return Err(AgentpackError::Staging(format!(
+                        "agy workspace overlay missing at {}",
+                        tracked.display()
+                    )));
+                }
+            }
+        }
+        Ok(())
     }
 }

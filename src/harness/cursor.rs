@@ -1,8 +1,14 @@
 use serde_norway::Mapping;
 
-use super::{Harness, HarnessTarget};
+use super::{require, Harness, HarnessTarget, StageCtx};
 use crate::artifacts::yaml::insert_string;
 use crate::artifacts::ArtifactKind;
+use crate::error::{AgentpackError, Result};
+use crate::paths::{
+    cursor_workspace_dir, staging_cursor_bundle_dir_for_mode, staging_cursor_home_dir_for_mode,
+    staging_cursor_pack_plugin_dir_for_mode,
+};
+use crate::staging::read_cursor_overlay_manifest;
 
 /// Cursor: pack plugin tree plus a fake `HOME` and an optional workspace `.cursor/agents` overlay.
 pub(super) struct Cursor;
@@ -44,5 +50,51 @@ impl Harness for Cursor {
             ArtifactKind::Rule => ArtifactKind::Rule,
             other => other,
         }
+    }
+
+    fn verify(&self, ctx: &StageCtx) -> Result<()> {
+        let mode = ctx.mode.name();
+        let bundle_root = staging_cursor_bundle_dir_for_mode(ctx.project_root, mode)?;
+        let pack_plugin = staging_cursor_pack_plugin_dir_for_mode(ctx.project_root, mode)?;
+        let home = staging_cursor_home_dir_for_mode(ctx.project_root, mode)?;
+        require(bundle_root.is_dir(), || {
+            format!("cursor staging missing {}", bundle_root.display())
+        })?;
+        require(
+            pack_plugin.join(".cursor-plugin/plugin.json").is_file(),
+            || {
+                format!(
+                    "cursor pack plugin missing {}",
+                    pack_plugin.join(".cursor-plugin/plugin.json").display()
+                )
+            },
+        )?;
+        require(
+            bundle_root
+                .join(".cursor-plugin/marketplace.json")
+                .is_file(),
+            || {
+                format!(
+                    "cursor staging missing {}",
+                    bundle_root.join(".cursor-plugin/marketplace.json").display()
+                )
+            },
+        )?;
+        require(home.join(".cursor").is_dir(), || {
+            format!("cursor fake home missing .cursor/ under {}", home.display())
+        })?;
+        if ctx.launch_target == Some(HarnessTarget::Cursor) {
+            for rel in read_cursor_overlay_manifest(ctx.project_root)? {
+                let tracked = cursor_workspace_dir(ctx.project_root).join(&rel);
+                if !tracked.exists() {
+                    return Err(AgentpackError::Staging(format!(
+                        "cursor workspace overlay missing at {} (from cursor-overlay.manifest entry {})",
+                        tracked.display(),
+                        rel.display()
+                    )));
+                }
+            }
+        }
+        Ok(())
     }
 }

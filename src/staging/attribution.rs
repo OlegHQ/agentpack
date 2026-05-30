@@ -53,7 +53,9 @@ Specifically, do not include:
 Write commit messages and PR descriptions as if a human author wrote them.
 ";
 
-fn keep_attribution() -> bool {
+/// Single source of truth for the `AGENTPACK_KEEP_ATTRIBUTION` opt-out, shared across every staged
+/// harness and the Claude overlay.
+pub(crate) fn keep_attribution() -> bool {
     matches!(
         std::env::var(KEEP_ENV).ok().as_deref(),
         Some("1") | Some("true") | Some("yes")

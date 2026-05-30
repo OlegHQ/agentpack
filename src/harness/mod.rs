@@ -17,6 +17,8 @@ mod cursor;
 mod grok;
 mod opencode;
 
+use std::path::Path;
+
 use serde_norway::Mapping;
 
 use agy::Agy;
@@ -29,6 +31,28 @@ use opencode::OpenCode;
 use crate::artifacts::yaml::insert_string;
 use crate::artifacts::ArtifactKind;
 pub use crate::artifacts::HarnessTarget;
+use crate::error::{AgentpackError, Result};
+use crate::mode::filter::EffectiveMode;
+
+/// Read-only context threaded into every staging step. Pure borrows — the staging pipeline already
+/// owns these, so the trait methods derive their own per-harness destination paths from
+/// `project_root` + `mode` rather than receiving them.
+pub struct StageCtx<'a> {
+    pub project_root: &'a Path,
+    pub mode: &'a EffectiveMode,
+    /// The harness being launched, if any. Drives workspace-overlay materialization and the
+    /// presence checks that are only meaningful for the launching harness (Cursor / Agy).
+    pub launch_target: Option<HarnessTarget>,
+}
+
+/// Staging-side assertion helper: `Err(Staging(msg()))` when `cond` is false.
+fn require(cond: bool, msg: impl FnOnce() -> String) -> Result<()> {
+    if cond {
+        Ok(())
+    } else {
+        Err(AgentpackError::Staging(msg()))
+    }
+}
 
 /// One coding-agent integration. Each impl owns all of that harness's quirks. Zero-field unit
 /// structs: every per-invocation input flows through borrowed context, so the registry can hand
@@ -113,6 +137,12 @@ pub trait Harness: Sync {
     fn disables_model_invocation_for_kind(&self, kind: ArtifactKind) -> bool {
         kind == ArtifactKind::Command
     }
+
+    // ---- verify (was: the 6 `StagingPipeline::verify_*` methods) ----
+
+    /// Assert this harness's staged tree is well-formed. Read-only — cross-harness mutation
+    /// (collision shadowing) stays a shared pass in `staging::verify_staging`.
+    fn verify(&self, ctx: &StageCtx) -> Result<()>;
 }
 
 /// The single source of truth for "what harnesses exist". Unit structs are const-constructible,

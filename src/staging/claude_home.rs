@@ -29,6 +29,7 @@ use std::fs;
 
 use serde_json::{json, Value};
 
+use super::attribution::keep_attribution;
 use crate::error::{AgentpackError, Result};
 use crate::fs_util::{read_json_value_opt, remove_path_any, write_json_value};
 use crate::paths::agentpack_claude_settings_path;
@@ -76,13 +77,6 @@ pub(super) fn set_claude_settings_mcp_allowlist(names: &[String]) -> Result<()> 
         "set claude --settings enabledMcpjsonServers"
     );
     Ok(())
-}
-
-fn keep_attribution() -> bool {
-    matches!(
-        std::env::var("AGENTPACK_KEEP_ATTRIBUTION").ok().as_deref(),
-        Some("1") | Some("true") | Some("yes")
-    )
 }
 
 #[cfg(test)]
