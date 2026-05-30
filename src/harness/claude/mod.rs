@@ -1,3 +1,6 @@
+mod hooks;
+mod settings;
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -11,17 +14,15 @@ use crate::artifacts::yaml::insert_string;
 use crate::error::{AgentpackError, Result};
 use crate::hooks::capabilities::SupportLevel;
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
-use crate::hooks::render::{ClaudeHookRenderer, HookRenderer};
+use crate::hooks::render::HookRenderer;
 use crate::hooks::runtime::translate::claude_fallback_output;
 use crate::launcher::common::{apply_yolo_claude, resolve_harness_binary};
 use crate::paths::{
     agentpack_claude_settings_path, staging_plugins_dir_for_mode, STAGED_AGENTPACK_BUNDLE_NAME,
 };
+use crate::staging::keep_attribution;
+use crate::staging::list_plugin_dirs;
 use crate::staging::mcp::{write_claude_mcp_servers_json, StagedMcpEntries};
-use crate::staging::{
-    keep_attribution, list_plugin_dirs, materialize_claude_settings_overlay,
-    set_claude_settings_mcp_allowlist,
-};
 
 /// Claude Code: staged as a `--plugin-dir` bundle; attribution overlay via `--settings`.
 pub(super) struct Claude;
@@ -69,7 +70,7 @@ impl Harness for Claude {
         fs::create_dir_all(&bundle).map_err(|e| AgentpackError::io(&bundle, e))?;
         write_bundle_manifest(&bundle)?;
         // Attribution overlay consumed by the launcher via `claude --settings <path>`.
-        materialize_claude_settings_overlay()
+        settings::materialize_claude_settings_overlay()
     }
 
     fn write_mcp(&self, merged: &StagedMcpEntries, ctx: &StageCtx) -> Result<()> {
@@ -82,7 +83,7 @@ impl Harness for Claude {
         // them as untrusted project-scope MCPs.
         if !merged.is_empty() && !keep_attribution() {
             let names: Vec<String> = merged.keys().cloned().collect();
-            set_claude_settings_mcp_allowlist(&names)?;
+            settings::set_claude_settings_mcp_allowlist(&names)?;
         }
         Ok(())
     }
@@ -96,7 +97,7 @@ impl Harness for Claude {
     }
 
     fn hook_renderer(&self) -> Option<Box<dyn HookRenderer>> {
-        Some(Box::new(ClaudeHookRenderer))
+        Some(Box::new(hooks::ClaudeHookRenderer))
     }
 
     fn raw_plugin_subdirs(&self) -> &'static [&'static str] {

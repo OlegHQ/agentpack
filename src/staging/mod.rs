@@ -1,7 +1,6 @@
 //! Staging: merge pack.lock trees into per-harness directories under `$STAGING`.
 
 mod attribution;
-mod claude_home;
 mod collision;
 mod constants;
 mod cursor;
@@ -23,9 +22,6 @@ use crate::manifest::AgentpackManifest;
 use crate::mode::filter::EffectiveMode;
 use crate::paths::staging_plugins_dir_for_mode;
 pub(crate) use attribution::{force_cursor_attribution_off, keep_attribution, NO_ATTRIBUTION_BODY};
-pub(crate) use claude_home::{
-    materialize_claude_settings_overlay, set_claude_settings_mcp_allowlist,
-};
 pub(crate) use cursor::{
     finalize_cursor_staging_common, finalize_cursor_workspace_overlay,
     prepare_cursor_staging_without_pack_overlay, read_cursor_overlay_manifest,

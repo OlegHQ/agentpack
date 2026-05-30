@@ -1,16 +1,18 @@
+//! Claude hook rendering: emits native `hooks/hooks.json`, wrapping command handlers through
+//! `agentpack hook-exec` to preserve package-relative working directories.
+
 use serde_json::{json, Map, Value};
 
 use crate::artifacts::HarnessTarget;
 use crate::error::Result;
-
-use super::{
+use crate::hooks::ir::{ClaudeHandler, HookBundle, NormalizedHook};
+use crate::hooks::paths::hook_exec_command;
+use crate::hooks::render::{
     build_exec_spec_file, handler_to_json_object, push_diag, HookRenderer, RenderContext,
     RenderedHookFile, RenderedHookFileContents, RenderedHookOutput,
 };
-use crate::hooks::ir::{ClaudeHandler, HookBundle, NormalizedHook};
-use crate::hooks::paths::hook_exec_command;
 
-pub struct ClaudeHookRenderer;
+pub(super) struct ClaudeHookRenderer;
 
 impl HookRenderer for ClaudeHookRenderer {
     fn target(&self) -> HarnessTarget {
