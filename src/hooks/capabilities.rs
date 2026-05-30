@@ -69,27 +69,3 @@ pub(crate) fn codex_support(event: ClaudeEvent, handler: &ClaudeHandler) -> Supp
         ClaudeHandler::Http(_) | ClaudeHandler::Agent(_) => SupportLevel::Emulated,
     }
 }
-
-pub(crate) fn opencode_support(event: ClaudeEvent, handler: &ClaudeHandler) -> SupportLevel {
-    let event_level = match event {
-        ClaudeEvent::PreToolUse
-        | ClaudeEvent::PostToolUse
-        | ClaudeEvent::PermissionRequest
-        | ClaudeEvent::PreCompact => None,
-        ClaudeEvent::UserPromptSubmit => Some(SupportLevel::Degraded {
-            reason: "OpenCode exposes chat.message after receipt rather than Claude's submit hook",
-        }),
-        _ => Some(SupportLevel::Unsupported {
-            reason: "OpenCode has no direct lifecycle hook for this Claude event",
-        }),
-    };
-    if let Some(level) = event_level {
-        return level;
-    }
-    match handler {
-        ClaudeHandler::Command(_) => SupportLevel::Native,
-        ClaudeHandler::Http(_) | ClaudeHandler::Prompt(_) | ClaudeHandler::Agent(_) => {
-            SupportLevel::Emulated
-        }
-    }
-}

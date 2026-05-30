@@ -1,13 +1,3 @@
-/// OpenCode config root entries we preserve before overlaying pack content.
-pub(super) const OPENCODE_USER_ROOT_ENTRIES: &[&str] = &[
-    "opencode.json",
-    "agents",
-    "commands",
-    "modes",
-    "plugins",
-    "skills",
-];
-
 /// Codex home entries we preserve before overlaying pack content.
 /// `auth.json` is linked separately so every staged `CODEX_HOME` shares the same refresh state.
 pub(super) const CODEX_HOME_ENTRIES: &[&str] = &["config.toml", "hooks.json", "skills", "themes"];

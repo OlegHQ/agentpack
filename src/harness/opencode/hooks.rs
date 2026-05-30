@@ -1,16 +1,19 @@
+//! OpenCode hook rendering: generates a Bun plugin (`plugins/agentpack-hooks/`) that bridges
+//! Claude-style hooks into OpenCode's lifecycle events via `agentpack hook-exec`.
+
 use serde_json::{json, Value};
 
 use crate::artifacts::HarnessTarget;
 use crate::error::Result;
 use crate::fs_util::read_json_value_opt;
-
-use super::{
+use crate::hooks::capabilities::SupportLevel;
+use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, HookBundle};
+use crate::hooks::render::{
     build_exec_spec_file, check_support, push_diag, strict_mapping_error, HookRenderer,
     RenderContext, RenderedHookFile, RenderedHookFileContents, RenderedHookOutput,
 };
-use crate::hooks::ir::{ClaudeEvent, HookBundle};
 
-pub struct OpenCodeHookRenderer;
+pub(super) struct OpenCodeHookRenderer;
 
 impl HookRenderer for OpenCodeHookRenderer {
     fn target(&self) -> HarnessTarget {
@@ -76,6 +79,31 @@ impl HookRenderer for OpenCodeHookRenderer {
             contents: RenderedHookFileContents::Json(merged_opencode_config(ctx.target_root)?),
         });
         Ok(output)
+    }
+}
+
+/// Support level for emulating a Claude hook event+handler on OpenCode.
+pub(super) fn opencode_support(event: ClaudeEvent, handler: &ClaudeHandler) -> SupportLevel {
+    let event_level = match event {
+        ClaudeEvent::PreToolUse
+        | ClaudeEvent::PostToolUse
+        | ClaudeEvent::PermissionRequest
+        | ClaudeEvent::PreCompact => None,
+        ClaudeEvent::UserPromptSubmit => Some(SupportLevel::Degraded {
+            reason: "OpenCode exposes chat.message after receipt rather than Claude's submit hook",
+        }),
+        _ => Some(SupportLevel::Unsupported {
+            reason: "OpenCode has no direct lifecycle hook for this Claude event",
+        }),
+    };
+    if let Some(level) = event_level {
+        return level;
+    }
+    match handler {
+        ClaudeHandler::Command(_) => SupportLevel::Native,
+        ClaudeHandler::Http(_) | ClaudeHandler::Prompt(_) | ClaudeHandler::Agent(_) => {
+            SupportLevel::Emulated
+        }
     }
 }
 

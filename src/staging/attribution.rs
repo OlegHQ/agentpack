@@ -33,10 +33,9 @@ use std::path::Path;
 use serde_json::{json, Value};
 
 use crate::error::{AgentpackError, Result};
-use crate::fs_util::{read_json_value_opt, remove_path_any, write_json_value, write_text_file};
+use crate::fs_util::{read_json_value_opt, remove_path_any, write_json_value};
 
 const KEEP_ENV: &str = "AGENTPACK_KEEP_ATTRIBUTION";
-const OPENCODE_INSTRUCTIONS_FILE: &str = "agentpack-no-attribution.md";
 const AGY_ATTRIBUTION_RULE_FILE: &str = "agentpack-no-attribution.md";
 /// Prose attribution-off guidance shared by the prompt-level harnesses (OpenCode / Grok / Agy)
 /// that have no first-class attribution setting.
@@ -140,40 +139,6 @@ pub(super) fn force_cursor_fake_home_attribution_off(
     Ok(())
 }
 
-/// Force-disable OpenCode attribution by writing an instruction file under the staged config root
-/// and adding it to the `instructions` array in `opencode.json`. OpenCode has no first-class
-/// attribution setting (sst/opencode#919, sst/opencode#1135) so this is a system-prompt nudge.
-pub(crate) fn force_opencode_attribution_off(root: &Path) -> Result<()> {
-    if keep_attribution() {
-        return Ok(());
-    }
-    let instructions_path = root.join(OPENCODE_INSTRUCTIONS_FILE);
-    write_text_file(&instructions_path, NO_ATTRIBUTION_BODY)?;
-
-    let config_path = root.join("opencode.json");
-    let mut value = read_json_value_opt(&config_path)?.unwrap_or_else(|| json!({}));
-    if !value.is_object() {
-        value = json!({});
-    }
-    let obj = value.as_object_mut().expect("ensured object above");
-    let entry = obj
-        .entry("instructions".to_string())
-        .or_insert_with(|| Value::Array(Vec::new()));
-    if !entry.is_array() {
-        *entry = Value::Array(Vec::new());
-    }
-    let arr = entry.as_array_mut().expect("ensured array above");
-    let already = arr
-        .iter()
-        .any(|v| v.as_str() == Some(OPENCODE_INSTRUCTIONS_FILE));
-    if !already {
-        arr.push(Value::String(OPENCODE_INSTRUCTIONS_FILE.to_string()));
-    }
-    write_json_value(&config_path, &value)?;
-    tracing::debug!(path = %config_path.display(), "forced OpenCode attribution off via instructions[]");
-    Ok(())
-}
-
 /// Antigravity has no confirmed first-class attribution setting. Stage a plugin-local rule as
 /// prompt-level guidance only.
 pub(crate) fn force_agy_attribution_off(bundle: &Path) -> Result<()> {
@@ -260,31 +225,6 @@ mod tests {
             // Source untouched.
             let src = std::fs::read_to_string(&real).unwrap();
             assert!(src.contains("\"attributeCommitsToAgent\":true"));
-        });
-    }
-
-    #[test]
-    fn opencode_attribution_adds_instructions_entry_idempotently() {
-        with_keep_unset(|| {
-            let dir = tempfile::tempdir().unwrap();
-            std::fs::write(
-                dir.path().join("opencode.json"),
-                r#"{"$schema":"https://opencode.ai/config.json","instructions":["docs/team.md"]}"#,
-            )
-            .unwrap();
-            force_opencode_attribution_off(dir.path()).unwrap();
-            force_opencode_attribution_off(dir.path()).unwrap();
-            let v = read_json_value_opt(&dir.path().join("opencode.json"))
-                .unwrap()
-                .unwrap();
-            let arr = v["instructions"].as_array().unwrap();
-            assert!(arr.iter().any(|x| x == "docs/team.md"));
-            let count = arr
-                .iter()
-                .filter(|x| x.as_str() == Some(OPENCODE_INSTRUCTIONS_FILE))
-                .count();
-            assert_eq!(count, 1);
-            assert!(dir.path().join(OPENCODE_INSTRUCTIONS_FILE).is_file());
         });
     }
 }

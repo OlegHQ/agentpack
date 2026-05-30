@@ -1,7 +1,6 @@
 mod claude;
 mod codex;
 mod cursor;
-mod opencode;
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -19,7 +18,6 @@ use super::runtime::bridge::HookExecutionSpec;
 pub use claude::ClaudeHookRenderer;
 pub use codex::CodexHookRenderer;
 pub use cursor::CursorHookRenderer;
-pub use opencode::OpenCodeHookRenderer;
 
 #[derive(Clone, Debug)]
 pub enum RenderedHookFileContents {
