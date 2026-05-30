@@ -103,8 +103,12 @@ impl<'a> StagingPipeline<'a> {
         write_cursor_pack_plugin_readme(&cursor_pack)?;
         stage_dot_agents_overlay(self.project_root, self.mode.name(), self.mode)?;
         // Merge once, then let each harness render its own native format.
-        let merged_mcp =
-            super::mcp::collect_merged_mcp(self.project_root, self.lock, self.manifest, Some(self.mode))?;
+        let merged_mcp = super::mcp::collect_merged_mcp(
+            self.project_root,
+            self.lock,
+            self.manifest,
+            Some(self.mode),
+        )?;
         if !merged_mcp.is_empty() {
             let ctx = self.stage_ctx();
             for harness in crate::harness::all() {
@@ -125,7 +129,9 @@ impl<'a> StagingPipeline<'a> {
         // Workspace overlays (Cursor `.cursor/agents`, Agy `.agents/plugins/...`) are only created
         // for the harness being launched; each impl knows its own overlay (default: none).
         if let Some(target) = self.target {
-            target.harness().finalize_workspace_overlay(&self.stage_ctx())?;
+            target
+                .harness()
+                .finalize_workspace_overlay(&self.stage_ctx())?;
         }
 
         Ok(vec![self.claude_bundle_dir()?])

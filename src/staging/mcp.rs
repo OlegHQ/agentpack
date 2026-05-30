@@ -343,7 +343,10 @@ pub(crate) fn merge_into_toml_mcp_config(config_path: &Path, merged: &MergedEntr
         if servers.contains_key(name) {
             continue;
         }
-        servers.insert(name.clone(), toml::Value::Table(toml_mcp_entry_table(entry)));
+        servers.insert(
+            name.clone(),
+            toml::Value::Table(toml_mcp_entry_table(entry)),
+        );
     }
 
     let out = toml::to_string(&doc)

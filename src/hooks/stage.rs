@@ -20,22 +20,26 @@ pub fn stage_hooks_all_harnesses(
 ) -> Result<()> {
     let mode_name = mode.name();
     // Native Codex hooks are seeded into `<codex_home>/hooks.json` and folded into the bundle.
-    let codex_home = HarnessTarget::Codex.harness().staged_root(project_root, mode_name)?;
-    let bundle = collect_hooks(project_root, lock, Some(&codex_home.join("hooks.json")), mode)?;
+    let codex_home = HarnessTarget::Codex
+        .harness()
+        .staged_root(project_root, mode_name)?;
+    let bundle = collect_hooks(
+        project_root,
+        lock,
+        Some(&codex_home.join("hooks.json")),
+        mode,
+    )?;
     if bundle.hooks.is_empty() {
         return Ok(());
     }
-    tracing::warn!(
-        "Grok and Antigravity hook staging is disabled pending CLI smoke-test coverage"
-    );
+    tracing::warn!("Grok and Antigravity hook staging is disabled pending CLI smoke-test coverage");
 
     for harness in crate::harness::all() {
         let Some(renderer) = harness.hook_renderer() else {
             continue;
         };
         let target_root = harness.staged_root(project_root, mode_name)?;
-        let staged_packages =
-            stage_origin_packages(&bundle, harness.id(), &target_root, mode)?;
+        let staged_packages = stage_origin_packages(&bundle, harness.id(), &target_root, mode)?;
         let ctx = RenderContext {
             project_root,
             target_root: &target_root,

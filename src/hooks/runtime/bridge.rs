@@ -9,7 +9,7 @@ use serde_json::{Map, Value};
 use crate::fs_util::read_json_value;
 
 use super::super::ir::{
-    ClaudeEvent, ClaudeHandler, HookDecision, HarnessTarget, NormalizedHookResult,
+    ClaudeEvent, ClaudeHandler, HarnessTarget, HookDecision, NormalizedHookResult,
 };
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

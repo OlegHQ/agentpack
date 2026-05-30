@@ -257,7 +257,11 @@ mod tests {
         // Every registry entry has a unique id.
         let ids: Vec<HarnessTarget> = all().iter().map(|h| h.id()).collect();
         let id_set: HashSet<HarnessTarget> = ids.iter().copied().collect();
-        assert_eq!(id_set.len(), all().len(), "duplicate harness ids in registry");
+        assert_eq!(
+            id_set.len(),
+            all().len(),
+            "duplicate harness ids in registry"
+        );
 
         // The registry and `HarnessTarget::all()` cover the same set (orders differ by design).
         let target_set: HashSet<HarnessTarget> = HarnessTarget::all().into_iter().collect();

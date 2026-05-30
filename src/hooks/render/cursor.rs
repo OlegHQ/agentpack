@@ -14,8 +14,8 @@ use crate::artifacts::HarnessTarget;
 use crate::error::Result;
 
 use super::{
-    build_exec_spec_file, check_support, push_diag, HookRenderer, RenderContext,
-    RenderedHookFile, RenderedHookFileContents, RenderedHookOutput,
+    build_exec_spec_file, check_support, push_diag, HookRenderer, RenderContext, RenderedHookFile,
+    RenderedHookFileContents, RenderedHookOutput,
 };
 use crate::hooks::ir::{ClaudeEvent, HookBundle, NormalizedHook};
 use crate::hooks::paths::{hook_dispatch_command, specs_dispatch_root};
@@ -96,11 +96,7 @@ fn add_blanket_entry(
     fail_closed: bool,
 ) {
     let specs_dir = specs_dispatch_root(HarnessTarget::Cursor, ctx.target_root);
-    let command = hook_dispatch_command(
-        HarnessTarget::Cursor,
-        event.as_claude_str(),
-        &specs_dir,
-    );
+    let command = hook_dispatch_command(HarnessTarget::Cursor, event.as_claude_str(), &specs_dir);
     let entries = entries_per_event.entry(step).or_default();
     let already = entries.iter().any(|entry| {
         entry

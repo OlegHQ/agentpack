@@ -7,7 +7,9 @@ use crate::error::{AgentpackError, Result};
 use crate::manifest::AgentpackManifest;
 
 use crate::mode::selectors::Selector;
-use crate::mode::{is_reserved_mode, validate_mode_name, ModeBase, ModeDefinition, DEFAULT_MODE_NAME};
+use crate::mode::{
+    is_reserved_mode, validate_mode_name, ModeBase, ModeDefinition, DEFAULT_MODE_NAME,
+};
 
 #[derive(Clone, Debug)]
 pub struct ModeEditorState {

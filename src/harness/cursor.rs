@@ -131,7 +131,9 @@ impl Harness for Cursor {
             || {
                 format!(
                     "cursor staging missing {}",
-                    bundle_root.join(".cursor-plugin/marketplace.json").display()
+                    bundle_root
+                        .join(".cursor-plugin/marketplace.json")
+                        .display()
                 )
             },
         )?;

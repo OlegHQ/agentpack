@@ -125,7 +125,8 @@ impl Harness for Claude {
                 .map(|dir| format!("  {}", dir.display()))
                 .collect::<Vec<_>>()
                 .join("\n");
-            ctx.ui.debug_message(format!("Claude plugin dirs:\n{rendered}"));
+            ctx.ui
+                .debug_message(format!("Claude plugin dirs:\n{rendered}"));
         }
 
         let claude = resolve_harness_binary("CLAUDE_CODE_PATH", "claude").with_context(|| {

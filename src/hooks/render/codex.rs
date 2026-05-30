@@ -4,8 +4,8 @@ use crate::artifacts::HarnessTarget;
 use crate::error::Result;
 
 use super::{
-    build_exec_spec_file, check_support, handler_to_json_object, HookRenderer,
-    RenderContext, RenderedHookFile, RenderedHookFileContents, RenderedHookOutput,
+    build_exec_spec_file, check_support, handler_to_json_object, HookRenderer, RenderContext,
+    RenderedHookFile, RenderedHookFileContents, RenderedHookOutput,
 };
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, HookBundle, HookLayer, NormalizedHook};
 use crate::hooks::paths::hook_exec_command;

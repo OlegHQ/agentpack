@@ -107,7 +107,10 @@ impl Harness for Agy {
         if !args_have_flag_with_value(&passthrough, "--add-dir") {
             passthrough.splice(
                 0..0,
-                ["--add-dir".to_string(), ctx.project_root.display().to_string()],
+                [
+                    "--add-dir".to_string(),
+                    ctx.project_root.display().to_string(),
+                ],
             );
         }
         if ctx.yolo {

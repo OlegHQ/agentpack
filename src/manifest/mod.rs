@@ -162,7 +162,6 @@ impl AgentpackManifest {
             Ok(Some(nested.dependencies))
         }
     }
-
 }
 
 #[cfg(test)]

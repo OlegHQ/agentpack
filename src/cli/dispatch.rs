@@ -69,22 +69,64 @@ pub fn run(cli: Cli) -> anyhow::Result<()> {
             )?;
         }
         Command::Claude { args } => {
-            launcher::launch(HarnessTarget::Claude, &root, args, cli.mode.as_deref(), cli.yolo, &ui)?;
+            launcher::launch(
+                HarnessTarget::Claude,
+                &root,
+                args,
+                cli.mode.as_deref(),
+                cli.yolo,
+                &ui,
+            )?;
         }
         Command::Opencode { args } => {
-            launcher::launch(HarnessTarget::OpenCode, &root, args, cli.mode.as_deref(), cli.yolo, &ui)?;
+            launcher::launch(
+                HarnessTarget::OpenCode,
+                &root,
+                args,
+                cli.mode.as_deref(),
+                cli.yolo,
+                &ui,
+            )?;
         }
         Command::Codex { args } => {
-            launcher::launch(HarnessTarget::Codex, &root, args, cli.mode.as_deref(), cli.yolo, &ui)?;
+            launcher::launch(
+                HarnessTarget::Codex,
+                &root,
+                args,
+                cli.mode.as_deref(),
+                cli.yolo,
+                &ui,
+            )?;
         }
         Command::Grok { args } => {
-            launcher::launch(HarnessTarget::Grok, &root, args, cli.mode.as_deref(), cli.yolo, &ui)?;
+            launcher::launch(
+                HarnessTarget::Grok,
+                &root,
+                args,
+                cli.mode.as_deref(),
+                cli.yolo,
+                &ui,
+            )?;
         }
         Command::Agy { args } => {
-            launcher::launch(HarnessTarget::Agy, &root, args, cli.mode.as_deref(), cli.yolo, &ui)?;
+            launcher::launch(
+                HarnessTarget::Agy,
+                &root,
+                args,
+                cli.mode.as_deref(),
+                cli.yolo,
+                &ui,
+            )?;
         }
         Command::Agent { args } => {
-            launcher::launch(HarnessTarget::Cursor, &root, args, cli.mode.as_deref(), cli.yolo, &ui)?;
+            launcher::launch(
+                HarnessTarget::Cursor,
+                &root,
+                args,
+                cli.mode.as_deref(),
+                cli.yolo,
+                &ui,
+            )?;
         }
         Command::Mcp { action } => {
             run_mcp(&root, action, &ui)?;

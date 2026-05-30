@@ -35,7 +35,10 @@ pub(crate) enum FetchOutcome {
     /// Skip to the next source; `transient` marks failures worth retrying (5xx, network,
     /// timeout, rate limit) versus permanent ones (401/403/404). Sources classify at the point
     /// of failure so [`Retrying`] doesn't have to re-parse the reason string.
-    Skip { reason: String, transient: bool },
+    Skip {
+        reason: String,
+        transient: bool,
+    },
     Fatal(AgentpackError),
 }
 
@@ -237,7 +240,9 @@ mod tests {
         let chain: Vec<Box<dyn TarballSource>> = vec![
             Box::new(ScriptedSource::new(
                 "a",
-                vec![ScriptedOutcome::PermanentSkip("404 via codeload-anon".into())],
+                vec![ScriptedOutcome::PermanentSkip(
+                    "404 via codeload-anon".into(),
+                )],
             )),
             Box::new(ScriptedSource::new(
                 "b",

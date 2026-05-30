@@ -15,7 +15,7 @@ use serde_json::Value;
 use super::bridge::{load_spec, stdin_json, HookExecutionSpec};
 use super::{agent, command, http, prompt};
 use crate::hooks::ir::{
-    ClaudeEvent, ClaudeHandler, HookDecision, HarnessTarget, NormalizedHookResult,
+    ClaudeEvent, ClaudeHandler, HarnessTarget, HookDecision, NormalizedHookResult,
 };
 
 /// Extract the tool name from harness stdin. Cursor uses `tool_name`; we also accept Claude's

@@ -82,7 +82,10 @@ impl Harness for Grok {
         let grok_home = staging_grok_home_dir_for_mode(ctx.project_root, mode)?;
         let grok_bundle = staging_grok_bundle_dir_for_mode(ctx.project_root, mode)?;
         require(grok_home.join("config.toml").is_file(), || {
-            format!("grok home missing config.toml under {}", grok_home.display())
+            format!(
+                "grok home missing config.toml under {}",
+                grok_home.display()
+            )
         })?;
         require(grok_bundle.join("plugin.json").is_file(), || {
             format!(

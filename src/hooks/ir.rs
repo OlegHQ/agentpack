@@ -222,4 +222,3 @@ pub struct NormalizedHookResult {
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub metadata: BTreeMap<String, Value>,
 }
-
