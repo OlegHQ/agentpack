@@ -17,8 +17,10 @@ UPSTREAM_REPO := $(GIT_SLUG)
 BREW_OWNER := $(shell echo $(GIT_SLUG) | cut -d/ -f1)
 endif
 
-HOMEBREW_TAP_DIR ?= $(CURDIR)/../homebrew-agentpack
-TAP_DESC := Homebrew tap for agentpack (https://github.com/$(UPSTREAM_REPO))
+# Shared multi-formula tap: $(BREW_OWNER)/homebrew-tap (root-level formulae, e.g. agentpack.rb).
+HOMEBREW_TAP_REPO ?= $(BREW_OWNER)/homebrew-tap
+HOMEBREW_TAP_DIR ?= $(CURDIR)/../homebrew-tap
+TAP_DESC := Homebrew tap for OlegHQ tools
 
 .PHONY: help all build release install uninstall \
 	minor patch check-clean check-gh \
@@ -40,10 +42,10 @@ help:
 	@echo "  ship-patch      bump patch, commit, tag v\$$v, push branch + tag"
 	@echo "  tag-push        push $(RELEASE_BRANCH) + create/push tag for current version (no bump)"
 	@echo "  gh-release      gh release create for current version (tag must exist on origin)"
-	@echo "Homebrew tap (second repo: $(BREW_OWNER)/homebrew-agentpack):"
-	@echo "  tap-init        create tap on GitHub if missing, clone to HOMEBREW_TAP_DIR, rsync packaging/"
-	@echo "  brew-sync       refresh url + sha256 in \$$HOMEBREW_TAP_DIR/Formula/agentpack.rb"
-	@echo "  brew-ship       brew-sync then commit + push the tap repo"
+	@echo "Homebrew shared tap ($(HOMEBREW_TAP_REPO)):"
+	@echo "  tap-init        clone $(HOMEBREW_TAP_REPO) to HOMEBREW_TAP_DIR (creates it if missing)"
+	@echo "  brew-sync       copy packaging formula -> tap root, refresh url + sha256 in agentpack.rb"
+	@echo "  brew-ship       brew-sync then commit + push agentpack.rb to the shared tap"
 	@echo "Env: RELEASE_BRANCH=$(RELEASE_BRANCH) HOMEBREW_TAP_DIR=$(HOMEBREW_TAP_DIR)"
 	@echo "     INSTALL_DIR=$(INSTALL_DIR) CARGO=$(CARGO)"
 
@@ -118,26 +120,28 @@ gh-release: check-gh
 brew-sync:
 	@set -e; \
 	v=$$($(CARGO) xtask read-version); \
+	cp "$(CURDIR)/packaging/homebrew-tap/agentpack.rb" "$(HOMEBREW_TAP_DIR)/agentpack.rb"; \
 	$(CARGO) xtask sync-homebrew "$(HOMEBREW_TAP_DIR)" "$(UPSTREAM_REPO)" "$$v"
 
 brew-ship: check-gh
 	@set -e; \
 	v=$$($(CARGO) xtask read-version); \
+	cp "$(CURDIR)/packaging/homebrew-tap/agentpack.rb" "$(HOMEBREW_TAP_DIR)/agentpack.rb"; \
 	$(CARGO) xtask sync-homebrew "$(HOMEBREW_TAP_DIR)" "$(UPSTREAM_REPO)" "$$v"; \
 	cd "$(HOMEBREW_TAP_DIR)" && \
-		git add Formula/agentpack.rb && \
+		git add agentpack.rb && \
 		if git diff --cached --quiet; then echo "no formula change"; exit 0; fi; \
 		git commit -m "agentpack $$v"; \
 		git push origin HEAD
 
+# Shared tap: only ever touch our own `agentpack.rb` — never rsync the whole dir (it holds other
+# formulae, e.g. rssdude.rb).
 tap-init: check-gh
 	@set -e; \
-	repo="$(BREW_OWNER)/homebrew-agentpack"; \
+	repo="$(HOMEBREW_TAP_REPO)"; \
 	if ! gh repo view "$$repo" >/dev/null 2>&1; then \
 		gh repo create "$$repo" --public --description "$(TAP_DESC)"; \
 	fi; \
 	clone_url=$$(gh repo view "$$repo" --json sshUrl -q .sshUrl); \
 	test -d "$(HOMEBREW_TAP_DIR)/.git" || git clone "$$clone_url" "$(HOMEBREW_TAP_DIR)"; \
-	rsync -a "$(CURDIR)/packaging/homebrew-tap/" "$(HOMEBREW_TAP_DIR)/"; \
-	echo "Synced packaging/homebrew-tap/ -> $(HOMEBREW_TAP_DIR)"; \
-	echo "Next: cd $(HOMEBREW_TAP_DIR) && git add -A && git commit -m 'init tap' && git push -u origin main || git push -u origin master"
+	echo "Cloned $$repo -> $(HOMEBREW_TAP_DIR). Next: make brew-ship"

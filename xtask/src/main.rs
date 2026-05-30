@@ -78,7 +78,8 @@ fn sync_homebrew(tap_root: &str, slug: &str, version: &str) {
 
     let tag = format!("v{version}");
     let url = format!("https://github.com/{slug}/archive/refs/tags/{tag}.tar.gz");
-    let formula = Path::new(tap_root).join("Formula/agentpack.rb");
+    // Shared tap (OlegHQ/homebrew-tap) keeps formulae at the repo root, not under `Formula/`.
+    let formula = Path::new(tap_root).join("agentpack.rb");
 
     if !formula.is_file() {
         eprintln!(

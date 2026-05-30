@@ -34,8 +34,7 @@ agentpack.toml  ──>  pack.lock  ──>  staged bundles  ──>  launch
 ### Homebrew (recommended)
 
 ```bash
-brew tap OlegHQ/agentpack
-brew install agentpack
+brew install OlegHQ/tap/agentpack
 ```
 
 To upgrade:
@@ -44,7 +43,8 @@ To upgrade:
 brew upgrade agentpack
 ```
 
-The tap repo is [OlegHQ/homebrew-agentpack](https://github.com/OlegHQ/homebrew-agentpack).
+Served from the shared tap [OlegHQ/homebrew-tap](https://github.com/OlegHQ/homebrew-tap)
+(`brew tap OlegHQ/tap && brew install agentpack` also works).
 
 ### From source
 
