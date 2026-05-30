@@ -1,4 +1,5 @@
 /target
+.agents
 .DS_Store
 rust_out
 .cursor

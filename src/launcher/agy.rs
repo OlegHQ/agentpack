@@ -1,6 +1,7 @@
 use anyhow::Context;
 
 use crate::launcher::common::{apply_yolo_agy, exec_inherit, resolve_harness_binary};
+use crate::staging::LaunchTarget;
 use crate::sync::sync_for_launch;
 use crate::ui::Ui;
 
@@ -11,7 +12,7 @@ pub fn run_agy(
     yolo: bool,
     ui: &Ui,
 ) -> anyhow::Result<()> {
-    let _mode = sync_for_launch(project_root, selected_mode, ui)?;
+    let _mode = sync_for_launch(project_root, selected_mode, LaunchTarget::Agy, ui)?;
 
     if yolo {
         apply_yolo_agy(&mut passthrough);

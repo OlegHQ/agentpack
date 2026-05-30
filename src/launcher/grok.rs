@@ -2,6 +2,7 @@ use anyhow::Context;
 
 use crate::launcher::common::{apply_yolo_grok, exec_with_env, resolve_harness_binary};
 use crate::paths;
+use crate::staging::LaunchTarget;
 use crate::sync::sync_for_launch;
 use crate::ui::Ui;
 
@@ -12,7 +13,7 @@ pub fn run_grok(
     yolo: bool,
     ui: &Ui,
 ) -> anyhow::Result<()> {
-    let mode = sync_for_launch(project_root, selected_mode, ui)?;
+    let mode = sync_for_launch(project_root, selected_mode, LaunchTarget::Grok, ui)?;
 
     if yolo {
         apply_yolo_grok(&mut passthrough);

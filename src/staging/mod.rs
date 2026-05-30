@@ -30,16 +30,48 @@ pub use pack_overlay::skill_is_shadowed;
 use harnesses::StagingPipeline;
 use pack_overlay::disabled_in_config;
 
+/// Which harness is about to be launched. Drives whether agentpack writes workspace-side
+/// overlay symlinks (`./.cursor/agents`, `./.agents/plugins/agentpack-bundle`) into the project
+/// tree. Bare `agentpack sync` / `add` / `remove` pass `None` so they leave the project clean.
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum LaunchTarget {
+    Claude,
+    Cursor,
+    Codex,
+    OpenCode,
+    Grok,
+    Agy,
+}
+
+impl LaunchTarget {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            LaunchTarget::Claude => "claude",
+            LaunchTarget::Cursor => "cursor",
+            LaunchTarget::Codex => "codex",
+            LaunchTarget::OpenCode => "opencode",
+            LaunchTarget::Grok => "grok",
+            LaunchTarget::Agy => "agy",
+        }
+    }
+}
+
 /// Build one plugin tree: optional copies of user **`settings.json`** / **`.claude.json`**, then
 /// plugin packages, then standalone skill packages. Later layers overwrite same relative paths
 /// under extension dirs (`agents`, `commands`, …).
+///
+/// `target` controls workspace-side overlay materialization: when `Some(LaunchTarget::Agy)` the
+/// `.agents/plugins/agentpack-bundle` symlink is written; when `Some(LaunchTarget::Cursor)` the
+/// `.cursor/agents` symlink is written. Other values (including `None` for bare `agentpack sync`)
+/// still run the cleanup pass that removes prior overlay symlinks tracked in their manifests.
 pub fn rebuild_staging(
     project_root: &Path,
     lock: &PackLock,
     manifest: Option<&AgentpackManifest>,
     mode: &EffectiveMode,
+    target: Option<LaunchTarget>,
 ) -> Result<Vec<PathBuf>> {
-    StagingPipeline::new(project_root, lock, manifest, mode).rebuild()
+    StagingPipeline::new(project_root, lock, manifest, mode, target).rebuild()
 }
 
 /// Enumerate plugin directories after `rebuild_staging` / `sync`.
@@ -60,8 +92,16 @@ pub fn list_plugin_dirs(project_root: &Path, mode_name: &str) -> Result<Vec<Path
 }
 
 /// Ensure staging layout: exactly one bundle and cache integrity for lockfile entries.
-pub fn verify_staging(project_root: &Path, lock: &PackLock, mode: &EffectiveMode) -> Result<()> {
-    let pipeline = StagingPipeline::new(project_root, lock, None, mode);
+///
+/// `target` matches the value passed to `rebuild_staging`; workspace overlay presence is only
+/// asserted for the matching harness.
+pub fn verify_staging(
+    project_root: &Path,
+    lock: &PackLock,
+    mode: &EffectiveMode,
+    target: Option<LaunchTarget>,
+) -> Result<()> {
+    let pipeline = StagingPipeline::new(project_root, lock, None, mode, target);
     pipeline.verify()?;
 
     let dirs = list_plugin_dirs(project_root, mode.name())?;

@@ -11,6 +11,7 @@ use walkdir::WalkDir;
 use crate::error::{AgentpackError, Result};
 use crate::mode::filter::EffectiveMode;
 use crate::paths;
+use crate::staging::LaunchTarget;
 
 #[derive(Serialize, Deserialize)]
 struct LaunchSyncState {
@@ -43,8 +44,15 @@ fn hash_dot_agents_tree(dir: &Path) -> Result<Vec<u8>> {
     Ok(hasher.finalize().to_vec())
 }
 
-/// Stable digest of everything that affects `run_sync` staging output for this project and mode.
-pub fn compute_launch_sync_digest(project_root: &Path, mode: &EffectiveMode) -> Result<String> {
+/// Stable digest of everything that affects `run_sync` staging output for this project, mode,
+/// and launch target. Including `target` ensures that switching from e.g. `agentpack agy` to
+/// `agentpack claude` invalidates the fast-path cache, so the `.agents/` workspace overlay
+/// created for `agy` gets cleaned up on the next sync.
+pub fn compute_launch_sync_digest(
+    project_root: &Path,
+    mode: &EffectiveMode,
+    target: Option<LaunchTarget>,
+) -> Result<String> {
     let mut hasher = Sha256::new();
 
     let manifest_path = paths::manifest_path(project_root);
@@ -74,6 +82,9 @@ pub fn compute_launch_sync_digest(project_root: &Path, mode: &EffectiveMode) -> 
 
     hasher.update(b"mode\0");
     hasher.update(mode.fingerprint_material().as_bytes());
+
+    hasher.update(b"target\0");
+    hasher.update(target.map(|t| t.as_str()).unwrap_or("__none__").as_bytes());
 
     Ok(hex::encode(hasher.finalize()))
 }
@@ -124,8 +135,8 @@ mod tests {
         write_file(root, "agentpack.toml", b"name=\"x\"\nversion=\"1\"\n");
         write_file(root, "pack.lock", b"lockfile-version=2\n");
         let mode = EffectiveMode::implicit_default();
-        let a = compute_launch_sync_digest(root, &mode).unwrap();
-        let b = compute_launch_sync_digest(root, &mode).unwrap();
+        let a = compute_launch_sync_digest(root, &mode, None).unwrap();
+        let b = compute_launch_sync_digest(root, &mode, None).unwrap();
         assert_eq!(a, b);
     }
 
@@ -136,9 +147,9 @@ mod tests {
         write_file(root, "agentpack.toml", b"a");
         write_file(root, "pack.lock", b"lock");
         let mode = EffectiveMode::implicit_default();
-        let d1 = compute_launch_sync_digest(root, &mode).unwrap();
+        let d1 = compute_launch_sync_digest(root, &mode, None).unwrap();
         write_file(root, "agentpack.toml", b"b");
-        let d2 = compute_launch_sync_digest(root, &mode).unwrap();
+        let d2 = compute_launch_sync_digest(root, &mode, None).unwrap();
         assert_ne!(d1, d2);
     }
 
@@ -150,9 +161,9 @@ mod tests {
         write_file(root, "pack.lock", b"lockfile-version=2\n");
         write_file(root, ".agents/foo.md", b"1");
         let mode = EffectiveMode::implicit_default();
-        let d1 = compute_launch_sync_digest(root, &mode).unwrap();
+        let d1 = compute_launch_sync_digest(root, &mode, None).unwrap();
         write_file(root, ".agents/foo.md", b"2");
-        let d2 = compute_launch_sync_digest(root, &mode).unwrap();
+        let d2 = compute_launch_sync_digest(root, &mode, None).unwrap();
         assert_ne!(d1, d2);
     }
 
@@ -164,7 +175,7 @@ mod tests {
         write_file(root, "pack.lock", b"lockfile-version=2\n");
 
         let default_mode = EffectiveMode::implicit_default();
-        let d1 = compute_launch_sync_digest(root, &default_mode).unwrap();
+        let d1 = compute_launch_sync_digest(root, &default_mode, None).unwrap();
         let selective_mode = EffectiveMode::from_definition(
             "design",
             crate::mode::ModeDefinition {
@@ -174,7 +185,24 @@ mod tests {
             },
         )
         .unwrap();
-        let d2 = compute_launch_sync_digest(root, &selective_mode).unwrap();
+        let d2 = compute_launch_sync_digest(root, &selective_mode, None).unwrap();
         assert_ne!(d1, d2);
+    }
+
+    #[test]
+    fn digest_changes_when_target_changes() {
+        let t = TempDir::new().unwrap();
+        let root = t.path();
+        write_file(root, "agentpack.toml", b"name=\"x\"\nversion=\"1\"\n");
+        write_file(root, "pack.lock", b"lockfile-version=2\n");
+        let mode = EffectiveMode::implicit_default();
+        let claude = compute_launch_sync_digest(root, &mode, Some(LaunchTarget::Claude)).unwrap();
+        let agy = compute_launch_sync_digest(root, &mode, Some(LaunchTarget::Agy)).unwrap();
+        let cursor = compute_launch_sync_digest(root, &mode, Some(LaunchTarget::Cursor)).unwrap();
+        let none = compute_launch_sync_digest(root, &mode, None).unwrap();
+        assert_ne!(claude, agy);
+        assert_ne!(claude, cursor);
+        assert_ne!(claude, none);
+        assert_ne!(agy, cursor);
     }
 }

@@ -55,12 +55,15 @@ pub fn run(cli: Cli) -> anyhow::Result<()> {
             verify_only,
             update_lock,
         } => {
+            // Bare `agentpack sync` is not tied to a specific harness, so we don't write the
+            // workspace-side overlay symlinks (`.cursor/agents`, `.agents/plugins/...`).
             sync::run_sync(
                 &root,
                 dry_run,
                 verify_only,
                 update_lock,
                 cli.mode.as_deref(),
+                None,
                 &ui,
             )?;
         }
@@ -112,14 +115,14 @@ fn run_mcp(root: &Path, action: McpAction, ui: &Ui) -> anyhow::Result<()> {
             manifest::AgentpackManifest::add_mcp_server(root, &name, &entry)?;
             ui.message(format!("Added MCP server \"{name}\" to agentpack.toml"));
             if !no_sync {
-                sync::run_sync(root, false, false, false, None, ui)?;
+                sync::run_sync(root, false, false, false, None, None, ui)?;
             }
         }
         McpAction::Remove { name, no_sync } => {
             manifest::AgentpackManifest::remove_mcp_server(root, &name)?;
             ui.message(format!("Removed MCP server \"{name}\" from agentpack.toml"));
             if !no_sync {
-                sync::run_sync(root, false, false, false, None, ui)?;
+                sync::run_sync(root, false, false, false, None, None, ui)?;
             }
         }
         McpAction::List => {

@@ -10,7 +10,7 @@ use crate::mode::catalog::CapabilityCatalog;
 use crate::mode::filter::EffectiveMode;
 use crate::paths;
 use crate::resolve::{resolve_lock_from_manifest, ResolveLockOpts};
-use crate::staging;
+use crate::staging::{self, LaunchTarget};
 use crate::ui::Ui;
 
 use super::launch_fingerprint::{
@@ -66,7 +66,8 @@ fn sync_unless_skipped(
         ui.message("Skipping sync (--no-sync).");
         return Ok(());
     }
-    super::run_sync(project_root, false, false, false, selected_mode, ui)
+    // `add` / `remove` / `mcp` flows don't launch a harness — no workspace overlay should appear.
+    super::run_sync(project_root, false, false, false, selected_mode, None, ui)
 }
 
 pub fn run_add(project_root: &Path, spec: &str, no_sync: bool, ui: &Ui) -> Result<()> {
@@ -155,10 +156,12 @@ pub fn run_lock(project_root: &Path, refresh_floating: bool, ui: &Ui) -> Result<
 /// Used by launcher commands (`claude`, `agent`, `opencode`, `codex`) to sync before exec.
 ///
 /// When inputs are unchanged, skips full resolve/stage and reuses existing cache + staging after
-/// integrity checks.
+/// integrity checks. `target` flows down so workspace overlays (`.cursor/agents`,
+/// `.agents/plugins/agentpack-bundle`) are only materialized for the matching harness.
 pub fn sync_for_launch(
     project_root: &Path,
     selected_mode: Option<&str>,
+    target: LaunchTarget,
     ui: &Ui,
 ) -> Result<EffectiveMode> {
     paths::ensure_user_agentpack_layout()?;
@@ -167,10 +170,10 @@ pub fn sync_for_launch(
     let mode = resolve_effective_mode(project_root, manifest.as_ref(), &lock, selected_mode)?;
 
     if let Some(stored) = read_stored_launch_digest(project_root, mode.name())? {
-        let current = compute_launch_sync_digest(project_root, &mode)?;
+        let current = compute_launch_sync_digest(project_root, &mode, Some(target))?;
         if stored == current {
             match verify_lock_cache_integrity(&lock) {
-                Ok(()) => match staging::verify_staging(project_root, &lock, &mode) {
+                Ok(()) => match staging::verify_staging(project_root, &lock, &mode, Some(target)) {
                     Ok(()) => {
                         ui.debug_message(
                             "Launch sync skipped — manifest, lock, cache, and staging look unchanged.",
@@ -184,8 +187,16 @@ pub fn sync_for_launch(
         }
     }
 
-    super::run_sync(project_root, false, false, false, Some(mode.name()), ui)?;
-    let digest = compute_launch_sync_digest(project_root, &mode)?;
+    super::run_sync(
+        project_root,
+        false,
+        false,
+        false,
+        Some(mode.name()),
+        Some(target),
+        ui,
+    )?;
+    let digest = compute_launch_sync_digest(project_root, &mode, Some(target))?;
     write_launch_sync_state(project_root, mode.name(), &digest)?;
     Ok(mode)
 }
