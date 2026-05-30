@@ -40,10 +40,7 @@ fn package_key(cache_key: Option<&str>, module: &str, layer: HookLayer) -> Strin
         HookLayer::BareSkill => "skill",
         HookLayer::DotAgents => "dot-agents",
     };
-    let slug = module
-        .chars()
-        .map(|ch| if ch.is_ascii_alphanumeric() { ch } else { '-' })
-        .collect::<String>();
+    let slug = crate::slug::dashed(module);
     format!("{prefix}-{slug}")
 }
 

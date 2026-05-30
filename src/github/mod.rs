@@ -1,5 +1,6 @@
 mod download;
 mod extract;
+mod fetch;
 mod git_protocol;
 mod list_tags;
 mod metadata_cache;

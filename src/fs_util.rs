@@ -5,6 +5,7 @@ use std::io::{self, ErrorKind};
 use std::path::Path;
 
 use serde_json::Value;
+use walkdir::{DirEntry, WalkDir};
 
 use crate::error::{AgentpackError, Result};
 
@@ -144,6 +145,54 @@ pub(crate) fn truncate_str(value: &str, max_chars: usize) -> String {
     }
     // Fallback for multi-byte chars at the boundary.
     value.chars().take(max_chars).collect()
+}
+
+/// Options for [`walk_dir`].
+#[derive(Clone, Copy)]
+pub(crate) struct WalkDirOpts {
+    pub follow_links: bool,
+    pub contents_first: bool,
+}
+
+impl WalkDirOpts {
+    pub const fn files() -> Self {
+        Self {
+            follow_links: false,
+            contents_first: false,
+        }
+    }
+
+    pub const fn files_contents_first() -> Self {
+        Self {
+            follow_links: false,
+            contents_first: true,
+        }
+    }
+}
+
+pub(crate) fn map_walk_err(err: walkdir::Error) -> AgentpackError {
+    AgentpackError::Staging(err.to_string())
+}
+
+pub(crate) fn strip_under_root<'a>(path: &'a Path, root: &'a Path) -> Result<&'a Path> {
+    path.strip_prefix(root).map_err(|_| {
+        AgentpackError::Staging(format!(
+            "path outside {}: {}",
+            root.display(),
+            path.display()
+        ))
+    })
+}
+
+pub(crate) fn walk_dir(
+    root: &Path,
+    opts: WalkDirOpts,
+) -> impl Iterator<Item = Result<DirEntry>> {
+    let mut walker = WalkDir::new(root).follow_links(opts.follow_links);
+    if opts.contents_first {
+        walker = walker.contents_first(true);
+    }
+    walker.into_iter().map(|entry| entry.map_err(map_walk_err))
 }
 
 /// Copy the named top-level `entries` from `src_root` into `dst_root`, merging directories. Shared

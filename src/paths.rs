@@ -141,17 +141,7 @@ pub fn mode_path_component(mode_name: &str) -> String {
         return "default".into();
     }
 
-    let mut slug = mode_name
-        .chars()
-        .map(|ch| {
-            if ch.is_ascii_alphanumeric() {
-                ch.to_ascii_lowercase()
-            } else {
-                '-'
-            }
-        })
-        .collect::<String>();
-    slug = slug.trim_matches('-').to_string();
+    let mut slug = crate::slug::dashed_lower(mode_name);
     if slug.is_empty() {
         slug = "mode".into();
     }
@@ -178,46 +168,49 @@ pub fn staging_root(project_root: &Path) -> Result<PathBuf> {
     staging_root_for_mode(project_root, "default")
 }
 
-/// Per-project plugin staging: each skill becomes a minimal plugin tree here.
-pub fn staging_plugins_dir_for_mode(project_root: &Path, mode_name: &str) -> Result<PathBuf> {
-    Ok(staging_root_for_mode(project_root, mode_name)?.join("plugins"))
+fn staging_subdir(project_root: &Path, mode_name: &str, segment: &str) -> Result<PathBuf> {
+    Ok(staging_root_for_mode(project_root, mode_name)?.join(segment))
 }
 
-pub fn staging_plugins_dir(project_root: &Path) -> Result<PathBuf> {
-    staging_plugins_dir_for_mode(project_root, "default")
+macro_rules! staging_dir_pair {
+    ($(#[$doc:meta])* $for_mode:ident, $default:ident, $segment:literal) => {
+        $(#[$doc])*
+        pub fn $for_mode(project_root: &Path, mode_name: &str) -> Result<PathBuf> {
+            staging_subdir(project_root, mode_name, $segment)
+        }
+
+        pub fn $default(project_root: &Path) -> Result<PathBuf> {
+            staging_subdir(project_root, "default", $segment)
+        }
+    };
 }
 
-pub fn staging_opencode_dir_for_mode(project_root: &Path, mode_name: &str) -> Result<PathBuf> {
-    Ok(staging_root_for_mode(project_root, mode_name)?.join("opencode"))
-}
-
-pub fn staging_opencode_dir(project_root: &Path) -> Result<PathBuf> {
-    staging_opencode_dir_for_mode(project_root, "default")
-}
-
-pub fn staging_codex_home_dir_for_mode(project_root: &Path, mode_name: &str) -> Result<PathBuf> {
-    Ok(staging_root_for_mode(project_root, mode_name)?.join("codex-home"))
-}
-
-pub fn staging_codex_home_dir(project_root: &Path) -> Result<PathBuf> {
-    staging_codex_home_dir_for_mode(project_root, "default")
-}
-
-pub fn staging_grok_home_dir_for_mode(project_root: &Path, mode_name: &str) -> Result<PathBuf> {
-    Ok(staging_root_for_mode(project_root, mode_name)?.join("grok-home"))
-}
-
-pub fn staging_grok_home_dir(project_root: &Path) -> Result<PathBuf> {
-    staging_grok_home_dir_for_mode(project_root, "default")
-}
-
-pub fn staging_grok_dir_for_mode(project_root: &Path, mode_name: &str) -> Result<PathBuf> {
-    Ok(staging_root_for_mode(project_root, mode_name)?.join("grok"))
-}
-
-pub fn staging_grok_dir(project_root: &Path) -> Result<PathBuf> {
-    staging_grok_dir_for_mode(project_root, "default")
-}
+staging_dir_pair!(
+    #[doc = "Per-project plugin staging: each skill becomes a minimal plugin tree here."]
+    staging_plugins_dir_for_mode,
+    staging_plugins_dir,
+    "plugins"
+);
+staging_dir_pair!(
+    staging_opencode_dir_for_mode,
+    staging_opencode_dir,
+    "opencode"
+);
+staging_dir_pair!(
+    staging_codex_home_dir_for_mode,
+    staging_codex_home_dir,
+    "codex-home"
+);
+staging_dir_pair!(
+    staging_grok_home_dir_for_mode,
+    staging_grok_home_dir,
+    "grok-home"
+);
+staging_dir_pair!(
+    staging_grok_dir_for_mode,
+    staging_grok_dir,
+    "grok"
+);
 
 pub fn staging_grok_bundle_dir_for_mode(project_root: &Path, mode_name: &str) -> Result<PathBuf> {
     Ok(staging_grok_dir_for_mode(project_root, mode_name)?.join(STAGED_AGENTPACK_BUNDLE_NAME))
@@ -227,13 +220,7 @@ pub fn staging_grok_bundle_dir(project_root: &Path) -> Result<PathBuf> {
     staging_grok_bundle_dir_for_mode(project_root, "default")
 }
 
-pub fn staging_agy_dir_for_mode(project_root: &Path, mode_name: &str) -> Result<PathBuf> {
-    Ok(staging_root_for_mode(project_root, mode_name)?.join("agy"))
-}
-
-pub fn staging_agy_dir(project_root: &Path) -> Result<PathBuf> {
-    staging_agy_dir_for_mode(project_root, "default")
-}
+staging_dir_pair!(staging_agy_dir_for_mode, staging_agy_dir, "agy");
 
 pub fn staging_agy_bundle_dir_for_mode(project_root: &Path, mode_name: &str) -> Result<PathBuf> {
     Ok(staging_agy_dir_for_mode(project_root, mode_name)?.join(STAGED_AGENTPACK_BUNDLE_NAME))
@@ -252,13 +239,11 @@ pub fn shared_codex_auth_path() -> Result<PathBuf> {
         .join("auth.json"))
 }
 
-pub fn staging_cursor_bundle_dir_for_mode(project_root: &Path, mode_name: &str) -> Result<PathBuf> {
-    Ok(staging_root_for_mode(project_root, mode_name)?.join("cursor"))
-}
-
-pub fn staging_cursor_bundle_dir(project_root: &Path) -> Result<PathBuf> {
-    staging_cursor_bundle_dir_for_mode(project_root, "default")
-}
+staging_dir_pair!(
+    staging_cursor_bundle_dir_for_mode,
+    staging_cursor_bundle_dir,
+    "cursor"
+);
 
 /// Staged Cursor plugin root: **`$STAGING/cursor/<bundle>/`** with **`.cursor-plugin/plugin.json`**, sibling to **`$STAGING/cursor/.cursor-plugin/marketplace.json`** (Cursor multi-plugin repo layout).
 pub fn staging_cursor_pack_plugin_dir_for_mode(
@@ -273,14 +258,12 @@ pub fn staging_cursor_pack_plugin_dir(project_root: &Path) -> Result<PathBuf> {
     staging_cursor_pack_plugin_dir_for_mode(project_root, "default")
 }
 
-/// Fake **`$HOME`** for **`agentpack agent`**: contains **`.cursor/`** with symlinks to pack content and to your real Cursor auth/session files.
-pub fn staging_cursor_home_dir_for_mode(project_root: &Path, mode_name: &str) -> Result<PathBuf> {
-    Ok(staging_root_for_mode(project_root, mode_name)?.join("cursor-home"))
-}
-
-pub fn staging_cursor_home_dir(project_root: &Path) -> Result<PathBuf> {
-    staging_cursor_home_dir_for_mode(project_root, "default")
-}
+staging_dir_pair!(
+    #[doc = "Fake **`$HOME`** for **`agentpack agent`**: contains **`.cursor/`** with symlinks to pack content and to your real Cursor auth/session files."]
+    staging_cursor_home_dir_for_mode,
+    staging_cursor_home_dir,
+    "cursor-home"
+);
 
 /// Stable settings overlay file passed to `claude --settings <path>`. Lives under
 /// `$AGENTPACK_HOME` (not staging) so its location does not depend on the project, mode, or temp

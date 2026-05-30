@@ -16,11 +16,10 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
 
-use walkdir::WalkDir;
-
 use crate::artifacts::{parse_markdown_artifact, ArtifactKind, MarkdownArtifact};
 use crate::cache::cache_entry_dir;
 use crate::error::{AgentpackError, Result};
+use crate::fs_util::{strip_under_root, walk_dir, WalkDirOpts};
 use crate::lockfile::PackLock;
 use crate::mode::filter::EffectiveMode;
 use crate::paths::project_dot_agents_dir;
@@ -41,13 +40,13 @@ fn walk_rules(
     if !root.is_dir() {
         return Ok(());
     }
-    for entry in WalkDir::new(root).follow_links(false) {
-        let entry = entry.map_err(|e| AgentpackError::Staging(e.to_string()))?;
+    for entry in walk_dir(root, WalkDirOpts::files()) {
+        let entry = entry?;
         if !entry.file_type().is_file() {
             continue;
         }
         let path = entry.path();
-        let rel = match path.strip_prefix(root) {
+        let rel = match strip_under_root(path, root) {
             Ok(r) => r,
             Err(_) => continue,
         };

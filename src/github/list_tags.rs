@@ -7,6 +7,7 @@ use serde::Deserialize;
 
 use crate::error::{AgentpackError, Result};
 
+use super::fetch::try_git_protocol;
 use super::git_protocol::GitProtocolClient;
 use super::metadata_cache::{CachedTags, GitHubMetadataCache};
 use super::resolve_ref::warn_on_low_rate_limit;
@@ -79,37 +80,26 @@ fn git_protocol_or_stale_tags_fallback(
     repo: &str,
     error: AgentpackError,
 ) -> Result<Vec<(String, String)>> {
-    tracing::warn!(
-        owner,
-        repo,
-        error = %error,
-        "GitHub REST tag listing failed; trying git protocol fallback"
-    );
-    match GitProtocolClient::list_tags(owner, repo) {
-        Ok(tags) => {
-            GitHubMetadataCache::store_tags(owner, repo, &tags)?;
-            return Ok(tags);
-        }
-        Err(gix_error) => {
-            tracing::warn!(
-                owner,
-                repo,
-                error = %gix_error,
-                "Git protocol fallback failed; considering stale cached tags"
-            );
+    match try_git_protocol(owner, repo, "tags", error, || {
+        let tags = GitProtocolClient::list_tags(owner, repo)?;
+        GitHubMetadataCache::store_tags(owner, repo, &tags)?;
+        Ok(tags)
+    }) {
+        Ok(tags) => Ok(tags),
+        Err(rest_error) => {
+            if let Some(entry) = cached {
+                tracing::warn!(
+                    owner,
+                    repo,
+                    tags = entry.tags.len(),
+                    "GitHub tag listing failed; using stale cached tags"
+                );
+                Ok(entry.tags.clone())
+            } else {
+                Err(rest_error)
+            }
         }
     }
-    if let Some(entry) = cached {
-        tracing::warn!(
-            owner,
-            repo,
-            tags = entry.tags.len(),
-            error = %error,
-            "GitHub tag listing failed; using stale cached tags"
-        );
-        return Ok(entry.tags.clone());
-    }
-    Err(error)
 }
 
 #[cfg(test)]

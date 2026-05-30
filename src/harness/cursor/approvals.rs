@@ -104,7 +104,7 @@ fn cursor_data_dir() -> Option<PathBuf> {
 
 fn workspace_approvals_path(project_root: &Path) -> Option<PathBuf> {
     let data_dir = cursor_data_dir()?;
-    let slug = slugify_path(&canonical_workspace_string(project_root));
+    let slug = crate::slug::collapse_dashes(&canonical_workspace_string(project_root));
     Some(
         data_dir
             .join("projects")
@@ -119,29 +119,6 @@ fn canonical_workspace_string(project_root: &Path) -> String {
         .unwrap_or_else(|_| project_root.to_path_buf())
         .to_string_lossy()
         .into_owned()
-}
-
-/// Match `cursor-agent` `slugifyPath`: replace non-alphanumeric with `-`, collapse runs of
-/// `-`, then trim leading/trailing `-`.
-fn slugify_path(s: &str) -> String {
-    let replaced: String = s
-        .chars()
-        .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
-        .collect();
-    let mut collapsed = String::with_capacity(replaced.len());
-    let mut prev_dash = false;
-    for c in replaced.chars() {
-        if c == '-' {
-            if !prev_dash {
-                collapsed.push(c);
-            }
-            prev_dash = true;
-        } else {
-            collapsed.push(c);
-            prev_dash = false;
-        }
-    }
-    collapsed.trim_matches('-').to_owned()
 }
 
 fn approval_id(name: &str, entry: &McpServerEntry, workspace: &str) -> Result<String> {
@@ -176,12 +153,14 @@ mod tests {
 
     #[test]
     fn slugify_matches_cursor_rules() {
+        use crate::slug::collapse_dashes;
+
         assert_eq!(
-            slugify_path("/Users/snowbear/WORK/GIT/agentpack"),
+            collapse_dashes("/Users/snowbear/WORK/GIT/agentpack"),
             "Users-snowbear-WORK-GIT-agentpack"
         );
-        assert_eq!(slugify_path("/a//b/c"), "a-b-c");
-        assert_eq!(slugify_path("---x---"), "x");
+        assert_eq!(collapse_dashes("/a//b/c"), "a-b-c");
+        assert_eq!(collapse_dashes("---x---"), "x");
     }
 
     #[test]

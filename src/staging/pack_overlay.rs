@@ -3,7 +3,6 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use rayon::prelude::*;
-use walkdir::WalkDir;
 
 use crate::artifacts::{parse_markdown_artifact, staged_skill_support_path};
 use crate::cache::{cache_entry_dir, cache_has_plugin_manifest};
@@ -12,21 +11,19 @@ use crate::harness::HarnessTarget;
 use crate::lockfile::{LockPackage, PackLock, PackageKind};
 use crate::mode::filter::EffectiveMode;
 
-use crate::fs_util::{fast_copy_file, write_text_file};
+use crate::fs_util::{fast_copy_file, strip_under_root, walk_dir, write_text_file, WalkDirOpts};
 
 fn walk_source_files<F>(root: &Path, visitor: &mut F) -> Result<()>
 where
     F: FnMut(&Path, &Path) -> Result<()>,
 {
-    for entry in WalkDir::new(root).follow_links(false) {
-        let entry = entry.map_err(|e| AgentpackError::Staging(e.to_string()))?;
+    for entry in walk_dir(root, WalkDirOpts::files()) {
+        let entry = entry?;
         if !entry.file_type().is_file() {
             continue;
         }
         let path = entry.path();
-        let rel = path.strip_prefix(root).map_err(|_| {
-            AgentpackError::Staging(format!("path outside root: {}", path.display()))
-        })?;
+        let rel = strip_under_root(path, root)?;
         visitor(path, rel)?;
     }
     Ok(())

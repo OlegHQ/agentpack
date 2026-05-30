@@ -11,6 +11,7 @@ pub(crate) mod manifest;
 pub mod mode;
 pub mod paths;
 mod resolve;
+pub(crate) mod slug;
 pub(crate) mod staging;
 pub mod sync;
 pub mod ui;

@@ -1,10 +1,8 @@
 use std::fs;
 use std::path::Path;
 
-use walkdir::WalkDir;
-
 use crate::error::{AgentpackError, Result};
-use crate::fs_util::remove_path_any;
+use crate::fs_util::{remove_path_any, strip_under_root, walk_dir, WalkDirOpts};
 use crate::mode::filter::EffectiveMode;
 use crate::paths::{
     project_dot_agents_dir, staging_codex_home_dir_for_mode, staging_plugins_dir_for_mode,
@@ -39,11 +37,9 @@ fn merge_dot_agents_rules_mdc(
     if !rules_root.is_dir() {
         return Ok(());
     }
-    for e in WalkDir::new(rules_root).into_iter().filter_map(|r| r.ok()) {
-        if !e.file_type().is_file() {
-            continue;
-        }
-        let p = e.path();
+    for entry in walk_dir(rules_root, WalkDirOpts::files()) {
+        let entry = entry?;
+        let p = entry.path();
         if !p.extension().is_some_and(|x| x.eq_ignore_ascii_case("mdc")) {
             continue;
         }
@@ -73,12 +69,10 @@ fn copy_dot_agents_tree(
     if !src.is_dir() {
         return Ok(());
     }
-    for entry in WalkDir::new(&src).follow_links(false) {
-        let entry = entry.map_err(|error| AgentpackError::Staging(error.to_string()))?;
+    for entry in walk_dir(&src, WalkDirOpts::files()) {
+        let entry = entry?;
         let path = entry.path();
-        let rel = path.strip_prefix(&src).map_err(|_| {
-            AgentpackError::Staging(format!("dot-agents path outside root {}", path.display()))
-        })?;
+        let rel = strip_under_root(path, &src)?;
         if rel.as_os_str().is_empty() {
             continue;
         }

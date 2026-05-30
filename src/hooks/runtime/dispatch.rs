@@ -6,11 +6,11 @@
 //! Results are aggregated: any `deny` wins over `allow`; messages and `additional_context`
 //! are concatenated; `updated_input` / `updated_tool_output` use last-writer-wins.
 
-use std::fs;
 use std::path::Path;
 
 use regex::Regex;
 use serde_json::Value;
+use walkdir::WalkDir;
 
 use super::bridge::{load_spec, stdin_json, HookExecutionSpec};
 use super::handlers::{run_agent, run_command, run_http, run_prompt};
@@ -73,22 +73,18 @@ pub(crate) fn matcher_matches(matcher: Option<&str>, candidates: &[String]) -> b
 /// are skipped with a debug log so stray artifacts don't break dispatch.
 fn load_specs(specs_dir: &Path) -> Vec<(std::path::PathBuf, HookExecutionSpec)> {
     let mut out = Vec::new();
-    let mut stack = vec![specs_dir.to_path_buf()];
-    while let Some(dir) = stack.pop() {
-        let rd = match fs::read_dir(&dir) {
-            Ok(rd) => rd,
-            Err(_) => continue,
-        };
-        for entry in rd.flatten() {
-            let path = entry.path();
-            if path.is_dir() {
-                stack.push(path);
-            } else if path.extension().is_some_and(|e| e == "json") {
-                match load_spec(&path) {
-                    Ok(spec) => out.push((path, spec)),
-                    Err(e) => tracing::debug!(path = %path.display(), error = %e, "skip non-spec"),
-                }
-            }
+    for entry in WalkDir::new(specs_dir)
+        .follow_links(false)
+        .into_iter()
+        .filter_map(|entry| entry.ok())
+    {
+        let path = entry.into_path();
+        if !path.is_file() || path.extension().is_none_or(|ext| ext != "json") {
+            continue;
+        }
+        match load_spec(&path) {
+            Ok(spec) => out.push((path, spec)),
+            Err(e) => tracing::debug!(path = %path.display(), error = %e, "skip non-spec"),
         }
     }
     out

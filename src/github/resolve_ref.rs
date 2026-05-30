@@ -6,6 +6,7 @@ use serde::Deserialize;
 
 use crate::error::{AgentpackError, Result};
 
+use super::fetch::try_git_protocol;
 use super::git_protocol::GitProtocolClient;
 use super::metadata_cache::{CachedRef, GitHubMetadataCache};
 
@@ -58,7 +59,13 @@ pub fn resolve_ref_to_sha(
     let resp = match resp {
         Ok(resp) => resp,
         Err(err) => {
-            return git_protocol_or_stale_ref_fallback(cached.as_ref(), owner, repo, git_ref, err);
+            return git_protocol_or_stale_ref_fallback(
+                cached.as_ref(),
+                owner,
+                repo,
+                git_ref,
+                err,
+            );
         }
     };
     let status = resp.status();
@@ -96,40 +103,27 @@ fn git_protocol_or_stale_ref_fallback(
     git_ref: &str,
     error: AgentpackError,
 ) -> Result<String> {
-    tracing::warn!(
-        owner,
-        repo,
-        git_ref,
-        error = %error,
-        "GitHub REST ref resolution failed; trying git protocol fallback"
-    );
-    match GitProtocolClient::resolve_ref_to_sha(owner, repo, git_ref) {
-        Ok(sha) => {
-            GitHubMetadataCache::store_ref(owner, repo, git_ref, &sha)?;
-            return Ok(sha);
-        }
-        Err(gix_error) => {
-            tracing::warn!(
-                owner,
-                repo,
-                git_ref,
-                error = %gix_error,
-                "Git protocol fallback failed; considering stale cached ref"
-            );
+    match try_git_protocol(owner, repo, git_ref, error, || {
+        let sha = GitProtocolClient::resolve_ref_to_sha(owner, repo, git_ref)?;
+        GitHubMetadataCache::store_ref(owner, repo, git_ref, &sha)?;
+        Ok(sha)
+    }) {
+        Ok(sha) => Ok(sha),
+        Err(rest_error) => {
+            if let Some(entry) = cached {
+                tracing::warn!(
+                    owner,
+                    repo,
+                    git_ref,
+                    sha = %entry.sha,
+                    "GitHub ref resolution failed; using stale cached ref"
+                );
+                Ok(entry.sha.clone())
+            } else {
+                Err(rest_error)
+            }
         }
     }
-    if let Some(entry) = cached {
-        tracing::warn!(
-            owner,
-            repo,
-            git_ref,
-            sha = %entry.sha,
-            error = %error,
-            "GitHub ref resolution failed; using stale cached ref"
-        );
-        return Ok(entry.sha.clone());
-    }
-    Err(error)
 }
 
 pub(crate) fn warn_on_low_rate_limit(headers: &HeaderMap) {

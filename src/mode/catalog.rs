@@ -1,10 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
-use walkdir::WalkDir;
-
 use crate::cache::cache_entry_dir;
 use crate::error::{AgentpackError, Result};
+use crate::fs_util::{strip_under_root, walk_dir, WalkDirOpts};
 use crate::lockfile::{LockPackage, PackLock};
 use crate::manifest::AgentpackManifest;
 use crate::staging::mcp::collect_merged_mcp;
@@ -159,19 +158,13 @@ fn walk_relative_paths(root: &Path) -> Result<BTreeSet<String>> {
     if !root.is_dir() {
         return Ok(paths);
     }
-    for entry in WalkDir::new(root).follow_links(false) {
-        let entry = entry.map_err(|error| AgentpackError::Staging(error.to_string()))?;
+    for entry in walk_dir(root, WalkDirOpts::files()) {
+        let entry = entry?;
         let path = entry.path();
         if path == root {
             continue;
         }
-        let rel = path.strip_prefix(root).map_err(|_| {
-            AgentpackError::Staging(format!(
-                "path outside {}: {}",
-                root.display(),
-                path.display()
-            ))
-        })?;
+        let rel = strip_under_root(path, root)?;
         paths.insert(normalize_relative_runtime_path(rel)?);
     }
     Ok(paths)

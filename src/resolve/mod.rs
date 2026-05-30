@@ -1,4 +1,4 @@
-//! Resolve **`agentpack.toml`** into a **`pack.lock`** (v2) using PubGrub-ready constraint merges and GitHub materialization.
+//! Resolve **`agentpack.toml`** into a **`pack.lock`** (v2) via nested-manifest BFS, constraint merges, and GitHub materialization.
 
 mod constraints;
 pub(crate) mod module_id;
@@ -334,20 +334,5 @@ mod effective_ref_tests {
         let c = Client::new();
         let got = pick_effective_git_ref(&mc, &c, "foo", "bar", &mid, &opts).unwrap();
         assert_eq!(got, "HEAD");
-    }
-}
-
-#[cfg(test)]
-mod pubgrub_smoke {
-    use pubgrub::{resolve, OfflineDependencyProvider, Ranges};
-
-    #[test]
-    fn diamond_conflict_is_unsat() {
-        type VS = Ranges<u32>;
-        let mut p = OfflineDependencyProvider::<&str, VS>::new();
-        p.add_dependencies("root", 1u32, [("a", Ranges::full()), ("b", Ranges::full())]);
-        p.add_dependencies("a", 1u32, [("c", Ranges::singleton(1u32))]);
-        p.add_dependencies("b", 1u32, [("c", Ranges::singleton(2u32))]);
-        assert!(resolve(&p, "root", 1u32).is_err());
     }
 }

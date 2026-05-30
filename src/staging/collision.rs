@@ -8,10 +8,8 @@ use std::fs;
 use std::io::{self, IsTerminal};
 use std::path::Path;
 
-use walkdir::WalkDir;
-
 use crate::error::{AgentpackError, Result};
-use crate::fs_util::remove_path_any;
+use crate::fs_util::{remove_path_any, walk_dir, WalkDirOpts};
 
 /// Lowercase skill slugs removed from staged harness trees so `verify_staging` can skip them.
 pub(super) struct StagingCollisionRemoval {
@@ -86,8 +84,8 @@ fn remove_md_stems_under_tree(root: &Path, stem_lower: &str) -> Result<()> {
     if !root.is_dir() {
         return Ok(());
     }
-    for entry in WalkDir::new(root).follow_links(false).contents_first(true) {
-        let entry = entry.map_err(|e| AgentpackError::Staging(e.to_string()))?;
+    for entry in walk_dir(root, WalkDirOpts::files_contents_first()) {
+        let entry = entry?;
         let p = entry.path();
         if !p.is_file() {
             continue;
