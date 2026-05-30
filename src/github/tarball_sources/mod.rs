@@ -32,8 +32,27 @@ use gix_source::GixClone;
 
 pub(crate) enum FetchOutcome {
     Ok(Vec<u8>),
-    Skip(String),
+    /// Skip to the next source; `transient` marks failures worth retrying (5xx, network,
+    /// timeout, rate limit) versus permanent ones (401/403/404). Sources classify at the point
+    /// of failure so [`Retrying`] doesn't have to re-parse the reason string.
+    Skip { reason: String, transient: bool },
     Fatal(AgentpackError),
+}
+
+impl FetchOutcome {
+    pub fn transient_skip(reason: impl Into<String>) -> Self {
+        Self::Skip {
+            reason: reason.into(),
+            transient: true,
+        }
+    }
+
+    pub fn permanent_skip(reason: impl Into<String>) -> Self {
+        Self::Skip {
+            reason: reason.into(),
+            transient: false,
+        }
+    }
 }
 
 pub(crate) trait TarballSource: Send + Sync {
@@ -69,9 +88,9 @@ impl<S: TarballSource> TarballSource for Retrying<S> {
             match self.inner.fetch(owner, repo, sha, ui) {
                 FetchOutcome::Ok(b) => return FetchOutcome::Ok(b),
                 FetchOutcome::Fatal(e) => return FetchOutcome::Fatal(e),
-                FetchOutcome::Skip(reason) => {
-                    if !looks_transient(&reason) {
-                        return FetchOutcome::Skip(reason);
+                FetchOutcome::Skip { reason, transient } => {
+                    if !transient {
+                        return FetchOutcome::permanent_skip(reason);
                     }
                     last_skip = Some(reason);
                     if attempt < self.max_attempts {
@@ -82,19 +101,8 @@ impl<S: TarballSource> TarballSource for Retrying<S> {
                 }
             }
         }
-        FetchOutcome::Skip(last_skip.unwrap_or_else(|| "retry exhausted".into()))
+        FetchOutcome::transient_skip(last_skip.unwrap_or_else(|| "retry exhausted".into()))
     }
-}
-
-fn looks_transient(reason: &str) -> bool {
-    let r = reason.to_ascii_lowercase();
-    r.starts_with("server ")
-        || r.contains("network:")
-        || r.contains("timed out")
-        || r.contains("timeout")
-        || r.contains("connection")
-        || r.contains("rate limit")
-        || r.contains("429")
 }
 
 pub(crate) fn run_chain(
@@ -113,7 +121,7 @@ pub(crate) fn run_chain(
     for source in sources {
         match source.fetch(owner, repo, sha, ui) {
             FetchOutcome::Ok(bytes) => return Ok(bytes),
-            FetchOutcome::Skip(reason) => attempts.push((source.name().to_string(), reason)),
+            FetchOutcome::Skip { reason, .. } => attempts.push((source.name().to_string(), reason)),
             FetchOutcome::Fatal(e) => return Err(e),
         }
     }
@@ -171,7 +179,8 @@ mod tests {
 
     enum ScriptedOutcome {
         Ok(Vec<u8>),
-        Skip(String),
+        TransientSkip(String),
+        PermanentSkip(String),
         Fatal(String),
     }
 
@@ -194,7 +203,8 @@ mod tests {
             let idx = n.min(self.script.len() - 1);
             match &self.script[idx] {
                 ScriptedOutcome::Ok(b) => FetchOutcome::Ok(b.clone()),
-                ScriptedOutcome::Skip(s) => FetchOutcome::Skip(s.clone()),
+                ScriptedOutcome::TransientSkip(s) => FetchOutcome::transient_skip(s.clone()),
+                ScriptedOutcome::PermanentSkip(s) => FetchOutcome::permanent_skip(s.clone()),
                 ScriptedOutcome::Fatal(s) => {
                     FetchOutcome::Fatal(AgentpackError::Archive(s.clone()))
                 }
@@ -227,7 +237,7 @@ mod tests {
         let chain: Vec<Box<dyn TarballSource>> = vec![
             Box::new(ScriptedSource::new(
                 "a",
-                vec![ScriptedOutcome::Skip("404 via codeload-anon".into())],
+                vec![ScriptedOutcome::PermanentSkip("404 via codeload-anon".into())],
             )),
             Box::new(ScriptedSource::new(
                 "b",
@@ -259,11 +269,11 @@ mod tests {
         let chain: Vec<Box<dyn TarballSource>> = vec![
             Box::new(ScriptedSource::new(
                 "a",
-                vec![ScriptedOutcome::Skip("a skipped".into())],
+                vec![ScriptedOutcome::PermanentSkip("a skipped".into())],
             )),
             Box::new(ScriptedSource::new(
                 "b",
-                vec![ScriptedOutcome::Skip("b skipped".into())],
+                vec![ScriptedOutcome::PermanentSkip("b skipped".into())],
             )),
         ];
         let err = run_chain(&chain, "o", "r", "0123456789abcdef", &ui()).unwrap_err();
@@ -278,8 +288,8 @@ mod tests {
         let inner = ScriptedSource::new(
             "flaky",
             vec![
-                ScriptedOutcome::Skip("server 503".into()),
-                ScriptedOutcome::Skip("server 502".into()),
+                ScriptedOutcome::TransientSkip("server 503".into()),
+                ScriptedOutcome::TransientSkip("server 502".into()),
                 ScriptedOutcome::Ok(b"ok".to_vec()),
             ],
         );
@@ -296,35 +306,23 @@ mod tests {
     fn retry_does_not_retry_non_transient() {
         let inner = ScriptedSource::new(
             "auth",
-            vec![ScriptedOutcome::Skip(
+            vec![ScriptedOutcome::PermanentSkip(
                 "not found (404) via codeload-anon — private repo".into(),
             )],
         );
         let counter = Arc::clone(&inner.calls);
         let r = Retrying::new(inner, 3, Duration::from_millis(1));
         match r.fetch("o", "r", "sha", &ui()) {
-            FetchOutcome::Skip(_) => {}
+            FetchOutcome::Skip { transient, .. } => assert!(!transient),
             other => panic!("expected Skip, got {:?}", outcome_label(&other)),
         }
         assert_eq!(counter.load(Ordering::SeqCst), 1);
     }
 
-    #[test]
-    fn looks_transient_classifications() {
-        assert!(looks_transient("server 503 via codeload-anon"));
-        assert!(looks_transient("network: connect timed out"));
-        assert!(looks_transient("rate limit (429) via codeload-anon"));
-        assert!(!looks_transient(
-            "not found (404) via codeload-anon — private repo"
-        ));
-        assert!(!looks_transient("auth required (401) via codeload-auth"));
-        assert!(!looks_transient("forbidden (403) via codeload-anon"));
-    }
-
     fn outcome_label(o: &FetchOutcome) -> &'static str {
         match o {
             FetchOutcome::Ok(_) => "Ok",
-            FetchOutcome::Skip(_) => "Skip",
+            FetchOutcome::Skip { .. } => "Skip",
             FetchOutcome::Fatal(_) => "Fatal",
         }
     }

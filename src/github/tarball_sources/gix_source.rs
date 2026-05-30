@@ -29,7 +29,9 @@ impl TarballSource for GixClone {
         ));
         let outcome = match fetch_via_gix(owner, repo, sha) {
             Ok(bytes) => FetchOutcome::Ok(bytes),
-            Err(e) => FetchOutcome::Skip(format!("gix: {e}")),
+            // gix is the last-resort source; classify as transient so a flaky network clone
+            // gets retried, matching the prior string-based behavior.
+            Err(e) => FetchOutcome::transient_skip(format!("gix: {e}")),
         };
         Ui::finish_spinner(pb.as_ref(), "gix fetch done");
         outcome

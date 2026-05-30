@@ -77,7 +77,7 @@ fn codeload_fetch(
         Err(e) => {
             // All reqwest send-time errors are treated as transient for retry purposes.
             // Real auth/protocol problems surface in the response status, not here.
-            return FetchOutcome::Skip(format!("network: {e}"));
+            return FetchOutcome::transient_skip(format!("network: {e}"));
         }
     };
     let status = resp.status();
@@ -87,16 +87,18 @@ fn codeload_fetch(
             let mut reader = resp;
             match ui.read_to_end_with_progress(&mut reader, total, "Download tarball") {
                 Ok(buf) => FetchOutcome::Ok(buf),
-                Err(e) => FetchOutcome::Skip(format!("network: read body: {e}")),
+                Err(e) => FetchOutcome::transient_skip(format!("network: read body: {e}")),
             }
         }
-        401 => FetchOutcome::Skip(format!("auth required (401) via {source_name}")),
-        403 => FetchOutcome::Skip(format!("forbidden (403) via {source_name}")),
-        404 => FetchOutcome::Skip(format!(
+        401 => FetchOutcome::permanent_skip(format!("auth required (401) via {source_name}")),
+        403 => FetchOutcome::permanent_skip(format!("forbidden (403) via {source_name}")),
+        404 => FetchOutcome::permanent_skip(format!(
             "not found (404) via {source_name} — private repo, token lacking scope, or codeload cache miss"
         )),
-        429 => FetchOutcome::Skip(format!("rate limit (429) via {source_name}")),
-        s if (500..600).contains(&s) => FetchOutcome::Skip(format!("server {s} via {source_name}")),
+        429 => FetchOutcome::transient_skip(format!("rate limit (429) via {source_name}")),
+        s if (500..600).contains(&s) => {
+            FetchOutcome::transient_skip(format!("server {s} via {source_name}"))
+        }
         other => FetchOutcome::Fatal(AgentpackError::Archive(format!(
             "GET {url} -> {other} via {source_name}"
         ))),
