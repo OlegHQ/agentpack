@@ -32,29 +32,10 @@ where
     Ok(())
 }
 
-/// Destination roots for the harness trees that receive merged pack content.
-pub(super) struct PackHarnessRoots<'a> {
-    pub claude_bundle: &'a Path,
-    pub opencode: &'a Path,
-    pub codex: &'a Path,
-    pub cursor_pack: &'a Path,
-    pub grok_home: &'a Path,
-    pub grok_bundle: &'a Path,
-    pub agy_bundle: &'a Path,
-}
-
-impl PackHarnessRoots<'_> {
-    fn targets_and_roots(&self) -> [(HarnessTarget, &Path); 6] {
-        [
-            (HarnessTarget::Claude, self.claude_bundle),
-            (HarnessTarget::OpenCode, self.opencode),
-            (HarnessTarget::Codex, self.codex),
-            (HarnessTarget::Cursor, self.cursor_pack),
-            (HarnessTarget::Grok, self.grok_bundle),
-            (HarnessTarget::Agy, self.agy_bundle),
-        ]
-    }
-}
+/// Each harness's pack-content root, paired with its id — derived from the registry
+/// (`harness::all()` + `staged_root`) by the pipeline, so this single-walk pass fans out to all
+/// harnesses without any harness-specific knowledge here.
+pub(super) type PackHarnessRoots<'a> = [(HarnessTarget, &'a Path)];
 
 /// One walk over **`src_root`**: copy skill support files and read each markdown artifact once, then
 /// render per harness. Avoids repeating directory walks and YAML/markdown parsing for every target
@@ -70,13 +51,12 @@ fn stage_source_tree_all_harnesses(
         return Ok(());
     }
 
-    let pairs = dests.targets_and_roots();
     walk_source_files(src_root, &mut |src, rel| {
         if !mode.allows_package_path(module, rel)? {
             return Ok(());
         }
         if let Some(dest_rel) = staged_skill_support_path(rel, bare_skill_name) {
-            for (_, dest_root) in &pairs {
+            for (_, dest_root) in dests {
                 fast_copy_file(src, &dest_root.join(&dest_rel))?;
             }
             return Ok(());
@@ -89,7 +69,7 @@ fn stage_source_tree_all_harnesses(
 
         let contents = fs::read_to_string(src).map_err(|e| AgentpackError::io(src, e))?;
         if let Some(artifact) = parse_markdown_artifact(rel, &contents, bare_skill_name)? {
-            for (target, dest_root) in &pairs {
+            for (target, dest_root) in dests {
                 tracing::debug!(
                     source = %rel.display(),
                     kind = ?artifact.kind,
@@ -118,7 +98,7 @@ fn copy_raw_plugin_support_dirs_all_harnesses(
     // Build subdir → [dest_root per interested target] map. Preserve insertion order for
     // deterministic debug logs; BTreeMap also gives consistent ordering across runs.
     let mut subdir_dests: BTreeMap<&'static str, Vec<PathBuf>> = BTreeMap::new();
-    for (target, dest_root) in dests.targets_and_roots() {
+    for (target, dest_root) in dests {
         for sub in target.harness().raw_plugin_subdirs() {
             subdir_dests
                 .entry(*sub)

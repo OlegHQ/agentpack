@@ -14,7 +14,7 @@ use crate::error::{AgentpackError, Result};
 use crate::fs_util::{write_json_value, write_text_file};
 use crate::hooks::capabilities::SupportLevel;
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
-use crate::hooks::runtime::output::codex_output;
+use crate::hooks::runtime::output::{codex_output, guidance_additional_context_continue};
 use crate::paths::{staging_agy_bundle_dir_for_mode, staging_agy_dir_for_mode};
 use crate::staging::mcp::{McpServerEntry, StagedMcpEntries};
 use crate::staging::{keep_attribution, NO_ATTRIBUTION_BODY};
@@ -59,6 +59,12 @@ impl Harness for Agy {
 
     fn hook_output(&self, _event: ClaudeEvent, result: &NormalizedHookResult) -> Value {
         codex_output(result)
+    }
+
+    // inject_guidance is the default no-op (Antigravity reads native `rules/*.mdc` directly).
+
+    fn guidance_injection_json(&self, body: &str, _event: &str) -> Value {
+        guidance_additional_context_continue(body)
     }
 
     fn raw_plugin_subdirs(&self) -> &'static [&'static str] {

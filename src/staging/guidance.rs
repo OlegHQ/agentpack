@@ -1,15 +1,12 @@
-//! Always-on guidance injection.
+//! Always-on guidance — the **agnostic** half.
 //!
 //! Plugins signal "this text should always be in the model's context" by shipping a Cursor-style
-//! rule (`rules/*.mdc` with `alwaysApply: true`). Cursor reads those natively from the staged
-//! pack. The other three harnesses have no plugin-level always-on channel, so we concatenate
-//! the matching rules into a single blob per project and inject them:
-//!
-//! * **Codex** — append to `$STAGING/codex-home/AGENTS.md`. Codex auto-loads it as user guidance.
-//! * **OpenCode** — append to `$STAGING/opencode/AGENTS.md`. OpenCode auto-loads from its config dir.
-//! * **Claude** — synthesize a `SessionStart` hook entry in the bundle's `hooks/hooks.json` that
-//!   emits the blob as `hookSpecificOutput.additionalContext`. Runs once per session.
-//! * **Cursor** — nothing extra. Native `rules/*.mdc` already does it.
+//! rule (`rules/*.mdc` with `alwaysApply: true`). [`collect_guidance_blob`] concatenates the
+//! matching rules (from pinned plugins + `.agents/rules`) into a single blob, and [`write_agents_md`]
+//! is the shared idempotent `AGENTS.md` writer. *Where* the blob goes is per-harness: each harness
+//! implements `Harness::inject_guidance` (Codex/OpenCode/Grok → `AGENTS.md`; Claude → a synthesized
+//! `SessionStart` hook; Cursor/Agy → nothing, they read native `rules/*.mdc`). The per-harness
+//! runtime output shape lives in `Harness::guidance_injection_json`.
 //!
 //! Source of truth: plugin `rules/*.{md,mdc}` + `.agents/rules/**` with `alwaysApply: true` in
 //! frontmatter. Rules without `alwaysApply` are routed via the existing skill-fallback pipeline
@@ -17,7 +14,7 @@
 
 use std::collections::BTreeSet;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use walkdir::WalkDir;
 
@@ -28,10 +25,7 @@ use crate::lockfile::PackLock;
 use crate::mode::filter::EffectiveMode;
 use crate::paths::project_dot_agents_dir;
 
-use super::pack_overlay::{disabled_in_config, PackHarnessRoots};
-
-/// File in the bundle holding the raw blob that the Claude SessionStart hook reads.
-const BUNDLE_GUIDANCE_REL: &str = "_agentpack/guidance.md";
+use super::pack_overlay::disabled_in_config;
 
 /// Markers delimiting agentpack-owned injected content inside `AGENTS.md`. Makes re-staging
 /// idempotent even when a user-seeded file is present in the staging root.
@@ -158,7 +152,9 @@ fn strip_prior_block(text: &str) -> String {
     out
 }
 
-fn write_agents_md(dest: &Path, blob: &str) -> Result<()> {
+/// Idempotently write `blob` into a marker-fenced block inside an `AGENTS.md`, preserving any
+/// user-seeded content. Agnostic — each harness picks the destination path in its `inject_guidance`.
+pub(crate) fn write_agents_md(dest: &Path, blob: &str) -> Result<()> {
     let existing = fs::read_to_string(dest).unwrap_or_default();
     let base = strip_prior_block(&existing);
     let mut out = base.trim_end().to_string();
@@ -170,140 +166,6 @@ fn write_agents_md(dest: &Path, blob: &str) -> Result<()> {
         fs::create_dir_all(parent).map_err(|e| AgentpackError::io(parent, e))?;
     }
     fs::write(dest, out).map_err(|e| AgentpackError::io(dest, e))
-}
-
-/// Add a SessionStart hook into the bundle's `hooks/hooks.json` that emits the guidance blob as
-/// `additionalContext`. Works whether or not the hooks pipeline already wrote the file.
-fn add_claude_session_start_hook(bundle: &Path, guidance_file: &Path) -> Result<()> {
-    use serde_json::{json, Map, Value};
-
-    let hooks_path = bundle.join("hooks/hooks.json");
-    let existing = fs::read_to_string(&hooks_path).unwrap_or_else(|_| "{\"hooks\":{}}".into());
-    let mut root: Value = serde_json::from_str(&existing).unwrap_or_else(|_| json!({"hooks": {}}));
-    let root_obj = root.as_object_mut().ok_or_else(|| {
-        AgentpackError::Staging(format!("{}: not a JSON object", hooks_path.display()))
-    })?;
-    let hooks = root_obj
-        .entry("hooks".to_string())
-        .or_insert_with(|| Value::Object(Map::new()));
-    let hooks_obj = hooks.as_object_mut().ok_or_else(|| {
-        AgentpackError::Staging(format!(
-            "{}: `hooks` not a JSON object",
-            hooks_path.display()
-        ))
-    })?;
-
-    let cmd = format!(
-        "agentpack hook-exec inject-guidance --target claude --event SessionStart --file {}",
-        shell_escape::escape(guidance_file.to_string_lossy())
-    );
-    let entry = json!({
-        "hooks": [{"type": "command", "command": cmd}]
-    });
-
-    // Replace any prior agentpack-injected SessionStart entry (identified by the command prefix)
-    // so re-staging doesn't stack duplicates.
-    let prefix = "agentpack hook-exec inject-guidance";
-    let arr = hooks_obj
-        .entry("SessionStart".to_string())
-        .or_insert_with(|| Value::Array(Vec::new()))
-        .as_array_mut()
-        .ok_or_else(|| {
-            AgentpackError::Staging(format!(
-                "{}: SessionStart not an array",
-                hooks_path.display()
-            ))
-        })?;
-    arr.retain(|e| {
-        let grp = e.as_object();
-        let has_ours = grp
-            .and_then(|g| g.get("hooks"))
-            .and_then(Value::as_array)
-            .map(|inner| {
-                inner.iter().any(|h| {
-                    h.get("command")
-                        .and_then(Value::as_str)
-                        .is_some_and(|c| c.contains(prefix))
-                })
-            })
-            .unwrap_or(false);
-        !has_ours
-    });
-    arr.push(entry);
-
-    if let Some(parent) = hooks_path.parent() {
-        fs::create_dir_all(parent).map_err(|e| AgentpackError::io(parent, e))?;
-    }
-    let out = serde_json::to_string_pretty(&root)
-        .map_err(|e| AgentpackError::Staging(format!("{}: {e}", hooks_path.display())))?;
-    fs::write(&hooks_path, out).map_err(|e| AgentpackError::io(&hooks_path, e))
-}
-
-/// Public entry: collect and stage guidance into every harness that needs manual injection.
-pub(super) fn stage_guidance_all_harnesses(
-    project_root: &Path,
-    lock: &PackLock,
-    mode: &EffectiveMode,
-    dests: &PackHarnessRoots<'_>,
-) -> Result<()> {
-    let Some(blob) = collect_guidance_blob(project_root, lock, mode)? else {
-        return Ok(());
-    };
-
-    // Raw blob lives in the Claude bundle — the SessionStart hook reads it from there.
-    let guidance_file: PathBuf = dests.claude_bundle.join(BUNDLE_GUIDANCE_REL);
-    if let Some(parent) = guidance_file.parent() {
-        fs::create_dir_all(parent).map_err(|e| AgentpackError::io(parent, e))?;
-    }
-    fs::write(&guidance_file, &blob).map_err(|e| AgentpackError::io(&guidance_file, e))?;
-
-    write_agents_md(&dests.codex.join("AGENTS.md"), &blob)?;
-    write_agents_md(&dests.opencode.join("AGENTS.md"), &blob)?;
-    write_agents_md(&dests.grok_home.join("AGENTS.md"), &blob)?;
-    add_claude_session_start_hook(dests.claude_bundle, &guidance_file)?;
-    // Cursor: nothing — native `rules/*.mdc` with `alwaysApply: true` are already staged in the
-    // pack bundle and symlinked into the Cursor fake HOME by the standard staging path.
-    Ok(())
-}
-
-/// Read the guidance file and emit target-specific `additionalContext` JSON.
-/// Used by the `agentpack hook-exec inject-guidance` subcommand.
-pub fn emit_injection_json(
-    file: &Path,
-    event: &str,
-    target: &str,
-) -> anyhow::Result<serde_json::Value> {
-    use serde_json::json;
-    let body = fs::read_to_string(file)
-        .map_err(|e| anyhow::anyhow!("read guidance file {}: {e}", file.display()))?;
-    let value = match target {
-        "claude" => json!({
-            "hookSpecificOutput": {
-                "hookEventName": event,
-                "additionalContext": body,
-            }
-        }),
-        "codex" => json!({
-            "additionalContext": body,
-            "continue": true,
-        }),
-        "cursor" => json!({
-            "additional_context": body,
-        }),
-        "opencode" => json!({"additional_context": body}),
-        "grok" => json!({
-            "hookSpecificOutput": {
-                "hookEventName": event,
-                "additionalContext": body,
-            }
-        }),
-        "agy" => json!({
-            "additionalContext": body,
-            "continue": true,
-        }),
-        _ => json!({"additional_context": body}),
-    };
-    Ok(value)
 }
 
 #[cfg(test)]
@@ -350,81 +212,5 @@ mod tests {
         assert!(got.contains("v2"));
         assert!(!got.contains("v1"));
         assert_eq!(got.matches(AGENTS_MD_BEGIN).count(), 1);
-    }
-
-    #[test]
-    fn add_claude_session_start_hook_adds_entry_when_file_absent() {
-        let dir = tempdir().unwrap();
-        let bundle = dir.path();
-        let guidance = bundle.join(BUNDLE_GUIDANCE_REL);
-        fs::create_dir_all(guidance.parent().unwrap()).unwrap();
-        fs::write(&guidance, "hi").unwrap();
-        add_claude_session_start_hook(bundle, &guidance).unwrap();
-        let hooks_json = fs::read_to_string(bundle.join("hooks/hooks.json")).unwrap();
-        let parsed: serde_json::Value = serde_json::from_str(&hooks_json).unwrap();
-        let arr = parsed["hooks"]["SessionStart"].as_array().unwrap();
-        assert_eq!(arr.len(), 1);
-        let cmd = arr[0]["hooks"][0]["command"].as_str().unwrap();
-        assert!(cmd.contains("inject-guidance"));
-        assert!(cmd.contains("--target claude"));
-    }
-
-    #[test]
-    fn add_claude_session_start_hook_replaces_prior_entry() {
-        let dir = tempdir().unwrap();
-        let bundle = dir.path();
-        let guidance = bundle.join(BUNDLE_GUIDANCE_REL);
-        fs::create_dir_all(guidance.parent().unwrap()).unwrap();
-        fs::write(&guidance, "hi").unwrap();
-        add_claude_session_start_hook(bundle, &guidance).unwrap();
-        add_claude_session_start_hook(bundle, &guidance).unwrap();
-        let hooks_json = fs::read_to_string(bundle.join("hooks/hooks.json")).unwrap();
-        let parsed: serde_json::Value = serde_json::from_str(&hooks_json).unwrap();
-        let arr = parsed["hooks"]["SessionStart"].as_array().unwrap();
-        assert_eq!(arr.len(), 1);
-    }
-
-    #[test]
-    fn add_claude_session_start_hook_preserves_other_events() {
-        let dir = tempdir().unwrap();
-        let bundle = dir.path();
-        fs::create_dir_all(bundle.join("hooks")).unwrap();
-        fs::write(
-            bundle.join("hooks/hooks.json"),
-            r#"{"hooks":{"PreToolUse":[{"matcher":"Read","hooks":[{"type":"command","command":"echo"}]}]}}"#,
-        )
-        .unwrap();
-        let guidance = bundle.join(BUNDLE_GUIDANCE_REL);
-        fs::create_dir_all(guidance.parent().unwrap()).unwrap();
-        fs::write(&guidance, "hi").unwrap();
-        add_claude_session_start_hook(bundle, &guidance).unwrap();
-        let parsed: serde_json::Value =
-            serde_json::from_str(&fs::read_to_string(bundle.join("hooks/hooks.json")).unwrap())
-                .unwrap();
-        assert!(!parsed["hooks"]["PreToolUse"].as_array().unwrap().is_empty());
-        assert_eq!(parsed["hooks"]["SessionStart"].as_array().unwrap().len(), 1);
-    }
-
-    #[test]
-    fn emit_injection_json_shapes_per_target() {
-        let dir = tempdir().unwrap();
-        let file = dir.path().join("g.md");
-        fs::write(&file, "body text").unwrap();
-
-        let claude = emit_injection_json(&file, "SessionStart", "claude").unwrap();
-        assert_eq!(
-            claude["hookSpecificOutput"]["additionalContext"],
-            "body text"
-        );
-        assert_eq!(
-            claude["hookSpecificOutput"]["hookEventName"],
-            "SessionStart"
-        );
-
-        let codex = emit_injection_json(&file, "SessionStart", "codex").unwrap();
-        assert_eq!(codex["additionalContext"], "body text");
-
-        let cursor = emit_injection_json(&file, "sessionStart", "cursor").unwrap();
-        assert_eq!(cursor["additional_context"], "body text");
     }
 }

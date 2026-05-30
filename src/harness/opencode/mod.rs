@@ -15,6 +15,7 @@ use crate::hooks::capabilities::SupportLevel;
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
 use crate::hooks::render::HookRenderer;
 use crate::paths::staging_opencode_dir_for_mode;
+use crate::staging::guidance::write_agents_md;
 use crate::staging::mcp::{McpServerEntry, StagedMcpEntries};
 use crate::staging::{copy_selected_entries, keep_attribution, NO_ATTRIBUTION_BODY};
 
@@ -52,6 +53,13 @@ impl Harness for OpenCode {
         let root = self.staged_root(ctx.project_root, ctx.mode.name())?;
         merge_into_opencode_config(&root.join("opencode.json"), merged)
     }
+
+    fn inject_guidance(&self, blob: &str, ctx: &StageCtx) -> Result<()> {
+        let root = self.staged_root(ctx.project_root, ctx.mode.name())?;
+        write_agents_md(&root.join("AGENTS.md"), blob)
+    }
+
+    // guidance_injection_json uses the default `additional_context` shape.
 
     fn hook_support(&self, event: ClaudeEvent, handler: &ClaudeHandler) -> SupportLevel {
         hooks::opencode_support(event, handler)

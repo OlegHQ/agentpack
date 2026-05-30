@@ -236,6 +236,22 @@ pub(crate) trait Harness: Sync {
         Ok(())
     }
 
+    // ---- always-apply guidance injection (shared blob collected once, injected per harness) ----
+
+    /// Inject the collected always-apply guidance `blob` into this harness's native always-on
+    /// channel (e.g. `AGENTS.md`, a Claude SessionStart hook). Default: nothing — Cursor/Agy read
+    /// native `rules/*.mdc` directly, so no injection is needed.
+    fn inject_guidance(&self, _blob: &str, _ctx: &StageCtx) -> Result<()> {
+        Ok(())
+    }
+
+    /// Render the guidance `body` as this harness's native `additionalContext` JSON, emitted at
+    /// runtime by the `agentpack hook-exec inject-guidance` bridge. Default: a bare
+    /// `additional_context` field (Cursor / OpenCode shape).
+    fn guidance_injection_json(&self, body: &str, _event: &str) -> Value {
+        crate::hooks::runtime::output::guidance_additional_context(body)
+    }
+
     // ---- optional workspace overlay (only Cursor + Agy) ----
 
     /// Materialize this harness's project-side workspace overlay symlink (Cursor `.cursor/agents`,

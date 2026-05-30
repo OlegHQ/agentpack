@@ -1,3 +1,4 @@
+mod guidance;
 mod hooks;
 mod settings;
 
@@ -17,7 +18,7 @@ use crate::fs_util::write_text_file;
 use crate::hooks::capabilities::SupportLevel;
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
 use crate::hooks::render::HookRenderer;
-use crate::hooks::runtime::output::claude_fallback_output;
+use crate::hooks::runtime::output::{claude_fallback_output, guidance_hook_specific};
 use crate::paths::{
     agentpack_claude_settings_path, staging_plugins_dir_for_mode, STAGED_AGENTPACK_BUNDLE_NAME,
 };
@@ -87,6 +88,14 @@ impl Harness for Claude {
             settings::set_claude_settings_mcp_allowlist(&names)?;
         }
         Ok(())
+    }
+
+    fn inject_guidance(&self, blob: &str, ctx: &StageCtx) -> Result<()> {
+        guidance::inject(&self.staged_root(ctx.project_root, ctx.mode.name())?, blob)
+    }
+
+    fn guidance_injection_json(&self, body: &str, event: &str) -> Value {
+        guidance_hook_specific(body, event)
     }
 
     fn hook_support(&self, _event: ClaudeEvent, _handler: &ClaudeHandler) -> SupportLevel {

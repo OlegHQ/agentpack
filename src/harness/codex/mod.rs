@@ -16,8 +16,9 @@ use crate::error::{AgentpackError, Result};
 use crate::hooks::capabilities::SupportLevel;
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
 use crate::hooks::render::HookRenderer;
-use crate::hooks::runtime::output::codex_output;
+use crate::hooks::runtime::output::{codex_output, guidance_additional_context_continue};
 use crate::paths::staging_codex_home_dir_for_mode;
+use crate::staging::guidance::write_agents_md;
 use crate::staging::mcp::StagedMcpEntries;
 use crate::staging::{copy_selected_entries, keep_attribution};
 
@@ -47,6 +48,15 @@ impl Harness for Codex {
     fn write_mcp(&self, merged: &StagedMcpEntries, ctx: &StageCtx) -> Result<()> {
         let home = self.staged_root(ctx.project_root, ctx.mode.name())?;
         merge_into_toml_mcp_config(&home.join("config.toml"), merged)
+    }
+
+    fn inject_guidance(&self, blob: &str, ctx: &StageCtx) -> Result<()> {
+        let home = self.staged_root(ctx.project_root, ctx.mode.name())?;
+        write_agents_md(&home.join("AGENTS.md"), blob)
+    }
+
+    fn guidance_injection_json(&self, body: &str, _event: &str) -> Value {
+        guidance_additional_context_continue(body)
     }
 
     fn hook_support(&self, event: ClaudeEvent, handler: &ClaudeHandler) -> SupportLevel {

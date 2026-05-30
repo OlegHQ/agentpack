@@ -14,10 +14,11 @@ use crate::error::{AgentpackError, Result};
 use crate::fs_util::{read_toml_value_or_default, remove_path_any, write_text_file};
 use crate::hooks::capabilities::SupportLevel;
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
-use crate::hooks::runtime::output::claude_fallback_output;
+use crate::hooks::runtime::output::{claude_fallback_output, guidance_hook_specific};
 use crate::paths::{
     staging_grok_bundle_dir_for_mode, staging_grok_dir_for_mode, staging_grok_home_dir_for_mode,
 };
+use crate::staging::guidance::write_agents_md;
 use crate::staging::mcp::StagedMcpEntries;
 use crate::staging::{copy_selected_entries, keep_attribution, NO_ATTRIBUTION_BODY};
 
@@ -67,6 +68,16 @@ impl Harness for Grok {
         // MCP is native TOML in `grok-home/config.toml`, not in the pack bundle (staged_root).
         let grok_home = staging_grok_home_dir_for_mode(ctx.project_root, ctx.mode.name())?;
         merge_into_toml_mcp_config(&grok_home.join("config.toml"), merged)
+    }
+
+    fn inject_guidance(&self, blob: &str, ctx: &StageCtx) -> Result<()> {
+        // Guidance goes to `grok-home/AGENTS.md`, not the pack bundle (staged_root).
+        let grok_home = staging_grok_home_dir_for_mode(ctx.project_root, ctx.mode.name())?;
+        write_agents_md(&grok_home.join("AGENTS.md"), blob)
+    }
+
+    fn guidance_injection_json(&self, body: &str, event: &str) -> Value {
+        guidance_hook_specific(body, event)
     }
 
     fn hook_support(&self, _event: ClaudeEvent, _handler: &ClaudeHandler) -> SupportLevel {

@@ -2,6 +2,28 @@ use serde_json::{json, Value};
 
 use crate::hooks::ir::{ClaudeEvent, HookDecision, NormalizedHookResult};
 
+// ---- guidance-injection output formats (emitted by the `inject-guidance` hook) ----
+
+/// Claude/Grok style: wrap the guidance body in `hookSpecificOutput.additionalContext`.
+pub(crate) fn guidance_hook_specific(body: &str, event: &str) -> Value {
+    json!({
+        "hookSpecificOutput": {
+            "hookEventName": event,
+            "additionalContext": body,
+        }
+    })
+}
+
+/// Codex/Agy style: top-level `additionalContext` plus `continue: true`.
+pub(crate) fn guidance_additional_context_continue(body: &str) -> Value {
+    json!({ "additionalContext": body, "continue": true })
+}
+
+/// Cursor/OpenCode style (and the default): a bare `additional_context` field.
+pub(crate) fn guidance_additional_context(body: &str) -> Value {
+    json!({ "additional_context": body })
+}
+
 pub(crate) fn codex_output(result: &NormalizedHookResult) -> Value {
     let mut value = json!({
         "permissionDecision": result.decision.as_str(),
@@ -77,4 +99,29 @@ pub(crate) fn claude_fallback_output(result: &NormalizedHookResult) -> Value {
         "updated_tool_output": result.updated_tool_output,
         "metadata": result.metadata,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn guidance_format_shapes() {
+        let claude = guidance_hook_specific("body text", "SessionStart");
+        assert_eq!(
+            claude["hookSpecificOutput"]["additionalContext"],
+            "body text"
+        );
+        assert_eq!(
+            claude["hookSpecificOutput"]["hookEventName"],
+            "SessionStart"
+        );
+
+        let codex = guidance_additional_context_continue("body text");
+        assert_eq!(codex["additionalContext"], "body text");
+        assert_eq!(codex["continue"], true);
+
+        let cursor = guidance_additional_context("body text");
+        assert_eq!(cursor["additional_context"], "body text");
+    }
 }

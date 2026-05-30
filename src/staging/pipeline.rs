@@ -2,21 +2,15 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::error::{AgentpackError, Result};
+use crate::harness::HarnessTarget;
 use crate::hooks::stage::stage_hooks_all_harnesses;
 use crate::lockfile::PackLock;
 use crate::manifest::AgentpackManifest;
 use crate::mode::filter::EffectiveMode;
-use crate::paths::{
-    staging_codex_home_dir_for_mode, staging_cursor_pack_plugin_dir_for_mode,
-    staging_grok_bundle_dir_for_mode, staging_grok_home_dir_for_mode,
-    staging_opencode_dir_for_mode, staging_plugins_dir_for_mode, STAGED_AGENTPACK_BUNDLE_NAME,
-};
+use crate::paths::{staging_plugins_dir_for_mode, STAGED_AGENTPACK_BUNDLE_NAME};
 
 use super::dot_agents::stage_dot_agents_overlay;
-use super::pack_overlay::{
-    stage_pack_plugins_all_harnesses, stage_pack_skills_all_harnesses, PackHarnessRoots,
-};
-use crate::harness::HarnessTarget;
+use super::pack_overlay::{stage_pack_plugins_all_harnesses, stage_pack_skills_all_harnesses};
 
 pub(super) struct StagingPipeline<'a> {
     project_root: &'a Path,
@@ -50,50 +44,19 @@ impl<'a> StagingPipeline<'a> {
         )
     }
 
-    pub(super) fn opencode_root(&self) -> Result<PathBuf> {
-        staging_opencode_dir_for_mode(self.project_root, self.mode.name())
-    }
-
-    pub(super) fn codex_home(&self) -> Result<PathBuf> {
-        staging_codex_home_dir_for_mode(self.project_root, self.mode.name())
-    }
-
-    pub(super) fn cursor_pack_plugin_dir(&self) -> Result<PathBuf> {
-        staging_cursor_pack_plugin_dir_for_mode(self.project_root, self.mode.name())
-    }
-
-    pub(super) fn grok_home(&self) -> Result<PathBuf> {
-        staging_grok_home_dir_for_mode(self.project_root, self.mode.name())
-    }
-
-    pub(super) fn grok_bundle_dir(&self) -> Result<PathBuf> {
-        staging_grok_bundle_dir_for_mode(self.project_root, self.mode.name())
-    }
-
-    pub(super) fn agy_bundle_dir(&self) -> Result<PathBuf> {
-        crate::paths::staging_agy_bundle_dir_for_mode(self.project_root, self.mode.name())
-    }
-
     pub(super) fn rebuild(&self) -> Result<Vec<PathBuf>> {
         self.reset_all()?;
         self.prepare_all()?;
 
-        let claude_bundle = self.claude_bundle_dir()?;
-        let opencode = self.opencode_root()?;
-        let codex = self.codex_home()?;
-        let cursor_pack = self.cursor_pack_plugin_dir()?;
-        let grok_home = self.grok_home()?;
-        let grok_bundle = self.grok_bundle_dir()?;
-        let agy_bundle = self.agy_bundle_dir()?;
-        let pack_dests = PackHarnessRoots {
-            claude_bundle: &claude_bundle,
-            opencode: &opencode,
-            codex: &codex,
-            cursor_pack: &cursor_pack,
-            grok_home: &grok_home,
-            grok_bundle: &grok_bundle,
-            agy_bundle: &agy_bundle,
-        };
+        // Each harness's pack-content root, derived from the registry — the single-walk pack/skill
+        // staging fans out to these without any harness-specific knowledge in `staging`.
+        let mode = self.mode.name();
+        let owned_roots: Vec<(HarnessTarget, PathBuf)> = crate::harness::all()
+            .iter()
+            .map(|h| Ok((h.id(), h.staged_root(self.project_root, mode)?)))
+            .collect::<Result<_>>()?;
+        let pack_dests: Vec<(HarnessTarget, &Path)> =
+            owned_roots.iter().map(|(t, p)| (*t, p.as_path())).collect();
         stage_pack_plugins_all_harnesses(self.lock, &pack_dests, self.mode)?;
         stage_pack_skills_all_harnesses(self.lock, &pack_dests, self.mode)?;
         stage_hooks_all_harnesses(self.project_root, self.lock, self.mode)?;
@@ -112,12 +75,14 @@ impl<'a> StagingPipeline<'a> {
                 harness.write_mcp(&merged_mcp, &ctx)?;
             }
         }
-        super::guidance::stage_guidance_all_harnesses(
-            self.project_root,
-            self.lock,
-            self.mode,
-            &pack_dests,
-        )?;
+        // Collect always-apply guidance once, then let each harness inject it natively.
+        if let Some(blob) =
+            super::guidance::collect_guidance_blob(self.project_root, self.lock, self.mode)?
+        {
+            for harness in crate::harness::all() {
+                harness.inject_guidance(&blob, &ctx)?;
+            }
+        }
         for harness in crate::harness::all() {
             harness.finalize(&merged_mcp, &ctx)?;
         }

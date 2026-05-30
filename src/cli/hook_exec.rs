@@ -73,11 +73,12 @@ fn parse_event(raw: &str) -> anyhow::Result<ClaudeEvent> {
 }
 
 fn run_inject_guidance(args: HookInjectGuidanceArgs) -> anyhow::Result<()> {
-    let value = crate::staging::guidance::emit_injection_json(
-        &args.file,
-        &args.event,
-        args.target.as_str(),
-    )?;
+    let body = std::fs::read_to_string(&args.file)
+        .map_err(|e| anyhow::anyhow!("read guidance file {}: {e}", args.file.display()))?;
+    let value = args
+        .target
+        .harness()
+        .guidance_injection_json(&body, &args.event);
     write_json_stdout(&value)?;
     process::exit(0);
 }
