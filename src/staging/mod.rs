@@ -24,13 +24,18 @@ use crate::lockfile::{LockPackage, PackLock};
 use crate::manifest::AgentpackManifest;
 use crate::mode::filter::EffectiveMode;
 use crate::paths::staging_plugins_dir_for_mode;
-pub(crate) use agy::{agy_workspace_overlay_paths, prepare_agy_staging_without_pack_overlay};
+pub(crate) use agy::{
+    agy_workspace_overlay_paths, finalize_agy_staging, prepare_agy_staging_without_pack_overlay,
+};
 pub(crate) use attribution::{
     force_agy_attribution_off, force_codex_attribution_off, force_cursor_attribution_off,
     force_grok_attribution_off, force_opencode_attribution_off, keep_attribution,
 };
 pub(crate) use claude_home::materialize_claude_settings_overlay;
-pub(crate) use cursor::{prepare_cursor_staging_without_pack_overlay, read_cursor_overlay_manifest};
+pub(crate) use cursor::{
+    finalize_cursor_workspace_overlay, prepare_cursor_staging_without_pack_overlay,
+    read_cursor_overlay_manifest,
+};
 pub(crate) use pack_overlay::skill_folder_name;
 pub use pack_overlay::skill_is_shadowed;
 pub(crate) use seed::{seed_codex_home, seed_grok_home, seed_opencode_root};
@@ -99,29 +104,23 @@ pub fn verify_staging(
         )));
     }
     let bundle = &dirs[0];
-    let opencode_root = pipeline.opencode_root()?;
-    let codex_home = pipeline.codex_home()?;
-    let cursor_pack = pipeline.cursor_pack_plugin_dir()?;
-    let grok_bundle = pipeline.grok_bundle_dir()?;
-    let agy_bundle = pipeline.agy_bundle_dir()?;
 
-    let collision_removed = collision::resolve_user_claude_bundle_collisions(
-        bundle,
-        &opencode_root,
-        &codex_home,
-        &cursor_pack,
-        &grok_bundle,
-        &agy_bundle,
-    )?;
+    // Derive every harness's pack-content root (and the `commands/`/`agents/` subset) from the
+    // registry instead of a hand-maintained parallel list.
+    let mode_name = mode.name();
+    let harness_roots: Vec<(HarnessTarget, PathBuf)> = crate::harness::all()
+        .iter()
+        .map(|h| Ok((h.id(), h.staged_root(project_root, mode_name)?)))
+        .collect::<Result<Vec<_>>>()?;
+    let skill_roots: Vec<&Path> = harness_roots.iter().map(|(_, p)| p.as_path()).collect();
+    let md_roots: Vec<&Path> = harness_roots
+        .iter()
+        .filter(|(id, _)| id.harness().stages_command_agent_trees())
+        .map(|(_, p)| p.as_path())
+        .collect();
 
-    let harness_roots: &[(&Path, &str)] = &[
-        (bundle, "bundle"),
-        (&opencode_root, "opencode"),
-        (&codex_home, "codex"),
-        (&cursor_pack, "cursor"),
-        (&grok_bundle, "grok"),
-        (&agy_bundle, "agy"),
-    ];
+    let collision_removed =
+        collision::resolve_user_claude_bundle_collisions(bundle, &skill_roots, &md_roots)?;
 
     let plugins: Vec<&LockPackage> = lock.plugins().collect();
     for skill in lock.skills() {
@@ -148,11 +147,12 @@ pub fn verify_staging(
         {
             continue;
         }
-        for (root, label) in harness_roots {
+        for (id, root) in &harness_roots {
             let skill_md = root.join("skills").join(&name).join("SKILL.md");
             if !skill_md.is_file() {
                 return Err(AgentpackError::Staging(format!(
-                    "{label} staging missing skill SKILL.md {}",
+                    "{} staging missing skill SKILL.md {}",
+                    id.as_str(),
                     skill_md.display()
                 )));
             }

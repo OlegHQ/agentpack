@@ -21,8 +21,8 @@ use crate::paths::{
 };
 use crate::staging::mcp::{write_mcp_servers_json, StagedMcpEntries};
 use crate::staging::{
-    force_cursor_attribution_off, prepare_cursor_staging_without_pack_overlay,
-    read_cursor_overlay_manifest,
+    finalize_cursor_workspace_overlay, force_cursor_attribution_off,
+    prepare_cursor_staging_without_pack_overlay, read_cursor_overlay_manifest,
 };
 
 /// Cursor: pack plugin tree plus a fake `HOME` and an optional workspace `.cursor/agents` overlay.
@@ -246,6 +246,10 @@ impl Harness for Cursor {
         }
         cmd.args(args);
         Ok(cmd)
+    }
+
+    fn finalize_workspace_overlay(&self, ctx: &StageCtx) -> Result<()> {
+        finalize_cursor_workspace_overlay(ctx.project_root, ctx.mode.name())
     }
 }
 

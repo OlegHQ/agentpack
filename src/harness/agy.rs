@@ -14,7 +14,7 @@ use crate::launcher::common::{apply_yolo_agy, args_have_flag_with_value, resolve
 use crate::paths::{staging_agy_bundle_dir_for_mode, staging_agy_dir_for_mode};
 use crate::staging::mcp::{write_agy_mcp_config_json, StagedMcpEntries};
 use crate::staging::{
-    agy_workspace_overlay_paths, force_agy_attribution_off,
+    agy_workspace_overlay_paths, finalize_agy_staging, force_agy_attribution_off,
     prepare_agy_staging_without_pack_overlay,
 };
 
@@ -124,5 +124,9 @@ impl Harness for Agy {
         let mut cmd = Command::new(&agy);
         cmd.args(passthrough);
         Ok(cmd)
+    }
+
+    fn finalize_workspace_overlay(&self, ctx: &StageCtx) -> Result<()> {
+        finalize_agy_staging(ctx.project_root, ctx.mode.name())
     }
 }

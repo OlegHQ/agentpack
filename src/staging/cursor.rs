@@ -49,7 +49,7 @@ pub(super) fn finalize_cursor_staging_common(
 /// Materialize the project-side `./.cursor/agents` symlink required by `cursor agent`'s
 /// workspace-scoped subagent discovery. Caller is responsible for only invoking this when the
 /// Cursor harness is being launched.
-pub(super) fn finalize_cursor_workspace_overlay(
+pub(crate) fn finalize_cursor_workspace_overlay(
     project_root: &Path,
     mode_name: &str,
 ) -> Result<()> {

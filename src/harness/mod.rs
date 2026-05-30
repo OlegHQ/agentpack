@@ -175,6 +175,13 @@ pub(crate) trait Harness: Sync {
         kind == ArtifactKind::Command
     }
 
+    /// Whether this harness stages first-class `commands/` and `agents/` markdown trees. Codex
+    /// folds commands/agents into skills, so it has neither — collision shadowing of `.md` stems
+    /// skips it. Drives the `md_roots` subset in `staging::verify_staging`.
+    fn stages_command_agent_trees(&self) -> bool {
+        true
+    }
+
     // ---- MCP (was: the 4 native format writers fanned out in mcp::stage_merged_mcp) ----
 
     /// Render the already-merged MCP server set into this harness's native config file. The merge
@@ -214,6 +221,15 @@ pub(crate) trait Harness: Sync {
     /// fake `HOME`, …), inject default and yolo args. `launcher::launch` runs `sync_for_launch`
     /// first, then execs the returned `Command`.
     fn launch_command(&self, ctx: LaunchCtx) -> anyhow::Result<Command>;
+
+    // ---- optional workspace overlay (only Cursor + Agy) ----
+
+    /// Materialize this harness's project-side workspace overlay symlink (Cursor `.cursor/agents`,
+    /// Agy `.agents/plugins/agentpack-bundle`). Only invoked for the harness being launched; stale
+    /// overlays from a prior run are cleaned up unconditionally during `prepare`. Default: nothing.
+    fn finalize_workspace_overlay(&self, _ctx: &StageCtx) -> Result<()> {
+        Ok(())
+    }
 }
 
 /// The single source of truth for "what harnesses exist". Unit structs are const-constructible,

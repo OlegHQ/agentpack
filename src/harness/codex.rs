@@ -59,6 +59,10 @@ impl Harness for Codex {
         ArtifactKind::Skill
     }
 
+    fn stages_command_agent_trees(&self) -> bool {
+        false
+    }
+
     fn verify(&self, ctx: &StageCtx) -> Result<()> {
         let root = staging_codex_home_dir_for_mode(ctx.project_root, ctx.mode.name())?;
         require(root.is_dir(), || {

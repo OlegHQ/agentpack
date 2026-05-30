@@ -113,13 +113,14 @@ fn remove_md_stems_under_tree(root: &Path, stem_lower: &str) -> Result<()> {
 
 /// Like **[`resolve_user_claude_bundle_collisions`]** but uses **`home_dir`** as the user profile
 /// root (directory that contains **`.claude`**). **`None`** skips resolution (same as missing real home).
+///
+/// `bundle` is the canonical merged Claude bundle used to *detect* which pack slugs/stems exist.
+/// `skill_roots` is every harness's pack-content root (skills removed from all). `md_roots` is the
+/// subset that stages `commands/` and `agents/` trees (Codex excluded — it folds those into skills).
 pub(super) fn resolve_user_claude_bundle_collisions_with_home(
     bundle: &Path,
-    opencode: &Path,
-    codex: &Path,
-    cursor_pack: &Path,
-    grok_bundle: &Path,
-    agy_bundle: &Path,
+    skill_roots: &[&Path],
+    md_roots: &[&Path],
     home_dir: Option<&Path>,
 ) -> Result<StagingCollisionRemoval> {
     let no_removals = || StagingCollisionRemoval {
@@ -147,14 +148,6 @@ pub(super) fn resolve_user_claude_bundle_collisions_with_home(
     }
 
     let mut removed_skills = HashSet::new();
-    let harness_roots = [
-        bundle,
-        opencode,
-        codex,
-        cursor_pack,
-        grok_bundle,
-        agy_bundle,
-    ];
 
     let mut bundle_skills = HashSet::new();
     collect_skill_slugs(&bundle.join("skills"), &mut bundle_skills)?;
@@ -171,14 +164,12 @@ pub(super) fn resolve_user_claude_bundle_collisions_with_home(
         eprint_collision_warning(&format!(
             "Using user-installed skill `{k}`; omitted pack duplicate from staged bundle (and other harness trees)"
         ));
-        for root in &harness_roots {
+        for root in skill_roots {
             remove_skill_slug_dir(&root.join("skills"), k)?;
         }
     }
 
-    // Commands and agents: remove matching .md stems from applicable harness roots.
-    // Codex doesn't have commands/ or agents/ trees, so we skip it.
-    let md_roots = [bundle, opencode, cursor_pack, grok_bundle, agy_bundle];
+    // Commands and agents: remove matching .md stems from harnesses that stage those trees.
     for (user_set, bundle_set, dir_name, label) in [
         (&user_cmd, &bundle_cmd, "commands", "command"),
         (&user_agents, &bundle_agents, "agents", "agent"),
@@ -189,7 +180,7 @@ pub(super) fn resolve_user_claude_bundle_collisions_with_home(
             eprint_collision_warning(&format!(
                 "Using user-installed {label} `{k}`; omitted pack duplicate from staged bundle (and other harness trees)"
             ));
-            for root in &md_roots {
+            for root in md_roots {
                 remove_md_stems_under_tree(&root.join(dir_name), k)?;
             }
         }
@@ -205,22 +196,11 @@ pub(super) fn resolve_user_claude_bundle_collisions_with_home(
 /// for staging verification.
 pub(super) fn resolve_user_claude_bundle_collisions(
     bundle: &Path,
-    opencode: &Path,
-    codex: &Path,
-    cursor_pack: &Path,
-    grok_bundle: &Path,
-    agy_bundle: &Path,
+    skill_roots: &[&Path],
+    md_roots: &[&Path],
 ) -> Result<StagingCollisionRemoval> {
     let home = dirs::home_dir();
-    resolve_user_claude_bundle_collisions_with_home(
-        bundle,
-        opencode,
-        codex,
-        cursor_pack,
-        grok_bundle,
-        agy_bundle,
-        home.as_deref(),
-    )
+    resolve_user_claude_bundle_collisions_with_home(bundle, skill_roots, md_roots, home.as_deref())
 }
 
 #[cfg(test)]
@@ -234,13 +214,11 @@ mod tests {
         fs::create_dir_all(t.path().join(".claude/skills")).unwrap();
         let b = t.path().join("b");
         fs::create_dir_all(&b).unwrap();
+        let roots = [b.as_path()];
         assert!(super::resolve_user_claude_bundle_collisions_with_home(
             &b,
-            &b,
-            &b,
-            &b,
-            &b,
-            &b,
+            &roots,
+            &roots,
             Some(t.path()),
         )
         .unwrap()
@@ -262,13 +240,11 @@ mod tests {
         fs::create_dir_all(op.join("skills/code-tutor")).unwrap();
         fs::write(op.join("skills/code-tutor/SKILL.md"), "x").unwrap();
 
+        let skill_roots = [bundle.as_path(), op.as_path()];
         let r = super::resolve_user_claude_bundle_collisions_with_home(
             &bundle,
-            &op,
-            &op,
-            &op,
-            &op,
-            &op,
+            &skill_roots,
+            &skill_roots,
             Some(t.path()),
         )
         .unwrap();
@@ -288,13 +264,11 @@ mod tests {
         fs::create_dir_all(bundle.join("agents")).unwrap();
         fs::write(bundle.join("agents/foo.md"), "---\n---\n").unwrap();
 
+        let roots = [bundle.as_path()];
         super::resolve_user_claude_bundle_collisions_with_home(
             &bundle,
-            &bundle,
-            &bundle,
-            &bundle,
-            &bundle,
-            &bundle,
+            &roots,
+            &roots,
             Some(t.path()),
         )
         .unwrap();

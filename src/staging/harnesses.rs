@@ -12,12 +12,8 @@ use crate::paths::{
     staging_opencode_dir_for_mode, staging_plugins_dir_for_mode, STAGED_AGENTPACK_BUNDLE_NAME,
 };
 
-use super::agy::finalize_agy_staging;
 use super::claude_home::set_claude_settings_mcp_allowlist;
-use super::cursor::{
-    finalize_cursor_staging_common, finalize_cursor_workspace_overlay,
-    write_cursor_pack_plugin_readme,
-};
+use super::cursor::{finalize_cursor_staging_common, write_cursor_pack_plugin_readme};
 use super::dot_agents::stage_dot_agents_overlay;
 use super::keep_attribution;
 use super::pack_overlay::{
@@ -126,11 +122,10 @@ impl<'a> StagingPipeline<'a> {
             &pack_dests,
         )?;
         finalize_cursor_staging_common(self.project_root, self.mode.name(), &merged_mcp)?;
-        if matches!(self.target, Some(HarnessTarget::Cursor)) {
-            finalize_cursor_workspace_overlay(self.project_root, self.mode.name())?;
-        }
-        if matches!(self.target, Some(HarnessTarget::Agy)) {
-            finalize_agy_staging(self.project_root, self.mode.name())?;
+        // Workspace overlays (Cursor `.cursor/agents`, Agy `.agents/plugins/...`) are only created
+        // for the harness being launched; each impl knows its own overlay (default: none).
+        if let Some(target) = self.target {
+            target.harness().finalize_workspace_overlay(&self.stage_ctx())?;
         }
 
         Ok(vec![self.claude_bundle_dir()?])

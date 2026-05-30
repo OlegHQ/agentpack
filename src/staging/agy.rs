@@ -21,7 +21,7 @@ pub(crate) fn prepare_agy_staging_without_pack_overlay(
     Ok(())
 }
 
-pub(super) fn finalize_agy_staging(project_root: &Path, mode_name: &str) -> Result<()> {
+pub(crate) fn finalize_agy_staging(project_root: &Path, mode_name: &str) -> Result<()> {
     let entries = overlay::materialize_workspace_agy_plugin_symlink(project_root, mode_name)?;
     overlay::write_overlay_manifest(project_root, &entries)
 }
