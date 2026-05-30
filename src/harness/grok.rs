@@ -9,6 +9,7 @@ use crate::error::{AgentpackError, Result};
 use crate::paths::{
     staging_grok_bundle_dir_for_mode, staging_grok_dir_for_mode, staging_grok_home_dir_for_mode,
 };
+use crate::staging::mcp::{merge_into_toml_mcp_config, StagedMcpEntries};
 use crate::staging::{force_grok_attribution_off, seed_grok_home};
 
 /// Grok: launched with a redirected `GROK_HOME`; pack content staged as a plugin bundle. Its
@@ -43,6 +44,12 @@ impl Harness for Grok {
         fs::create_dir_all(&grok_home).map_err(|e| AgentpackError::io(&grok_home, e))?;
         seed_grok_home(&grok_home, &grok_bundle)?;
         force_grok_attribution_off(&grok_home)
+    }
+
+    fn write_mcp(&self, merged: &StagedMcpEntries, ctx: &StageCtx) -> Result<()> {
+        // MCP is native TOML in `grok-home/config.toml`, not in the pack bundle (staged_root).
+        let grok_home = staging_grok_home_dir_for_mode(ctx.project_root, ctx.mode.name())?;
+        merge_into_toml_mcp_config(&grok_home.join("config.toml"), merged)
     }
 
     fn raw_plugin_subdirs(&self) -> &'static [&'static str] {

@@ -9,6 +9,7 @@ use crate::error::{AgentpackError, Result};
 use crate::paths::{
     agentpack_claude_settings_path, staging_plugins_dir_for_mode, STAGED_AGENTPACK_BUNDLE_NAME,
 };
+use crate::staging::mcp::{write_claude_mcp_servers_json, StagedMcpEntries};
 use crate::staging::{keep_attribution, materialize_claude_settings_overlay};
 
 /// Claude Code: staged as a `--plugin-dir` bundle; attribution overlay via `--settings`.
@@ -58,6 +59,11 @@ impl Harness for Claude {
         write_bundle_manifest(&bundle)?;
         // Attribution overlay consumed by the launcher via `claude --settings <path>`.
         materialize_claude_settings_overlay()
+    }
+
+    fn write_mcp(&self, merged: &StagedMcpEntries, ctx: &StageCtx) -> Result<()> {
+        let bundle = self.staged_root(ctx.project_root, ctx.mode.name())?;
+        write_claude_mcp_servers_json(&bundle.join(".mcp.json"), merged)
     }
 
     fn raw_plugin_subdirs(&self) -> &'static [&'static str] {

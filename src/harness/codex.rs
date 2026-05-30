@@ -5,6 +5,7 @@ use super::{require, Harness, HarnessTarget, StageCtx};
 use crate::artifacts::ArtifactKind;
 use crate::error::{AgentpackError, Result};
 use crate::paths::staging_codex_home_dir_for_mode;
+use crate::staging::mcp::{merge_into_toml_mcp_config, StagedMcpEntries};
 use crate::staging::{force_codex_attribution_off, seed_codex_home};
 
 /// Codex: launched with a redirected `CODEX_HOME`; pack content rendered as portable skills.
@@ -24,6 +25,11 @@ impl Harness for Codex {
         fs::create_dir_all(&root).map_err(|e| AgentpackError::io(&root, e))?;
         seed_codex_home(&root)?;
         force_codex_attribution_off(&root)
+    }
+
+    fn write_mcp(&self, merged: &StagedMcpEntries, ctx: &StageCtx) -> Result<()> {
+        let home = self.staged_root(ctx.project_root, ctx.mode.name())?;
+        merge_into_toml_mcp_config(&home.join("config.toml"), merged)
     }
 
     fn rendered_artifact_kind(&self, _source: ArtifactKind) -> ArtifactKind {

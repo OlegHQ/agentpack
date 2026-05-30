@@ -58,7 +58,7 @@ impl HarnessTarget {
     /// per-harness artifact-rendering knobs (`raw_plugin_subdirs`, `seed_command_frontmatter`,
     /// the `*_allowed_extra_frontmatter_keys`, `rendered_artifact_kind`,
     /// `disables_model_invocation_for_kind`) live on that trait.
-    pub fn harness(self) -> &'static dyn crate::harness::Harness {
+    pub(crate) fn harness(self) -> &'static dyn crate::harness::Harness {
         crate::harness::get(self)
     }
 }

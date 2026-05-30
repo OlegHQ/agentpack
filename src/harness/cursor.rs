@@ -10,6 +10,7 @@ use crate::paths::{
     cursor_workspace_dir, staging_cursor_bundle_dir_for_mode, staging_cursor_home_dir_for_mode,
     staging_cursor_pack_plugin_dir_for_mode,
 };
+use crate::staging::mcp::{write_mcp_servers_json, StagedMcpEntries};
 use crate::staging::{
     force_cursor_attribution_off, prepare_cursor_staging_without_pack_overlay,
     read_cursor_overlay_manifest,
@@ -42,6 +43,13 @@ impl Harness for Cursor {
         let cursor_bundle = staging_cursor_bundle_dir_for_mode(ctx.project_root, mode)?;
         force_cursor_attribution_off(&cursor_bundle)?;
         force_cursor_attribution_off(&cursor_pack)
+    }
+
+    fn write_mcp(&self, merged: &StagedMcpEntries, ctx: &StageCtx) -> Result<()> {
+        // Only the pack `mcp.json`; the fake-HOME re-merge with the user's `~/.cursor/mcp.json`
+        // stays in finalize_cursor_staging_common.
+        let pack = self.staged_root(ctx.project_root, ctx.mode.name())?;
+        write_mcp_servers_json(&pack.join("mcp.json"), merged)
     }
 
     fn raw_plugin_subdirs(&self) -> &'static [&'static str] {

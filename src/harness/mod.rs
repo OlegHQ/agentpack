@@ -33,6 +33,7 @@ use crate::artifacts::ArtifactKind;
 pub use crate::artifacts::HarnessTarget;
 use crate::error::{AgentpackError, Result};
 use crate::mode::filter::EffectiveMode;
+use crate::staging::mcp::StagedMcpEntries;
 
 /// Read-only context threaded into every staging step. Pure borrows — the staging pipeline already
 /// owns these, so the trait methods derive their own per-harness destination paths from
@@ -57,7 +58,7 @@ fn require(cond: bool, msg: impl FnOnce() -> String) -> Result<()> {
 /// One coding-agent integration. Each impl owns all of that harness's quirks. Zero-field unit
 /// structs: every per-invocation input flows through borrowed context, so the registry can hand
 /// out `&'static dyn Harness`.
-pub trait Harness: Sync {
+pub(crate) trait Harness: Sync {
     fn id(&self) -> HarnessTarget;
 
     // ---- staging paths (was: 9 StagingPipeline accessors + path selection in reset_all) ----
@@ -157,6 +158,12 @@ pub trait Harness: Sync {
         kind == ArtifactKind::Command
     }
 
+    // ---- MCP (was: the 4 native format writers fanned out in mcp::stage_merged_mcp) ----
+
+    /// Render the already-merged MCP server set into this harness's native config file. The merge
+    /// runs once in `staging`; each impl only writes its own format to its own destination.
+    fn write_mcp(&self, merged: &StagedMcpEntries, ctx: &StageCtx) -> Result<()>;
+
     // ---- verify (was: the 6 `StagingPipeline::verify_*` methods) ----
 
     /// Assert this harness's staged tree is well-formed. Read-only — cross-harness mutation
@@ -166,12 +173,12 @@ pub trait Harness: Sync {
 
 /// The single source of truth for "what harnesses exist". Unit structs are const-constructible,
 /// so rvalue static promotion makes these `&'static`.
-pub fn all() -> &'static [&'static dyn Harness] {
+pub(crate) fn all() -> &'static [&'static dyn Harness] {
     &[&Claude, &Cursor, &Codex, &OpenCode, &Grok, &Agy]
 }
 
 /// Resolve a harness identity to its implementor.
-pub fn get(id: HarnessTarget) -> &'static dyn Harness {
+pub(crate) fn get(id: HarnessTarget) -> &'static dyn Harness {
     all()
         .iter()
         .copied()

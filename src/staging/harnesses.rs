@@ -118,16 +118,18 @@ impl<'a> StagingPipeline<'a> {
         )?;
         write_cursor_pack_plugin_readme(&cursor_pack)?;
         stage_dot_agents_overlay(self.project_root, self.mode.name(), self.mode)?;
-        let merged_mcp = super::mcp::stage_merged_mcp(
-            self.project_root,
-            self.lock,
-            self.manifest,
-            self.mode,
-            &pack_dests,
-        )?;
-        if !merged_mcp.is_empty() && !keep_attribution() {
-            let names: Vec<String> = merged_mcp.keys().cloned().collect();
-            set_claude_settings_mcp_allowlist(&names)?;
+        // Merge once, then let each harness render its own native format.
+        let merged_mcp =
+            super::mcp::collect_merged_mcp(self.project_root, self.lock, self.manifest, Some(self.mode))?;
+        if !merged_mcp.is_empty() {
+            let ctx = self.stage_ctx();
+            for harness in crate::harness::all() {
+                harness.write_mcp(&merged_mcp, &ctx)?;
+            }
+            if !keep_attribution() {
+                let names: Vec<String> = merged_mcp.keys().cloned().collect();
+                set_claude_settings_mcp_allowlist(&names)?;
+            }
         }
         super::guidance::stage_guidance_all_harnesses(
             self.project_root,

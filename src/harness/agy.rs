@@ -4,6 +4,7 @@ use super::{require, Harness, HarnessTarget, StageCtx};
 use crate::artifacts::ArtifactKind;
 use crate::error::{AgentpackError, Result};
 use crate::paths::{staging_agy_bundle_dir_for_mode, staging_agy_dir_for_mode};
+use crate::staging::mcp::{write_agy_mcp_config_json, StagedMcpEntries};
 use crate::staging::{
     agy_workspace_overlay_paths, force_agy_attribution_off,
     prepare_agy_staging_without_pack_overlay,
@@ -30,6 +31,11 @@ impl Harness for Agy {
         let mode = ctx.mode.name();
         prepare_agy_staging_without_pack_overlay(ctx.project_root, mode)?;
         force_agy_attribution_off(&self.staged_root(ctx.project_root, mode)?)
+    }
+
+    fn write_mcp(&self, merged: &StagedMcpEntries, ctx: &StageCtx) -> Result<()> {
+        let bundle = self.staged_root(ctx.project_root, ctx.mode.name())?;
+        write_agy_mcp_config_json(&bundle.join("mcp_config.json"), merged)
     }
 
     fn raw_plugin_subdirs(&self) -> &'static [&'static str] {

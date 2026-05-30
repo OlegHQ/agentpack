@@ -30,7 +30,7 @@ use crate::manifest::AgentpackManifest;
 use crate::mode::filter::EffectiveMode;
 use crate::paths::project_dot_agents_dir;
 
-use super::pack_overlay::{disabled_in_config, PackHarnessRoots};
+use super::pack_overlay::disabled_in_config;
 
 /// A single MCP server entry. Supports both stdio (`command` + `args`) and remote (`url`).
 ///
@@ -171,6 +171,9 @@ pub(crate) fn collect_merged_mcp(
 
 type MergedEntries = BTreeMap<String, (McpServerEntry, McpSource)>;
 
+/// The resolved, merged MCP server set handed to each harness's `write_mcp`.
+pub(crate) type StagedMcpEntries = MergedEntries;
+
 fn bare_entries(merged: &MergedEntries) -> BTreeMap<String, McpServerEntry> {
     merged
         .iter()
@@ -178,35 +181,9 @@ fn bare_entries(merged: &MergedEntries) -> BTreeMap<String, McpServerEntry> {
         .collect()
 }
 
-/// Collect merged MCP servers and render each harness in its native format.
-/// Returns the merged entries so callers (Claude allowlist overlay, Cursor approvals
-/// pre-seed) can use the resolved server set.
-pub(super) fn stage_merged_mcp(
-    project_root: &Path,
-    lock: &PackLock,
-    manifest: Option<&AgentpackManifest>,
-    mode: &EffectiveMode,
-    dests: &PackHarnessRoots<'_>,
-) -> Result<MergedEntries> {
-    let merged = collect_merged_mcp(project_root, lock, manifest, Some(mode))?;
-    if merged.is_empty() {
-        return Ok(merged);
-    }
-
-    write_claude_mcp_servers_json(&dests.claude_bundle.join(".mcp.json"), &merged)?;
-    write_mcp_servers_json(&dests.cursor_pack.join("mcp.json"), &merged)?;
-    merge_into_opencode_config(&dests.opencode.join("opencode.json"), &merged)?;
-    merge_into_toml_mcp_config(&dests.codex.join("config.toml"), &merged)?;
-    merge_into_toml_mcp_config(&dests.grok_home.join("config.toml"), &merged)?;
-    write_agy_mcp_config_json(&dests.agy_bundle.join("mcp_config.json"), &merged)?;
-    Ok(merged)
-}
-
-pub(super) type StagedMcpEntries = MergedEntries;
-
 /// Write `{"mcpServers":{...}}` JSON (Cursor `mcp.json`). Cursor accepts entries without a
 /// `type` discriminator, so we serialize as-is.
-fn write_mcp_servers_json(dest: &Path, merged: &MergedEntries) -> Result<()> {
+pub(crate) fn write_mcp_servers_json(dest: &Path, merged: &MergedEntries) -> Result<()> {
     let cfg = McpConfig {
         mcp_servers: bare_entries(merged),
     };
@@ -219,7 +196,7 @@ fn write_mcp_servers_json(dest: &Path, merged: &MergedEntries) -> Result<()> {
 /// discriminator — its zod schema is a `discriminatedUnion("type", ...)` over
 /// `stdio`/`sse`/`http`/`sse-ide`/`ws-ide`/`sdk`. We default to `"http"` (Streamable HTTP, the
 /// modern remote transport) for url-only entries that don't already specify one.
-fn write_claude_mcp_servers_json(dest: &Path, merged: &MergedEntries) -> Result<()> {
+pub(crate) fn write_claude_mcp_servers_json(dest: &Path, merged: &MergedEntries) -> Result<()> {
     let mut entries = bare_entries(merged);
     for entry in entries.values_mut() {
         if entry.kind.is_none() && entry.is_remote() {
@@ -269,7 +246,7 @@ fn opencode_entry_value(entry: &McpServerEntry) -> serde_json::Value {
 
 /// Merge MCP entries into `opencode.json` under the top-level `mcp` object.
 /// User-seeded entries win: we only insert pack entries whose names are absent.
-fn merge_into_opencode_config(config_path: &Path, merged: &MergedEntries) -> Result<()> {
+pub(crate) fn merge_into_opencode_config(config_path: &Path, merged: &MergedEntries) -> Result<()> {
     use serde_json::Value;
 
     let mut root: Value = if config_path.is_file() {
@@ -343,7 +320,7 @@ fn toml_mcp_entry_table(entry: &McpServerEntry) -> toml::value::Table {
 /// Merge MCP entries into a TOML `config.toml` under `[mcp_servers.<name>]` tables. Shared by
 /// Codex and Grok, which use the identical native format. User-seeded entries win: we only insert
 /// pack entries whose names are absent.
-fn merge_into_toml_mcp_config(config_path: &Path, merged: &MergedEntries) -> Result<()> {
+pub(crate) fn merge_into_toml_mcp_config(config_path: &Path, merged: &MergedEntries) -> Result<()> {
     let mut doc = crate::fs_util::read_toml_value_or_default(config_path)?;
 
     let root = doc.as_table_mut().ok_or_else(|| {
@@ -403,7 +380,7 @@ fn agy_entry_value(entry: &McpServerEntry) -> serde_json::Value {
     Value::Object(obj)
 }
 
-fn write_agy_mcp_config_json(dest: &Path, merged: &MergedEntries) -> Result<()> {
+pub(crate) fn write_agy_mcp_config_json(dest: &Path, merged: &MergedEntries) -> Result<()> {
     use serde_json::Value;
     let entries: serde_json::Map<String, Value> = merged
         .iter()
