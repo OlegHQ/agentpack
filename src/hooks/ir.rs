@@ -1,7 +1,6 @@
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
