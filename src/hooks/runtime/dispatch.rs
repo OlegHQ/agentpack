@@ -13,7 +13,7 @@ use regex::Regex;
 use serde_json::Value;
 
 use super::bridge::{load_spec, stdin_json, HookExecutionSpec};
-use super::{agent, command, http, prompt};
+use super::handlers::{run_agent, run_command, run_http, run_prompt};
 use crate::harness::HarnessTarget;
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, HookDecision, NormalizedHookResult};
 
@@ -103,7 +103,7 @@ fn execute_spec(
 ) -> anyhow::Result<NormalizedHookResult> {
     match &spec.handler {
         ClaudeHandler::Command(_) => {
-            let result = command::execute(spec, stdin_bytes)?;
+            let result = run_command(spec, stdin_bytes)?;
             let mut normalized = if result.stdout.is_empty() {
                 NormalizedHookResult::default()
             } else {
@@ -121,9 +121,9 @@ fn execute_spec(
             }
             Ok(normalized)
         }
-        ClaudeHandler::Http(_) => http::execute(spec, stdin_bytes),
-        ClaudeHandler::Prompt(_) => prompt::execute(spec, stdin_bytes),
-        ClaudeHandler::Agent(_) => agent::execute(spec, stdin_bytes),
+        ClaudeHandler::Http(_) => run_http(spec, stdin_bytes),
+        ClaudeHandler::Prompt(_) => run_prompt(spec, stdin_bytes),
+        ClaudeHandler::Agent(_) => run_agent(spec, stdin_bytes),
     }
 }
 

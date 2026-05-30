@@ -5,7 +5,7 @@ use crate::hooks::runtime::bridge::{
     forward_process_output, load_spec, read_stdin_bytes, write_json_stdout, HookExecutionSpec,
 };
 use crate::hooks::runtime::dispatch::{dispatch, DispatchArgs};
-use crate::hooks::runtime::{agent, command, http, prompt};
+use crate::hooks::runtime::handlers;
 
 use super::{
     HookDispatchArgs, HookExecArgs, HookExecKind, HookExecSpecArgs, HookInjectGuidanceArgs,
@@ -25,7 +25,7 @@ pub fn run(args: HookExecArgs) -> anyhow::Result<()> {
 
 fn run_command(args: HookExecSpecArgs, stdin_bytes: &[u8]) -> anyhow::Result<()> {
     let spec = load_spec(&args.spec)?;
-    let result = command::execute(&spec, stdin_bytes)?;
+    let result = handlers::run_command(&spec, stdin_bytes)?;
     forward_process_output(&result.stdout, &result.stderr)?;
     process::exit(result.exit_code);
 }
@@ -50,9 +50,9 @@ fn execute_json_hook(
     stdin_bytes: &[u8],
 ) -> anyhow::Result<NormalizedHookResult> {
     match kind {
-        JsonKind::Http => http::execute(spec, stdin_bytes),
-        JsonKind::Prompt => prompt::execute(spec, stdin_bytes),
-        JsonKind::Agent => agent::execute(spec, stdin_bytes),
+        JsonKind::Http => handlers::run_http(spec, stdin_bytes),
+        JsonKind::Prompt => handlers::run_prompt(spec, stdin_bytes),
+        JsonKind::Agent => handlers::run_agent(spec, stdin_bytes),
     }
 }
 
