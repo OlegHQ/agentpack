@@ -9,11 +9,10 @@ use anyhow::Context;
 use serde_json::Value;
 
 use super::launch::{apply_yolo_codex, resolve_harness_binary};
-use super::mcp_toml::merge_into_toml_mcp_config;
 use super::{require, Harness, HarnessTarget, LaunchCtx, StageCtx};
 use crate::artifacts::ArtifactKind;
 use crate::error::{AgentpackError, Result};
-use crate::fs_util::copy_selected_entries;
+use crate::fs_util::{copy_selected_entries, write_text_file};
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
 use crate::hooks::render::HookRenderer;
 use crate::hooks::render::SupportLevel;
@@ -21,7 +20,7 @@ use crate::hooks::runtime::output::{codex_output, guidance_additional_context_co
 use crate::paths::staging_codex_home_dir_for_mode;
 use crate::staging::guidance::write_agents_md;
 use crate::staging::keep_attribution;
-use crate::staging::mcp::StagedMcpEntries;
+use crate::staging::mcp::{McpServerEntry, StagedMcpEntries};
 
 /// Codex home entries preserved before overlaying pack content. `auth.json` is linked separately
 /// so every staged `CODEX_HOME` shares the same refresh state.
@@ -144,6 +143,75 @@ fn force_codex_attribution_off(codex_home: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Merge MCP entries into Codex's `config.toml` under `[mcp_servers.<name>]` tables. User-seeded
+/// entries win: we only insert pack entries whose names are absent. (Grok uses the identical TOML
+/// format — each harness carries its own copy so all of its config lives in one module.)
+fn merge_into_toml_mcp_config(config_path: &Path, merged: &StagedMcpEntries) -> Result<()> {
+    let mut doc = crate::fs_util::read_toml_value_or_default(config_path)?;
+
+    let root = doc.as_table_mut().ok_or_else(|| {
+        AgentpackError::Staging(format!(
+            "{}: top-level must be a TOML table",
+            config_path.display()
+        ))
+    })?;
+    let servers = root
+        .entry("mcp_servers".to_string())
+        .or_insert_with(|| toml::Value::Table(toml::value::Table::new()))
+        .as_table_mut()
+        .ok_or_else(|| {
+            AgentpackError::Staging(format!(
+                "{}: `mcp_servers` must be a table",
+                config_path.display()
+            ))
+        })?;
+    for (name, (entry, _)) in merged {
+        if servers.contains_key(name) {
+            continue;
+        }
+        servers.insert(
+            name.clone(),
+            toml::Value::Table(toml_mcp_entry_table(entry)),
+        );
+    }
+
+    let out = toml::to_string(&doc)
+        .map_err(|e| AgentpackError::Staging(format!("{}: {e}", config_path.display())))?;
+    write_text_file(config_path, &out)
+}
+
+fn toml_mcp_entry_table(entry: &McpServerEntry) -> toml::value::Table {
+    let mut t = toml::value::Table::new();
+    if entry.is_remote() {
+        if let Some(url) = &entry.url {
+            t.insert("url".into(), toml::Value::String(url.clone()));
+        }
+    } else {
+        if let Some(c) = &entry.command {
+            t.insert("command".into(), toml::Value::String(c.clone()));
+        }
+        if !entry.args.is_empty() {
+            let arr: Vec<toml::Value> = entry
+                .args
+                .iter()
+                .map(|a| toml::Value::String(a.clone()))
+                .collect();
+            t.insert("args".into(), toml::Value::Array(arr));
+        }
+        if !entry.env.is_empty() {
+            let mut env_tbl = toml::value::Table::new();
+            for (k, v) in &entry.env {
+                env_tbl.insert(k.clone(), toml::Value::String(v.clone()));
+            }
+            t.insert("env".into(), toml::Value::Table(env_tbl));
+        }
+    }
+    if entry.disabled == Some(true) {
+        t.insert("enabled".into(), toml::Value::Boolean(false));
+    }
+    t
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -177,5 +245,46 @@ mod tests {
             let s = std::fs::read_to_string(dir.path().join("config.toml")).unwrap();
             assert!(s.contains("commit_attribution = \"\""));
         });
+    }
+
+    mod mcp {
+        use super::*;
+        use crate::staging::mcp::test_support::{merged, remote_entry, stdio_entry};
+        use std::fs;
+        use tempfile::tempdir;
+
+        #[test]
+        fn merge_writes_mcp_servers_tables() {
+            let dir = tempdir().unwrap();
+            let cfg = dir.path().join("config.toml");
+            fs::write(&cfg, "model = \"gpt-5\"\n").unwrap();
+            merge_into_toml_mcp_config(&cfg, &merged(&[("codesight", stdio_entry())])).unwrap();
+            let text = fs::read_to_string(&cfg).unwrap();
+            assert!(text.contains("[mcp_servers.codesight]"));
+            assert!(text.contains("command = \"cargo\""));
+            assert!(text.contains("[mcp_servers.codesight.env]"));
+            assert!(text.contains("model = \"gpt-5\""));
+        }
+
+        #[test]
+        fn merge_user_wins_on_conflict() {
+            let dir = tempdir().unwrap();
+            let cfg = dir.path().join("config.toml");
+            fs::write(&cfg, "[mcp_servers.codesight]\ncommand = \"user-cmd\"\n").unwrap();
+            merge_into_toml_mcp_config(&cfg, &merged(&[("codesight", stdio_entry())])).unwrap();
+            let text = fs::read_to_string(&cfg).unwrap();
+            assert!(text.contains("command = \"user-cmd\""));
+            assert!(!text.contains("\"cargo\""));
+        }
+
+        #[test]
+        fn merge_remote_entry_uses_url_field() {
+            let dir = tempdir().unwrap();
+            let cfg = dir.path().join("config.toml");
+            merge_into_toml_mcp_config(&cfg, &merged(&[("linear", remote_entry())])).unwrap();
+            let text = fs::read_to_string(&cfg).unwrap();
+            assert!(text.contains("[mcp_servers.linear]"));
+            assert!(text.contains("url = \"https://mcp.example.com/mcp\""));
+        }
     }
 }
