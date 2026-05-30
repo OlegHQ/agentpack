@@ -19,7 +19,7 @@ pub(crate) use overlay::read_cursor_overlay_manifest;
 
 /// Cursor marketplace layout and optional user **`~/.cursor`** seeds only. Pack trees are merged in
 /// one pass for all harnesses in **`staging::pack_overlay`**.
-pub(super) fn prepare_cursor_staging_without_pack_overlay(
+pub(crate) fn prepare_cursor_staging_without_pack_overlay(
     project_root: &Path,
     mode_name: &str,
 ) -> Result<()> {

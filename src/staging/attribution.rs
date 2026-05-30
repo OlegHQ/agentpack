@@ -63,7 +63,7 @@ pub(crate) fn keep_attribution() -> bool {
 }
 
 /// Force-disable Codex commit attribution in `<codex_home>/config.toml`.
-pub(super) fn force_codex_attribution_off(codex_home: &Path) -> Result<()> {
+pub(crate) fn force_codex_attribution_off(codex_home: &Path) -> Result<()> {
     if keep_attribution() {
         return Ok(());
     }
@@ -107,7 +107,7 @@ fn patch_cursor_cli_config(mut value: Value) -> Value {
 
 /// Force-disable Cursor attribution in `<root>/cli-config.json`. Reads the existing file (if
 /// present) so user fields like `editor`, `permissions`, `mcpServers` survive.
-pub(super) fn force_cursor_attribution_off(root: &Path) -> Result<()> {
+pub(crate) fn force_cursor_attribution_off(root: &Path) -> Result<()> {
     if keep_attribution() {
         return Ok(());
     }
@@ -144,7 +144,7 @@ pub(super) fn force_cursor_fake_home_attribution_off(
 /// Force-disable OpenCode attribution by writing an instruction file under the staged config root
 /// and adding it to the `instructions` array in `opencode.json`. OpenCode has no first-class
 /// attribution setting (sst/opencode#919, sst/opencode#1135) so this is a system-prompt nudge.
-pub(super) fn force_opencode_attribution_off(root: &Path) -> Result<()> {
+pub(crate) fn force_opencode_attribution_off(root: &Path) -> Result<()> {
     if keep_attribution() {
         return Ok(());
     }
@@ -177,7 +177,7 @@ pub(super) fn force_opencode_attribution_off(root: &Path) -> Result<()> {
 
 /// Antigravity has no confirmed first-class attribution setting. Stage a plugin-local rule as
 /// prompt-level guidance only.
-pub(super) fn force_agy_attribution_off(bundle: &Path) -> Result<()> {
+pub(crate) fn force_agy_attribution_off(bundle: &Path) -> Result<()> {
     if keep_attribution() {
         return Ok(());
     }
@@ -193,7 +193,7 @@ pub(super) fn force_agy_attribution_off(bundle: &Path) -> Result<()> {
 
 /// Grok has no confirmed first-class attribution setting. Add staged prompt-level guidance to
 /// `$GROK_HOME/AGENTS.md` only.
-pub(super) fn force_grok_attribution_off(grok_home: &Path) -> Result<()> {
+pub(crate) fn force_grok_attribution_off(grok_home: &Path) -> Result<()> {
     if keep_attribution() {
         return Ok(());
     }

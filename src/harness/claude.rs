@@ -1,14 +1,15 @@
+use std::fs;
 use std::path::{Path, PathBuf};
 
 use serde_norway::Mapping;
 
 use super::{require, Harness, HarnessTarget, StageCtx};
 use crate::artifacts::yaml::insert_string;
-use crate::error::Result;
+use crate::error::{AgentpackError, Result};
 use crate::paths::{
     agentpack_claude_settings_path, staging_plugins_dir_for_mode, STAGED_AGENTPACK_BUNDLE_NAME,
 };
-use crate::staging::keep_attribution;
+use crate::staging::{keep_attribution, materialize_claude_settings_overlay};
 
 /// Claude Code: staged as a `--plugin-dir` bundle; attribution overlay via `--settings`.
 pub(super) struct Claude;
@@ -24,6 +25,16 @@ pub(super) fn seed_description_then_name(m: &mut Mapping, name: &str, descriptio
     insert_string(m, "name", name);
 }
 
+/// Write the Claude plugin manifest (`.claude-plugin/plugin.json`) into the bundle root.
+fn write_bundle_manifest(bundle: &Path) -> Result<()> {
+    let plugin_dir = bundle.join(".claude-plugin");
+    fs::create_dir_all(&plugin_dir).map_err(|e| AgentpackError::io(&plugin_dir, e))?;
+    let manifest = r#"{"name":"agentpack-bundle","version":"1.0.0","description":"Merged pack.lock plugins/skills; optional user settings.json and .claude.json"}"#;
+    let plugin_json = plugin_dir.join("plugin.json");
+    fs::write(&plugin_json, manifest).map_err(|e| AgentpackError::io(&plugin_json, e))?;
+    Ok(())
+}
+
 impl Harness for Claude {
     fn id(&self) -> HarnessTarget {
         HarnessTarget::Claude
@@ -36,6 +47,17 @@ impl Harness for Claude {
     fn reset_paths(&self, project_root: &Path, mode: &str) -> Result<Vec<PathBuf>> {
         // Wipe the whole `plugins/` parent (Claude loads it via `--plugin-dir`), not just the bundle.
         Ok(vec![staging_plugins_dir_for_mode(project_root, mode)?])
+    }
+
+    fn prepare(&self, ctx: &StageCtx) -> Result<()> {
+        // Claude bundle (loaded via `--plugin-dir`; user settings live in the staged config dir).
+        let plugins_base = staging_plugins_dir_for_mode(ctx.project_root, ctx.mode.name())?;
+        fs::create_dir_all(&plugins_base).map_err(|e| AgentpackError::io(&plugins_base, e))?;
+        let bundle = self.staged_root(ctx.project_root, ctx.mode.name())?;
+        fs::create_dir_all(&bundle).map_err(|e| AgentpackError::io(&bundle, e))?;
+        write_bundle_manifest(&bundle)?;
+        // Attribution overlay consumed by the launcher via `claude --settings <path>`.
+        materialize_claude_settings_overlay()
     }
 
     fn raw_plugin_subdirs(&self) -> &'static [&'static str] {

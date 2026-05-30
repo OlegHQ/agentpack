@@ -10,7 +10,10 @@ use crate::paths::{
     cursor_workspace_dir, staging_cursor_bundle_dir_for_mode, staging_cursor_home_dir_for_mode,
     staging_cursor_pack_plugin_dir_for_mode,
 };
-use crate::staging::read_cursor_overlay_manifest;
+use crate::staging::{
+    force_cursor_attribution_off, prepare_cursor_staging_without_pack_overlay,
+    read_cursor_overlay_manifest,
+};
 
 /// Cursor: pack plugin tree plus a fake `HOME` and an optional workspace `.cursor/agents` overlay.
 pub(super) struct Cursor;
@@ -30,6 +33,15 @@ impl Harness for Cursor {
             staging_cursor_bundle_dir_for_mode(project_root, mode)?,
             staging_cursor_home_dir_for_mode(project_root, mode)?,
         ])
+    }
+
+    fn prepare(&self, ctx: &StageCtx) -> Result<()> {
+        let mode = ctx.mode.name();
+        prepare_cursor_staging_without_pack_overlay(ctx.project_root, mode)?;
+        let cursor_pack = self.staged_root(ctx.project_root, mode)?;
+        let cursor_bundle = staging_cursor_bundle_dir_for_mode(ctx.project_root, mode)?;
+        force_cursor_attribution_off(&cursor_bundle)?;
+        force_cursor_attribution_off(&cursor_pack)
     }
 
     fn raw_plugin_subdirs(&self) -> &'static [&'static str] {

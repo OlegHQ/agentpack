@@ -4,7 +4,10 @@ use super::{require, Harness, HarnessTarget, StageCtx};
 use crate::artifacts::ArtifactKind;
 use crate::error::{AgentpackError, Result};
 use crate::paths::{staging_agy_bundle_dir_for_mode, staging_agy_dir_for_mode};
-use crate::staging::agy_workspace_overlay_paths;
+use crate::staging::{
+    agy_workspace_overlay_paths, force_agy_attribution_off,
+    prepare_agy_staging_without_pack_overlay,
+};
 
 /// Antigravity (`agy`): pack content reaches it via a workspace plugin overlay; `HOME` untouched.
 pub(super) struct Agy;
@@ -21,6 +24,12 @@ impl Harness for Agy {
     fn reset_paths(&self, project_root: &Path, mode: &str) -> Result<Vec<PathBuf>> {
         // Remove the parent `agy/` dir, not just `agy/agentpack-bundle`, matching prior behavior.
         Ok(vec![staging_agy_dir_for_mode(project_root, mode)?])
+    }
+
+    fn prepare(&self, ctx: &StageCtx) -> Result<()> {
+        let mode = ctx.mode.name();
+        prepare_agy_staging_without_pack_overlay(ctx.project_root, mode)?;
+        force_agy_attribution_off(&self.staged_root(ctx.project_root, mode)?)
     }
 
     fn raw_plugin_subdirs(&self) -> &'static [&'static str] {

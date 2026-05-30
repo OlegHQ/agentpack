@@ -24,11 +24,16 @@ use crate::lockfile::{LockPackage, PackLock};
 use crate::manifest::AgentpackManifest;
 use crate::mode::filter::EffectiveMode;
 use crate::paths::staging_plugins_dir_for_mode;
-pub(crate) use agy::agy_workspace_overlay_paths;
-pub(crate) use attribution::keep_attribution;
-pub(crate) use cursor::read_cursor_overlay_manifest;
+pub(crate) use agy::{agy_workspace_overlay_paths, prepare_agy_staging_without_pack_overlay};
+pub(crate) use attribution::{
+    force_agy_attribution_off, force_codex_attribution_off, force_cursor_attribution_off,
+    force_grok_attribution_off, force_opencode_attribution_off, keep_attribution,
+};
+pub(crate) use claude_home::materialize_claude_settings_overlay;
+pub(crate) use cursor::{prepare_cursor_staging_without_pack_overlay, read_cursor_overlay_manifest};
 pub(crate) use pack_overlay::skill_folder_name;
 pub use pack_overlay::skill_is_shadowed;
+pub(crate) use seed::{seed_codex_home, seed_grok_home, seed_opencode_root};
 
 use harnesses::StagingPipeline;
 use pack_overlay::disabled_in_config;

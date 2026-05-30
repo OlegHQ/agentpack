@@ -34,7 +34,7 @@ use crate::error::{AgentpackError, Result};
 use crate::fs_util::{read_json_value_opt, remove_path_any, write_json_value};
 use crate::paths::agentpack_claude_settings_path;
 
-pub(super) fn materialize_claude_settings_overlay() -> Result<()> {
+pub(crate) fn materialize_claude_settings_overlay() -> Result<()> {
     let dest = agentpack_claude_settings_path()?;
     if keep_attribution() {
         remove_path_any(&dest)?;

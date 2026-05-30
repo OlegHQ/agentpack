@@ -10,7 +10,7 @@ use crate::paths::staging_agy_bundle_dir_for_mode;
 
 pub(super) use overlay::read_agy_overlay_manifest;
 
-pub(super) fn prepare_agy_staging_without_pack_overlay(
+pub(crate) fn prepare_agy_staging_without_pack_overlay(
     project_root: &Path,
     mode_name: &str,
 ) -> Result<()> {

@@ -1,13 +1,15 @@
+use std::fs;
 use std::path::{Path, PathBuf};
 
 use serde_norway::Mapping;
 
 use super::claude::{seed_description_then_name, CLAUDE_RAW_PLUGIN_SUBDIRS};
 use super::{require, Harness, HarnessTarget, StageCtx};
-use crate::error::Result;
+use crate::error::{AgentpackError, Result};
 use crate::paths::{
     staging_grok_bundle_dir_for_mode, staging_grok_dir_for_mode, staging_grok_home_dir_for_mode,
 };
+use crate::staging::{force_grok_attribution_off, seed_grok_home};
 
 /// Grok: launched with a redirected `GROK_HOME`; pack content staged as a plugin bundle. Its
 /// artifact-rendering knobs are identical to Claude's.
@@ -28,6 +30,19 @@ impl Harness for Grok {
             staging_grok_home_dir_for_mode(project_root, mode)?,
             staging_grok_dir_for_mode(project_root, mode)?,
         ])
+    }
+
+    fn prepare(&self, ctx: &StageCtx) -> Result<()> {
+        let mode = ctx.mode.name();
+        let grok_dir = staging_grok_dir_for_mode(ctx.project_root, mode)?;
+        fs::create_dir_all(&grok_dir).map_err(|e| AgentpackError::io(&grok_dir, e))?;
+        let grok_bundle = self.staged_root(ctx.project_root, mode)?;
+        fs::create_dir_all(&grok_bundle).map_err(|e| AgentpackError::io(&grok_bundle, e))?;
+        write_grok_bundle_manifest(&grok_bundle)?;
+        let grok_home = staging_grok_home_dir_for_mode(ctx.project_root, mode)?;
+        fs::create_dir_all(&grok_home).map_err(|e| AgentpackError::io(&grok_home, e))?;
+        seed_grok_home(&grok_home, &grok_bundle)?;
+        force_grok_attribution_off(&grok_home)
     }
 
     fn raw_plugin_subdirs(&self) -> &'static [&'static str] {
@@ -52,4 +67,11 @@ impl Harness for Grok {
             )
         })
     }
+}
+
+/// Write Grok's minimal plugin manifest (`plugin.json`) into the bundle root.
+fn write_grok_bundle_manifest(bundle: &Path) -> Result<()> {
+    let plugin_json = bundle.join("plugin.json");
+    fs::write(&plugin_json, r#"{"name":"agentpack-bundle"}"#)
+        .map_err(|e| AgentpackError::io(&plugin_json, e))
 }

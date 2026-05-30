@@ -35,7 +35,7 @@ fn write_opencode_config_stub(root: &Path) -> Result<()> {
     write_json_value(&config_path, &value)
 }
 
-pub(super) fn seed_opencode_root(root: &Path) -> Result<()> {
+pub(crate) fn seed_opencode_root(root: &Path) -> Result<()> {
     let Some(home) = dirs::home_dir() else {
         write_opencode_config_stub(root)?;
         return Ok(());
@@ -46,7 +46,7 @@ pub(super) fn seed_opencode_root(root: &Path) -> Result<()> {
     Ok(())
 }
 
-pub(super) fn seed_codex_home(root: &Path) -> Result<()> {
+pub(crate) fn seed_codex_home(root: &Path) -> Result<()> {
     let Some(home) = dirs::home_dir() else {
         return Ok(());
     };
@@ -127,7 +127,7 @@ fn ensure_grok_plugin_path(config_path: &Path, plugin_bundle: &Path) -> Result<(
     crate::fs_util::write_text_file(config_path, &out)
 }
 
-pub(super) fn seed_grok_home(root: &Path, plugin_bundle: &Path) -> Result<()> {
+pub(crate) fn seed_grok_home(root: &Path, plugin_bundle: &Path) -> Result<()> {
     let Some(home) = dirs::home_dir() else {
         ensure_grok_plugin_path(&root.join("config.toml"), plugin_bundle)?;
         return Ok(());

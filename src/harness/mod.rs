@@ -73,6 +73,12 @@ pub trait Harness: Sync {
         Ok(vec![self.staged_root(project_root, mode)?])
     }
 
+    // ---- prepare: mkdir + seed user config + force attribution off ----
+
+    /// Create this harness's staging dirs, seed user config where applicable, write any bundle
+    /// manifest, and force AI attribution off. Runs before the shared pack/skill overlay loop.
+    fn prepare(&self, ctx: &StageCtx) -> Result<()>;
+
     // ---- artifact rendering knobs (was: 5 `match self` tables in artifacts/harness.rs) ----
 
     /// Portable plugin subtrees copied verbatim from cached plugins before the markdown overlay
