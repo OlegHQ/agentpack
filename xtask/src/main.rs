@@ -3,12 +3,12 @@
 //! Usage:
 //!   cargo xtask bump-version minor|patch
 //!   cargo xtask read-version
-//!   cargo xtask sync-homebrew <tap-root> <owner/repo> <version>
+//!
+//! Releases (binaries + Homebrew formula) are handled by cargo-dist on tag push — see
+//! `dist-workspace.toml` and `.github/workflows/release.yml`.
 
 use std::path::{Path, PathBuf};
 use std::{env, fs, process};
-
-use sha2::{Digest, Sha256};
 
 fn workspace_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -68,77 +68,6 @@ fn read_version() {
     println!("{version}");
 }
 
-// ── sync-homebrew ─────────────────────────────────────────────────────────────
-
-fn sync_homebrew(tap_root: &str, slug: &str, version: &str) {
-    if !slug.contains('/') {
-        eprintln!("error: owner/repo required");
-        process::exit(2);
-    }
-
-    let tag = format!("v{version}");
-    let url = format!("https://github.com/{slug}/archive/refs/tags/{tag}.tar.gz");
-    // Shared tap (OlegHQ/homebrew-tap) keeps formulae at the repo root, not under `Formula/`.
-    let formula = Path::new(tap_root).join("agentpack.rb");
-
-    if !formula.is_file() {
-        eprintln!(
-            "error: missing {} -- clone the tap or run tap-bootstrap (see README)",
-            formula.display()
-        );
-        process::exit(1);
-    }
-
-    let response = ureq::get(&url).call().unwrap_or_else(|e| {
-        eprintln!("error: could not fetch {url} ({e})");
-        eprintln!("hint: push the git tag and wait a few seconds, then retry");
-        process::exit(1);
-    });
-
-    let data = response
-        .into_body()
-        .read_to_vec()
-        .expect("read response body");
-
-    let sha = hex::encode(Sha256::digest(&data));
-    let text = fs::read_to_string(&formula).expect("read formula");
-
-    let (text, n_url) = replace_first_match(&text, r#"  url ""#, &format!("  url \"{url}\""));
-    let (text, n_sha) = replace_first_match(&text, r#"  sha256 ""#, &format!("  sha256 \"{sha}\""));
-
-    if n_url != 1 || n_sha != 1 {
-        eprintln!(
-            "error: formula must contain exactly one top-level `url` and `sha256` line \
-             (got url={n_url}, sha256={n_sha})"
-        );
-        process::exit(1);
-    }
-
-    fs::write(&formula, text).expect("write formula");
-    println!("updated {}", formula.display());
-    println!("  url {url}");
-    println!("  sha256 {sha}");
-}
-
-/// Replace the first line starting with `prefix` with `replacement`. Returns (new text, count).
-fn replace_first_match(text: &str, prefix: &str, replacement: &str) -> (String, usize) {
-    let mut out = String::with_capacity(text.len());
-    let mut replaced = 0usize;
-    for line in text.lines() {
-        if replaced == 0 && line.trim_start().starts_with(prefix.trim_start()) {
-            out.push_str(replacement);
-            replaced += 1;
-        } else {
-            out.push_str(line);
-        }
-        out.push('\n');
-    }
-    if !text.ends_with('\n') && out.ends_with('\n') {
-        out.pop();
-    }
-    (out, replaced)
-}
-
 // ── main ──────────────────────────────────────────────────────────────────────
 
 fn main() {
@@ -158,13 +87,6 @@ fn main() {
         "read-version" => {
             read_version();
         }
-        "sync-homebrew" => {
-            if args.len() != 5 {
-                eprintln!("usage: cargo xtask sync-homebrew <tap-root> <owner/repo> <version>");
-                process::exit(2);
-            }
-            sync_homebrew(&args[2], &args[3], &args[4]);
-        }
         other => {
             eprintln!("unknown task: {other}");
             usage();
@@ -177,8 +99,7 @@ fn usage() -> ! {
         "usage: cargo xtask <task>\n\n\
          tasks:\n  \
          bump-version minor|patch   Bump semver in Cargo.toml\n  \
-         read-version               Print current version\n  \
-         sync-homebrew <tap> <owner/repo> <ver>  Update Homebrew formula"
+         read-version               Print current version"
     );
     process::exit(2)
 }

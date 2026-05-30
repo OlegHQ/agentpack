@@ -159,13 +159,19 @@ See [AGENTS.md](AGENTS.md) for full technical details: environment variables, da
 
 ## Releasing (maintainers)
 
+Releases are automated by [cargo-dist](https://github.com/axodotdev/cargo-dist): pushing a `v*` tag
+triggers `.github/workflows/release.yml`, which builds per-platform binaries (macOS arm64/x86_64,
+Linux x86_64/arm64, Windows x86_64), creates the GitHub Release with those assets + a `curl | sh`
+installer, and pushes the generated Homebrew formula to [OlegHQ/homebrew-tap](https://github.com/OlegHQ/homebrew-tap).
+
 | Goal | Command |
 |---|---|
-| Bump minor + release | `make ship-minor` |
-| Bump patch + release | `make ship-patch` |
-| Create GitHub Release | `make gh-release` |
-| Refresh tap formula | `make brew-sync` |
-| Formula commit + push | `make brew-ship` |
+| Bump minor + tag + push (→ CI release) | `make ship-minor` |
+| Bump patch + tag + push (→ CI release) | `make ship-patch` |
+| Bump version only (no release) | `make minor` / `make patch` |
+
+Requires a repo secret **`HOMEBREW_TAP_TOKEN`** (a PAT with write access to `OlegHQ/homebrew-tap`) so
+CI can push the formula across repos.
 
 ## License
 
