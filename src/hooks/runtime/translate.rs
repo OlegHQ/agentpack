@@ -1,23 +1,8 @@
 use serde_json::{json, Value};
 
-use crate::hooks::ir::{ClaudeEvent, HookDecision, HarnessTarget, NormalizedHookResult};
+use crate::hooks::ir::{ClaudeEvent, HookDecision, NormalizedHookResult};
 
-pub fn to_target_output(
-    target: HarnessTarget,
-    event: ClaudeEvent,
-    result: &NormalizedHookResult,
-) -> Value {
-    match target {
-        HarnessTarget::OpenCode => serde_json::to_value(result).unwrap_or(Value::Null),
-        HarnessTarget::Codex => codex_output(result),
-        HarnessTarget::Cursor => cursor_output(event, result),
-        HarnessTarget::Claude => claude_fallback_output(result),
-        HarnessTarget::Grok => claude_fallback_output(result),
-        HarnessTarget::Agy => codex_output(result),
-    }
-}
-
-fn codex_output(result: &NormalizedHookResult) -> Value {
+pub(crate) fn codex_output(result: &NormalizedHookResult) -> Value {
     let mut value = json!({
         "permissionDecision": result.decision.as_str(),
         "continue": result.decision != HookDecision::Deny,
@@ -46,7 +31,7 @@ fn codex_output(result: &NormalizedHookResult) -> Value {
     value
 }
 
-fn cursor_output(event: ClaudeEvent, result: &NormalizedHookResult) -> Value {
+pub(crate) fn cursor_output(event: ClaudeEvent, result: &NormalizedHookResult) -> Value {
     let is_blocking = matches!(
         event,
         ClaudeEvent::PreToolUse | ClaudeEvent::PermissionRequest
@@ -83,7 +68,7 @@ fn cursor_output(event: ClaudeEvent, result: &NormalizedHookResult) -> Value {
     value
 }
 
-fn claude_fallback_output(result: &NormalizedHookResult) -> Value {
+pub(crate) fn claude_fallback_output(result: &NormalizedHookResult) -> Value {
     json!({
         "decision": result.decision.as_str(),
         "message": result.message,

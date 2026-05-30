@@ -1,11 +1,16 @@
 use std::path::{Path, PathBuf};
 
+use serde_json::Value;
 use serde_norway::Mapping;
 
 use super::{require, Harness, HarnessTarget, StageCtx};
 use crate::artifacts::yaml::insert_string;
 use crate::artifacts::ArtifactKind;
 use crate::error::{AgentpackError, Result};
+use crate::hooks::capabilities::{cursor_support, SupportLevel};
+use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
+use crate::hooks::render::{CursorHookRenderer, HookRenderer};
+use crate::hooks::runtime::translate::cursor_output;
 use crate::paths::{
     cursor_workspace_dir, staging_cursor_bundle_dir_for_mode, staging_cursor_home_dir_for_mode,
     staging_cursor_pack_plugin_dir_for_mode,
@@ -50,6 +55,18 @@ impl Harness for Cursor {
         // stays in finalize_cursor_staging_common.
         let pack = self.staged_root(ctx.project_root, ctx.mode.name())?;
         write_mcp_servers_json(&pack.join("mcp.json"), merged)
+    }
+
+    fn hook_support(&self, event: ClaudeEvent, handler: &ClaudeHandler) -> SupportLevel {
+        cursor_support(event, handler)
+    }
+
+    fn hook_output(&self, event: ClaudeEvent, result: &NormalizedHookResult) -> Value {
+        cursor_output(event, result)
+    }
+
+    fn hook_renderer(&self) -> Option<Box<dyn HookRenderer>> {
+        Some(Box::new(CursorHookRenderer))
     }
 
     fn raw_plugin_subdirs(&self) -> &'static [&'static str] {

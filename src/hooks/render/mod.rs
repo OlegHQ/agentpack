@@ -11,7 +11,7 @@ use serde_json::Value;
 use crate::artifacts::HarnessTarget;
 use crate::error::{AgentpackError, Result};
 
-use super::capabilities::{support_for, SupportLevel};
+use super::capabilities::SupportLevel;
 use super::ir::{ClaudeHandler, HookBundle, NormalizedHook};
 use super::paths::{spec_path_for_hook, staged_package_root};
 use super::runtime::bridge::HookExecutionSpec;
@@ -174,7 +174,7 @@ pub fn check_support(
     native_msg: &str,
     emulated_msg: &str,
 ) -> Result<bool> {
-    match support_for(target, hook.event, &hook.handler) {
+    match target.harness().hook_support(hook.event, &hook.handler) {
         SupportLevel::Unsupported { reason } => {
             if hook.is_strict() {
                 return Err(strict_mapping_error(hook, target, reason));

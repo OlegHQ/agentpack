@@ -1,9 +1,15 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use serde_json::Value;
+
 use super::{require, Harness, HarnessTarget, StageCtx};
 use crate::artifacts::ArtifactKind;
 use crate::error::{AgentpackError, Result};
+use crate::hooks::capabilities::{codex_support, SupportLevel};
+use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
+use crate::hooks::render::{CodexHookRenderer, HookRenderer};
+use crate::hooks::runtime::translate::codex_output;
 use crate::paths::staging_codex_home_dir_for_mode;
 use crate::staging::mcp::{merge_into_toml_mcp_config, StagedMcpEntries};
 use crate::staging::{force_codex_attribution_off, seed_codex_home};
@@ -30,6 +36,18 @@ impl Harness for Codex {
     fn write_mcp(&self, merged: &StagedMcpEntries, ctx: &StageCtx) -> Result<()> {
         let home = self.staged_root(ctx.project_root, ctx.mode.name())?;
         merge_into_toml_mcp_config(&home.join("config.toml"), merged)
+    }
+
+    fn hook_support(&self, event: ClaudeEvent, handler: &ClaudeHandler) -> SupportLevel {
+        codex_support(event, handler)
+    }
+
+    fn hook_output(&self, _event: ClaudeEvent, result: &NormalizedHookResult) -> Value {
+        codex_output(result)
+    }
+
+    fn hook_renderer(&self) -> Option<Box<dyn HookRenderer>> {
+        Some(Box::new(CodexHookRenderer))
     }
 
     fn rendered_artifact_kind(&self, _source: ArtifactKind) -> ArtifactKind {

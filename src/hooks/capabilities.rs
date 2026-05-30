@@ -1,5 +1,3 @@
-use crate::artifacts::HarnessTarget;
-
 use super::ir::{ClaudeEvent, ClaudeHandler};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -21,26 +19,7 @@ impl SupportLevel {
     }
 }
 
-pub fn support_for(
-    target: HarnessTarget,
-    event: ClaudeEvent,
-    handler: &ClaudeHandler,
-) -> SupportLevel {
-    match target {
-        HarnessTarget::Claude => SupportLevel::Native,
-        HarnessTarget::Cursor => cursor_support(event, handler),
-        HarnessTarget::Codex => codex_support(event, handler),
-        HarnessTarget::OpenCode => opencode_support(event, handler),
-        HarnessTarget::Grok => SupportLevel::Unsupported {
-            reason: "Grok hooks are not staged because current Grok only loaded hooks from HOME/project-trusted roots in smoke tests",
-        },
-        HarnessTarget::Agy => SupportLevel::Unsupported {
-            reason: "Antigravity hook rendering is gated until plugin-local hook runtime smoke tests pass",
-        },
-    }
-}
-
-fn cursor_support(event: ClaudeEvent, handler: &ClaudeHandler) -> SupportLevel {
+pub(crate) fn cursor_support(event: ClaudeEvent, handler: &ClaudeHandler) -> SupportLevel {
     match event {
         ClaudeEvent::Notification => SupportLevel::Unsupported {
             reason: "Cursor has no notification hook surface",
@@ -68,7 +47,7 @@ fn cursor_support(event: ClaudeEvent, handler: &ClaudeHandler) -> SupportLevel {
     }
 }
 
-fn codex_support(event: ClaudeEvent, handler: &ClaudeHandler) -> SupportLevel {
+pub(crate) fn codex_support(event: ClaudeEvent, handler: &ClaudeHandler) -> SupportLevel {
     let event_level = match event {
         ClaudeEvent::PreToolUse
         | ClaudeEvent::PostToolUse
@@ -91,7 +70,7 @@ fn codex_support(event: ClaudeEvent, handler: &ClaudeHandler) -> SupportLevel {
     }
 }
 
-fn opencode_support(event: ClaudeEvent, handler: &ClaudeHandler) -> SupportLevel {
+pub(crate) fn opencode_support(event: ClaudeEvent, handler: &ClaudeHandler) -> SupportLevel {
     let event_level = match event {
         ClaudeEvent::PreToolUse
         | ClaudeEvent::PostToolUse

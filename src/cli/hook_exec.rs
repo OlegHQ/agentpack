@@ -5,7 +5,6 @@ use crate::hooks::runtime::bridge::{
     forward_process_output, load_spec, read_stdin_bytes, write_json_stdout, HookExecutionSpec,
 };
 use crate::hooks::runtime::dispatch::{dispatch, DispatchArgs};
-use crate::hooks::runtime::translate::to_target_output;
 use crate::hooks::runtime::{agent, command, http, prompt};
 
 use super::{
@@ -41,7 +40,7 @@ enum JsonKind {
 fn run_json(kind: JsonKind, args: HookExecSpecArgs, stdin_bytes: &[u8]) -> anyhow::Result<()> {
     let spec = load_spec(&args.spec)?;
     let result = execute_json_hook(kind, &spec, stdin_bytes)?;
-    write_json_stdout(&to_target_output(args.target, spec.event, &result))?;
+    write_json_stdout(&args.target.harness().hook_output(spec.event, &result))?;
     process::exit(0);
 }
 

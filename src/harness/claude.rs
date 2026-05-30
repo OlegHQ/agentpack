@@ -3,9 +3,15 @@ use std::path::{Path, PathBuf};
 
 use serde_norway::Mapping;
 
+use serde_json::Value;
+
 use super::{require, Harness, HarnessTarget, StageCtx};
 use crate::artifacts::yaml::insert_string;
 use crate::error::{AgentpackError, Result};
+use crate::hooks::capabilities::SupportLevel;
+use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
+use crate::hooks::render::{ClaudeHookRenderer, HookRenderer};
+use crate::hooks::runtime::translate::claude_fallback_output;
 use crate::paths::{
     agentpack_claude_settings_path, staging_plugins_dir_for_mode, STAGED_AGENTPACK_BUNDLE_NAME,
 };
@@ -64,6 +70,18 @@ impl Harness for Claude {
     fn write_mcp(&self, merged: &StagedMcpEntries, ctx: &StageCtx) -> Result<()> {
         let bundle = self.staged_root(ctx.project_root, ctx.mode.name())?;
         write_claude_mcp_servers_json(&bundle.join(".mcp.json"), merged)
+    }
+
+    fn hook_support(&self, _event: ClaudeEvent, _handler: &ClaudeHandler) -> SupportLevel {
+        SupportLevel::Native
+    }
+
+    fn hook_output(&self, _event: ClaudeEvent, result: &NormalizedHookResult) -> Value {
+        claude_fallback_output(result)
+    }
+
+    fn hook_renderer(&self) -> Option<Box<dyn HookRenderer>> {
+        Some(Box::new(ClaudeHookRenderer))
     }
 
     fn raw_plugin_subdirs(&self) -> &'static [&'static str] {

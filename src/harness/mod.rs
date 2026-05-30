@@ -19,6 +19,7 @@ mod opencode;
 
 use std::path::{Path, PathBuf};
 
+use serde_json::Value;
 use serde_norway::Mapping;
 
 use agy::Agy;
@@ -32,6 +33,9 @@ use crate::artifacts::yaml::insert_string;
 use crate::artifacts::ArtifactKind;
 pub use crate::artifacts::HarnessTarget;
 use crate::error::{AgentpackError, Result};
+use crate::hooks::capabilities::SupportLevel;
+use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
+use crate::hooks::render::HookRenderer;
 use crate::mode::filter::EffectiveMode;
 use crate::staging::mcp::StagedMcpEntries;
 
@@ -163,6 +167,27 @@ pub(crate) trait Harness: Sync {
     /// Render the already-merged MCP server set into this harness's native config file. The merge
     /// runs once in `staging`; each impl only writes its own format to its own destination.
     fn write_mcp(&self, merged: &StagedMcpEntries, ctx: &StageCtx) -> Result<()>;
+
+    // ---- hooks (was: support_for / base_asset_root / to_target_output arms) ----
+
+    /// Support level for emulating a given Claude hook `event` + `handler` on this harness.
+    fn hook_support(&self, event: ClaudeEvent, handler: &ClaudeHandler) -> SupportLevel;
+
+    /// Root directory staged hook packages/specs live under for this harness. Default:
+    /// `hooks/_packages` under the target root.
+    fn hook_asset_root(&self, target_root: &Path) -> PathBuf {
+        target_root.join("hooks/_packages")
+    }
+
+    /// Translate a normalized hook result into this harness's native hook-output JSON. Called by
+    /// the hook *runtime* for all six harnesses (not just those that stage renderers).
+    fn hook_output(&self, event: ClaudeEvent, result: &NormalizedHookResult) -> Value;
+
+    /// The hook renderer for this harness, or `None` when hook staging is disabled (Grok / Agy
+    /// today, pending CLI smoke-test coverage).
+    fn hook_renderer(&self) -> Option<Box<dyn HookRenderer>> {
+        None
+    }
 
     // ---- verify (was: the 6 `StagingPipeline::verify_*` methods) ----
 

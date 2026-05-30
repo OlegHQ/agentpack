@@ -13,7 +13,6 @@ use regex::Regex;
 use serde_json::Value;
 
 use super::bridge::{load_spec, stdin_json, HookExecutionSpec};
-use super::translate::to_target_output;
 use super::{agent, command, http, prompt};
 use crate::hooks::ir::{
     ClaudeEvent, ClaudeHandler, HookDecision, HarnessTarget, NormalizedHookResult,
@@ -230,7 +229,7 @@ pub fn dispatch(args: DispatchArgs<'_>) -> anyhow::Result<DispatchOutcome> {
     } else {
         0
     };
-    let json = to_target_output(args.target, args.event, &merged);
+    let json = args.target.harness().hook_output(args.event, &merged);
     Ok(DispatchOutcome { json, exit_code })
 }
 

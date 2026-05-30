@@ -1,11 +1,15 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use serde_json::Value;
 use serde_norway::Mapping;
 
 use super::claude::{seed_description_then_name, CLAUDE_RAW_PLUGIN_SUBDIRS};
 use super::{require, Harness, HarnessTarget, StageCtx};
 use crate::error::{AgentpackError, Result};
+use crate::hooks::capabilities::SupportLevel;
+use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
+use crate::hooks::runtime::translate::claude_fallback_output;
 use crate::paths::{
     staging_grok_bundle_dir_for_mode, staging_grok_dir_for_mode, staging_grok_home_dir_for_mode,
 };
@@ -50,6 +54,16 @@ impl Harness for Grok {
         // MCP is native TOML in `grok-home/config.toml`, not in the pack bundle (staged_root).
         let grok_home = staging_grok_home_dir_for_mode(ctx.project_root, ctx.mode.name())?;
         merge_into_toml_mcp_config(&grok_home.join("config.toml"), merged)
+    }
+
+    fn hook_support(&self, _event: ClaudeEvent, _handler: &ClaudeHandler) -> SupportLevel {
+        SupportLevel::Unsupported {
+            reason: "Grok hooks are not staged because current Grok only loaded hooks from HOME/project-trusted roots in smoke tests",
+        }
+    }
+
+    fn hook_output(&self, _event: ClaudeEvent, result: &NormalizedHookResult) -> Value {
+        claude_fallback_output(result)
     }
 
     fn raw_plugin_subdirs(&self) -> &'static [&'static str] {

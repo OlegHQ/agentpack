@@ -1,8 +1,13 @@
 use std::path::{Path, PathBuf};
 
+use serde_json::Value;
+
 use super::{require, Harness, HarnessTarget, StageCtx};
 use crate::artifacts::ArtifactKind;
 use crate::error::{AgentpackError, Result};
+use crate::hooks::capabilities::SupportLevel;
+use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
+use crate::hooks::runtime::translate::codex_output;
 use crate::paths::{staging_agy_bundle_dir_for_mode, staging_agy_dir_for_mode};
 use crate::staging::mcp::{write_agy_mcp_config_json, StagedMcpEntries};
 use crate::staging::{
@@ -36,6 +41,16 @@ impl Harness for Agy {
     fn write_mcp(&self, merged: &StagedMcpEntries, ctx: &StageCtx) -> Result<()> {
         let bundle = self.staged_root(ctx.project_root, ctx.mode.name())?;
         write_agy_mcp_config_json(&bundle.join("mcp_config.json"), merged)
+    }
+
+    fn hook_support(&self, _event: ClaudeEvent, _handler: &ClaudeHandler) -> SupportLevel {
+        SupportLevel::Unsupported {
+            reason: "Antigravity hook rendering is gated until plugin-local hook runtime smoke tests pass",
+        }
+    }
+
+    fn hook_output(&self, _event: ClaudeEvent, result: &NormalizedHookResult) -> Value {
+        codex_output(result)
     }
 
     fn raw_plugin_subdirs(&self) -> &'static [&'static str] {

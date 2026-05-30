@@ -12,17 +12,6 @@ use crate::mode::filter::EffectiveMode;
 use super::ir::{HookBundle, HookLayer, HookOrigin, NormalizedHook};
 use super::runtime::bridge::HookExecutionSpec;
 
-fn base_asset_root(target: HarnessTarget, target_root: &Path) -> PathBuf {
-    match target {
-        HarnessTarget::OpenCode => target_root.join("plugins/agentpack-hooks/assets"),
-        HarnessTarget::Claude
-        | HarnessTarget::Cursor
-        | HarnessTarget::Codex
-        | HarnessTarget::Grok
-        | HarnessTarget::Agy => target_root.join("hooks/_packages"),
-    }
-}
-
 fn origin_allows_path(mode: &EffectiveMode, origin: &HookOrigin, rel: &Path) -> Result<bool> {
     match origin.layer {
         HookLayer::SeededNative => Ok(true),
@@ -79,7 +68,9 @@ pub fn stage_origin_packages(
         if !seen.insert(hook.origin.source_id()) {
             continue;
         }
-        let package_root = base_asset_root(target, target_root)
+        let package_root = target
+            .harness()
+            .hook_asset_root(target_root)
             .join(&hook.origin.package_key)
             .join("package");
         copy_filtered_tree(&hook.origin.source_root, &package_root, &hook.origin, mode)?;
@@ -93,7 +84,9 @@ pub fn spec_path_for_hook(
     target_root: &Path,
     hook: &NormalizedHook,
 ) -> PathBuf {
-    base_asset_root(target, target_root)
+    target
+        .harness()
+        .hook_asset_root(target_root)
         .join(&hook.origin.package_key)
         .join("specs")
         .join(format!(
@@ -130,7 +123,7 @@ pub fn hook_dispatch_command(target: HarnessTarget, event: &str, specs_dir: &Pat
 /// Root directory that `stage_origin_packages` populates per-harness; the router uses this as
 /// its `--specs-dir` and walks for `*.json` spec files.
 pub fn specs_dispatch_root(target: HarnessTarget, target_root: &Path) -> PathBuf {
-    base_asset_root(target, target_root)
+    target.harness().hook_asset_root(target_root)
 }
 
 pub fn staged_package_root<'a>(
