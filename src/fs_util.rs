@@ -114,6 +114,17 @@ pub(crate) fn write_text_file(path: &Path, contents: &str) -> Result<()> {
     fs::write(path, contents).map_err(|e| AgentpackError::io(path, e))
 }
 
+/// Read a TOML file into a [`toml::Value`], or return an empty table when the file does not exist.
+/// Centralizes the "load config-or-default" pattern used by the staging TOML writers.
+pub(crate) fn read_toml_value_or_default(path: &Path) -> Result<toml::Value> {
+    if !path.is_file() {
+        return Ok(toml::Value::Table(Default::default()));
+    }
+    let raw = fs::read_to_string(path).map_err(|e| AgentpackError::io(path, e))?;
+    toml::from_str(&raw)
+        .map_err(|e| AgentpackError::io(path, io::Error::new(ErrorKind::InvalidData, e)))
+}
+
 /// Parse a JSONC (JSON with comments) string into a typed value.
 pub(crate) fn parse_jsonc<T: serde::de::DeserializeOwned>(raw: &str) -> serde_json::Result<T> {
     let mut buf = raw.as_bytes().to_vec();

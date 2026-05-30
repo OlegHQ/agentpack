@@ -194,13 +194,7 @@ pub(super) fn prepare_staged_codex_auth(user_codex_home: &Path, staging_root: &P
 /// resolves to the linked `auth.json` instead of a path-derived keyring slot.
 pub(super) fn force_staged_codex_credentials_store_to_file(staging_root: &Path) -> Result<()> {
     let path = staging_root.join("config.toml");
-    let mut v = if path.is_file() {
-        let raw = fs::read_to_string(&path).map_err(|e| AgentpackError::io(&path, e))?;
-        toml::from_str::<toml::Value>(&raw)
-            .map_err(|e| AgentpackError::Staging(format!("{}: {e}", path.display())))?
-    } else {
-        toml::Value::Table(Default::default())
-    };
+    let mut v = crate::fs_util::read_toml_value_or_default(&path)?;
     let Some(table) = v.as_table_mut() else {
         return Ok(());
     };

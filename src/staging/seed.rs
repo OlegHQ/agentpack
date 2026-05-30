@@ -88,14 +88,7 @@ fn symlink_or_copy_file(src: &Path, dst: &Path) -> Result<()> {
 }
 
 fn ensure_grok_plugin_path(config_path: &Path, plugin_bundle: &Path) -> Result<()> {
-    let mut doc: toml::Value = if config_path.is_file() {
-        let raw =
-            fs::read_to_string(config_path).map_err(|e| AgentpackError::io(config_path, e))?;
-        toml::from_str(&raw)
-            .map_err(|e| AgentpackError::Staging(format!("{}: {e}", config_path.display())))?
-    } else {
-        toml::Value::Table(Default::default())
-    };
+    let mut doc = crate::fs_util::read_toml_value_or_default(config_path)?;
     let root = doc.as_table_mut().ok_or_else(|| {
         AgentpackError::Staging(format!(
             "{}: top-level must be a TOML table",

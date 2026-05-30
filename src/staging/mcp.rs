@@ -196,8 +196,8 @@ pub(super) fn stage_merged_mcp(
     write_claude_mcp_servers_json(&dests.claude_bundle.join(".mcp.json"), &merged)?;
     write_mcp_servers_json(&dests.cursor_pack.join("mcp.json"), &merged)?;
     merge_into_opencode_config(&dests.opencode.join("opencode.json"), &merged)?;
-    merge_into_codex_config(&dests.codex.join("config.toml"), &merged)?;
-    merge_into_grok_config(&dests.grok_home.join("config.toml"), &merged)?;
+    merge_into_toml_mcp_config(&dests.codex.join("config.toml"), &merged)?;
+    merge_into_toml_mcp_config(&dests.grok_home.join("config.toml"), &merged)?;
     write_agy_mcp_config_json(&dests.agy_bundle.join("mcp_config.json"), &merged)?;
     Ok(merged)
 }
@@ -340,57 +340,11 @@ fn toml_mcp_entry_table(entry: &McpServerEntry) -> toml::value::Table {
     t
 }
 
-/// Merge MCP entries into Codex `config.toml` under `[mcp_servers.<name>]` tables.
-/// User-seeded entries win: we only insert pack entries whose names are absent.
-fn merge_into_codex_config(config_path: &Path, merged: &MergedEntries) -> Result<()> {
-    let mut doc: toml::Value = if config_path.is_file() {
-        let raw =
-            fs::read_to_string(config_path).map_err(|e| AgentpackError::io(config_path, e))?;
-        toml::from_str(&raw)
-            .map_err(|e| AgentpackError::Staging(format!("{}: {e}", config_path.display())))?
-    } else {
-        toml::Value::Table(Default::default())
-    };
-
-    let root = doc.as_table_mut().ok_or_else(|| {
-        AgentpackError::Staging(format!(
-            "{}: top-level must be a TOML table",
-            config_path.display()
-        ))
-    })?;
-    let servers = root
-        .entry("mcp_servers".to_string())
-        .or_insert_with(|| toml::Value::Table(toml::value::Table::new()))
-        .as_table_mut()
-        .ok_or_else(|| {
-            AgentpackError::Staging(format!(
-                "{}: `mcp_servers` must be a table",
-                config_path.display()
-            ))
-        })?;
-    for (name, (entry, _)) in merged {
-        if servers.contains_key(name) {
-            continue;
-        }
-        servers.insert(name.clone(), toml::Value::Table(toml_mcp_entry_table(entry)));
-    }
-
-    let out = toml::to_string(&doc)
-        .map_err(|e| AgentpackError::Staging(format!("{}: {e}", config_path.display())))?;
-    crate::fs_util::write_text_file(config_path, &out)
-}
-
-/// Merge MCP entries into Grok `config.toml` under `[mcp_servers.<name>]` tables. User-seeded
-/// entries win on conflict.
-fn merge_into_grok_config(config_path: &Path, merged: &MergedEntries) -> Result<()> {
-    let mut doc: toml::Value = if config_path.is_file() {
-        let raw =
-            fs::read_to_string(config_path).map_err(|e| AgentpackError::io(config_path, e))?;
-        toml::from_str(&raw)
-            .map_err(|e| AgentpackError::Staging(format!("{}: {e}", config_path.display())))?
-    } else {
-        toml::Value::Table(Default::default())
-    };
+/// Merge MCP entries into a TOML `config.toml` under `[mcp_servers.<name>]` tables. Shared by
+/// Codex and Grok, which use the identical native format. User-seeded entries win: we only insert
+/// pack entries whose names are absent.
+fn merge_into_toml_mcp_config(config_path: &Path, merged: &MergedEntries) -> Result<()> {
+    let mut doc = crate::fs_util::read_toml_value_or_default(config_path)?;
 
     let root = doc.as_table_mut().ok_or_else(|| {
         AgentpackError::Staging(format!(
@@ -555,7 +509,7 @@ mod tests {
         let dir = tempdir().unwrap();
         let cfg = dir.path().join("config.toml");
         fs::write(&cfg, "model = \"gpt-5\"\n").unwrap();
-        merge_into_codex_config(&cfg, &merged(&[("codesight", stdio_entry())])).unwrap();
+        merge_into_toml_mcp_config(&cfg, &merged(&[("codesight", stdio_entry())])).unwrap();
         let text = fs::read_to_string(&cfg).unwrap();
         assert!(text.contains("[mcp_servers.codesight]"));
         assert!(text.contains("command = \"cargo\""));
@@ -568,7 +522,7 @@ mod tests {
         let dir = tempdir().unwrap();
         let cfg = dir.path().join("config.toml");
         fs::write(&cfg, "[mcp_servers.codesight]\ncommand = \"user-cmd\"\n").unwrap();
-        merge_into_codex_config(&cfg, &merged(&[("codesight", stdio_entry())])).unwrap();
+        merge_into_toml_mcp_config(&cfg, &merged(&[("codesight", stdio_entry())])).unwrap();
         let text = fs::read_to_string(&cfg).unwrap();
         assert!(text.contains("command = \"user-cmd\""));
         assert!(!text.contains("\"cargo\""));
@@ -578,7 +532,7 @@ mod tests {
     fn codex_merge_remote_entry_uses_url_field() {
         let dir = tempdir().unwrap();
         let cfg = dir.path().join("config.toml");
-        merge_into_codex_config(&cfg, &merged(&[("linear", remote_entry())])).unwrap();
+        merge_into_toml_mcp_config(&cfg, &merged(&[("linear", remote_entry())])).unwrap();
         let text = fs::read_to_string(&cfg).unwrap();
         assert!(text.contains("[mcp_servers.linear]"));
         assert!(text.contains("url = \"https://mcp.example.com/mcp\""));
@@ -588,7 +542,7 @@ mod tests {
     fn grok_merge_writes_native_mcp_servers_tables() {
         let dir = tempdir().unwrap();
         let cfg = dir.path().join("config.toml");
-        merge_into_grok_config(&cfg, &merged(&[("codesight", stdio_entry())])).unwrap();
+        merge_into_toml_mcp_config(&cfg, &merged(&[("codesight", stdio_entry())])).unwrap();
         let text = fs::read_to_string(&cfg).unwrap();
         assert!(text.contains("[mcp_servers.codesight]"));
         assert!(text.contains("command = \"cargo\""));
@@ -599,7 +553,7 @@ mod tests {
     fn grok_merge_remote_entry_uses_url_field() {
         let dir = tempdir().unwrap();
         let cfg = dir.path().join("config.toml");
-        merge_into_grok_config(&cfg, &merged(&[("linear", remote_entry())])).unwrap();
+        merge_into_toml_mcp_config(&cfg, &merged(&[("linear", remote_entry())])).unwrap();
         let text = fs::read_to_string(&cfg).unwrap();
         assert!(text.contains("[mcp_servers.linear]"));
         assert!(text.contains("url = \"https://mcp.example.com/mcp\""));

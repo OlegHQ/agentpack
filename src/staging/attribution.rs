@@ -66,13 +66,7 @@ pub(super) fn force_codex_attribution_off(codex_home: &Path) -> Result<()> {
         return Ok(());
     }
     let path = codex_home.join("config.toml");
-    let mut value = if path.is_file() {
-        let raw = fs::read_to_string(&path).map_err(|e| AgentpackError::io(&path, e))?;
-        toml::from_str::<toml::Value>(&raw)
-            .map_err(|e| AgentpackError::Staging(format!("{}: {e}", path.display())))?
-    } else {
-        toml::Value::Table(Default::default())
-    };
+    let mut value = crate::fs_util::read_toml_value_or_default(&path)?;
     let Some(table) = value.as_table_mut() else {
         return Ok(());
     };
