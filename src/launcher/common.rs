@@ -1,4 +1,3 @@
-use std::ffi::OsString;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -127,19 +126,6 @@ pub fn exec_inherit(mut cmd: Command) -> anyhow::Result<()> {
             .with_context(|| format!("failed to run {prog}"))?;
         std::process::exit(status.code().unwrap_or(1));
     }
-}
-
-pub fn exec_with_env(
-    resolved_exe: &Path,
-    envs: &[(&str, OsString)],
-    passthrough: Vec<String>,
-) -> anyhow::Result<()> {
-    let mut cmd = Command::new(resolved_exe);
-    for (key, value) in envs {
-        cmd.env(key, value);
-    }
-    cmd.args(passthrough);
-    exec_inherit(cmd)
 }
 
 #[cfg(test)]

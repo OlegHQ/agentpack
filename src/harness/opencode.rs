@@ -1,13 +1,17 @@
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
+use anyhow::Context;
 use serde_json::Value;
 
-use super::{require, Harness, HarnessTarget, StageCtx};
+use super::{require, Harness, HarnessTarget, LaunchCtx, StageCtx};
 use crate::error::{AgentpackError, Result};
+use crate::fs_util::{read_json_value_opt, write_json_value};
 use crate::hooks::capabilities::{opencode_support, SupportLevel};
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
 use crate::hooks::render::{HookRenderer, OpenCodeHookRenderer};
+use crate::launcher::common::resolve_harness_binary;
 use crate::paths::staging_opencode_dir_for_mode;
 use crate::staging::mcp::{merge_into_opencode_config, StagedMcpEntries};
 use crate::staging::{force_opencode_attribution_off, seed_opencode_root};
@@ -58,4 +62,38 @@ impl Harness for OpenCode {
             format!("opencode staging missing {}", root.display())
         })
     }
+
+    fn launch_command(&self, ctx: LaunchCtx) -> anyhow::Result<Command> {
+        let config_dir = self.staged_root(ctx.project_root, ctx.mode.name())?;
+        ctx.ui
+            .debug_message(format!("OpenCode config dir: {}", config_dir.display()));
+        if ctx.yolo {
+            apply_yolo_opencode_config(&config_dir)?;
+        }
+        let opencode = resolve_harness_binary("OPENCODE_PATH", "opencode").with_context(|| {
+            "OpenCode CLI (`opencode`) not found.\n\
+             Install OpenCode and ensure `opencode` is on your PATH, or set OPENCODE_PATH to the executable."
+        })?;
+        let mut cmd = Command::new(&opencode);
+        cmd.env("OPENCODE_CONFIG_DIR", config_dir);
+        cmd.args(ctx.passthrough);
+        Ok(cmd)
+    }
+}
+
+/// OpenCode has no CLI flag for bypassing permissions; it reads `permission` from `opencode.json`.
+/// Patch the staged config so `agentpack --yolo opencode` actually skips prompts. This is a
+/// staged-file mutation, not an arg (see HARNESS_TRAIT.md §4 Step 7).
+fn apply_yolo_opencode_config(config_dir: &Path) -> anyhow::Result<()> {
+    let config_path = config_dir.join("opencode.json");
+    let mut value = read_json_value_opt(&config_path)?.unwrap_or_else(|| serde_json::json!({}));
+    let Some(obj) = value.as_object_mut() else {
+        anyhow::bail!(
+            "staged {} is not a JSON object; cannot apply --yolo",
+            config_path.display()
+        );
+    };
+    obj.insert("permission".into(), serde_json::json!("allow"));
+    write_json_value(&config_path, &value)?;
+    Ok(())
 }

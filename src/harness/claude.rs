@@ -1,22 +1,24 @@
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
+use anyhow::Context;
+use serde_json::Value;
 use serde_norway::Mapping;
 
-use serde_json::Value;
-
-use super::{require, Harness, HarnessTarget, StageCtx};
+use super::{require, Harness, HarnessTarget, LaunchCtx, StageCtx};
 use crate::artifacts::yaml::insert_string;
 use crate::error::{AgentpackError, Result};
 use crate::hooks::capabilities::SupportLevel;
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
 use crate::hooks::render::{ClaudeHookRenderer, HookRenderer};
 use crate::hooks::runtime::translate::claude_fallback_output;
+use crate::launcher::common::{apply_yolo_claude, resolve_harness_binary};
 use crate::paths::{
     agentpack_claude_settings_path, staging_plugins_dir_for_mode, STAGED_AGENTPACK_BUNDLE_NAME,
 };
 use crate::staging::mcp::{write_claude_mcp_servers_json, StagedMcpEntries};
-use crate::staging::{keep_attribution, materialize_claude_settings_overlay};
+use crate::staging::{keep_attribution, list_plugin_dirs, materialize_claude_settings_overlay};
 
 /// Claude Code: staged as a `--plugin-dir` bundle; attribution overlay via `--settings`.
 pub(super) struct Claude;
@@ -108,5 +110,43 @@ impl Harness for Claude {
             })?;
         }
         Ok(())
+    }
+
+    fn launch_command(&self, ctx: LaunchCtx) -> anyhow::Result<Command> {
+        let mut passthrough = ctx.passthrough;
+        if ctx.yolo {
+            apply_yolo_claude(&mut passthrough);
+        }
+
+        let plugin_dirs = list_plugin_dirs(ctx.project_root, ctx.mode.name())?;
+        if !plugin_dirs.is_empty() {
+            let rendered = plugin_dirs
+                .iter()
+                .map(|dir| format!("  {}", dir.display()))
+                .collect::<Vec<_>>()
+                .join("\n");
+            ctx.ui.debug_message(format!("Claude plugin dirs:\n{rendered}"));
+        }
+
+        let claude = resolve_harness_binary("CLAUDE_CODE_PATH", "claude").with_context(|| {
+            "Claude Code CLI (`claude`) not found.\n\
+             Install Claude Code and ensure `claude` is on your PATH, or set CLAUDE_CODE_PATH to the executable."
+        })?;
+
+        // We deliberately do NOT set `CLAUDE_CONFIG_DIR`: Claude namespaces credential storage by
+        // `sha256(CLAUDE_CONFIG_DIR)`, so any override would forget login on every project switch.
+        // The attribution-off overlay is loaded via `--settings` instead.
+        let mut cmd = Command::new(&claude);
+        let settings_overlay = agentpack_claude_settings_path()?;
+        if settings_overlay.is_file() {
+            ctx.ui
+                .debug_message(format!("--settings {}", settings_overlay.display()));
+            cmd.arg("--settings").arg(&settings_overlay);
+        }
+        for d in &plugin_dirs {
+            cmd.arg("--plugin-dir").arg(d);
+        }
+        cmd.args(passthrough);
+        Ok(cmd)
     }
 }

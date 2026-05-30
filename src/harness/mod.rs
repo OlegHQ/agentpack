@@ -18,6 +18,7 @@ mod grok;
 mod opencode;
 
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use serde_json::Value;
 use serde_norway::Mapping;
@@ -38,6 +39,7 @@ use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
 use crate::hooks::render::HookRenderer;
 use crate::mode::filter::EffectiveMode;
 use crate::staging::mcp::StagedMcpEntries;
+use crate::ui::Ui;
 
 /// Read-only context threaded into every staging step. Pure borrows — the staging pipeline already
 /// owns these, so the trait methods derive their own per-harness destination paths from
@@ -48,6 +50,17 @@ pub struct StageCtx<'a> {
     /// The harness being launched, if any. Drives workspace-overlay materialization and the
     /// presence checks that are only meaningful for the launching harness (Cursor / Agy).
     pub launch_target: Option<HarnessTarget>,
+}
+
+/// Per-launch context, built by `launcher::launch` after `sync_for_launch` resolves the mode and
+/// consumed by [`Harness::launch_command`]. `passthrough` is owned because launchers default and
+/// reorder args before building the `Command`.
+pub struct LaunchCtx<'a> {
+    pub project_root: &'a Path,
+    pub passthrough: Vec<String>,
+    pub mode: &'a EffectiveMode,
+    pub yolo: bool,
+    pub ui: &'a Ui,
 }
 
 /// Staging-side assertion helper: `Err(Staging(msg()))` when `cond` is false.
@@ -194,6 +207,13 @@ pub(crate) trait Harness: Sync {
     /// Assert this harness's staged tree is well-formed. Read-only — cross-harness mutation
     /// (collision shadowing) stays a shared pass in `staging::verify_staging`.
     fn verify(&self, ctx: &StageCtx) -> Result<()>;
+
+    // ---- launch (was: the 6 `launcher::run_*` fns) ----
+
+    /// Build the fully-configured child process: resolve the binary, set env (`CODEX_HOME`,
+    /// fake `HOME`, …), inject default and yolo args. `launcher::launch` runs `sync_for_launch`
+    /// first, then execs the returned `Command`.
+    fn launch_command(&self, ctx: LaunchCtx) -> anyhow::Result<Command>;
 }
 
 /// The single source of truth for "what harnesses exist". Unit structs are const-constructible,

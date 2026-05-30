@@ -1,13 +1,16 @@
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
+use anyhow::Context;
 use serde_json::Value;
 
-use super::{require, Harness, HarnessTarget, StageCtx};
+use super::{require, Harness, HarnessTarget, LaunchCtx, StageCtx};
 use crate::artifacts::ArtifactKind;
 use crate::error::{AgentpackError, Result};
 use crate::hooks::capabilities::SupportLevel;
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
 use crate::hooks::runtime::translate::codex_output;
+use crate::launcher::common::{apply_yolo_agy, args_have_flag_with_value, resolve_harness_binary};
 use crate::paths::{staging_agy_bundle_dir_for_mode, staging_agy_dir_for_mode};
 use crate::staging::mcp::{write_agy_mcp_config_json, StagedMcpEntries};
 use crate::staging::{
@@ -97,5 +100,29 @@ impl Harness for Agy {
             }
         }
         Ok(())
+    }
+
+    fn launch_command(&self, ctx: LaunchCtx) -> anyhow::Result<Command> {
+        let mut passthrough = ctx.passthrough;
+        if !args_have_flag_with_value(&passthrough, "--add-dir") {
+            passthrough.splice(
+                0..0,
+                ["--add-dir".to_string(), ctx.project_root.display().to_string()],
+            );
+        }
+        if ctx.yolo {
+            apply_yolo_agy(&mut passthrough);
+        }
+        ctx.ui.debug_message(format!(
+            "Antigravity workspace (--add-dir): {}",
+            ctx.project_root.display()
+        ));
+        let agy = resolve_harness_binary("AGY_PATH", "agy").with_context(|| {
+            "Antigravity CLI (`agy`) not found.\n\
+             Install Antigravity and ensure `agy` is on your PATH, or set AGY_PATH to the executable."
+        })?;
+        let mut cmd = Command::new(&agy);
+        cmd.args(passthrough);
+        Ok(cmd)
     }
 }

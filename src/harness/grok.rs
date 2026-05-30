@@ -1,15 +1,18 @@
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
+use anyhow::Context;
 use serde_json::Value;
 use serde_norway::Mapping;
 
 use super::claude::{seed_description_then_name, CLAUDE_RAW_PLUGIN_SUBDIRS};
-use super::{require, Harness, HarnessTarget, StageCtx};
+use super::{require, Harness, HarnessTarget, LaunchCtx, StageCtx};
 use crate::error::{AgentpackError, Result};
 use crate::hooks::capabilities::SupportLevel;
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
 use crate::hooks::runtime::translate::claude_fallback_output;
+use crate::launcher::common::{apply_yolo_grok, args_have_flag_with_value, resolve_harness_binary};
 use crate::paths::{
     staging_grok_bundle_dir_for_mode, staging_grok_dir_for_mode, staging_grok_home_dir_for_mode,
 };
@@ -87,6 +90,30 @@ impl Harness for Grok {
                 grok_bundle.join("plugin.json").display()
             )
         })
+    }
+
+    fn launch_command(&self, ctx: LaunchCtx) -> anyhow::Result<Command> {
+        let mut passthrough = ctx.passthrough;
+        if !args_have_flag_with_value(&passthrough, "--cwd") {
+            passthrough.splice(
+                0..0,
+                ["--cwd".to_string(), ctx.project_root.display().to_string()],
+            );
+        }
+        if ctx.yolo {
+            apply_yolo_grok(&mut passthrough);
+        }
+        let grok_home = staging_grok_home_dir_for_mode(ctx.project_root, ctx.mode.name())?;
+        ctx.ui
+            .debug_message(format!("Grok home: {}", grok_home.display()));
+        let grok = resolve_harness_binary("GROK_PATH", "grok").with_context(|| {
+            "Grok CLI (`grok`) not found.\n\
+             Install Grok and ensure `grok` is on your PATH, or set GROK_PATH to the executable."
+        })?;
+        let mut cmd = Command::new(&grok);
+        cmd.env("GROK_HOME", grok_home);
+        cmd.args(passthrough);
+        Ok(cmd)
     }
 }
 

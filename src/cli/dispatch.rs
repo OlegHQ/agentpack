@@ -6,6 +6,7 @@ use std::path::Path;
 use anyhow::Context;
 
 use super::{Cli, Command, McpAction, ModeAction};
+use crate::harness::HarnessTarget;
 use crate::ui::Ui;
 use crate::{launcher, lockfile, manifest, paths, sync};
 
@@ -68,22 +69,22 @@ pub fn run(cli: Cli) -> anyhow::Result<()> {
             )?;
         }
         Command::Claude { args } => {
-            launcher::run_claude(&root, args, cli.mode.as_deref(), cli.yolo, &ui)?;
+            launcher::launch(HarnessTarget::Claude, &root, args, cli.mode.as_deref(), cli.yolo, &ui)?;
         }
         Command::Opencode { args } => {
-            launcher::run_opencode(&root, args, cli.mode.as_deref(), cli.yolo, &ui)?;
+            launcher::launch(HarnessTarget::OpenCode, &root, args, cli.mode.as_deref(), cli.yolo, &ui)?;
         }
         Command::Codex { args } => {
-            launcher::run_codex(&root, args, cli.mode.as_deref(), cli.yolo, &ui)?;
+            launcher::launch(HarnessTarget::Codex, &root, args, cli.mode.as_deref(), cli.yolo, &ui)?;
         }
         Command::Grok { args } => {
-            launcher::run_grok(&root, args, cli.mode.as_deref(), cli.yolo, &ui)?;
+            launcher::launch(HarnessTarget::Grok, &root, args, cli.mode.as_deref(), cli.yolo, &ui)?;
         }
         Command::Agy { args } => {
-            launcher::run_agy(&root, args, cli.mode.as_deref(), cli.yolo, &ui)?;
+            launcher::launch(HarnessTarget::Agy, &root, args, cli.mode.as_deref(), cli.yolo, &ui)?;
         }
         Command::Agent { args } => {
-            launcher::run_agent(&root, args, cli.mode.as_deref(), cli.yolo, &ui)?;
+            launcher::launch(HarnessTarget::Cursor, &root, args, cli.mode.as_deref(), cli.yolo, &ui)?;
         }
         Command::Mcp { action } => {
             run_mcp(&root, action, &ui)?;
