@@ -10,6 +10,16 @@ All downloaded trees, the RedDB index, and your **`local/`** mirror live under a
 
 **No backwards compatibility.** `agentpack` is pre-release: CLI behavior, lockfile shape, staging layout, env vars, and defaults may change without a migration period or deprecation window. Assume **breaking changes** between versions until a stable release is declared.
 
+### Code structure (contributor rule)
+
+**Per-harness code lives in `src/harness/<name>/`. Shared code lives in its subsystem. No re-export shims, no orphaned glue.**
+
+- Each coding agent is one self-contained module under **`src/harness/<name>/`** (`grok.rs` as a single file, or a folder with `mod.rs` + submodules) implementing the `Harness` trait. **Everything used by only that one harness lives there** — seed, attribution writer, MCP-config writer, hook renderer + support fn, credential bridging (`codex/auth.rs`), fake-home (`cursor/fake_home.rs`), workspace overlays, and `launch_command`. To understand or add a harness you read/create **one folder**, nothing else.
+- **Shared infrastructure stays in its subsystem and never holds per-harness logic:** `staging/` = cross-harness staging passes (`pack_overlay`, `collision`, `guidance`, `dot_agents`, `mcp` merge + format writers, `pipeline`); `hooks/` = the hook engine (IR, `collect`, `parse`, `stage`, `render` trait, `runtime`); `artifacts/` = artifact rendering. A file named after a harness (`cursor.rs`, `parse/claude.rs`) sitting in a shared subsystem is a smell — colocate it or, if it's actually a shared format adapter, name it for the format not the harness.
+- **One canonical home per type; no re-export shims.** `HarnessTarget` is defined only in `src/harness/target.rs` and imported everywhere as **`crate::harness::HarnessTarget`** — there are no `pub use …::HarnessTarget` chains through `artifacts`/`staging`/`sync`/`hooks::ir`. Don't add a re-export to "keep an old path resolving"; repoint the callers.
+- **No orphaned glue modules.** Launch dispatch + shared launch helpers live in `harness/launch.rs` (called via `harness::launch`), not a separate top-level `launcher/`. If a module exists only to forward to another, delete it and inline the call.
+- The trait owns *per-harness divergence*; genuinely cross-harness passes that take "all roots at once" (`pack_overlay`, `guidance`, `collision`) stay shared loops. Adding a 7th harness should mean: one new `src/harness/<name>/` + one line in `harness::all()` + one `HarnessTarget` variant + one `cli` subcommand.
+
 ### User data layout (`AGENTPACK_HOME`)
 
 | Path | Purpose |

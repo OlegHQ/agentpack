@@ -5,9 +5,10 @@ use std::path::{Path, PathBuf};
 use rayon::prelude::*;
 use walkdir::WalkDir;
 
-use crate::artifacts::{parse_markdown_artifact, staged_skill_support_path, HarnessTarget};
+use crate::artifacts::{parse_markdown_artifact, staged_skill_support_path};
 use crate::cache::{cache_entry_dir, cache_has_plugin_manifest};
 use crate::error::{AgentpackError, Result};
+use crate::harness::HarnessTarget;
 use crate::lockfile::{LockPackage, PackLock, PackageKind};
 use crate::mode::filter::EffectiveMode;
 

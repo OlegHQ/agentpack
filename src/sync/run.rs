@@ -4,13 +4,14 @@ use reqwest::blocking::Client;
 
 use crate::cache::verify_lock_cache_integrity;
 use crate::error::{AgentpackError, Result};
+use crate::harness::HarnessTarget;
 use crate::lockfile::{LockPackage, PackLock};
 use crate::manifest::AgentpackManifest;
 use crate::mode::catalog::CapabilityCatalog;
 use crate::mode::filter::EffectiveMode;
 use crate::paths;
 use crate::resolve::{resolve_lock_from_manifest, ResolveLockOpts};
-use crate::staging::{self, HarnessTarget};
+use crate::staging;
 use crate::ui::Ui;
 
 use super::launch_fingerprint::{

@@ -3,8 +3,8 @@
 
 use serde_json::{json, Map, Value};
 
-use crate::artifacts::HarnessTarget;
 use crate::error::Result;
+use crate::harness::HarnessTarget;
 use crate::hooks::ir::{ClaudeHandler, HookBundle, NormalizedHook};
 use crate::hooks::paths::hook_exec_command;
 use crate::hooks::render::{

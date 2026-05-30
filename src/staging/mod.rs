@@ -28,10 +28,7 @@ pub(crate) use tree::copy_selected_entries;
 use pack_overlay::disabled_in_config;
 use pipeline::StagingPipeline;
 
-// Re-exported here so the `staging` module path keeps resolving for downstream callers. The
-// identity helpers (`as_str`, `all`, `harness`) now live with the canonical enum in
-// `artifacts/harness.rs`.
-pub use crate::artifacts::HarnessTarget;
+use crate::harness::HarnessTarget;
 
 /// Build one plugin tree: optional copies of user **`settings.json`** / **`.claude.json`**, then
 /// plugin packages, then standalone skill packages. Later layers overwrite same relative paths

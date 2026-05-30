@@ -8,9 +8,8 @@ use serde_json::{Map, Value};
 
 use crate::fs_util::read_json_value;
 
-use super::super::ir::{
-    ClaudeEvent, ClaudeHandler, HarnessTarget, HookDecision, NormalizedHookResult,
-};
+use super::super::ir::{ClaudeEvent, ClaudeHandler, HookDecision, NormalizedHookResult};
+use crate::harness::HarnessTarget;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct HookExecutionSpec {

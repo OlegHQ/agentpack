@@ -1,5 +1,5 @@
-use crate::artifacts::HarnessTarget;
 use crate::error::Result;
+use crate::harness::HarnessTarget;
 use crate::lockfile::PackLock;
 use crate::mode::filter::EffectiveMode;
 

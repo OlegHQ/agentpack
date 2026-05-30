@@ -223,7 +223,7 @@ pub enum HookExecKind {
 #[derive(Args, Clone)]
 pub struct HookExecSpecArgs {
     #[arg(long)]
-    pub target: crate::hooks::ir::HarnessTarget,
+    pub target: crate::harness::HarnessTarget,
     #[arg(long)]
     pub spec: PathBuf,
 }
@@ -231,7 +231,7 @@ pub struct HookExecSpecArgs {
 #[derive(Args, Clone)]
 pub struct HookDispatchArgs {
     #[arg(long)]
-    pub target: crate::hooks::ir::HarnessTarget,
+    pub target: crate::harness::HarnessTarget,
     #[arg(long)]
     pub event: String,
     #[arg(long)]
@@ -241,7 +241,7 @@ pub struct HookDispatchArgs {
 #[derive(Args, Clone)]
 pub struct HookInjectGuidanceArgs {
     #[arg(long)]
-    pub target: crate::hooks::ir::HarnessTarget,
+    pub target: crate::harness::HarnessTarget,
     #[arg(long)]
     pub event: String,
     #[arg(long)]

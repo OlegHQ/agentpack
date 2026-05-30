@@ -1,4 +1,3 @@
-pub mod harness;
 mod parse;
 mod render;
 pub(crate) mod yaml;
@@ -10,7 +9,6 @@ use serde_norway::Mapping;
 
 use crate::error::Result;
 
-pub use harness::HarnessTarget;
 use parse::{
     detect_named_markdown_extensions, detect_skill_file, parse_agent_file, parse_command_file,
     parse_rule_file, parse_skill_file, strip_harness_prefix,
@@ -113,6 +111,7 @@ pub fn staged_skill_support_path(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::harness::HarnessTarget;
 
     #[test]
     fn parses_cursor_command_and_renders_opencode_frontmatter() {

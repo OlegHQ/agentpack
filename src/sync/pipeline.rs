@@ -5,11 +5,12 @@ use chrono::Utc;
 use crate::cache::index::{list_keys, upsert_entry, CacheEntryRecord};
 use crate::cache::{backfill_plugin_lock_entry, ensure_lock_cached};
 use crate::error::Result;
+use crate::harness::HarnessTarget;
 use crate::lockfile::{LockPackage, PackLock, PackageKind};
 use crate::manifest::AgentpackManifest;
 use crate::paths;
 use crate::resolve::{resolve_lock_from_manifest, ResolveLockOpts};
-use crate::staging::{self, skill_is_shadowed, HarnessTarget};
+use crate::staging::{self, skill_is_shadowed};
 use crate::ui::Ui;
 
 use super::add_fetch::http_client;

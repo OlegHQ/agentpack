@@ -16,7 +16,7 @@ use super::dot_agents::stage_dot_agents_overlay;
 use super::pack_overlay::{
     stage_pack_plugins_all_harnesses, stage_pack_skills_all_harnesses, PackHarnessRoots,
 };
-use super::HarnessTarget;
+use crate::harness::HarnessTarget;
 
 pub(super) struct StagingPipeline<'a> {
     project_root: &'a Path,

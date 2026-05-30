@@ -9,9 +9,9 @@ use sha2::{Digest, Sha256};
 use walkdir::WalkDir;
 
 use crate::error::{AgentpackError, Result};
+use crate::harness::HarnessTarget;
 use crate::mode::filter::EffectiveMode;
 use crate::paths;
-use crate::staging::HarnessTarget;
 
 #[derive(Serialize, Deserialize)]
 struct LaunchSyncState {

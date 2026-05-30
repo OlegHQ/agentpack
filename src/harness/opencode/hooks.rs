@@ -3,9 +3,9 @@
 
 use serde_json::{json, Value};
 
-use crate::artifacts::HarnessTarget;
 use crate::error::Result;
 use crate::fs_util::read_json_value_opt;
+use crate::harness::HarnessTarget;
 use crate::hooks::capabilities::SupportLevel;
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, HookBundle};
 use crate::hooks::render::{

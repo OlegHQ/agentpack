@@ -4,9 +4,9 @@ use std::path::{Path, PathBuf};
 
 use walkdir::WalkDir;
 
-use crate::artifacts::HarnessTarget;
 use crate::error::{AgentpackError, Result};
 use crate::fs_util::{fast_copy_file, write_json_value};
+use crate::harness::HarnessTarget;
 use crate::mode::filter::EffectiveMode;
 
 use super::ir::{HookBundle, HookLayer, HookOrigin, NormalizedHook};

@@ -2,12 +2,12 @@ use std::path::PathBuf;
 
 use serde_norway::Mapping;
 
-use super::harness::HarnessTarget;
 use super::yaml::{
     ensure_trailing_newline, insert_bool, insert_globs, insert_string, merge_allowed_frontmatter,
     render_markdown,
 };
 use super::{ArtifactKind, MarkdownArtifact, RenderedArtifact};
+use crate::harness::HarnessTarget;
 
 impl MarkdownArtifact {
     pub fn render(&self, target: HarnessTarget) -> RenderedArtifact {

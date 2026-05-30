@@ -1,3 +1,5 @@
+use super::{get, Harness};
+
 /// Canonical harness identity used across artifact rendering, hook output, launching, and staging.
 /// `#[serde(rename_all = "lowercase")]` + `#[value(name = "opencode")]` keep the `hook-exec` CLI
 /// and serialized spec wire format stable (`claude`/`cursor`/`codex`/`opencode`/`grok`/`agy`).
@@ -26,8 +28,8 @@ pub enum HarnessTarget {
     Agy,
 }
 
-/// Identity helpers for the canonical harness enum. Behavioral knobs live on the
-/// [`Harness`](crate::harness::Harness) trait, reachable via [`HarnessTarget::harness`].
+/// Identity helpers for the canonical harness enum. Behavioral knobs live on the [`Harness`] trait,
+/// reachable via [`HarnessTarget::harness`].
 impl HarnessTarget {
     /// All harness identities, in a stable order.
     pub fn all() -> [HarnessTarget; 6] {
@@ -54,11 +56,9 @@ impl HarnessTarget {
         }
     }
 
-    /// Resolve this identity to its [`Harness`](crate::harness::Harness) implementor. The
-    /// per-harness artifact-rendering knobs (`raw_plugin_subdirs`, `seed_command_frontmatter`,
-    /// the `*_allowed_extra_frontmatter_keys`, `rendered_artifact_kind`,
-    /// `disables_model_invocation_for_kind`) live on that trait.
-    pub(crate) fn harness(self) -> &'static dyn crate::harness::Harness {
-        crate::harness::get(self)
+    /// Resolve this identity to its [`Harness`] implementor. The per-harness rendering knobs,
+    /// staging steps, hook handling, and launch logic all live on that trait.
+    pub(crate) fn harness(self) -> &'static dyn Harness {
+        get(self)
     }
 }

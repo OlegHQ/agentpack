@@ -3,8 +3,8 @@ use std::path::{Path, PathBuf};
 
 use serde_json::Value;
 
-use crate::artifacts::HarnessTarget;
 use crate::error::{AgentpackError, Result};
+use crate::harness::HarnessTarget;
 
 use super::capabilities::SupportLevel;
 use super::ir::{ClaudeHandler, HookBundle, NormalizedHook};

@@ -4,10 +4,6 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-// Re-exported so existing `crate::hooks::ir::HarnessTarget` paths (CLI args, spec field) resolve
-// after `HookOutputTarget` was merged into the canonical `HarnessTarget`.
-pub(crate) use crate::artifacts::HarnessTarget;
-
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub enum ClaudeEvent {
     PreToolUse,

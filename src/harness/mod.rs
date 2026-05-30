@@ -17,8 +17,10 @@ mod cursor;
 mod grok;
 mod launch;
 mod opencode;
+mod target;
 
 pub(crate) use launch::launch;
+pub use target::HarnessTarget;
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -35,7 +37,6 @@ use opencode::OpenCode;
 
 use crate::artifacts::yaml::insert_string;
 use crate::artifacts::ArtifactKind;
-pub use crate::artifacts::HarnessTarget;
 use crate::error::{AgentpackError, Result};
 use crate::hooks::capabilities::SupportLevel;
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
@@ -47,7 +48,7 @@ use crate::ui::Ui;
 /// Read-only context threaded into every staging step. Pure borrows — the staging pipeline already
 /// owns these, so the trait methods derive their own per-harness destination paths from
 /// `project_root` + `mode` rather than receiving them.
-pub struct StageCtx<'a> {
+pub(crate) struct StageCtx<'a> {
     pub project_root: &'a Path,
     pub mode: &'a EffectiveMode,
     /// The harness being launched, if any. Drives workspace-overlay materialization and the
@@ -58,7 +59,7 @@ pub struct StageCtx<'a> {
 /// Per-launch context, built by `harness::launch` after `sync_for_launch` resolves the mode and
 /// consumed by [`Harness::launch_command`]. `passthrough` is owned because launchers default and
 /// reorder args before building the `Command`.
-pub struct LaunchCtx<'a> {
+pub(crate) struct LaunchCtx<'a> {
     pub project_root: &'a Path,
     pub passthrough: Vec<String>,
     pub mode: &'a EffectiveMode,

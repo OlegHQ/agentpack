@@ -254,7 +254,7 @@ fn sync_stages_full_plugin_and_shadows_contained_skill() {
         false,
         false,
         None,
-        Some(agentpack::sync::HarnessTarget::Cursor),
+        Some(agentpack::harness::HarnessTarget::Cursor),
         &ui,
     )
     .unwrap();
@@ -271,7 +271,7 @@ fn sync_stages_full_plugin_and_shadows_contained_skill() {
         false,
         false,
         None,
-        Some(agentpack::sync::HarnessTarget::Claude),
+        Some(agentpack::harness::HarnessTarget::Claude),
         &ui,
     )
     .unwrap();
@@ -290,7 +290,7 @@ fn sync_stages_full_plugin_and_shadows_contained_skill() {
         false,
         false,
         None,
-        Some(agentpack::sync::HarnessTarget::Agy),
+        Some(agentpack::harness::HarnessTarget::Agy),
         &ui,
     )
     .unwrap();

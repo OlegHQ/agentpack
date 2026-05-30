@@ -4,7 +4,7 @@ pub mod cli;
 pub mod error;
 pub(crate) mod fs_util;
 mod github;
-pub(crate) mod harness;
+pub mod harness;
 pub mod hooks;
 pub mod lockfile;
 pub(crate) mod manifest;
