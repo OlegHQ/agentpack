@@ -102,7 +102,8 @@ pub enum Command {
         #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
         args: Vec<String>,
     },
-    /// Run Cursor Agent (`agent`) with `HOME` set to a staged tree that symlinks pack `.cursor` assets and your real Cursor login/session files
+    /// Run Cursor Agent (`cursor-agent`) with `HOME` set to a staged tree that symlinks pack `.cursor` assets and your real Cursor login/session files
+    #[command(visible_alias = "cursor-agent")]
     Agent {
         #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
         args: Vec<String>,
