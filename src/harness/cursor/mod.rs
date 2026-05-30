@@ -1,30 +1,56 @@
+mod approvals;
+mod fake_home;
+mod hooks;
+mod manifests;
+mod overlay;
+
 use std::ffi::OsString;
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use anyhow::Context;
-use serde_json::Value;
+use serde_json::{json, Value};
 use serde_norway::Mapping;
 
 use super::{require, Harness, HarnessTarget, LaunchCtx, StageCtx};
 use crate::artifacts::yaml::insert_string;
 use crate::artifacts::ArtifactKind;
 use crate::error::{AgentpackError, Result};
-use crate::hooks::capabilities::{cursor_support, SupportLevel};
+use crate::fs_util::{read_json_value_opt, remove_path_any, write_json_value};
+use crate::hooks::capabilities::SupportLevel;
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
-use crate::hooks::render::{CursorHookRenderer, HookRenderer};
+use crate::hooks::render::HookRenderer;
 use crate::hooks::runtime::translate::cursor_output;
 use crate::launcher::common::{apply_yolo_cursor_agent, resolve_harness_binary};
 use crate::paths::{
     cursor_workspace_dir, staging_cursor_bundle_dir_for_mode, staging_cursor_home_dir_for_mode,
     staging_cursor_pack_plugin_dir_for_mode,
 };
+use crate::staging::copy_selected_entries;
+use crate::staging::keep_attribution;
 use crate::staging::mcp::{write_mcp_servers_json, StagedMcpEntries};
-use crate::staging::{
-    finalize_cursor_staging_common, finalize_cursor_workspace_overlay,
-    force_cursor_attribution_off, prepare_cursor_staging_without_pack_overlay,
-    read_cursor_overlay_manifest, write_cursor_pack_plugin_readme,
-};
+
+/// Cursor files copied from `~/.cursor` into `$STAGING/cursor/` before pack overlay. Omit
+/// `agents`/`commands`/`skills`/`rules` — those come from `pack.lock`.
+const CURSOR_USER_ROOT_ENTRIES: &[&str] = &["cli-config.json", "mcp.json"];
+/// Top-level `~/.cursor` paths symlinked into `$STAGING/cursor-home/.cursor` for Cursor Agent auth.
+pub(super) const CURSOR_FAKE_HOME_CREDENTIAL_FILES: &[&str] = &[
+    "cli-config.json",
+    "machineid",
+    "agent-cli-state.json",
+    "argv.json",
+    "ide_state.json",
+];
+/// Symlinked into `$FAKE_HOME/.cursor/User/` so they resolve to the same trees Cursor's GUI/CLI use
+/// for workspace trust (`state.vscdb` under `workspaceStorage`) and global state.
+pub(super) const CURSOR_USER_SUBDIRS_IN_FAKE_HOME: &[&str] = &["globalStorage", "workspaceStorage"];
+/// Pack plugin dirs symlinked from `agentpack-bundle/` into `$STAGING/cursor-home/.cursor`.
+pub(super) const CURSOR_FAKE_HOME_PACK_SUBDIRS: &[&str] = &[
+    "commands", "agents", "skills", "rules", "hooks", "assets", "scripts",
+];
+/// Relative to `./.cursor/` — symlink `./.cursor/agents` → staged pack agents for Cursor `agent`.
+pub(super) const CURSOR_WORKSPACE_AGENTS_OVERLAY: &str = "agents";
 
 /// Cursor: pack plugin tree plus a fake `HOME` and an optional workspace `.cursor/agents` overlay.
 pub(super) struct Cursor;
@@ -48,22 +74,43 @@ impl Harness for Cursor {
 
     fn prepare(&self, ctx: &StageCtx) -> Result<()> {
         let mode = ctx.mode.name();
-        prepare_cursor_staging_without_pack_overlay(ctx.project_root, mode)?;
-        let cursor_pack = self.staged_root(ctx.project_root, mode)?;
+        overlay::cleanup_cursor_overlay(ctx.project_root)?;
         let cursor_bundle = staging_cursor_bundle_dir_for_mode(ctx.project_root, mode)?;
+        fs::create_dir_all(&cursor_bundle).map_err(|e| AgentpackError::io(&cursor_bundle, e))?;
+        seed_cursor_root(&cursor_bundle)?;
+        let cursor_pack = self.staged_root(ctx.project_root, mode)?;
+        fs::create_dir_all(&cursor_pack).map_err(|e| AgentpackError::io(&cursor_pack, e))?;
+        manifests::write_cursor_pack_plugin_manifests(&cursor_bundle)?;
         force_cursor_attribution_off(&cursor_bundle)?;
         force_cursor_attribution_off(&cursor_pack)
     }
 
     fn write_mcp(&self, merged: &StagedMcpEntries, ctx: &StageCtx) -> Result<()> {
         // Only the pack `mcp.json`; the fake-HOME re-merge with the user's `~/.cursor/mcp.json`
-        // stays in finalize_cursor_staging_common.
+        // stays in finalize (materialize_cursor_fake_home).
         let pack = self.staged_root(ctx.project_root, ctx.mode.name())?;
         write_mcp_servers_json(&pack.join("mcp.json"), merged)
     }
 
+    fn finalize(&self, merged: &StagedMcpEntries, ctx: &StageCtx) -> Result<()> {
+        // After pack content is staged: write the pack README, build the fake HOME (symlinks pack
+        // dirs), and pre-seed `~/.cursor` MCP approvals from the merged set.
+        let mode = ctx.mode.name();
+        manifests::write_cursor_pack_plugin_readme(&self.staged_root(ctx.project_root, mode)?)?;
+        fake_home::materialize_cursor_fake_home(ctx.project_root, mode)?;
+        approvals::seed_workspace_mcp_approvals(ctx.project_root, merged)
+    }
+
+    fn finalize_workspace_overlay(&self, ctx: &StageCtx) -> Result<()> {
+        let entries = overlay::materialize_workspace_cursor_agents_symlink(
+            ctx.project_root,
+            ctx.mode.name(),
+        )?;
+        overlay::write_overlay_manifest(ctx.project_root, &entries)
+    }
+
     fn hook_support(&self, event: ClaudeEvent, handler: &ClaudeHandler) -> SupportLevel {
-        cursor_support(event, handler)
+        hooks::cursor_support(event, handler)
     }
 
     fn hook_output(&self, event: ClaudeEvent, result: &NormalizedHookResult) -> Value {
@@ -71,7 +118,7 @@ impl Harness for Cursor {
     }
 
     fn hook_renderer(&self) -> Option<Box<dyn HookRenderer>> {
-        Some(Box::new(CursorHookRenderer))
+        Some(Box::new(hooks::CursorHookRenderer))
     }
 
     fn raw_plugin_subdirs(&self) -> &'static [&'static str] {
@@ -142,7 +189,7 @@ impl Harness for Cursor {
             format!("cursor fake home missing .cursor/ under {}", home.display())
         })?;
         if ctx.launch_target == Some(HarnessTarget::Cursor) {
-            for rel in read_cursor_overlay_manifest(ctx.project_root)? {
+            for rel in overlay::read_cursor_overlay_manifest(ctx.project_root)? {
                 let tracked = cursor_workspace_dir(ctx.project_root).join(&rel);
                 if !tracked.exists() {
                     return Err(AgentpackError::Staging(format!(
@@ -250,18 +297,68 @@ impl Harness for Cursor {
         cmd.args(args);
         Ok(cmd)
     }
+}
 
-    fn finalize(&self, merged: &StagedMcpEntries, ctx: &StageCtx) -> Result<()> {
-        // After pack content is staged: write the pack README, build the fake HOME (symlinks pack
-        // dirs), and pre-seed `~/.cursor` MCP approvals from the merged set.
-        let mode = ctx.mode.name();
-        write_cursor_pack_plugin_readme(&self.staged_root(ctx.project_root, mode)?)?;
-        finalize_cursor_staging_common(ctx.project_root, mode, merged)
-    }
+/// Seed `$STAGING/cursor` from the user's real `~/.cursor` (`cli-config.json`, `mcp.json` only).
+fn seed_cursor_root(root: &Path) -> Result<()> {
+    let Some(home) = dirs::home_dir() else {
+        return Ok(());
+    };
+    let user_root = home.join(".cursor");
+    copy_selected_entries(&user_root, root, CURSOR_USER_ROOT_ENTRIES)
+}
 
-    fn finalize_workspace_overlay(&self, ctx: &StageCtx) -> Result<()> {
-        finalize_cursor_workspace_overlay(ctx.project_root, ctx.mode.name())
+/// Patch a Cursor `cli-config.json` value: force `attribution.attributeCommitsToAgent` and
+/// `attribution.attributePRsToAgent` to `false`. Returns the modified JSON.
+fn patch_cursor_cli_config(mut value: Value) -> Value {
+    if !value.is_object() {
+        value = json!({});
     }
+    let obj = value.as_object_mut().expect("ensured object above");
+    let attribution = obj
+        .entry("attribution".to_string())
+        .or_insert_with(|| json!({}));
+    if !attribution.is_object() {
+        *attribution = json!({});
+    }
+    let attr_obj = attribution.as_object_mut().expect("ensured object above");
+    attr_obj.insert("attributeCommitsToAgent".into(), Value::Bool(false));
+    attr_obj.insert("attributePRsToAgent".into(), Value::Bool(false));
+    value
+}
+
+/// Force-disable Cursor attribution in `<root>/cli-config.json`, preserving user fields.
+fn force_cursor_attribution_off(root: &Path) -> Result<()> {
+    if keep_attribution() {
+        return Ok(());
+    }
+    let path = root.join("cli-config.json");
+    let value = read_json_value_opt(&path)?.unwrap_or_else(|| json!({}));
+    let patched = patch_cursor_cli_config(value);
+    write_json_value(&path, &patched)?;
+    tracing::debug!(path = %path.display(), "forced Cursor attribution off");
+    Ok(())
+}
+
+/// Materialize a non-symlink Cursor `cli-config.json` inside the fake-home so writes from agentpack
+/// don't bleed back into the user's real `~/.cursor/cli-config.json`.
+pub(super) fn force_cursor_fake_home_attribution_off(
+    fake_cursor: &Path,
+    real_cursor_cli_config: Option<&Path>,
+) -> Result<()> {
+    if keep_attribution() {
+        return Ok(());
+    }
+    let dest = fake_cursor.join("cli-config.json");
+    remove_path_any(&dest)?;
+    let base = match real_cursor_cli_config {
+        Some(p) => read_json_value_opt(p)?.unwrap_or_else(|| json!({})),
+        None => json!({}),
+    };
+    let patched = patch_cursor_cli_config(base);
+    write_json_value(&dest, &patched)?;
+    tracing::debug!(path = %dest.display(), "forced Cursor fake-home attribution off");
+    Ok(())
 }
 
 fn explicit_workspace_arg(args: &[String]) -> Option<PathBuf> {
@@ -310,5 +407,57 @@ fn normalize_path(path: &Path) -> PathBuf {
 fn push_env_if_absent(envs: &mut Vec<(&'static str, OsString)>, key: &'static str, value: PathBuf) {
     if std::env::var_os(key).is_none() {
         envs.push((key, value.into_os_string()));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn with_keep_unset<F: FnOnce()>(f: F) {
+        let prev = std::env::var_os("AGENTPACK_KEEP_ATTRIBUTION");
+        std::env::remove_var("AGENTPACK_KEEP_ATTRIBUTION");
+        f();
+        if let Some(v) = prev {
+            std::env::set_var("AGENTPACK_KEEP_ATTRIBUTION", v);
+        }
+    }
+
+    #[test]
+    fn cursor_attribution_writes_both_flags() {
+        with_keep_unset(|| {
+            let dir = tempfile::tempdir().unwrap();
+            force_cursor_attribution_off(dir.path()).unwrap();
+            let v = read_json_value_opt(&dir.path().join("cli-config.json"))
+                .unwrap()
+                .unwrap();
+            assert_eq!(v["attribution"]["attributeCommitsToAgent"], false);
+            assert_eq!(v["attribution"]["attributePRsToAgent"], false);
+        });
+    }
+
+    #[test]
+    fn cursor_fake_home_breaks_symlink_via_real_copy() {
+        with_keep_unset(|| {
+            let dir = tempfile::tempdir().unwrap();
+            let real = dir.path().join("real-cli-config.json");
+            std::fs::write(
+                &real,
+                r#"{"editor":{"vimMode":true},"attribution":{"attributeCommitsToAgent":true}}"#,
+            )
+            .unwrap();
+            let fake = dir.path().join("fake/.cursor");
+            std::fs::create_dir_all(&fake).unwrap();
+            force_cursor_fake_home_attribution_off(&fake, Some(&real)).unwrap();
+            let v = read_json_value_opt(&fake.join("cli-config.json"))
+                .unwrap()
+                .unwrap();
+            assert_eq!(v["editor"]["vimMode"], true);
+            assert_eq!(v["attribution"]["attributeCommitsToAgent"], false);
+            assert_eq!(v["attribution"]["attributePRsToAgent"], false);
+            // Source untouched.
+            let src = std::fs::read_to_string(&real).unwrap();
+            assert!(src.contains("\"attributeCommitsToAgent\":true"));
+        });
     }
 }

@@ -11,7 +11,7 @@ use crate::paths::STAGED_AGENTPACK_BUNDLE_NAME;
 
 /// Writes **`$STAGING/cursor/.cursor-plugin/marketplace.json`** and
 /// **`$STAGING/cursor/<bundle>/.cursor-plugin/plugin.json`** per Cursor multi-plugin layout.
-pub(in crate::staging) fn write_cursor_pack_plugin_manifests(cursor_root: &Path) -> Result<()> {
+pub(super) fn write_cursor_pack_plugin_manifests(cursor_root: &Path) -> Result<()> {
     let marketplace_dir = cursor_root.join(".cursor-plugin");
     fs::create_dir_all(&marketplace_dir).map_err(|e| AgentpackError::io(&marketplace_dir, e))?;
 
@@ -48,7 +48,7 @@ pub(in crate::staging) fn write_cursor_pack_plugin_manifests(cursor_root: &Path)
     Ok(())
 }
 
-pub(crate) fn write_cursor_pack_plugin_readme(pack_plugin: &Path) -> Result<()> {
+pub(super) fn write_cursor_pack_plugin_readme(pack_plugin: &Path) -> Result<()> {
     let readme = pack_plugin.join("README.md");
     let body = r#"# agentpack bundle
 

@@ -7,20 +7,16 @@ use std::path::{Path, PathBuf};
 use crate::error::{AgentpackError, Result};
 use crate::fs_util::remove_path_any;
 use crate::paths::{staging_cursor_home_dir_for_mode, staging_cursor_pack_plugin_dir_for_mode};
-
-use super::super::attribution::force_cursor_fake_home_attribution_off;
-use super::super::constants::{
-    CURSOR_FAKE_HOME_CREDENTIAL_FILES, CURSOR_FAKE_HOME_PACK_SUBDIRS,
-    CURSOR_USER_SUBDIRS_IN_FAKE_HOME,
-};
 #[cfg(windows)]
-use super::super::tree::copy_merge_tree;
+use crate::staging::copy_merge_tree;
+use crate::staging::mcp::load_mcp_json;
 
-pub(in crate::staging) fn symlink_or_copy_into_fake_home(
-    src: &Path,
-    dst: &Path,
-    as_dir: bool,
-) -> Result<()> {
+use super::{
+    force_cursor_fake_home_attribution_off, CURSOR_FAKE_HOME_CREDENTIAL_FILES,
+    CURSOR_FAKE_HOME_PACK_SUBDIRS, CURSOR_USER_SUBDIRS_IN_FAKE_HOME,
+};
+
+pub(super) fn symlink_or_copy_into_fake_home(src: &Path, dst: &Path, as_dir: bool) -> Result<()> {
     if fs::symlink_metadata(dst).is_ok() {
         remove_path_any(dst)?;
     }
@@ -152,10 +148,7 @@ fn symlink_entries_into(src_base: &Path, dst_base: &Path, names: &[&str]) -> Res
     Ok(())
 }
 
-pub(in crate::staging) fn materialize_cursor_fake_home(
-    project_root: &Path,
-    mode_name: &str,
-) -> Result<()> {
+pub(super) fn materialize_cursor_fake_home(project_root: &Path, mode_name: &str) -> Result<()> {
     let fake_home = staging_cursor_home_dir_for_mode(project_root, mode_name)?;
     if fake_home.exists() {
         fs::remove_dir_all(&fake_home).map_err(|e| AgentpackError::io(&fake_home, e))?;
@@ -177,9 +170,9 @@ pub(in crate::staging) fn materialize_cursor_fake_home(
     if let Some(ref user_path) = user_mcp {
         if pack_mcp.is_file() {
             // Merge: pack base (plugins + manifest + .agents), user entries win on conflict.
-            let mut cfg = super::super::mcp::load_mcp_json(&pack_mcp)?;
+            let mut cfg = load_mcp_json(&pack_mcp)?;
             cfg.mcp_servers
-                .extend(super::super::mcp::load_mcp_json(user_path)?.mcp_servers);
+                .extend(load_mcp_json(user_path)?.mcp_servers);
             let json = serde_json::to_string_pretty(&cfg)
                 .map_err(|e| AgentpackError::Staging(format!("mcp.json merge: {e}")))?;
             fs::write(&mcp_dest, json).map_err(|e| AgentpackError::io(&mcp_dest, e))?;

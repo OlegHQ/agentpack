@@ -1,5 +1,3 @@
-mod cursor;
-
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
@@ -12,8 +10,6 @@ use super::capabilities::SupportLevel;
 use super::ir::{ClaudeHandler, HookBundle, NormalizedHook};
 use super::paths::{spec_path_for_hook, staged_package_root};
 use super::runtime::bridge::HookExecutionSpec;
-
-pub use cursor::CursorHookRenderer;
 
 #[derive(Clone, Debug)]
 pub enum RenderedHookFileContents {

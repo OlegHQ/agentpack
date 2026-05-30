@@ -10,10 +10,10 @@ use crate::paths::{
     cursor_overlay_manifest_path, cursor_workspace_dir, staging_cursor_pack_plugin_dir_for_mode,
 };
 
-use super::super::constants::CURSOR_WORKSPACE_AGENTS_OVERLAY;
 use super::fake_home::symlink_or_copy_into_fake_home;
+use super::CURSOR_WORKSPACE_AGENTS_OVERLAY;
 
-pub(crate) fn read_cursor_overlay_manifest(project_root: &Path) -> Result<Vec<PathBuf>> {
+pub(super) fn read_cursor_overlay_manifest(project_root: &Path) -> Result<Vec<PathBuf>> {
     let manifest = cursor_overlay_manifest_path(project_root)?;
     match fs::read_to_string(&manifest) {
         Ok(contents) => Ok(contents
@@ -80,7 +80,7 @@ fn remove_cursor_overlay_path_safe(path: &Path) -> Result<()> {
 }
 
 /// Removes workspace **`.cursor/`** paths listed in **`cursor-overlay.manifest`**.
-pub(in crate::staging) fn cleanup_cursor_overlay(project_root: &Path) -> Result<()> {
+pub(super) fn cleanup_cursor_overlay(project_root: &Path) -> Result<()> {
     let cursor_root = cursor_workspace_dir(project_root);
     for rel in read_cursor_overlay_manifest(project_root)? {
         remove_cursor_overlay_path_safe(&cursor_root.join(rel))?;
@@ -91,7 +91,7 @@ pub(in crate::staging) fn cleanup_cursor_overlay(project_root: &Path) -> Result<
 
 /// **`./.cursor/agents`** → **`$STAGING/cursor/agentpack-bundle/agents`** so Cursor **`agent`**
 /// finds subagents under **`--workspace`**.
-pub(in crate::staging) fn materialize_workspace_cursor_agents_symlink(
+pub(super) fn materialize_workspace_cursor_agents_symlink(
     project_root: &Path,
     mode_name: &str,
 ) -> Result<Vec<PathBuf>> {
@@ -135,9 +135,6 @@ pub(in crate::staging) fn materialize_workspace_cursor_agents_symlink(
 }
 
 /// Write overlay manifest after finalization.
-pub(in crate::staging) fn write_overlay_manifest(
-    project_root: &Path,
-    entries: &[PathBuf],
-) -> Result<()> {
+pub(super) fn write_overlay_manifest(project_root: &Path, entries: &[PathBuf]) -> Result<()> {
     write_cursor_overlay_manifest(project_root, entries)
 }

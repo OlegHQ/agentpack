@@ -9,7 +9,7 @@ Like almost anyone, I've been using AI agents for building commercial software�
 
 Data analysis, triaging problems, even undoing decisions that recently were unfeasible to undo—like changing the entire technical stack of your project—became essentially cheap. Before writing CLIs/scripts, custom to your needs, required days of work, now they can be built in minutes, and that allows you to focus on problems that are meaningful to you.
 
-### The new bottleneck is the harness
+## The new bottleneck is the harness
 
 Of course, overly hyped AI tools aren’t perfect. These systems cannot reason and produce high-quality code—even frontier models fail at making custom abstractions and highly maintainable code unless you prompt it correctly. What makes the situation worse is the amount of AI coding harnesses that implement essentially the same agent loop: Claude Code, OpenCode, Codex, Copilot, Cursor, each of them either restricts to its models. To make matters worse, they manage context differently that often times results in different coding performance for the same models. Configuration is still not standardized: skills are more or less standard, but hooks or custom rules are implemented in their own way per harness. CLIs like Claude Code or Cursor also have plugin systems, but they are not fully interchangeable. When working with teams on startups, I often see a repository fully optimized for Claude Code, while using it with Codex requires hacking with symlinks or committing my own harness-specific configs to the team’s repository.
 

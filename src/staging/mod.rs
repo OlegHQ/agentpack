@@ -2,14 +2,11 @@
 
 mod attribution;
 mod collision;
-mod constants;
-mod cursor;
 mod dot_agents;
 pub(crate) mod guidance;
 mod harnesses;
 pub(crate) mod mcp;
 mod pack_overlay;
-mod seed;
 mod tree;
 
 use std::fs;
@@ -21,12 +18,7 @@ use crate::lockfile::{LockPackage, PackLock};
 use crate::manifest::AgentpackManifest;
 use crate::mode::filter::EffectiveMode;
 use crate::paths::staging_plugins_dir_for_mode;
-pub(crate) use attribution::{force_cursor_attribution_off, keep_attribution, NO_ATTRIBUTION_BODY};
-pub(crate) use cursor::{
-    finalize_cursor_staging_common, finalize_cursor_workspace_overlay,
-    prepare_cursor_staging_without_pack_overlay, read_cursor_overlay_manifest,
-    write_cursor_pack_plugin_readme,
-};
+pub(crate) use attribution::{keep_attribution, NO_ATTRIBUTION_BODY};
 pub(crate) use pack_overlay::skill_folder_name;
 pub use pack_overlay::skill_is_shadowed;
 #[cfg(not(unix))]

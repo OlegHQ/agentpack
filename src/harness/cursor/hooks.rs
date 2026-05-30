@@ -1,26 +1,24 @@
-//! Cursor hook renderer.
+//! Cursor hook rendering + support.
 //!
-//! Cursor's native matcher is coarser than Claude's (no `Glob`, no regex-style alternations
-//! like `Edit|Write` without semantic equivalence, no `mcp__*` syntax). Rather than lossily
-//! down-translating each matcher, we register one blanket entry per Cursor lifecycle event
-//! whose command invokes `agentpack hook-exec dispatch ...`. The router reads Cursor's stdin
-//! (which includes `tool_name`), normalizes it to a candidate Claude tool name set, then
-//! iterates stored specs under the staged specs directory and fires the ones whose original
-//! Claude matcher matches — giving Cursor the full Claude matcher vocabulary.
+//! Cursor's native matcher is coarser than Claude's (no `Glob`, no regex alternations like
+//! `Edit|Write`, no `mcp__*` syntax). Rather than lossily down-translate, we register one blanket
+//! entry per Cursor lifecycle event whose command invokes `agentpack hook-exec dispatch ...`; the
+//! router reads Cursor's stdin (`tool_name`), normalizes it to candidate Claude tool names, and
+//! fires the stored specs whose original Claude matcher matches.
 
 use serde_json::{json, Map, Value};
 
 use crate::artifacts::HarnessTarget;
 use crate::error::Result;
-
-use super::{
+use crate::hooks::capabilities::SupportLevel;
+use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, HookBundle, NormalizedHook};
+use crate::hooks::paths::{hook_dispatch_command, specs_dispatch_root};
+use crate::hooks::render::{
     build_exec_spec_file, check_support, push_diag, HookRenderer, RenderContext, RenderedHookFile,
     RenderedHookFileContents, RenderedHookOutput,
 };
-use crate::hooks::ir::{ClaudeEvent, HookBundle, NormalizedHook};
-use crate::hooks::paths::{hook_dispatch_command, specs_dispatch_root};
 
-pub struct CursorHookRenderer;
+pub(super) struct CursorHookRenderer;
 
 impl HookRenderer for CursorHookRenderer {
     fn target(&self) -> HarnessTarget {
@@ -83,6 +81,35 @@ impl HookRenderer for CursorHookRenderer {
             })),
         });
         Ok(output)
+    }
+}
+
+/// Support level for emulating a Claude hook event+handler on Cursor.
+pub(super) fn cursor_support(event: ClaudeEvent, handler: &ClaudeHandler) -> SupportLevel {
+    match event {
+        ClaudeEvent::Notification => SupportLevel::Unsupported {
+            reason: "Cursor has no notification hook surface",
+        },
+        ClaudeEvent::PermissionRequest => match handler {
+            ClaudeHandler::Http(_) | ClaudeHandler::Agent(_) => SupportLevel::Degraded {
+                reason: "Cursor permission hooks are decomposed into preToolUse bridge commands",
+            },
+            _ => SupportLevel::Degraded {
+                reason: "Cursor models permission requests as preToolUse instead of a dedicated event",
+            },
+        },
+        ClaudeEvent::SessionStart | ClaudeEvent::PreCompact => match handler {
+            ClaudeHandler::Http(_) | ClaudeHandler::Agent(_) => SupportLevel::Degraded {
+                reason: "Cursor supports the lifecycle but requires bridge execution for this handler type",
+            },
+            _ => SupportLevel::Degraded {
+                reason: "Cursor cannot preserve Claude trigger-specific matchers for this lifecycle event",
+            },
+        },
+        _ => match handler {
+            ClaudeHandler::Command(_) | ClaudeHandler::Prompt(_) => SupportLevel::Native,
+            ClaudeHandler::Http(_) | ClaudeHandler::Agent(_) => SupportLevel::Emulated,
+        },
     }
 }
 
