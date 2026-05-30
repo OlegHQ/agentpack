@@ -1,8 +1,43 @@
+//! Launch dispatch + shared launch helpers.
+//!
+//! [`launch`] is the single entry point behind every `agentpack <harness>` subcommand: it syncs
+//! staging, builds the per-harness [`Command`](std::process::Command) via
+//! [`Harness::launch_command`](super::Harness::launch_command), and execs it. The yolo-flag
+//! injectors, binary resolution, and exec wrappers below are the cross-harness utilities those
+//! `launch_command` impls share.
+
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use anyhow::Context;
+
+use super::{HarnessTarget, LaunchCtx};
+use crate::sync::sync_for_launch;
+use crate::ui::Ui;
+
+/// Sync staging for `id`, then build and exec that harness's configured `Command`. The single
+/// dispatch point for the six `agentpack <harness>` subcommands; each harness owns its own
+/// `launch_command`.
+pub(crate) fn launch(
+    id: HarnessTarget,
+    project_root: &Path,
+    passthrough: Vec<String>,
+    selected_mode: Option<&str>,
+    yolo: bool,
+    ui: &Ui,
+) -> anyhow::Result<()> {
+    let mode = sync_for_launch(project_root, selected_mode, id, ui)?;
+    let ctx = LaunchCtx {
+        project_root,
+        passthrough,
+        mode: &mode,
+        yolo,
+        ui,
+    };
+    let cmd = id.harness().launch_command(ctx)?;
+    exec_inherit(cmd)
+}
 
 fn args_contain_any(args: &[String], needles: &[&str]) -> bool {
     args.iter().any(|a| needles.contains(&a.as_str()))
@@ -10,7 +45,7 @@ fn args_contain_any(args: &[String], needles: &[&str]) -> bool {
 
 /// Whether `args` already supplies `flag` with a value, in either `--flag value` or `--flag=value`
 /// form. Used by launchers that inject a default (e.g. `--cwd`, `--add-dir`) only when absent.
-pub fn args_have_flag_with_value(args: &[String], flag: &str) -> bool {
+pub(super) fn args_have_flag_with_value(args: &[String], flag: &str) -> bool {
     let eq_prefix = format!("{flag}=");
     args.iter().enumerate().any(|(idx, arg)| {
         (arg == flag && args.get(idx + 1).is_some()) || arg.starts_with(&eq_prefix)
@@ -18,7 +53,7 @@ pub fn args_have_flag_with_value(args: &[String], flag: &str) -> bool {
 }
 
 /// Injects Claude Code **`--dangerously-skip-permissions`** when **`agentpack --yolo`** is set.
-pub fn apply_yolo_claude(args: &mut Vec<String>) {
+pub(super) fn apply_yolo_claude(args: &mut Vec<String>) {
     const FLAG: &str = "--dangerously-skip-permissions";
     if args_contain_any(args, &[FLAG]) {
         return;
@@ -28,7 +63,7 @@ pub fn apply_yolo_claude(args: &mut Vec<String>) {
 
 /// Injects Codex **`--dangerously-bypass-approvals-and-sandbox`** (alias **`--yolo`**) when **`agentpack --yolo`** is set.
 /// Codex expects global flags **after** a subcommand (for example `codex exec --flag …`); if the first arg is a subcommand token, the flag is inserted in second position.
-pub fn apply_yolo_codex(args: &mut Vec<String>) {
+pub(super) fn apply_yolo_codex(args: &mut Vec<String>) {
     const FLAG: &str = "--dangerously-bypass-approvals-and-sandbox";
     if args_contain_any(args, &[FLAG, "--yolo"]) {
         return;
@@ -41,7 +76,7 @@ pub fn apply_yolo_codex(args: &mut Vec<String>) {
 }
 
 /// Injects Cursor **`agent --force`** (YOLO / auto-approve) when **`agentpack --yolo`** is set.
-pub fn apply_yolo_cursor_agent(args: &mut Vec<String>) {
+pub(super) fn apply_yolo_cursor_agent(args: &mut Vec<String>) {
     if args_contain_any(args, &["--force", "--yolo"]) {
         return;
     }
@@ -49,7 +84,7 @@ pub fn apply_yolo_cursor_agent(args: &mut Vec<String>) {
 }
 
 /// Injects Grok's auto-approve flag when **`agentpack --yolo`** is set.
-pub fn apply_yolo_grok(args: &mut Vec<String>) {
+pub(super) fn apply_yolo_grok(args: &mut Vec<String>) {
     const FLAG: &str = "--always-approve";
     if args_contain_any(args, &[FLAG]) {
         return;
@@ -58,7 +93,7 @@ pub fn apply_yolo_grok(args: &mut Vec<String>) {
 }
 
 /// Injects Antigravity's permission bypass flag when **`agentpack --yolo`** is set.
-pub fn apply_yolo_agy(args: &mut Vec<String>) {
+pub(super) fn apply_yolo_agy(args: &mut Vec<String>) {
     const FLAG: &str = "--dangerously-skip-permissions";
     if args_contain_any(args, &[FLAG]) {
         return;
@@ -98,7 +133,7 @@ fn search_path(program: &str) -> io::Result<PathBuf> {
 }
 
 /// Reads optional **`env_key`**; blank / unset falls back to **`default_cmd`**, then resolves on **`PATH`**.
-pub fn resolve_harness_binary(env_key: &str, default_cmd: &str) -> anyhow::Result<PathBuf> {
+pub(super) fn resolve_harness_binary(env_key: &str, default_cmd: &str) -> anyhow::Result<PathBuf> {
     let raw = std::env::var(env_key).unwrap_or_default();
     let program = if raw.trim().is_empty() {
         default_cmd.to_string()
@@ -109,7 +144,7 @@ pub fn resolve_harness_binary(env_key: &str, default_cmd: &str) -> anyhow::Resul
 }
 
 /// Replace the current process with **`cmd`** on Unix, or run it to completion on Windows.
-pub fn exec_inherit(mut cmd: Command) -> anyhow::Result<()> {
+fn exec_inherit(mut cmd: Command) -> anyhow::Result<()> {
     let prog = cmd.get_program().to_string_lossy().into_owned();
 
     #[cfg(unix)]

@@ -7,13 +7,13 @@ use std::process::Command;
 use anyhow::Context;
 use serde_json::Value;
 
+use super::launch::resolve_harness_binary;
 use super::{require, Harness, HarnessTarget, LaunchCtx, StageCtx};
 use crate::error::{AgentpackError, Result};
 use crate::fs_util::{read_json_value_opt, write_json_value, write_text_file};
 use crate::hooks::capabilities::SupportLevel;
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
 use crate::hooks::render::HookRenderer;
-use crate::launcher::common::resolve_harness_binary;
 use crate::paths::staging_opencode_dir_for_mode;
 use crate::staging::mcp::{merge_into_opencode_config, StagedMcpEntries};
 use crate::staging::{copy_selected_entries, keep_attribution, NO_ATTRIBUTION_BODY};

@@ -8,6 +8,7 @@ use std::process::Command;
 use anyhow::Context;
 use serde_json::Value;
 
+use super::launch::{apply_yolo_codex, resolve_harness_binary};
 use super::{require, Harness, HarnessTarget, LaunchCtx, StageCtx};
 use crate::artifacts::ArtifactKind;
 use crate::error::{AgentpackError, Result};
@@ -15,7 +16,6 @@ use crate::hooks::capabilities::SupportLevel;
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
 use crate::hooks::render::HookRenderer;
 use crate::hooks::runtime::output::codex_output;
-use crate::launcher::common::{apply_yolo_codex, resolve_harness_binary};
 use crate::paths::staging_codex_home_dir_for_mode;
 use crate::staging::mcp::{merge_into_toml_mcp_config, StagedMcpEntries};
 use crate::staging::{copy_selected_entries, keep_attribution};

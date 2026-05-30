@@ -6,9 +6,9 @@ use std::path::Path;
 use anyhow::Context;
 
 use super::{Cli, Command, McpAction, ModeAction};
-use crate::harness::HarnessTarget;
+use crate::harness::{launch, HarnessTarget};
 use crate::ui::Ui;
-use crate::{launcher, lockfile, manifest, paths, sync};
+use crate::{lockfile, manifest, paths, sync};
 
 /// Main entry for tests and binary.
 pub fn run(cli: Cli) -> anyhow::Result<()> {
@@ -69,7 +69,7 @@ pub fn run(cli: Cli) -> anyhow::Result<()> {
             )?;
         }
         Command::Claude { args } => {
-            launcher::launch(
+            launch(
                 HarnessTarget::Claude,
                 &root,
                 args,
@@ -79,7 +79,7 @@ pub fn run(cli: Cli) -> anyhow::Result<()> {
             )?;
         }
         Command::Opencode { args } => {
-            launcher::launch(
+            launch(
                 HarnessTarget::OpenCode,
                 &root,
                 args,
@@ -89,7 +89,7 @@ pub fn run(cli: Cli) -> anyhow::Result<()> {
             )?;
         }
         Command::Codex { args } => {
-            launcher::launch(
+            launch(
                 HarnessTarget::Codex,
                 &root,
                 args,
@@ -99,7 +99,7 @@ pub fn run(cli: Cli) -> anyhow::Result<()> {
             )?;
         }
         Command::Grok { args } => {
-            launcher::launch(
+            launch(
                 HarnessTarget::Grok,
                 &root,
                 args,
@@ -109,7 +109,7 @@ pub fn run(cli: Cli) -> anyhow::Result<()> {
             )?;
         }
         Command::Agy { args } => {
-            launcher::launch(
+            launch(
                 HarnessTarget::Agy,
                 &root,
                 args,
@@ -119,7 +119,7 @@ pub fn run(cli: Cli) -> anyhow::Result<()> {
             )?;
         }
         Command::Agent { args } => {
-            launcher::launch(
+            launch(
                 HarnessTarget::Cursor,
                 &root,
                 args,

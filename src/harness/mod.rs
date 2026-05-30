@@ -15,7 +15,10 @@ mod claude;
 mod codex;
 mod cursor;
 mod grok;
+mod launch;
 mod opencode;
+
+pub(crate) use launch::launch;
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -52,7 +55,7 @@ pub struct StageCtx<'a> {
     pub launch_target: Option<HarnessTarget>,
 }
 
-/// Per-launch context, built by `launcher::launch` after `sync_for_launch` resolves the mode and
+/// Per-launch context, built by `harness::launch` after `sync_for_launch` resolves the mode and
 /// consumed by [`Harness::launch_command`]. `passthrough` is owned because launchers default and
 /// reorder args before building the `Command`.
 pub struct LaunchCtx<'a> {
@@ -218,7 +221,7 @@ pub(crate) trait Harness: Sync {
     // ---- launch (was: the 6 `launcher::run_*` fns) ----
 
     /// Build the fully-configured child process: resolve the binary, set env (`CODEX_HOME`,
-    /// fake `HOME`, …), inject default and yolo args. `launcher::launch` runs `sync_for_launch`
+    /// fake `HOME`, …), inject default and yolo args. `harness::launch` runs `sync_for_launch`
     /// first, then execs the returned `Command`.
     fn launch_command(&self, ctx: LaunchCtx) -> anyhow::Result<Command>;
 

@@ -13,6 +13,7 @@ use anyhow::Context;
 use serde_json::{json, Value};
 use serde_norway::Mapping;
 
+use super::launch::{apply_yolo_cursor_agent, resolve_harness_binary};
 use super::{require, Harness, HarnessTarget, LaunchCtx, StageCtx};
 use crate::artifacts::yaml::insert_string;
 use crate::artifacts::ArtifactKind;
@@ -22,7 +23,6 @@ use crate::hooks::capabilities::SupportLevel;
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
 use crate::hooks::render::HookRenderer;
 use crate::hooks::runtime::output::cursor_output;
-use crate::launcher::common::{apply_yolo_cursor_agent, resolve_harness_binary};
 use crate::paths::{
     cursor_workspace_dir, staging_cursor_bundle_dir_for_mode, staging_cursor_home_dir_for_mode,
     staging_cursor_pack_plugin_dir_for_mode,

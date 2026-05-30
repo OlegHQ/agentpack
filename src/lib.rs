@@ -6,7 +6,6 @@ pub(crate) mod fs_util;
 mod github;
 pub(crate) mod harness;
 pub mod hooks;
-pub mod launcher;
 pub mod lockfile;
 pub(crate) mod manifest;
 pub mod mode;
