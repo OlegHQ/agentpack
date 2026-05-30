@@ -14,7 +14,7 @@ use crate::error::{AgentpackError, Result};
 use crate::hooks::capabilities::SupportLevel;
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
 use crate::hooks::render::HookRenderer;
-use crate::hooks::runtime::translate::codex_output;
+use crate::hooks::runtime::output::codex_output;
 use crate::launcher::common::{apply_yolo_codex, resolve_harness_binary};
 use crate::paths::staging_codex_home_dir_for_mode;
 use crate::staging::mcp::{merge_into_toml_mcp_config, StagedMcpEntries};

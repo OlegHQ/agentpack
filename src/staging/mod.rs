@@ -4,9 +4,9 @@ mod attribution;
 mod collision;
 mod dot_agents;
 pub(crate) mod guidance;
-mod harnesses;
 pub(crate) mod mcp;
 mod pack_overlay;
+mod pipeline;
 mod tree;
 
 use std::fs;
@@ -25,8 +25,8 @@ pub use pack_overlay::skill_is_shadowed;
 pub(crate) use tree::copy_merge_tree;
 pub(crate) use tree::copy_selected_entries;
 
-use harnesses::StagingPipeline;
 use pack_overlay::disabled_in_config;
+use pipeline::StagingPipeline;
 
 // Re-exported here so the `staging` module path keeps resolving for downstream callers. The
 // identity helpers (`as_str`, `all`, `harness`) now live with the canonical enum in

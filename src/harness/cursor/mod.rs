@@ -21,7 +21,7 @@ use crate::fs_util::{read_json_value_opt, remove_path_any, write_json_value};
 use crate::hooks::capabilities::SupportLevel;
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
 use crate::hooks::render::HookRenderer;
-use crate::hooks::runtime::translate::cursor_output;
+use crate::hooks::runtime::output::cursor_output;
 use crate::launcher::common::{apply_yolo_cursor_agent, resolve_harness_binary};
 use crate::paths::{
     cursor_workspace_dir, staging_cursor_bundle_dir_for_mode, staging_cursor_home_dir_for_mode,
