@@ -16,12 +16,12 @@ lockstep to add or change a harness:
 | # | Site | File(s) | Shape of the scatter |
 |---|------|---------|----------------------|
 | 1 | Identity enum + per-harness data tables | `artifacts/harness.rs` (20 arms) | `raw_plugin_subdirs`, `seed_command_frontmatter`, `*_allowed_extra_frontmatter_keys`, `rendered_artifact_kind`, `disables_model_invocation_for_kind` — five separate `match self` tables |
-| 2 | Staging path accessors | `staging/harnesses.rs` (9 fns) + `paths.rs` (~20 fns) | `claude_bundle_dir`, `opencode_root`, `codex_home`, `cursor_pack_plugin_dir`, `grok_home`, `grok_bundle_dir`, `agy_bundle_dir`, `cursor_bundle_root`, `cursor_home` |
+| 2 | Staging path accessors | `staging/harnesses.rs` (9 `StagingPipeline` fns) + `paths.rs` (22 fns: 11 `*_dir_for_mode` + 11 non-mode) | `claude_bundle_dir`, `opencode_root`, `codex_home`, `cursor_pack_plugin_dir`, `grok_home`, `grok_bundle_dir`, `agy_bundle_dir`, `cursor_bundle_root`, `cursor_home` |
 | 3 | `prepare_all` | `staging/harnesses.rs:290` | 6 hand-written blocks: mkdir + seed + attribution-off, one per harness |
 | 4 | `reset_all` | `staging/harnesses.rs:337` | 8-entry path list to wipe |
 | 5 | `verify_*` | `staging/harnesses.rs:164` | already split into 6 methods (Phase 2 slice ✅) — ready to move onto the trait |
 | 6 | Attribution-off writers | `staging/attribution.rs` | `force_codex/cursor/grok/opencode/agy_attribution_off` (+ Claude overlay in `claude_home.rs`) |
-| 7 | Seed-from-user-config | `staging/seed.rs` + `constants.rs` | `seed_opencode_root`, `seed_codex_home`, `seed_grok_home` + 6 `*_ENTRIES` const lists |
+| 7 | Seed-from-user-config | `staging/seed.rs` + `staging/constants.rs` | `seed_opencode_root`, `seed_codex_home`, `seed_grok_home`, `seed_cursor_root` (`seed.rs:144`) + **8** `*_ENTRIES`/`*_FILES`/`*_SUBDIRS` const lists (`OPENCODE_USER_ROOT_ENTRIES`, `CODEX_HOME_ENTRIES`, `GROK_HOME_ENTRIES`, `GROK_HOME_CREDENTIAL_FILES`, `CURSOR_USER_ROOT_ENTRIES`, `CURSOR_FAKE_HOME_CREDENTIAL_FILES`, `CURSOR_USER_SUBDIRS_IN_FAKE_HOME`, `CURSOR_FAKE_HOME_PACK_SUBDIRS`) |
 | 8 | MCP writers | `staging/mcp.rs` | `write_claude_mcp` (JSON), opencode (`opencode.json`), `merge_into_toml_mcp_config` (codex+grok), agy (`mcp_config.json`) — 4 formats |
 | 9 | `PackHarnessRoots` + `targets_and_roots` | `staging/pack_overlay.rs:35` | 7-field struct + 6-entry `(HarnessTarget, &Path)` array |
 | 10 | `HookHarnessRoots` | `staging/harnesses.rs` / hooks | parallel 6-field struct |
@@ -30,7 +30,7 @@ lockstep to add or change a harness:
 | 13 | Hook output translation | `hooks/runtime/translate.rs:5` | `to_target_output` — 6 arms |
 | 14 | Hook renderers | `hooks/render/{claude,codex,cursor,opencode}.rs` | already trait-based (`HookRenderer`) — a precedent to follow |
 | 15 | Launchers | `launcher/{claude,codex,cursor_agent,grok,agy,opencode}.rs` + `mod.rs` + `cli/dispatch.rs` | one `run_*` fn per harness, each: `sync_for_launch` → resolve binary → set env/args → exec |
-| 16 | Verify-time roots + collision | `staging/mod.rs:122` (6-entry `(&Path,&str)` array) + `:113` `resolve_user_claude_bundle_collisions(6 paths)` | a **third** parallel 6-harness list, distinct from `PackHarnessRoots`/`HookHarnessRoots`; the collision pass enforces "user install wins" (Claude/Grok) |
+| 16 | Verify-time roots + collision | `staging/mod.rs` `verify_staging()` (~`:117` 6-entry `(&Path,&str)` verify array; calls `collision::resolve_user_claude_bundle_collisions(6 paths)` ~`:95`) **plus** the already-extracted `staging/collision.rs` (`resolve_user_claude_bundle_collisions` `:206`, `_with_home` `:116`) which has **two more** internal parallel lists: a 6-path `harness_roots` (`:150`) and a **5-path** `md_roots` (`:181`, Codex excluded — no `commands/`/`agents/` trees) | a **third+fourth+fifth** parallel harness list, distinct from `PackHarnessRoots`/`HookHarnessRoots`; the collision pass mutates staged roots and enforces "user install wins" (Claude/Grok) |
 | 17 | Guidance staging | `staging/guidance.rs` → `stage_guidance_all_harnesses` (called `harnesses.rs:147`) | prompt-level attribution-off text for OpenCode/Grok/Agy — *already* a single shared fn; stays shared |
 | 18 | Yolo / approval-bypass | `launcher/common.rs:22-68` (5 `apply_yolo_*` flag injectors) + `launcher/opencode.rs:40-52` | OpenCode bypass is a **staged-file patch** (`permission:"allow"` in `opencode.json`), *not* a CLI flag — see §4 Step 7 |
 
@@ -40,12 +40,17 @@ in `staging/cursor.rs:52`, `finalize_agy_staging` in `staging/agy.rs:24`; manife
 **unconditional** (runs in `prepare_*_staging_without_pack_overlay` for every rebuild), so the trait's
 `finalize_workspace_overlay` only needs the *create* half gated on `launch_target`.
 
-**Verification note (counts are exact as of this branch):** site 1 is precisely **5** `match self`
-tables (`raw_plugin_subdirs`, `seed_command_frontmatter`, `command_/skill_/agent_allowed_extra_frontmatter_keys`)
-plus `rendered_artifact_kind` which matches the tuple `(source, self)` and `disables_model_invocation_for_kind`
-which is a `matches!` — 20 arms total. Sites 2-15 verified at the line numbers shown. The suite is
-**145 tests** (not 144). Seeding (site 7) also includes `seed_cursor_root` (`seed.rs:144`), already
-wrapped by `prepare_cursor_staging_without_pack_overlay`, so it rides along with `prepare` for free.
+**Verification note (re-verified against the current tree, 2026-05-30):** site 1 is precisely **5**
+`match self` tables in `artifacts/harness.rs` (`raw_plugin_subdirs` 4 arms, `seed_command_frontmatter`
+3 arms, `command_/skill_/agent_allowed_extra_frontmatter_keys` 3/2/2 arms) plus `rendered_artifact_kind`
+(tuple `(source, self)`, 6 arms) and `disables_model_invocation_for_kind` (a `matches!`). Note these
+methods are `pub(super)` today, so Step 1 must also re-home or re-export `insert_string`/`ArtifactKind`
+usage. Sites 2-18 re-verified; line numbers in the table are approximate (the tree has drifted —
+`cursor`/`agy`/`collision` are now their own submodules). **Test suite: 144 passing + 1 `#[ignore]`d
+= 128 lib unit + 16 integration (1 ignored).** Every slice below must keep the green count at **144
+passing** (the earlier draft's "145" counted the ignored test). Seeding (site 7) also includes
+`seed_cursor_root` (`seed.rs:144`), already wrapped by `prepare_cursor_staging_without_pack_overlay`,
+so it rides along with `prepare` for free.
 
 **Why this hurts:** the six concerns above (path, seed, attribution, mcp, hooks, launch) are each
 written *six times*, once per harness, in *different files*. The compiler does not force them to
@@ -59,9 +64,11 @@ trait already proves the target shape works; this plan extends that pattern to t
 A single trait capturing the per-harness contract, one implementor per harness, one registry.
 
 ```rust
-// src/harness/mod.rs  (new top-level module)
+// src/harness/mod.rs  (new top-level module; declared as `pub(crate) mod harness;`)
 
 mod claude; mod cursor; mod codex; mod opencode; mod grok; mod agy;
+use claude::Claude; use cursor::Cursor; use codex::Codex; use opencode::OpenCode; use grok::Grok; use agy::Agy;
+// Each submodule exposes only its unit struct to this parent, e.g. `pub(super) struct Claude;`.
 
 pub use crate::artifacts::HarnessTarget;   // the canonical id enum (already unified in Phase 1)
 
@@ -97,7 +104,7 @@ pub trait Harness: Sync {
     fn disables_model_invocation_for_kind(&self, kind: ArtifactKind) -> bool;
 
     // ---- MCP (was: 4 format writers in mcp.rs) ----
-    fn write_mcp(&self, servers: &MergedEntries, ctx: &StageCtx) -> Result<()>;
+    fn write_mcp(&self, servers: &StagedMcpEntries, ctx: &StageCtx) -> Result<()>;
 
     // ---- hooks (was: support_for / base_asset_root / to_target_output arms) ----
     fn hook_support(&self, event: ClaudeEvent, handler: &ClaudeHandler) -> SupportLevel;
@@ -111,19 +118,19 @@ pub trait Harness: Sync {
 
     // ---- launch (was: launcher/*.rs run_* fns) ----
     /// Build the child process: resolve binary, set env (CODEX_HOME etc.), inject default args.
-    fn launch_command(&self, ctx: &LaunchCtx) -> Result<Command>;
+    fn launch_command(&self, ctx: LaunchCtx) -> anyhow::Result<Command>;
 
     // ---- optional workspace overlay (only cursor + agy) ----
     fn finalize_workspace_overlay(&self, _ctx: &StageCtx) -> Result<()> { Ok(()) }
 }
 
 /// Per-launch context (built in `cli/dispatch.rs`, consumed by `launch_command`).
-/// NOTE: this was referenced but undefined in the first draft — these fields are exactly what
-/// the six `run_*` fns take today plus the `EffectiveMode` that `sync_for_launch` returns.
+/// NOTE: this was referenced but undefined in the first draft. `launcher::launch(...)`
+/// still receives `selected_mode`, calls `sync_for_launch`, then builds this context.
+/// `passthrough` is owned because launchers mutate/default args before building `Command`.
 pub struct LaunchCtx<'a> {
     pub project_root: &'a Path,
-    pub passthrough: Vec<String>,       // owned: launchers mutate it (yolo, --workspace, --cwd, --add-dir)
-    pub selected_mode: Option<&'a str>,
+    pub passthrough: Vec<String>,
     pub mode: &'a EffectiveMode,        // output of sync_for_launch(...)
     pub yolo: bool,
     pub ui: &'a Ui,
@@ -157,8 +164,9 @@ pub fn get(id: HarnessTarget) -> &'static dyn Harness {
      Claude→bundle, Grok→`grok_bundle`, Cursor→`cursor_pack`). This is the one the shared pack/skill
      overlay loop uses.
    - `reset_paths` returns the **full wipe set** and most harnesses **override the default**:
-     Claude→[`plugins_dir`] (parent of bundle), Grok→[`grok_home`,`grok_dir`], Cursor→[`cursor_bundle_root`,`cursor_home`].
-     The `default = [staged_root]` only fits OpenCode/Codex/Agy. Reword the doc-comment accordingly.
+     Claude→[`plugins_dir`] (parent of bundle), Grok→[`grok_home`,`grok_dir`],
+     Cursor→[`cursor_bundle_root`,`cursor_home`], Agy→[`agy_dir`].
+     The `default = [staged_root]` only fits OpenCode/Codex. Reword the doc-comment accordingly.
    - MCP/hook/verify destinations are computed inside each method, not assumed equal to `staged_root`.
 
 3. **MCP is written to Cursor twice and the trait must not double-handle it.** `stage_merged_mcp`
@@ -171,11 +179,68 @@ pub fn get(id: HarnessTarget) -> &'static dyn Harness {
    `stage.rs:36`). But the hook **runtime** (`agentpack hook exec`) calls `to_target_output` for all
    six (Grok→`claude_fallback_output`, Agy→`codex_output`). So keep `hook_output`/`hook_support` on
    all six impls; only `hook_renderer` is optional. Also note `hook_asset_root` collapses a 2-arm match
-   (OpenCode vs rest) into 6 one-line impls — accept the mild verbosity for uniformity.
+   (OpenCode vs rest, `paths.rs:15`) into 6 one-line impls — accept the mild verbosity for uniformity.
+   **Signature shift:** the free fns currently take `target: HarnessTarget` as their *first* arg
+   (`support_for(target, event, handler)`, `base_asset_root(target, root)`, `to_target_output(target,
+   event, result)`); on the trait that leading `target` becomes `&self`, so the trait method
+   signatures shown in §2 are correct as written. The renderer dispatch lives in a 4-entry `Vec<(&dyn
+   HookRenderer, &Path)>` in `stage.rs` (~`:42`); Step 6 derives that list from `hook_renderer()`
+   instead. `HookRenderer` (in `hooks/render/mod.rs`) already has `fn target()` + `fn render()`.
 
 5. **OpenCode yolo is a staged-file mutation, not arg injection** (see §4 Step 7).
 
-Then every fan-out collapses. For example `prepare_all`/`reset_all`/`verify` become:
+6. **Top-level `harness` needs crate-visible facades into staging helpers.** Today the helpers the
+   impls need are mostly inside private `staging` submodules and many functions are `pub(super)`
+   (`seed_*`, `force_*_attribution_off`, `materialize_claude_settings_overlay`,
+   `prepare_cursor_staging_without_pack_overlay`, `finalize_*`, MCP writers, overlay readers, etc.).
+   Before moving wiring into `src/harness/*`, promote only those orchestration helpers to
+   `pub(crate)` or re-export narrow `pub(crate)` facades from `staging`; keep low-level internals
+   private. Also move the local private helpers from `staging/harnesses.rs`
+   (`write_bundle_manifest`, Grok's simple `plugin.json` writer `write_simple_plugin_manifest`) into
+   the relevant harness impls or focused staging helpers. **`keep_attribution()` is triplicated** —
+   `harnesses.rs:366`, `claude_home.rs:81`, `attribution.rs:56` — collapse all three into one shared
+   `pub(crate)` helper (e.g. in `staging/attribution.rs`) as part of this step so the trait impls and
+   shared passes call a single source of truth.
+
+7. **`HarnessTarget` identity helpers belong with the canonical enum.** `HarnessTarget::all()` and
+   `raw_plugin_subdirs()` **already live in `artifacts/harness.rs`** (`:37` and `:48`). Only
+   `as_str()` is misplaced — it is an inherent impl in `staging/mod.rs:38`. Move *just* `as_str()`
+   to `artifacts/harness.rs`, and add the new `harness()` shim there, so hooks, sync fingerprints,
+   launch, and staging do not depend on a staging-side impl for identity.
+   Add a registry consistency test: every `HarnessTarget::all()` value resolves through `get()`,
+   every `harness::all()` entry has a unique id, and the two lists contain the same ids **as a set**
+   (the orders deliberately differ — see point 9 — so the test must compare sets, not sequences).
+
+8. **Agy reset must preserve current behavior.** The current reset removes the parent
+   `staging_agy_dir_for_mode(...)`, not only `agy/agentpack-bundle`. Even if the bundle is the only
+   child today, `Agy::reset_paths` should override the default and return the parent dir so the
+   refactor is behavior-preserving.
+
+9. **Keep shared fan-out passes single-walk.** `stage_pack_plugins_all_harnesses` and
+   `stage_pack_skills_all_harnesses` intentionally parse/walk each cache tree once and fan out to
+   all target roots. The trait should derive a root view from `harness::all()`, not replace these
+   with six independent per-harness walks. **Beware ordering:** `HarnessTarget::all()` is ordered
+   `Claude, Cursor, Codex, OpenCode, Grok, Agy`, but `PackHarnessRoots::targets_and_roots()`
+   (`pack_overlay.rs:46`) is ordered `Claude, OpenCode, Codex, Cursor, Grok, Agy` (Cursor/OpenCode
+   swapped). Order does not affect correctness here (the roots are distinct dirs, no
+   last-writer-wins collisions between *harnesses*), but a derived view must not assume the two
+   sequences line up positionally — map by id, or keep `targets_and_roots()` as the canonical order
+   for these passes.
+
+10. **Collision shadowing is shared mutation, not per-harness verification.**
+    `resolve_user_claude_bundle_collisions(...)` mutates staged roots and returns removed skill
+    slugs used by later verification. Keep it as an explicit shared post-staging/pre-skill-check
+    pass that derives its root list from `harness::all()`; do not bury it inside
+    `Harness::verify`, whose job should stay read-only.
+
+**Verify is two passes, not one.** `rebuild_staging_for_mode` (`staging/mod.rs:52`) calls
+`pipeline.rebuild()` then the free fn `verify_staging(pipeline, lock, mode)` (`mod.rs:65`).
+`verify_staging` first calls `pipeline.verify()` (the 6 `verify_*` methods → Step 2 moves these onto
+the trait), **then** runs the shared collision pass (mutating) and the cross-harness skill-`SKILL.md`
+existence loop over the 6-entry `harness_roots` array (→ Step 8). Step 2 only touches the per-harness
+half; the collision + skill-check half stays a shared pass in `verify_staging` and is handled in Step 8.
+
+Then every fan-out collapses. For example `prepare_all`/`reset_all`/`pipeline.verify` become:
 
 ```rust
 fn rebuild(&self) -> Result<Vec<PathBuf>> {
@@ -222,8 +287,10 @@ src/harness/
   agy.rs        # impl Harness for Antigravity
 ```
 
-Existing helper modules (`staging/attribution.rs`, `seed.rs`, `mcp.rs`, `cursor/*`, `codex_auth.rs`,
-`hooks/*`) **stay** — they hold the actual mechanics. The trait impls *call into* them. The win is
+Existing helper modules (`staging/attribution.rs`, `seed.rs`, `constants.rs`, `mcp.rs`,
+`claude_home.rs`, `codex_auth.rs`, `collision.rs`, `dot_agents.rs`, `tree.rs`, `cursor.rs` +
+`cursor/{approvals,fake_home,manifests,overlay}.rs`, `agy.rs` + `agy/overlay.rs`, `hooks/*`)
+**stay** — they hold the actual mechanics. The trait impls *call into* them. The win is
 that the dispatch/fan-out is centralized and the per-harness wiring lives in one file per harness,
 not scattered. `paths.rs` keeps its functions (they're pure path builders); the trait's
 `staged_root`/`reset_paths` just call the right ones so callers stop hardcoding which.
@@ -242,7 +309,8 @@ per-impl would be worse. The trait owns *per-harness divergence*; these stay as 
 
 ## 4. Execution order — capability-by-capability, each slice test-gated
 
-Do **not** do this as one commit. Each step compiles, passes all **145** tests + clippy, and commits.
+Do **not** do this as one commit. Each step compiles, keeps the **144 passing** tests green (+1
+ignored) and `cargo clippy --all-targets` clean, and commits.
 Order chosen so the lowest-risk, most-mechanical concerns land first and the launch path (highest
 blast radius) is last.
 
@@ -252,42 +320,65 @@ So the trait starts with **only `id()`**, and **each step below adds its method(
 all six impls AND rewires the old call site, in one commit.** This is what keeps every step green.
 
 - [ ] **Step 0 — scaffold.** Create `src/harness/mod.rs` with `StageCtx`, `LaunchCtx`, the 6 unit
-      structs `struct Claude;`…`struct Agy;`, `all()`, `get()`, and a **minimal `trait Harness`
-      exposing only `fn id(&self) -> HarnessTarget`**. Add `mod harness;` to `lib.rs`. Add the
-      `HarnessTarget::harness(self) -> &'static dyn Harness { harness::get(self) }` shim. Compiles,
-      changes no behavior. *Test:* nothing new; suite stays at 145.
+      structs (`pub(super) struct Claude;`…`pub(super) struct Agy;` in their submodules), `all()`,
+      `get()`, and a **minimal `trait Harness`
+      exposing only `fn id(&self) -> HarnessTarget`**. Add `pub(crate) mod harness;` to `lib.rs`
+      (note: `artifacts::HarnessTarget` will reference `crate::harness::get`, and `harness/*` impls
+      reference `crate::artifacts::HarnessTarget` — an intra-crate module cycle, which Rust permits).
+      Add the `HarnessTarget::harness(self) -> &'static dyn Harness { harness::get(self) }` shim, and
+      move **only** `HarnessTarget::as_str()` from `staging/mod.rs:38` to `artifacts/harness.rs`
+      (`all()` and `raw_plugin_subdirs()` are already there). Add a registry consistency unit test
+      (set equality, see §2a.7). Compiles, changes no behavior. *Test:* suite stays at 144 passing.
 
 - [ ] **Step 1 — artifact tables (lowest risk).** Move the five `match self` tables from
       `artifacts/harness.rs` onto the trait impls. `HarnessTarget` keeps a thin
       `fn harness(self) -> &'static dyn Harness { harness::get(self) }` shim so existing
       `artifacts/render.rs` call sites change minimally. Delete the `impl HarnessTarget` tables.
-      *Test:* `artifacts::tests` already cover render output per target.
+      Use trait defaults for common behavior (`raw_plugin_subdirs = []`, common allowed
+      frontmatter keys, command disables model invocation, etc.) and override only the divergent
+      harnesses. *Test:* `artifacts::tests` already cover render output per target.
 
 - [ ] **Step 2 — verify.** Move the 6 `verify_*` methods (already split) onto the trait. `verify()`
       becomes `for h in all() { h.verify(&ctx)? }`. *Test:* integration `sync_*` tests assert staging
       layout; add nothing.
 
 - [ ] **Step 3 — paths + reset.** Add `staged_root`/`reset_paths`; rewrite `reset_all` as a loop.
-      *Test:* existing; reset is covered indirectly by every sync test (rebuild calls reset first).
+      Explicit reset overrides: Claude→`plugins_dir`, Cursor→`cursor_bundle_root` +
+      `cursor_home`, Grok→`grok_home` + `grok_dir`, Agy→`agy_dir`. OpenCode/Codex can use the
+      default. *Test:* existing; reset is covered indirectly by every sync test (rebuild calls
+      reset first).
 
 - [ ] **Step 4 — prepare (mkdir + seed + attribution).** Add `prepare`; rewrite `prepare_all` as a
       loop. Each impl calls the existing `seed_*` / `force_*_attribution_off` helpers. *Test:*
       `sync_disables_attribution_in_all_supported_harnesses_by_default` is the guard here — it must
       stay green.
 
-- [ ] **Step 5 — MCP.** Add `write_mcp`; `stage_merged_mcp` loops `all()` instead of calling 4
-      named writers. *Test:* the 11 `staging::mcp::tests` are the strongest safety net in the repo.
+- [ ] **Step 5 — MCP.** `stage_merged_mcp` (`mcp.rs:184`) currently *both* merges and writes all
+      harnesses. First **factor the merge out** into a shared `collect_merged_mcp(...) ->
+      MergedEntries` (the §2a.1 "runs once" helper); then add `write_mcp(&self, &merged, ctx)` and
+      have the staging loop call `collect_merged_mcp` once and `for h in all() { h.write_mcp(...) }`.
+      The real merged type is `type StagedMcpEntries = MergedEntries = BTreeMap<String,
+      (McpServerEntry, McpSource)>` (`mcp.rs:172/205`) — re-export it `pub(crate)`. The five native
+      writers (`write_claude_mcp_servers_json`, `write_mcp_servers_json` for Cursor,
+      `merge_into_opencode_config`, `merge_into_toml_mcp_config` for **both Codex and Grok**,
+      `write_agy_mcp_config_json`) must be reused, not reimplemented (Codex's and Grok's `write_mcp`
+      both call the shared TOML writer). Per §2a.3, `Cursor::write_mcp` writes only
+      `cursor_pack/mcp.json`; the user-`~/.cursor/mcp.json` re-merge stays in
+      `finalize_cursor_staging_common`. *Test:* the 11 `staging::mcp::tests` are the strongest safety
+      net in the repo.
 
 - [ ] **Step 6 — hooks.** Move `support_for` / `base_asset_root` / `to_target_output` onto the trait
       (`hook_support` / `hook_asset_root` / `hook_output`), and `hook_renderer()` returns the
-      existing `HookRenderer` boxes. *Test:* `hooks::runtime::dispatch::tests` +
-      `sync_stages_hooks_for_all_harnesses`.
+      existing `HookRenderer` boxes. `stage_hooks_all_harnesses` must still collect once, derive the
+      Codex seeded `hooks.json` path from `HarnessTarget::Codex.harness().staged_root(...)`, then
+      render only harnesses whose `hook_renderer()` is `Some`. *Test:*
+      `hooks::runtime::dispatch::tests` + `sync_stages_hooks_for_all_harnesses`.
 
-- [ ] **Step 7 — launch (highest risk, do last).** Add `launch_command(&self, ctx: &LaunchCtx)
-      -> Result<Command>` returning a **fully-configured `Command`** (binary resolved, env set via
+- [ ] **Step 7 — launch (highest risk, do last).** Add `launch_command(&self, ctx: LaunchCtx)
+      -> anyhow::Result<Command>` returning a **fully-configured `Command`** (binary resolved, env set via
       `cmd.env(...)`, default args injected). Replace the 6 `run_*` fns with one
       `launcher::launch(id, ctx)` = `{ let mode = sync_for_launch(id, …)?; let cmd =
-      get(id).launch_command(&ctx)?; common::exec_inherit(cmd) }`. Collapse the 6 `cli/dispatch.rs`
+      get(id).launch_command(ctx)?; common::exec_inherit(cmd) }`. Collapse the 6 `cli/dispatch.rs`
       arms. Three things the impls must absorb (verified in `launcher/`):
       - **Yolo is not uniform.** Claude/Codex/Cursor/Grok/Agy inject a *flag* (`apply_yolo_*` move
         into each impl or are called by it). **OpenCode has no flag** — it patches the staged
@@ -298,25 +389,44 @@ all six impls AND rewires the old call site, in one commit.** This is what keeps
         headless (`--print`/`--output-format`), set fake-`HOME` + platform Cursor dirs +
         `CURSOR_CONFIG_DIR`/`CURSOR_DATA_DIR`, and bridge `CARGO_HOME`/`RUSTUP_HOME`/`DOCKER_CONFIG`.
         All of this fits inside `launch_command` since it returns a ready `Command`.
-      - **exec is uniform:** every harness ends at `common::exec_inherit(cmd)` (Unix `exec`, Windows
-        `status`+exit). `exec_with_env` becomes redundant once env lives on the returned `Command`.
+      - **exec terminates uniformly, but the call paths differ today.** Claude and Agy build a
+        `Command` and call `common::exec_inherit(cmd)` directly; Codex, Cursor, Grok, and OpenCode
+        call `common::exec_with_env(exe, &[(env…)], args)` which sets env then calls `exec_inherit`
+        (Unix `exec`, Windows `status`+exit). Once `launch_command` returns a fully-configured
+        `Command` with env already on it, `exec_with_env` is redundant — `launch` just calls
+        `exec_inherit` for all six. Delete `exec_with_env` (and its now-unused imports) in this step.
+      - **`sync_for_launch` runs first, inside `launch`, not inside `launch_command`.** Current
+        `run_*` take `selected_mode: Option<&str>` and call `sync_for_launch(project_root,
+        selected_mode, id, ui) -> EffectiveMode` (`sync/run.rs:161`) themselves. The collapsed
+        `launcher::launch(id, project_root, passthrough, selected_mode, yolo, ui)` calls
+        `sync_for_launch` once, then builds `LaunchCtx { mode: &effective_mode, … }` and calls
+        `get(id).launch_command(ctx)`. So `LaunchCtx.mode` is the *resolved* `EffectiveMode`, while
+        the raw `selected_mode: Option<&str>` is consumed by `launch` before the ctx is built.
       *Test:* `launch_sync_state_roundtrip_under_isolated_home` + `launcher::common::tests`.
       **Manually smoke-test** `agentpack codex` + `claude` + `agent` (cursor) against real binaries
       before committing — the suite cannot exec the real CLIs.
 
-- [ ] **Step 8 — cleanup & the third fan-out.** Fold the verify-time `harness_roots` array and the
-      `resolve_user_claude_bundle_collisions(6 paths)` call (`staging/mod.rs:113-129`) into the
-      `harness::all()` loop / `Harness::verify` (collision check is a Claude/Grok concern — keep it a
-      shared post-loop step that reads each `h.staged_root`). Delete `PackHarnessRoots`/`HookHarnessRoots`
-      if the loop now passes `&dyn Harness` (or keep as a thin derived view if the shared staging fns
-      still want structs). `stage_guidance_all_harnesses` (site 17) is already a single shared fn —
-      leave it, just note it in the trait docs as "shared, not per-impl." Remove now-dead re-exports.
-      Confirm `grep -rc "HarnessTarget::" src/` dropped sharply and **no `match` over all six harnesses
-      remains** outside the trait impls + `id()`/`as_str()`.
+- [ ] **Step 8 — cleanup & the remaining fan-outs.** Derive the verify-time `harness_roots` array in
+      `verify_staging` (`staging/mod.rs` ~`:117`) and the `resolve_user_claude_bundle_collisions(6
+      paths)` call (~`:95`) from `harness::all()`. **Don't forget collision.rs's own internal
+      lists:** `resolve_user_claude_bundle_collisions_with_home` (`collision.rs:116`) hard-codes a
+      6-path `harness_roots` (`:150`) **and** a separate 5-path `md_roots` (`:181`, Codex excluded
+      because it has no `commands/`/`agents/` trees). If these are reworked to take a slice derived
+      from the registry, preserve the Codex-excluded `md_roots` semantics (gate on a per-harness
+      capability like "has command/agent trees", e.g. `raw_plugin_subdirs().contains("commands")`,
+      rather than re-hardcoding the 5). Keep collision shadowing as a named shared pass because it
+      mutates staged trees and returns the removed skill set used by skill verification. Delete
+      `PackHarnessRoots`/`HookHarnessRoots` only if the replacement still preserves the single-walk
+      pack/hook staging behavior; otherwise keep them as thin derived views. `stage_guidance_all_harnesses`
+      (site 17) is already a single shared fn — leave it, just note it in the trait docs as
+      "shared, not per-impl." Collapse the three `keep_attribution()` copies (§2a.6). Remove now-dead
+      re-exports. Confirm `grep -rc "HarnessTarget::" src/` dropped sharply and **no `match` over all
+      six harnesses remains** outside the trait impls + `id()`/`as_str()`/tests.
 
 **Acceptance for the whole phase:** adding a hypothetical 7th harness touches exactly
 `src/harness/foo.rs` (new) + one line in `all()` + one `HarnessTarget` variant + its `cli` subcommand.
-Demonstrate by sketching it in the PR description.
+Demonstrate by sketching it in the PR description, and include the registry consistency test as the
+compiler-backed guard that every target has an impl.
 
 ---
 
@@ -326,7 +436,16 @@ Demonstrate by sketching it in the PR description.
   manual smoke test of at least `claude` + `codex` + `agent` (cursor) before pushing.
 - **`&'static dyn Harness` vs. needing per-call data.** The impls are zero-field unit structs; all
   per-invocation data flows through `StageCtx`/`LaunchCtx`. No lifetimes on the trait objects → a
-  `static` registry is fine.
+  `static` registry is fine. (Trait bound `Harness: Sync` is required for the shared `&'static`
+  refs and is in the §2 sketch.)
+- **Visibility-promotion is the real mechanical lift, not the trait itself.** Almost every helper
+  the impls call is `pub(super)` inside a private `staging`/`hooks` submodule today. Each slice must
+  promote *only* the orchestration helpers it needs to `pub(crate)` (or add narrow `pub(crate)`
+  facades), keeping low-level internals private. Budget most of each step's diff for this, and avoid
+  a big-bang "make everything pub(crate)" commit.
+- **Mixed error types on the trait are intentional.** Staging methods return `crate::error::Result`;
+  `launch_command` returns `anyhow::Result<Command>` (matching today's launcher code). Rust allows
+  per-method return types on one trait — keep this split rather than forcing a single error type.
 - **Over-abstraction.** Six harnesses, six concerns, confirmed open-ended (agy/grok were added
   recently — the README's "Pre-release, breaking changes" note signals more churn). Rule-of-three is
   satisfied many times over; this is not premature.
