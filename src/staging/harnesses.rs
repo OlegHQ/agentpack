@@ -162,7 +162,16 @@ impl<'a> StagingPipeline<'a> {
     }
 
     pub(super) fn verify(&self) -> Result<()> {
-        // Claude bundle
+        self.verify_claude()?;
+        self.verify_opencode()?;
+        self.verify_codex()?;
+        self.verify_cursor()?;
+        self.verify_grok()?;
+        self.verify_agy()?;
+        Ok(())
+    }
+
+    fn verify_claude(&self) -> Result<()> {
         let bundle = self.claude_bundle_dir()?;
         staging_require(bundle.join(".claude-plugin/plugin.json").is_file(), || {
             format!("bundle missing manifest {}", bundle.display())
@@ -177,20 +186,24 @@ impl<'a> StagingPipeline<'a> {
                 format!("claude --settings overlay missing {}", overlay.display())
             })?;
         }
+        Ok(())
+    }
 
-        // OpenCode
+    fn verify_opencode(&self) -> Result<()> {
         let root = self.opencode_root()?;
         staging_require(root.is_dir(), || {
             format!("opencode staging missing {}", root.display())
-        })?;
+        })
+    }
 
-        // Codex home
+    fn verify_codex(&self) -> Result<()> {
         let root = self.codex_home()?;
         staging_require(root.is_dir(), || {
             format!("codex home staging missing {}", root.display())
-        })?;
+        })
+    }
 
-        // Cursor
+    fn verify_cursor(&self) -> Result<()> {
         let bundle_root = self.cursor_bundle_root()?;
         let pack_plugin = self.cursor_pack_plugin_dir()?;
         let home = self.cursor_home()?;
@@ -233,8 +246,10 @@ impl<'a> StagingPipeline<'a> {
                 }
             }
         }
+        Ok(())
+    }
 
-        // Grok
+    fn verify_grok(&self) -> Result<()> {
         let grok_home = self.grok_home()?;
         let grok_bundle = self.grok_bundle_dir()?;
         staging_require(grok_home.join("config.toml").is_file(), || {
@@ -248,9 +263,10 @@ impl<'a> StagingPipeline<'a> {
                 "grok bundle missing {}",
                 grok_bundle.join("plugin.json").display()
             )
-        })?;
+        })
+    }
 
-        // Antigravity
+    fn verify_agy(&self) -> Result<()> {
         let agy_bundle = self.agy_bundle_dir()?;
         staging_require(agy_bundle.join("plugin.json").is_file(), || {
             format!(
