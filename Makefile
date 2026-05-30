@@ -1,5 +1,5 @@
 # Versioning, local install (no Homebrew on Linux), and Homebrew tap release.
-# Requires Python 3 for release targets. Targets that talk to GitHub need `gh auth login`.
+# Release targets use `cargo xtask` (Rust workspace task runner). Targets that talk to GitHub need `gh auth login`.
 
 CARGO ?= cargo
 INSTALL_DIR ?= $(HOME)/.local/bin
@@ -64,12 +64,12 @@ uninstall:
 	rm -f "$(INSTALL_DIR)/$(BINARY)"
 
 minor:
-	python3 scripts/bump_version.py minor
-	@echo "Cargo.toml version -> $$(python3 scripts/read_version.py)"
+	$(CARGO) xtask bump-version minor
+	@echo "Cargo.toml version -> $$($(CARGO) xtask read-version)"
 
 patch:
-	python3 scripts/bump_version.py patch
-	@echo "Cargo.toml version -> $$(python3 scripts/read_version.py)"
+	$(CARGO) xtask bump-version patch
+	@echo "Cargo.toml version -> $$($(CARGO) xtask read-version)"
 
 check-clean:
 	@git diff-index --quiet HEAD -- || (echo "error: dirty working tree (commit or stash first)"; exit 1)
@@ -78,16 +78,16 @@ check-gh:
 	@command -v gh >/dev/null 2>&1 || { echo "error: install gh (brew install gh) and run gh auth login"; exit 1; }
 
 ship-minor: check-clean
-	python3 scripts/bump_version.py minor
+	$(CARGO) xtask bump-version minor
 	@$(MAKE) _ship-commit
 
 ship-patch: check-clean
-	python3 scripts/bump_version.py patch
+	$(CARGO) xtask bump-version patch
 	@$(MAKE) _ship-commit
 
 _ship-commit:
 	@set -e; \
-	v=$$(python3 scripts/read_version.py); \
+	v=$$($(CARGO) xtask read-version); \
 	git add Cargo.toml; \
 	git commit -m "chore: release v$$v"; \
 	git tag -a "v$$v" -m "v$$v"; \
@@ -97,7 +97,7 @@ _ship-commit:
 
 tag-push: check-clean check-gh
 	@set -e; \
-	v=$$(python3 scripts/read_version.py); \
+	v=$$($(CARGO) xtask read-version); \
 	git push origin "$(RELEASE_BRANCH)"; \
 	if git rev-parse -q --verify "refs/tags/v$$v" >/dev/null 2>&1; then \
 		echo "tag v$$v already exists"; \
@@ -108,7 +108,7 @@ tag-push: check-clean check-gh
 
 gh-release: check-gh
 	@set -e; \
-	v=$$(python3 scripts/read_version.py); \
+	v=$$($(CARGO) xtask read-version); \
 	if gh release view "v$$v" --repo "$(UPSTREAM_REPO)" >/dev/null 2>&1; then \
 		echo "GitHub release v$$v already exists"; \
 	else \
@@ -117,13 +117,13 @@ gh-release: check-gh
 
 brew-sync:
 	@set -e; \
-	v=$$(python3 scripts/read_version.py); \
-	python3 scripts/sync_homebrew_formula.py "$(HOMEBREW_TAP_DIR)" "$(UPSTREAM_REPO)" "$$v"
+	v=$$($(CARGO) xtask read-version); \
+	$(CARGO) xtask sync-homebrew "$(HOMEBREW_TAP_DIR)" "$(UPSTREAM_REPO)" "$$v"
 
 brew-ship: check-gh
 	@set -e; \
-	v=$$(python3 scripts/read_version.py); \
-	python3 scripts/sync_homebrew_formula.py "$(HOMEBREW_TAP_DIR)" "$(UPSTREAM_REPO)" "$$v"; \
+	v=$$($(CARGO) xtask read-version); \
+	$(CARGO) xtask sync-homebrew "$(HOMEBREW_TAP_DIR)" "$(UPSTREAM_REPO)" "$$v"; \
 	cd "$(HOMEBREW_TAP_DIR)" && \
 		git add Formula/agentpack.rb && \
 		if git diff --cached --quiet; then echo "no formula change"; exit 0; fi; \

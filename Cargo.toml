@@ -63,12 +63,3 @@ keyring = { version = "3", features = ["windows-native"] }
 [dev-dependencies]
 tempfile = "3"
 serial_test = "3"
-divan = "0.1"
-
-[[bench]]
-name = "copy_tree"
-harness = false
-
-[[bench]]
-name = "perf_optimizations"
-harness = false

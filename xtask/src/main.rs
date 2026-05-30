@@ -1,4 +1,4 @@
-//! Workspace dev tasks — replaces `scripts/*.py`.
+//! Workspace dev tasks (the single task runner — there is no `scripts/` dir).
 //!
 //! Usage:
 //!   cargo xtask bump-version minor|patch
