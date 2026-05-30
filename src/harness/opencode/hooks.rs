@@ -6,8 +6,8 @@ use serde_json::{json, Value};
 use crate::error::Result;
 use crate::fs_util::read_json_value_opt;
 use crate::harness::HarnessTarget;
-use crate::hooks::capabilities::SupportLevel;
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, HookBundle};
+use crate::hooks::render::SupportLevel;
 use crate::hooks::render::{
     build_exec_spec_file, check_support, push_diag, strict_mapping_error, HookRenderer,
     RenderContext, RenderedHookFile, RenderedHookFileContents, RenderedHookOutput,

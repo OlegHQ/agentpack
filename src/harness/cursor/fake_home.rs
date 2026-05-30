@@ -5,10 +5,10 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::error::{AgentpackError, Result};
+#[cfg(windows)]
+use crate::fs_util::copy_merge_tree;
 use crate::fs_util::remove_path_any;
 use crate::paths::{staging_cursor_home_dir_for_mode, staging_cursor_pack_plugin_dir_for_mode};
-#[cfg(windows)]
-use crate::staging::copy_merge_tree;
 use crate::staging::mcp::load_mcp_json;
 
 use super::{

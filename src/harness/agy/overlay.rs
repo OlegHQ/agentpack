@@ -6,10 +6,10 @@ use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
 use crate::error::{AgentpackError, Result};
+#[cfg(not(unix))]
+use crate::fs_util::copy_merge_tree;
 use crate::fs_util::remove_path_any;
 use crate::paths::{agy_overlay_manifest_path, staging_agy_bundle_dir_for_mode};
-#[cfg(not(unix))]
-use crate::staging::copy_merge_tree;
 
 /// Relative to the project root. Antigravity discovers workspace plugins here.
 const AGY_WORKSPACE_PLUGIN_OVERLAY: &str = ".agents/plugins/agentpack-bundle";

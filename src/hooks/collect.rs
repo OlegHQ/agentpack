@@ -8,8 +8,27 @@ use crate::paths::project_dot_agents_dir;
 use crate::staging::skill_is_shadowed;
 
 use super::ir::{HookBundle, HookLayer, HookOrigin};
-use super::merge::sort_bundle;
 use super::parse::{parse_codex_hooks, parse_nested_hooks};
+
+/// Deterministic ordering of collected hooks: by layer rank, then module, source, and indices, so
+/// staging output is stable regardless of filesystem walk order.
+fn sort_bundle(bundle: &mut HookBundle) {
+    bundle.hooks.sort_by(|a, b| {
+        a.origin
+            .layer
+            .sort_rank()
+            .cmp(&b.origin.layer.sort_rank())
+            .then_with(|| a.origin.module.cmp(&b.origin.module))
+            .then_with(|| a.origin.source_rel.cmp(&b.origin.source_rel))
+            .then_with(|| a.origin.event_index.cmp(&b.origin.event_index))
+            .then_with(|| {
+                a.origin
+                    .matcher_group_index
+                    .cmp(&b.origin.matcher_group_index)
+            })
+            .then_with(|| a.origin.hook_index.cmp(&b.origin.hook_index))
+    });
+}
 
 fn package_key(cache_key: Option<&str>, module: &str, layer: HookLayer) -> String {
     if let Some(cache_key) = cache_key.filter(|value| !value.is_empty()) {

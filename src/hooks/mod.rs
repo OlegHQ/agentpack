@@ -1,7 +1,5 @@
-pub mod capabilities;
 pub mod collect;
 pub mod ir;
-pub mod merge;
 pub mod parse;
 pub mod paths;
 pub mod render;

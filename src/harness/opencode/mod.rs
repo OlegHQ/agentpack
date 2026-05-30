@@ -10,14 +10,15 @@ use serde_json::Value;
 use super::launch::resolve_harness_binary;
 use super::{require, Harness, HarnessTarget, LaunchCtx, StageCtx};
 use crate::error::{AgentpackError, Result};
+use crate::fs_util::copy_selected_entries;
 use crate::fs_util::{read_json_value_opt, write_json_value, write_text_file};
-use crate::hooks::capabilities::SupportLevel;
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
 use crate::hooks::render::HookRenderer;
+use crate::hooks::render::SupportLevel;
 use crate::paths::staging_opencode_dir_for_mode;
 use crate::staging::guidance::write_agents_md;
 use crate::staging::mcp::{McpServerEntry, StagedMcpEntries};
-use crate::staging::{copy_selected_entries, keep_attribution, NO_ATTRIBUTION_BODY};
+use crate::staging::{keep_attribution, NO_ATTRIBUTION_BODY};
 
 /// OpenCode config-root entries preserved before overlaying pack content.
 const OPENCODE_USER_ROOT_ENTRIES: &[&str] = &[

@@ -18,16 +18,16 @@ use super::{require, Harness, HarnessTarget, LaunchCtx, StageCtx};
 use crate::artifacts::yaml::insert_string;
 use crate::artifacts::ArtifactKind;
 use crate::error::{AgentpackError, Result};
+use crate::fs_util::copy_selected_entries;
 use crate::fs_util::{read_json_value_opt, remove_path_any, write_json_value, write_text_file};
-use crate::hooks::capabilities::SupportLevel;
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
 use crate::hooks::render::HookRenderer;
+use crate::hooks::render::SupportLevel;
 use crate::hooks::runtime::output::cursor_output;
 use crate::paths::{
     cursor_workspace_dir, staging_cursor_bundle_dir_for_mode, staging_cursor_home_dir_for_mode,
     staging_cursor_pack_plugin_dir_for_mode,
 };
-use crate::staging::copy_selected_entries;
 use crate::staging::keep_attribution;
 use crate::staging::mcp::{bare_entries, McpConfig, StagedMcpEntries};
 

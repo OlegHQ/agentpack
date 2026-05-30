@@ -13,14 +13,15 @@ use super::mcp_toml::merge_into_toml_mcp_config;
 use super::{require, Harness, HarnessTarget, LaunchCtx, StageCtx};
 use crate::artifacts::ArtifactKind;
 use crate::error::{AgentpackError, Result};
-use crate::hooks::capabilities::SupportLevel;
+use crate::fs_util::copy_selected_entries;
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
 use crate::hooks::render::HookRenderer;
+use crate::hooks::render::SupportLevel;
 use crate::hooks::runtime::output::{codex_output, guidance_additional_context_continue};
 use crate::paths::staging_codex_home_dir_for_mode;
 use crate::staging::guidance::write_agents_md;
+use crate::staging::keep_attribution;
 use crate::staging::mcp::StagedMcpEntries;
-use crate::staging::{copy_selected_entries, keep_attribution};
 
 /// Codex home entries preserved before overlaying pack content. `auth.json` is linked separately
 /// so every staged `CODEX_HOME` shares the same refresh state.

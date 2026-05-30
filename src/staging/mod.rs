@@ -1,13 +1,11 @@
 //! Staging: merge pack.lock trees into per-harness directories under `$STAGING`.
 
-mod attribution;
 mod collision;
 mod dot_agents;
 pub(crate) mod guidance;
 pub(crate) mod mcp;
 mod pack_overlay;
 mod pipeline;
-mod tree;
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -18,17 +16,39 @@ use crate::lockfile::{LockPackage, PackLock};
 use crate::manifest::AgentpackManifest;
 use crate::mode::filter::EffectiveMode;
 use crate::paths::staging_plugins_dir_for_mode;
-pub(crate) use attribution::{keep_attribution, NO_ATTRIBUTION_BODY};
 pub(crate) use pack_overlay::skill_folder_name;
 pub use pack_overlay::skill_is_shadowed;
-#[cfg(not(unix))]
-pub(crate) use tree::copy_merge_tree;
-pub(crate) use tree::copy_selected_entries;
 
 use pack_overlay::disabled_in_config;
 use pipeline::StagingPipeline;
 
 use crate::harness::HarnessTarget;
+
+const KEEP_ATTRIBUTION_ENV: &str = "AGENTPACK_KEEP_ATTRIBUTION";
+
+/// Prose attribution-off guidance shared by the prompt-level harnesses (OpenCode / Grok / Agy)
+/// that have no first-class attribution setting. Each harness force-disables attribution in its own
+/// module; this is the one thing they share. The user's real config dirs are never modified.
+pub(crate) const NO_ATTRIBUTION_BODY: &str = "# Attribution policy
+
+Do not add any AI-attribution lines to git commits, pull requests, or other artifacts you author.
+Specifically, do not include:
+
+- `Co-Authored-By: <model> <noreply@...>` trailers.
+- `Generated with [agent name]` footers, banners, or similar credit lines.
+- Tool/agent name signatures in commit messages or PR descriptions.
+
+Write commit messages and PR descriptions as if a human author wrote them.
+";
+
+/// Single source of truth for the `AGENTPACK_KEEP_ATTRIBUTION` opt-out, shared across every staged
+/// harness and the Claude overlay. Set to `1`/`true`/`yes` to preserve the user's existing values.
+pub(crate) fn keep_attribution() -> bool {
+    matches!(
+        std::env::var(KEEP_ATTRIBUTION_ENV).ok().as_deref(),
+        Some("1") | Some("true") | Some("yes")
+    )
+}
 
 /// Build one plugin tree: optional copies of user **`settings.json`** / **`.claude.json`**, then
 /// plugin packages, then standalone skill packages. Later layers overwrite same relative paths
@@ -148,7 +168,6 @@ pub fn verify_staging(
 mod tests {
     use super::*;
     use crate::lockfile::{LockPackage, PackageKind};
-    use tree::copy_merge_tree;
 
     fn commit() -> String {
         "c".repeat(40)
@@ -195,27 +214,6 @@ mod tests {
             ..skill.clone()
         };
         assert!(!skill_is_shadowed(&skill2, &plugins));
-    }
-
-    #[test]
-    #[cfg(unix)]
-    fn copy_merge_tree_skips_dangling_symlink() {
-        use std::fs;
-        use std::os::unix::fs::symlink;
-
-        let t = tempfile::tempdir().unwrap();
-        let src = t.path().join("agents");
-        fs::create_dir_all(&src).unwrap();
-        symlink(
-            "/this-path-should-not-exist-for-agentpack-test",
-            src.join("code-simplifier.md"),
-        )
-        .unwrap();
-        fs::write(src.join("ok.md"), "# ok").unwrap();
-        let dst = t.path().join("out");
-        copy_merge_tree(&src, &dst).unwrap();
-        assert!(dst.join("ok.md").is_file());
-        assert!(!dst.join("code-simplifier.md").exists());
     }
 
     #[test]

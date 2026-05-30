@@ -15,9 +15,9 @@ use super::{require, Harness, HarnessTarget, LaunchCtx, StageCtx};
 use crate::artifacts::yaml::insert_string;
 use crate::error::{AgentpackError, Result};
 use crate::fs_util::write_text_file;
-use crate::hooks::capabilities::SupportLevel;
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
 use crate::hooks::render::HookRenderer;
+use crate::hooks::render::SupportLevel;
 use crate::hooks::runtime::output::{claude_fallback_output, guidance_hook_specific};
 use crate::paths::{
     agentpack_claude_settings_path, staging_plugins_dir_for_mode, STAGED_AGENTPACK_BUNDLE_NAME,

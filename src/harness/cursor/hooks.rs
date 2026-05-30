@@ -10,9 +10,9 @@ use serde_json::{json, Map, Value};
 
 use crate::error::Result;
 use crate::harness::HarnessTarget;
-use crate::hooks::capabilities::SupportLevel;
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, HookBundle, NormalizedHook};
 use crate::hooks::paths::{hook_dispatch_command, specs_dispatch_root};
+use crate::hooks::render::SupportLevel;
 use crate::hooks::render::{
     build_exec_spec_file, check_support, push_diag, HookRenderer, RenderContext, RenderedHookFile,
     RenderedHookFileContents, RenderedHookOutput,
