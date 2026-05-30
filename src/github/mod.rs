@@ -1,4 +1,5 @@
 mod download;
+mod extract;
 mod git_protocol;
 mod list_tags;
 mod metadata_cache;
@@ -7,10 +8,10 @@ mod resolve_ref;
 mod tarball_sources;
 
 pub use download::{
-    archive_no_files_for_repo_path, choose_package_prefix_for_blob_path,
-    collect_repo_relative_paths, download_and_extract, download_tarball_bytes,
-    extract_tarball_with_prefix, parent_dir_in_repo, path_in_repo_looks_like_file,
+    archive_no_files_for_repo_path, choose_package_prefix_for_blob_path, download_and_extract,
+    download_tarball_bytes, parent_dir_in_repo, path_in_repo_looks_like_file,
 };
+pub use extract::{collect_repo_relative_paths, extract_tarball_with_prefix};
 pub use list_tags::list_tags;
 pub use parse_url::{
     canonical_github_tree_url, github_source_from_segments, normalized_identity, parse_github_url,
