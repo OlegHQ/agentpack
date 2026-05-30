@@ -1,6 +1,5 @@
 //! Staging: merge pack.lock trees into per-harness directories under `$STAGING`.
 
-mod agy;
 mod attribution;
 mod claude_home;
 mod collision;
@@ -23,12 +22,7 @@ use crate::lockfile::{LockPackage, PackLock};
 use crate::manifest::AgentpackManifest;
 use crate::mode::filter::EffectiveMode;
 use crate::paths::staging_plugins_dir_for_mode;
-pub(crate) use agy::{
-    agy_workspace_overlay_paths, finalize_agy_staging, prepare_agy_staging_without_pack_overlay,
-};
-pub(crate) use attribution::{
-    force_agy_attribution_off, force_cursor_attribution_off, keep_attribution, NO_ATTRIBUTION_BODY,
-};
+pub(crate) use attribution::{force_cursor_attribution_off, keep_attribution, NO_ATTRIBUTION_BODY};
 pub(crate) use claude_home::{
     materialize_claude_settings_overlay, set_claude_settings_mcp_allowlist,
 };
@@ -39,6 +33,8 @@ pub(crate) use cursor::{
 };
 pub(crate) use pack_overlay::skill_folder_name;
 pub use pack_overlay::skill_is_shadowed;
+#[cfg(not(unix))]
+pub(crate) use tree::copy_merge_tree;
 pub(crate) use tree::copy_selected_entries;
 
 use harnesses::StagingPipeline;

@@ -35,7 +35,6 @@ use crate::error::Result;
 use crate::fs_util::{read_json_value_opt, remove_path_any, write_json_value};
 
 const KEEP_ENV: &str = "AGENTPACK_KEEP_ATTRIBUTION";
-const AGY_ATTRIBUTION_RULE_FILE: &str = "agentpack-no-attribution.md";
 /// Prose attribution-off guidance shared by the prompt-level harnesses (OpenCode / Grok / Agy)
 /// that have no first-class attribution setting.
 pub(crate) const NO_ATTRIBUTION_BODY: &str = "# Attribution policy
@@ -111,22 +110,6 @@ pub(super) fn force_cursor_fake_home_attribution_off(
     let patched = patch_cursor_cli_config(base);
     write_json_value(&dest, &patched)?;
     tracing::debug!(path = %dest.display(), "forced Cursor fake-home attribution off");
-    Ok(())
-}
-
-/// Antigravity has no confirmed first-class attribution setting. Stage a plugin-local rule as
-/// prompt-level guidance only.
-pub(crate) fn force_agy_attribution_off(bundle: &Path) -> Result<()> {
-    if keep_attribution() {
-        return Ok(());
-    }
-    let path = bundle.join("rules").join(AGY_ATTRIBUTION_RULE_FILE);
-    let body = format!(
-        "---\ndescription: Disable AI attribution footers\nalwaysApply: true\n---\n\n{}\n",
-        NO_ATTRIBUTION_BODY.trim()
-    );
-    crate::fs_util::write_text_file(&path, &body)?;
-    tracing::debug!(path = %path.display(), "staged Antigravity attribution-off rule");
     Ok(())
 }
 

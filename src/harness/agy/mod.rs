@@ -1,3 +1,6 @@
+mod overlay;
+
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -7,16 +10,16 @@ use serde_json::Value;
 use super::{require, Harness, HarnessTarget, LaunchCtx, StageCtx};
 use crate::artifacts::ArtifactKind;
 use crate::error::{AgentpackError, Result};
+use crate::fs_util::{write_json_value, write_text_file};
 use crate::hooks::capabilities::SupportLevel;
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, NormalizedHookResult};
 use crate::hooks::runtime::translate::codex_output;
 use crate::launcher::common::{apply_yolo_agy, args_have_flag_with_value, resolve_harness_binary};
 use crate::paths::{staging_agy_bundle_dir_for_mode, staging_agy_dir_for_mode};
 use crate::staging::mcp::{write_agy_mcp_config_json, StagedMcpEntries};
-use crate::staging::{
-    agy_workspace_overlay_paths, finalize_agy_staging, force_agy_attribution_off,
-    prepare_agy_staging_without_pack_overlay,
-};
+use crate::staging::{keep_attribution, NO_ATTRIBUTION_BODY};
+
+const AGY_ATTRIBUTION_RULE_FILE: &str = "agentpack-no-attribution.md";
 
 /// Antigravity (`agy`): pack content reaches it via a workspace plugin overlay; `HOME` untouched.
 pub(super) struct Agy;
@@ -36,9 +39,11 @@ impl Harness for Agy {
     }
 
     fn prepare(&self, ctx: &StageCtx) -> Result<()> {
-        let mode = ctx.mode.name();
-        prepare_agy_staging_without_pack_overlay(ctx.project_root, mode)?;
-        force_agy_attribution_off(&self.staged_root(ctx.project_root, mode)?)
+        overlay::cleanup_agy_overlay(ctx.project_root)?;
+        let bundle = self.staged_root(ctx.project_root, ctx.mode.name())?;
+        fs::create_dir_all(&bundle).map_err(|e| AgentpackError::io(&bundle, e))?;
+        write_agy_plugin_manifest(&bundle)?;
+        force_agy_attribution_off(&bundle)
     }
 
     fn write_mcp(&self, merged: &StagedMcpEntries, ctx: &StageCtx) -> Result<()> {
@@ -90,7 +95,8 @@ impl Harness for Agy {
             )
         })?;
         if ctx.launch_target == Some(HarnessTarget::Agy) {
-            for tracked in agy_workspace_overlay_paths(ctx.project_root)? {
+            for rel in overlay::read_agy_overlay_manifest(ctx.project_root)? {
+                let tracked = ctx.project_root.join(rel);
                 if !tracked.exists() {
                     return Err(AgentpackError::Staging(format!(
                         "agy workspace overlay missing at {}",
@@ -130,6 +136,31 @@ impl Harness for Agy {
     }
 
     fn finalize_workspace_overlay(&self, ctx: &StageCtx) -> Result<()> {
-        finalize_agy_staging(ctx.project_root, ctx.mode.name())
+        let entries =
+            overlay::materialize_workspace_agy_plugin_symlink(ctx.project_root, ctx.mode.name())?;
+        overlay::write_overlay_manifest(ctx.project_root, &entries)
     }
+}
+
+fn write_agy_plugin_manifest(bundle: &Path) -> Result<()> {
+    write_json_value(
+        &bundle.join("plugin.json"),
+        &serde_json::json!({ "name": "agentpack-bundle" }),
+    )
+}
+
+/// Antigravity has no confirmed first-class attribution setting. Stage a plugin-local always-apply
+/// rule as prompt-level guidance only.
+fn force_agy_attribution_off(bundle: &Path) -> Result<()> {
+    if keep_attribution() {
+        return Ok(());
+    }
+    let path = bundle.join("rules").join(AGY_ATTRIBUTION_RULE_FILE);
+    let body = format!(
+        "---\ndescription: Disable AI attribution footers\nalwaysApply: true\n---\n\n{}\n",
+        NO_ATTRIBUTION_BODY.trim()
+    );
+    write_text_file(&path, &body)?;
+    tracing::debug!(path = %path.display(), "staged Antigravity attribution-off rule");
+    Ok(())
 }

@@ -1,4 +1,5 @@
-//! Antigravity workspace overlay: manage `.agents/plugins/agentpack-bundle` symlink.
+//! Antigravity workspace overlay: manage the `.agents/plugins/agentpack-bundle` symlink and its
+//! bookkeeping manifest under `$AGENTPACK_HOME/projects/<hash>/`.
 
 use std::fs;
 use std::io::ErrorKind;
@@ -7,12 +8,13 @@ use std::path::{Path, PathBuf};
 use crate::error::{AgentpackError, Result};
 use crate::fs_util::remove_path_any;
 use crate::paths::{agy_overlay_manifest_path, staging_agy_bundle_dir_for_mode};
-
-use super::super::constants::AGY_WORKSPACE_PLUGIN_OVERLAY;
 #[cfg(not(unix))]
-use super::super::tree::copy_merge_tree;
+use crate::staging::copy_merge_tree;
 
-pub(in crate::staging) fn read_agy_overlay_manifest(project_root: &Path) -> Result<Vec<PathBuf>> {
+/// Relative to the project root. Antigravity discovers workspace plugins here.
+const AGY_WORKSPACE_PLUGIN_OVERLAY: &str = ".agents/plugins/agentpack-bundle";
+
+pub(super) fn read_agy_overlay_manifest(project_root: &Path) -> Result<Vec<PathBuf>> {
     let manifest = agy_overlay_manifest_path(project_root)?;
     match fs::read_to_string(&manifest) {
         Ok(contents) => Ok(contents
@@ -26,7 +28,7 @@ pub(in crate::staging) fn read_agy_overlay_manifest(project_root: &Path) -> Resu
     }
 }
 
-fn write_agy_overlay_manifest(project_root: &Path, entries: &[PathBuf]) -> Result<()> {
+pub(super) fn write_overlay_manifest(project_root: &Path, entries: &[PathBuf]) -> Result<()> {
     let manifest = agy_overlay_manifest_path(project_root)?;
     if entries.is_empty() {
         remove_path_any(&manifest)?;
@@ -63,11 +65,11 @@ fn remove_agy_overlay_path_safe(path: &Path) -> Result<()> {
     Ok(())
 }
 
-pub(in crate::staging) fn cleanup_agy_overlay(project_root: &Path) -> Result<()> {
+pub(super) fn cleanup_agy_overlay(project_root: &Path) -> Result<()> {
     for rel in read_agy_overlay_manifest(project_root)? {
         remove_agy_overlay_path_safe(&project_root.join(rel))?;
     }
-    write_agy_overlay_manifest(project_root, &[])?;
+    write_overlay_manifest(project_root, &[])?;
     Ok(())
 }
 
@@ -94,7 +96,7 @@ fn symlink_or_copy_dir(src: &Path, dst: &Path) -> Result<()> {
     }
 }
 
-pub(in crate::staging) fn materialize_workspace_agy_plugin_symlink(
+pub(super) fn materialize_workspace_agy_plugin_symlink(
     project_root: &Path,
     mode_name: &str,
 ) -> Result<Vec<PathBuf>> {
@@ -129,11 +131,4 @@ pub(in crate::staging) fn materialize_workspace_agy_plugin_symlink(
 
     symlink_or_copy_dir(&bundle, &overlay_path)?;
     Ok(vec![overlay_rel])
-}
-
-pub(in crate::staging) fn write_overlay_manifest(
-    project_root: &Path,
-    entries: &[PathBuf],
-) -> Result<()> {
-    write_agy_overlay_manifest(project_root, entries)
 }

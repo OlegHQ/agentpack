@@ -24,6 +24,3 @@ pub(super) const CURSOR_FAKE_HOME_PACK_SUBDIRS: &[&str] = &[
 
 /// Relative to **`./.cursor/`** — symlink **`./.cursor/agents`** → staged pack agents for Cursor **`agent`** (`computeAgentsDirs`).
 pub(super) const CURSOR_WORKSPACE_AGENTS_OVERLAY: &str = "agents";
-
-/// Relative to the project root. Antigravity discovers workspace plugins here.
-pub(super) const AGY_WORKSPACE_PLUGIN_OVERLAY: &str = ".agents/plugins/agentpack-bundle";
