@@ -9,7 +9,7 @@ use crate::staging::skill_is_shadowed;
 
 use super::ir::{HookBundle, HookLayer, HookOrigin};
 use super::merge::sort_bundle;
-use super::parse::{parse_claude_hooks, parse_codex_hooks};
+use super::parse::{parse_codex_hooks, parse_nested_hooks};
 
 fn package_key(cache_key: Option<&str>, module: &str, layer: HookLayer) -> String {
     if let Some(cache_key) = cache_key.filter(|value| !value.is_empty()) {
@@ -52,7 +52,7 @@ fn parse_source_file(
     match layer {
         HookLayer::SeededNative => parse_codex_hooks(&source_file, &value, &origin),
         HookLayer::PackPlugin | HookLayer::BareSkill | HookLayer::DotAgents => {
-            parse_claude_hooks(&source_file, &value, &origin)
+            parse_nested_hooks(&source_file, &value, &origin)
         }
     }
 }
