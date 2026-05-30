@@ -11,7 +11,7 @@ use walkdir::WalkDir;
 use crate::error::{AgentpackError, Result};
 use crate::mode::filter::EffectiveMode;
 use crate::paths;
-use crate::staging::LaunchTarget;
+use crate::staging::HarnessTarget;
 
 #[derive(Serialize, Deserialize)]
 struct LaunchSyncState {
@@ -51,7 +51,7 @@ fn hash_dot_agents_tree(dir: &Path) -> Result<Vec<u8>> {
 pub fn compute_launch_sync_digest(
     project_root: &Path,
     mode: &EffectiveMode,
-    target: Option<LaunchTarget>,
+    target: Option<HarnessTarget>,
 ) -> Result<String> {
     let mut hasher = Sha256::new();
 
@@ -196,9 +196,9 @@ mod tests {
         write_file(root, "agentpack.toml", b"name=\"x\"\nversion=\"1\"\n");
         write_file(root, "pack.lock", b"lockfile-version=2\n");
         let mode = EffectiveMode::implicit_default();
-        let claude = compute_launch_sync_digest(root, &mode, Some(LaunchTarget::Claude)).unwrap();
-        let agy = compute_launch_sync_digest(root, &mode, Some(LaunchTarget::Agy)).unwrap();
-        let cursor = compute_launch_sync_digest(root, &mode, Some(LaunchTarget::Cursor)).unwrap();
+        let claude = compute_launch_sync_digest(root, &mode, Some(HarnessTarget::Claude)).unwrap();
+        let agy = compute_launch_sync_digest(root, &mode, Some(HarnessTarget::Agy)).unwrap();
+        let cursor = compute_launch_sync_digest(root, &mode, Some(HarnessTarget::Cursor)).unwrap();
         let none = compute_launch_sync_digest(root, &mode, None).unwrap();
         assert_ne!(claude, agy);
         assert_ne!(claude, cursor);

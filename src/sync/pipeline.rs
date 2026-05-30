@@ -9,7 +9,7 @@ use crate::lockfile::{LockPackage, PackLock, PackageKind};
 use crate::manifest::AgentpackManifest;
 use crate::paths;
 use crate::resolve::{resolve_lock_from_manifest, ResolveLockOpts};
-use crate::staging::{self, skill_is_shadowed, LaunchTarget};
+use crate::staging::{self, skill_is_shadowed, HarnessTarget};
 use crate::ui::Ui;
 
 use super::add_fetch::http_client;
@@ -20,7 +20,7 @@ pub fn run_sync(
     verify_only: bool,
     update_lock: bool,
     selected_mode: Option<&str>,
-    target: Option<LaunchTarget>,
+    target: Option<HarnessTarget>,
     ui: &Ui,
 ) -> Result<()> {
     paths::ensure_user_agentpack_layout()?;

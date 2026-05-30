@@ -4,7 +4,7 @@ use crate::artifacts::HarnessTarget;
 use crate::error::Result;
 
 use super::{
-    build_exec_spec_file, handler_to_json_object, output_target_for, push_diag, HookRenderer,
+    build_exec_spec_file, handler_to_json_object, push_diag, HookRenderer,
     RenderContext, RenderedHookFile, RenderedHookFileContents, RenderedHookOutput,
 };
 use crate::hooks::ir::{ClaudeHandler, HookBundle, NormalizedHook};
@@ -72,7 +72,7 @@ fn render_handler(
                 "command".into(),
                 Value::String(hook_exec_command(
                     "command",
-                    output_target_for(HarnessTarget::Claude),
+                    HarnessTarget::Claude,
                     &spec_path,
                 )),
             );

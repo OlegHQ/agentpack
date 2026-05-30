@@ -1,15 +1,11 @@
 use anyhow::Context;
 
-use crate::launcher::common::{apply_yolo_agy, exec_inherit, resolve_harness_binary};
-use crate::staging::LaunchTarget;
+use crate::launcher::common::{
+    apply_yolo_agy, args_have_flag_with_value, exec_inherit, resolve_harness_binary,
+};
+use crate::staging::HarnessTarget;
 use crate::sync::sync_for_launch;
 use crate::ui::Ui;
-
-fn args_have_add_dir(args: &[String]) -> bool {
-    args.iter().enumerate().any(|(idx, arg)| {
-        (arg == "--add-dir" && args.get(idx + 1).is_some()) || arg.starts_with("--add-dir=")
-    })
-}
 
 pub fn run_agy(
     project_root: &std::path::Path,
@@ -18,9 +14,9 @@ pub fn run_agy(
     yolo: bool,
     ui: &Ui,
 ) -> anyhow::Result<()> {
-    let _mode = sync_for_launch(project_root, selected_mode, LaunchTarget::Agy, ui)?;
+    let _mode = sync_for_launch(project_root, selected_mode, HarnessTarget::Agy, ui)?;
 
-    if !args_have_add_dir(&passthrough) {
+    if !args_have_flag_with_value(&passthrough, "--add-dir") {
         passthrough.splice(
             0..0,
             ["--add-dir".to_string(), project_root.display().to_string()],

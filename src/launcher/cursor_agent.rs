@@ -5,7 +5,7 @@ use anyhow::Context;
 
 use crate::launcher::common::{apply_yolo_cursor_agent, exec_with_env, resolve_harness_binary};
 use crate::paths;
-use crate::staging::LaunchTarget;
+use crate::staging::HarnessTarget;
 use crate::sync::sync_for_launch;
 use crate::ui::Ui;
 
@@ -65,7 +65,7 @@ pub fn run_agent(
     yolo: bool,
     ui: &Ui,
 ) -> anyhow::Result<()> {
-    let mode = sync_for_launch(project_root, selected_mode, LaunchTarget::Cursor, ui)?;
+    let mode = sync_for_launch(project_root, selected_mode, HarnessTarget::Cursor, ui)?;
 
     let fake_home_path = paths::staging_cursor_home_dir_for_mode(project_root, mode.name())?;
     let fake_home: OsString = fake_home_path.into_os_string();

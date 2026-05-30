@@ -4,7 +4,7 @@ use anyhow::Context;
 
 use crate::launcher::common::{exec_inherit, resolve_harness_binary};
 use crate::paths::agentpack_claude_settings_path;
-use crate::staging::{self, LaunchTarget};
+use crate::staging::{self, HarnessTarget};
 use crate::sync::sync_for_launch;
 use crate::ui::Ui;
 
@@ -15,7 +15,7 @@ pub fn run_claude(
     yolo: bool,
     ui: &Ui,
 ) -> anyhow::Result<()> {
-    let mode = sync_for_launch(project_root, selected_mode, LaunchTarget::Claude, ui)?;
+    let mode = sync_for_launch(project_root, selected_mode, HarnessTarget::Claude, ui)?;
 
     if yolo {
         crate::launcher::common::apply_yolo_claude(&mut passthrough);

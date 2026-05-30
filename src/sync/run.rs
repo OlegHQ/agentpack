@@ -10,7 +10,7 @@ use crate::mode::catalog::CapabilityCatalog;
 use crate::mode::filter::EffectiveMode;
 use crate::paths;
 use crate::resolve::{resolve_lock_from_manifest, ResolveLockOpts};
-use crate::staging::{self, LaunchTarget};
+use crate::staging::{self, HarnessTarget};
 use crate::ui::Ui;
 
 use super::launch_fingerprint::{
@@ -161,7 +161,7 @@ pub fn run_lock(project_root: &Path, refresh_floating: bool, ui: &Ui) -> Result<
 pub fn sync_for_launch(
     project_root: &Path,
     selected_mode: Option<&str>,
-    target: LaunchTarget,
+    target: HarnessTarget,
     ui: &Ui,
 ) -> Result<EffectiveMode> {
     paths::ensure_user_agentpack_layout()?;

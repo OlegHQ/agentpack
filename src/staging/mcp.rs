@@ -308,39 +308,7 @@ fn merge_into_opencode_config(config_path: &Path, merged: &MergedEntries) -> Res
     crate::fs_util::write_text_file(config_path, &out)
 }
 
-fn codex_entry_table(entry: &McpServerEntry) -> toml::value::Table {
-    let mut t = toml::value::Table::new();
-    if entry.is_remote() {
-        if let Some(url) = &entry.url {
-            t.insert("url".into(), toml::Value::String(url.clone()));
-        }
-    } else {
-        if let Some(c) = &entry.command {
-            t.insert("command".into(), toml::Value::String(c.clone()));
-        }
-        if !entry.args.is_empty() {
-            let arr: Vec<toml::Value> = entry
-                .args
-                .iter()
-                .map(|a| toml::Value::String(a.clone()))
-                .collect();
-            t.insert("args".into(), toml::Value::Array(arr));
-        }
-        if !entry.env.is_empty() {
-            let mut env_tbl = toml::value::Table::new();
-            for (k, v) in &entry.env {
-                env_tbl.insert(k.clone(), toml::Value::String(v.clone()));
-            }
-            t.insert("env".into(), toml::Value::Table(env_tbl));
-        }
-    }
-    if entry.disabled == Some(true) {
-        t.insert("enabled".into(), toml::Value::Boolean(false));
-    }
-    t
-}
-
-fn grok_entry_table(entry: &McpServerEntry) -> toml::value::Table {
+fn toml_mcp_entry_table(entry: &McpServerEntry) -> toml::value::Table {
     let mut t = toml::value::Table::new();
     if entry.is_remote() {
         if let Some(url) = &entry.url {
@@ -404,7 +372,7 @@ fn merge_into_codex_config(config_path: &Path, merged: &MergedEntries) -> Result
         if servers.contains_key(name) {
             continue;
         }
-        servers.insert(name.clone(), toml::Value::Table(codex_entry_table(entry)));
+        servers.insert(name.clone(), toml::Value::Table(toml_mcp_entry_table(entry)));
     }
 
     let out = toml::to_string(&doc)
@@ -444,7 +412,7 @@ fn merge_into_grok_config(config_path: &Path, merged: &MergedEntries) -> Result<
         if servers.contains_key(name) {
             continue;
         }
-        servers.insert(name.clone(), toml::Value::Table(grok_entry_table(entry)));
+        servers.insert(name.clone(), toml::Value::Table(toml_mcp_entry_table(entry)));
     }
 
     let out = toml::to_string(&doc)

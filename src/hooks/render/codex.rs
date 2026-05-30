@@ -4,7 +4,7 @@ use crate::artifacts::HarnessTarget;
 use crate::error::Result;
 
 use super::{
-    build_exec_spec_file, check_support, handler_to_json_object, output_target_for, HookRenderer,
+    build_exec_spec_file, check_support, handler_to_json_object, HookRenderer,
     RenderContext, RenderedHookFile, RenderedHookFileContents, RenderedHookOutput,
 };
 use crate::hooks::ir::{ClaudeEvent, ClaudeHandler, HookBundle, HookLayer, NormalizedHook};
@@ -79,7 +79,7 @@ fn render_handler(
             let spec_path = build_exec_spec_file(HarnessTarget::Codex, hook, event, ctx, output)?;
             Ok(json!({
                 "type": "command",
-                "command": hook_exec_command(kind, output_target_for(HarnessTarget::Codex), &spec_path),
+                "command": hook_exec_command(kind, HarnessTarget::Codex, &spec_path),
             }))
         }
     }

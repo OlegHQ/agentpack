@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use serde_yaml::{Mapping, Value};
+use serde_norway::{Mapping, Value};
 
 use crate::error::{AgentpackError, Result};
 
@@ -12,7 +12,7 @@ pub(super) fn split_frontmatter(contents: &str) -> Result<(Option<Mapping>, Stri
     };
 
     let normalized_yaml = normalize_frontmatter_yaml(yaml);
-    let mapping = serde_yaml::from_str::<Mapping>(&normalized_yaml)
+    let mapping = serde_norway::from_str::<Mapping>(&normalized_yaml)
         .map_err(|err| AgentpackError::Staging(format!("invalid YAML frontmatter: {err}")))?;
     Ok((
         Some(mapping),
@@ -69,7 +69,7 @@ pub(super) fn ensure_trailing_newline(contents: &str) -> Cow<'_, str> {
 }
 
 pub(super) fn render_markdown(frontmatter: &Mapping, body: &str) -> String {
-    let yaml = serde_yaml::to_string(frontmatter)
+    let yaml = serde_norway::to_string(frontmatter)
         .expect("frontmatter serialization should not fail for scalar mappings");
     let body = body.trim_start_matches('\n');
     let mut rendered = String::with_capacity(6 + yaml.len() + 5 + body.len() + 1);

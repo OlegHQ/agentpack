@@ -15,14 +15,14 @@ categories = ["command-line-utilities", "development-tools"]
 
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
-tokio = { version = "1", features = ["rt", "macros"] }
 thiserror = "2"
 anyhow = "1"
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls-native-roots"] }
 gix = { version = "0.81.0", default-features = false, features = ["blocking-network-client", "blocking-http-transport-reqwest-rust-tls", "sha1"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-serde_yaml = "0.9"
+# serde_yaml (dtolnay) is archived/unmaintained; serde_norway is the maintained drop-in fork.
+serde_norway = "0.9"
 url = "2"
 dirs = "6"
 toml = "0.8"
@@ -49,6 +49,7 @@ shell-escape = "0.1.5"
 regex = "1"
 ratatui = "0.30"
 crossterm = "0.29"
+which = "8"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 keyring = { version = "3", features = ["apple-native"] }

@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use serde_yaml::Mapping;
+use serde_norway::Mapping;
 
 use super::harness::HarnessTarget;
 use super::yaml::{

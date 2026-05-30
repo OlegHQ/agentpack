@@ -16,7 +16,7 @@ use super::bridge::{load_spec, stdin_json, HookExecutionSpec};
 use super::translate::to_target_output;
 use super::{agent, command, http, prompt};
 use crate::hooks::ir::{
-    ClaudeEvent, ClaudeHandler, HookDecision, HookOutputTarget, NormalizedHookResult,
+    ClaudeEvent, ClaudeHandler, HookDecision, HarnessTarget, NormalizedHookResult,
 };
 
 /// Extract the tool name from harness stdin. Cursor uses `tool_name`; we also accept Claude's
@@ -163,7 +163,7 @@ fn merge_results(acc: &mut NormalizedHookResult, next: NormalizedHookResult) {
 }
 
 pub struct DispatchArgs<'a> {
-    pub target: HookOutputTarget,
+    pub target: HarnessTarget,
     pub event: ClaudeEvent,
     pub specs_dir: &'a Path,
     pub stdin_bytes: &'a [u8],

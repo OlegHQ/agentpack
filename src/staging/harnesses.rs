@@ -30,14 +30,14 @@ use super::pack_overlay::{
     stage_pack_plugins_all_harnesses, stage_pack_skills_all_harnesses, PackHarnessRoots,
 };
 use super::seed::{seed_codex_home, seed_grok_home, seed_opencode_root};
-use super::LaunchTarget;
+use super::HarnessTarget;
 
 pub(super) struct StagingPipeline<'a> {
     project_root: &'a Path,
     lock: &'a PackLock,
     manifest: Option<&'a AgentpackManifest>,
     mode: &'a EffectiveMode,
-    target: Option<LaunchTarget>,
+    target: Option<HarnessTarget>,
 }
 
 impl<'a> StagingPipeline<'a> {
@@ -46,7 +46,7 @@ impl<'a> StagingPipeline<'a> {
         lock: &'a PackLock,
         manifest: Option<&'a AgentpackManifest>,
         mode: &'a EffectiveMode,
-        target: Option<LaunchTarget>,
+        target: Option<HarnessTarget>,
     ) -> Self {
         Self {
             project_root,
@@ -151,10 +151,10 @@ impl<'a> StagingPipeline<'a> {
             &pack_dests,
         )?;
         finalize_cursor_staging_common(self.project_root, self.mode.name(), &merged_mcp)?;
-        if matches!(self.target, Some(LaunchTarget::Cursor)) {
+        if matches!(self.target, Some(HarnessTarget::Cursor)) {
             finalize_cursor_workspace_overlay(self.project_root, self.mode.name())?;
         }
-        if matches!(self.target, Some(LaunchTarget::Agy)) {
+        if matches!(self.target, Some(HarnessTarget::Agy)) {
             finalize_agy_staging(self.project_root, self.mode.name())?;
         }
 
@@ -222,7 +222,7 @@ impl<'a> StagingPipeline<'a> {
         staging_require(home.join(".cursor").is_dir(), || {
             format!("cursor fake home missing .cursor/ under {}", home.display())
         })?;
-        if matches!(self.target, Some(LaunchTarget::Cursor)) {
+        if matches!(self.target, Some(HarnessTarget::Cursor)) {
             for rel in read_cursor_overlay_manifest(self.project_root)? {
                 let tracked = cursor_workspace_dir(self.project_root).join(&rel);
                 if !tracked.exists() {
@@ -258,7 +258,7 @@ impl<'a> StagingPipeline<'a> {
                 agy_bundle.join("plugin.json").display()
             )
         })?;
-        if matches!(self.target, Some(LaunchTarget::Agy)) {
+        if matches!(self.target, Some(HarnessTarget::Agy)) {
             for tracked in super::agy::agy_workspace_overlay_paths(self.project_root)? {
                 if !tracked.exists() {
                     return Err(AgentpackError::Staging(format!(

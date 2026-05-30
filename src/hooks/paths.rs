@@ -9,7 +9,7 @@ use crate::error::{AgentpackError, Result};
 use crate::fs_util::{fast_copy_file, write_json_value};
 use crate::mode::filter::EffectiveMode;
 
-use super::ir::{HookBundle, HookLayer, HookOrigin, HookOutputTarget, NormalizedHook};
+use super::ir::{HookBundle, HookLayer, HookOrigin, NormalizedHook};
 use super::runtime::bridge::HookExecutionSpec;
 
 fn base_asset_root(target: HarnessTarget, target_root: &Path) -> PathBuf {
@@ -108,7 +108,7 @@ pub fn write_hook_spec(path: &Path, spec: &HookExecutionSpec) -> Result<()> {
     write_json_value(path, &value)
 }
 
-pub fn hook_exec_command(kind: &str, target: HookOutputTarget, spec_path: &Path) -> String {
+pub fn hook_exec_command(kind: &str, target: HarnessTarget, spec_path: &Path) -> String {
     format!(
         "agentpack hook-exec {kind} --target {} --spec {}",
         target.as_str(),
@@ -119,7 +119,7 @@ pub fn hook_exec_command(kind: &str, target: HookOutputTarget, spec_path: &Path)
 /// Command line for the host-side matcher router (Cursor emulation). One entry per event is
 /// registered in the harness's hooks file; the router reads stdin, iterates specs under
 /// `specs_dir`, and fires those whose stored Claude matcher matches the invoked tool.
-pub fn hook_dispatch_command(target: HookOutputTarget, event: &str, specs_dir: &Path) -> String {
+pub fn hook_dispatch_command(target: HarnessTarget, event: &str, specs_dir: &Path) -> String {
     format!(
         "agentpack hook-exec dispatch --target {} --event {event} --specs-dir {}",
         target.as_str(),

@@ -6,7 +6,7 @@ pub(crate) mod yaml;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
-use serde_yaml::Mapping;
+use serde_norway::Mapping;
 
 use crate::error::Result;
 

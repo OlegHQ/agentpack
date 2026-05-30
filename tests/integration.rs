@@ -244,8 +244,8 @@ fn sync_stages_full_plugin_and_shadows_contained_skill() {
         "bare sync must not drop the Cursor workspace overlay into the project"
     );
 
-    // Re-running sync with `LaunchTarget::Cursor` materializes the workspace symlink, and
-    // following up with `LaunchTarget::Claude` cleans it back up — proving the overlay is
+    // Re-running sync with `HarnessTarget::Cursor` materializes the workspace symlink, and
+    // following up with `HarnessTarget::Claude` cleans it back up — proving the overlay is
     // truly target-scoped, not a side effect of having Cursor content cached.
     let ui = agentpack::ui::Ui::new(true, true, false);
     agentpack::sync::run_sync(
@@ -254,7 +254,7 @@ fn sync_stages_full_plugin_and_shadows_contained_skill() {
         false,
         false,
         None,
-        Some(agentpack::sync::LaunchTarget::Cursor),
+        Some(agentpack::sync::HarnessTarget::Cursor),
         &ui,
     )
     .unwrap();
@@ -271,7 +271,7 @@ fn sync_stages_full_plugin_and_shadows_contained_skill() {
         false,
         false,
         None,
-        Some(agentpack::sync::LaunchTarget::Claude),
+        Some(agentpack::sync::HarnessTarget::Claude),
         &ui,
     )
     .unwrap();
@@ -290,7 +290,7 @@ fn sync_stages_full_plugin_and_shadows_contained_skill() {
         false,
         false,
         None,
-        Some(agentpack::sync::LaunchTarget::Agy),
+        Some(agentpack::sync::HarnessTarget::Agy),
         &ui,
     )
     .unwrap();

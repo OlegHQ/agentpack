@@ -1,16 +1,12 @@
 use anyhow::Context;
 
-use crate::launcher::common::{apply_yolo_grok, exec_with_env, resolve_harness_binary};
+use crate::launcher::common::{
+    apply_yolo_grok, args_have_flag_with_value, exec_with_env, resolve_harness_binary,
+};
 use crate::paths;
-use crate::staging::LaunchTarget;
+use crate::staging::HarnessTarget;
 use crate::sync::sync_for_launch;
 use crate::ui::Ui;
-
-fn args_have_cwd(args: &[String]) -> bool {
-    args.iter().enumerate().any(|(idx, arg)| {
-        (arg == "--cwd" && args.get(idx + 1).is_some()) || arg.starts_with("--cwd=")
-    })
-}
 
 pub fn run_grok(
     project_root: &std::path::Path,
@@ -19,9 +15,9 @@ pub fn run_grok(
     yolo: bool,
     ui: &Ui,
 ) -> anyhow::Result<()> {
-    let mode = sync_for_launch(project_root, selected_mode, LaunchTarget::Grok, ui)?;
+    let mode = sync_for_launch(project_root, selected_mode, HarnessTarget::Grok, ui)?;
 
-    if !args_have_cwd(&passthrough) {
+    if !args_have_flag_with_value(&passthrough, "--cwd") {
         passthrough.splice(
             0..0,
             ["--cwd".to_string(), project_root.display().to_string()],

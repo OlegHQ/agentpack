@@ -5,7 +5,9 @@ use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::artifacts::HarnessTarget;
+// Re-exported so existing `crate::hooks::ir::HarnessTarget` paths (CLI args, spec field) resolve
+// after `HookOutputTarget` was merged into the canonical `HarnessTarget`.
+pub(crate) use crate::artifacts::HarnessTarget;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub enum ClaudeEvent {
@@ -222,38 +224,3 @@ pub struct NormalizedHookResult {
     pub metadata: BTreeMap<String, Value>,
 }
 
-#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize, ValueEnum)]
-#[serde(rename_all = "lowercase")]
-pub enum HookOutputTarget {
-    Claude,
-    Cursor,
-    #[default]
-    Codex,
-    Opencode,
-    Grok,
-    Agy,
-}
-
-impl HookOutputTarget {
-    pub fn harness_target(self) -> HarnessTarget {
-        match self {
-            Self::Claude => HarnessTarget::Claude,
-            Self::Cursor => HarnessTarget::Cursor,
-            Self::Codex => HarnessTarget::Codex,
-            Self::Opencode => HarnessTarget::OpenCode,
-            Self::Grok => HarnessTarget::Grok,
-            Self::Agy => HarnessTarget::Agy,
-        }
-    }
-
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::Claude => "claude",
-            Self::Cursor => "cursor",
-            Self::Codex => "codex",
-            Self::Opencode => "opencode",
-            Self::Grok => "grok",
-            Self::Agy => "agy",
-        }
-    }
-}

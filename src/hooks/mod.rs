@@ -10,5 +10,5 @@ pub mod stage;
 
 pub use ir::{
     ClaudeEvent, ClaudeHandler, CommandHandler, HookBundle, HookDecision, HookLayer, HookOrigin,
-    HookOutputTarget, HttpHandler, NormalizedHook, NormalizedHookResult, PromptHandler,
+    HttpHandler, NormalizedHook, NormalizedHookResult, PromptHandler,
 };

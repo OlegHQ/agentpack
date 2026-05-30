@@ -1,12 +1,30 @@
-use serde_yaml::Mapping;
+use serde_norway::Mapping;
 
 use super::yaml::insert_string;
 use super::ArtifactKind;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+/// Canonical harness identity used across artifact rendering, hook output, launching, and staging.
+/// `#[serde(rename_all = "lowercase")]` + `#[value(name = "opencode")]` keep the `hook-exec` CLI
+/// and serialized spec wire format stable (`claude`/`cursor`/`codex`/`opencode`/`grok`/`agy`).
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    Eq,
+    PartialEq,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+    clap::ValueEnum,
+)]
+#[serde(rename_all = "lowercase")]
 pub enum HarnessTarget {
     Claude,
+    #[value(name = "opencode")]
     OpenCode,
+    // `Default` preserves the prior `hook-exec --target` default (was `HookOutputTarget`).
+    #[default]
     Codex,
     Cursor,
     Grok,
@@ -15,6 +33,18 @@ pub enum HarnessTarget {
 
 /// Portable plugin subtrees copied verbatim from cached plugins (per harness).
 impl HarnessTarget {
+    /// All harness identities, in a stable order.
+    pub fn all() -> [HarnessTarget; 6] {
+        [
+            HarnessTarget::Claude,
+            HarnessTarget::Cursor,
+            HarnessTarget::Codex,
+            HarnessTarget::OpenCode,
+            HarnessTarget::Grok,
+            HarnessTarget::Agy,
+        ]
+    }
+
     pub fn raw_plugin_subdirs(self) -> &'static [&'static str] {
         match self {
             // Same extension-dir merge as Cursor: verbatim copy then markdown overlay (see `stage_source_tree`).

@@ -1,19 +1,19 @@
 use serde_json::{json, Value};
 
-use crate::hooks::ir::{ClaudeEvent, HookDecision, HookOutputTarget, NormalizedHookResult};
+use crate::hooks::ir::{ClaudeEvent, HookDecision, HarnessTarget, NormalizedHookResult};
 
 pub fn to_target_output(
-    target: HookOutputTarget,
+    target: HarnessTarget,
     event: ClaudeEvent,
     result: &NormalizedHookResult,
 ) -> Value {
     match target {
-        HookOutputTarget::Opencode => serde_json::to_value(result).unwrap_or(Value::Null),
-        HookOutputTarget::Codex => codex_output(result),
-        HookOutputTarget::Cursor => cursor_output(event, result),
-        HookOutputTarget::Claude => claude_fallback_output(result),
-        HookOutputTarget::Grok => claude_fallback_output(result),
-        HookOutputTarget::Agy => codex_output(result),
+        HarnessTarget::OpenCode => serde_json::to_value(result).unwrap_or(Value::Null),
+        HarnessTarget::Codex => codex_output(result),
+        HarnessTarget::Cursor => cursor_output(event, result),
+        HarnessTarget::Claude => claude_fallback_output(result),
+        HarnessTarget::Grok => claude_fallback_output(result),
+        HarnessTarget::Agy => codex_output(result),
     }
 }
 

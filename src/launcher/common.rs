@@ -9,6 +9,15 @@ fn args_contain_any(args: &[String], needles: &[&str]) -> bool {
     args.iter().any(|a| needles.contains(&a.as_str()))
 }
 
+/// Whether `args` already supplies `flag` with a value, in either `--flag value` or `--flag=value`
+/// form. Used by launchers that inject a default (e.g. `--cwd`, `--add-dir`) only when absent.
+pub fn args_have_flag_with_value(args: &[String], flag: &str) -> bool {
+    let eq_prefix = format!("{flag}=");
+    args.iter().enumerate().any(|(idx, arg)| {
+        (arg == flag && args.get(idx + 1).is_some()) || arg.starts_with(&eq_prefix)
+    })
+}
+
 /// Injects Claude Code **`--dangerously-skip-permissions`** when **`agentpack --yolo`** is set.
 pub fn apply_yolo_claude(args: &mut Vec<String>) {
     const FLAG: &str = "--dangerously-skip-permissions";
@@ -85,53 +94,8 @@ fn resolve_program(program: &str) -> io::Result<PathBuf> {
 }
 
 fn search_path(program: &str) -> io::Result<PathBuf> {
-    let path_os = std::env::var_os("PATH").ok_or_else(|| {
-        io::Error::new(
-            io::ErrorKind::NotFound,
-            "PATH environment variable is not set",
-        )
-    })?;
-    for dir in std::env::split_paths(&path_os) {
-        for candidate in executable_candidates(&dir, program) {
-            if candidate.is_file() {
-                return Ok(candidate);
-            }
-        }
-    }
-    Err(io::Error::new(
-        io::ErrorKind::NotFound,
-        format!("`{program}` not found in PATH"),
-    ))
-}
-
-#[cfg(unix)]
-fn executable_candidates(dir: &Path, program: &str) -> Vec<PathBuf> {
-    vec![dir.join(program)]
-}
-
-#[cfg(windows)]
-fn executable_candidates(dir: &Path, program: &str) -> Vec<PathBuf> {
-    let mut out = Vec::new();
-    let base = dir.join(program);
-    out.push(base.clone());
-    if Path::new(program).extension().is_none() {
-        for ext in pathext_suffixes() {
-            out.push(dir.join(format!("{program}{ext}")));
-        }
-    }
-    out
-}
-
-#[cfg(windows)]
-fn pathext_suffixes() -> Vec<String> {
-    match std::env::var("PATHEXT") {
-        Ok(raw) => raw
-            .split(';')
-            .map(|s| s.trim().to_string())
-            .filter(|s| !s.is_empty())
-            .collect(),
-        Err(_) => vec![".EXE".into(), ".BAT".into(), ".CMD".into(), ".COM".into()],
-    }
+    // `which` handles PATH lookup, executability checks, and Windows PATHEXT resolution.
+    which::which(program).map_err(|e| io::Error::new(io::ErrorKind::NotFound, e.to_string()))
 }
 
 /// Reads optional **`env_key`**; blank / unset falls back to **`default_cmd`**, then resolves on **`PATH`**.

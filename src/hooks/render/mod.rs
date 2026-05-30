@@ -12,7 +12,7 @@ use crate::artifacts::HarnessTarget;
 use crate::error::{AgentpackError, Result};
 
 use super::capabilities::{support_for, SupportLevel};
-use super::ir::{ClaudeHandler, HookBundle, HookOutputTarget, NormalizedHook};
+use super::ir::{ClaudeHandler, HookBundle, NormalizedHook};
 use super::paths::{spec_path_for_hook, staged_package_root};
 use super::runtime::bridge::HookExecutionSpec;
 
@@ -64,17 +64,6 @@ pub struct RenderContext<'a> {
 pub trait HookRenderer {
     fn target(&self) -> HarnessTarget;
     fn render(&self, bundle: &HookBundle, ctx: &RenderContext<'_>) -> Result<RenderedHookOutput>;
-}
-
-pub fn output_target_for(target: HarnessTarget) -> HookOutputTarget {
-    match target {
-        HarnessTarget::Claude => HookOutputTarget::Claude,
-        HarnessTarget::Cursor => HookOutputTarget::Cursor,
-        HarnessTarget::Codex => HookOutputTarget::Codex,
-        HarnessTarget::OpenCode => HookOutputTarget::Opencode,
-        HarnessTarget::Grok => HookOutputTarget::Grok,
-        HarnessTarget::Agy => HookOutputTarget::Agy,
-    }
 }
 
 pub fn push_diag(
@@ -163,7 +152,7 @@ pub fn build_exec_spec_file(
     let working_dir = staged_package_root(ctx.staged_packages, &hook.origin)?.to_path_buf();
     let spec_path = spec_path_for_hook(target, ctx.target_root, hook);
     let spec = HookExecutionSpec {
-        target: output_target_for(target),
+        target,
         event,
         handler: hook.handler.clone(),
         working_dir,
