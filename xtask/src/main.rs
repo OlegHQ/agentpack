@@ -51,7 +51,23 @@ fn bump_version(kind: &str) {
 
     *version_item = toml_edit::value(new.to_string());
     fs::write(&path, doc.to_string()).expect("write Cargo.toml");
+
+    update_readme_version_badge(&old, &new);
     println!("{new}");
+}
+
+/// Keep the README shields.io version badge (`badge/version-vX.Y.Z-…`) in sync. The version lives in
+/// the badge URL so each release is a *new* image URL — GitHub's camo proxy fetches it fresh instead
+/// of serving a stale cached image (which is what a constant-URL dynamic badge would do).
+fn update_readme_version_badge(old: &semver::Version, new: &semver::Version) {
+    let readme = workspace_root().join("README.md");
+    let Ok(text) = fs::read_to_string(&readme) else {
+        return;
+    };
+    let updated = text.replace(&format!("version-v{old}-"), &format!("version-v{new}-"));
+    if updated != text {
+        fs::write(&readme, updated).expect("write README.md");
+    }
 }
 
 // ── read-version ──────────────────────────────────────────────────────────────
