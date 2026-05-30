@@ -59,13 +59,7 @@ pub fn resolve_ref_to_sha(
     let resp = match resp {
         Ok(resp) => resp,
         Err(err) => {
-            return git_protocol_or_stale_ref_fallback(
-                cached.as_ref(),
-                owner,
-                repo,
-                git_ref,
-                err,
-            );
+            return git_protocol_or_stale_ref_fallback(cached.as_ref(), owner, repo, git_ref, err);
         }
     };
     let status = resp.status();

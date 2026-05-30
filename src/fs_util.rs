@@ -184,10 +184,7 @@ pub(crate) fn strip_under_root<'a>(path: &'a Path, root: &'a Path) -> Result<&'a
     })
 }
 
-pub(crate) fn walk_dir(
-    root: &Path,
-    opts: WalkDirOpts,
-) -> impl Iterator<Item = Result<DirEntry>> {
+pub(crate) fn walk_dir(root: &Path, opts: WalkDirOpts) -> impl Iterator<Item = Result<DirEntry>> {
     let mut walker = WalkDir::new(root).follow_links(opts.follow_links);
     if opts.contents_first {
         walker = walker.contents_first(true);

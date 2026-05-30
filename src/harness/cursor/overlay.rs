@@ -79,20 +79,22 @@ fn remove_cursor_overlay_path_safe(path: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Removes workspace **`.cursor/`** paths listed in **`cursor-overlay.manifest`**.
+/// Removes workspace **`.cursor/`** paths listed in **`cursor-overlay.manifest`**. Entries are
+/// absolute (the overlay follows the CWD workspace, which may differ from `project_root`).
 pub(super) fn cleanup_cursor_overlay(project_root: &Path) -> Result<()> {
-    let cursor_root = cursor_workspace_dir(project_root);
-    for rel in read_cursor_overlay_manifest(project_root)? {
-        remove_cursor_overlay_path_safe(&cursor_root.join(rel))?;
+    for tracked in read_cursor_overlay_manifest(project_root)? {
+        remove_cursor_overlay_path_safe(&tracked)?;
     }
     write_cursor_overlay_manifest(project_root, &[])?;
     Ok(())
 }
 
-/// **`./.cursor/agents`** → **`$STAGING/cursor/agentpack-bundle/agents`** so Cursor **`agent`**
-/// finds subagents under **`--workspace`**.
+/// **`<workspace>/.cursor/agents`** → **`$STAGING/cursor/agentpack-bundle/agents`** so Cursor
+/// **`agent`** finds subagents under **`--workspace`**. `workspace_root` is the CWD Cursor will run
+/// in (see `cursor_workspace_root`), not the pack root. Returns the absolute symlink path it created.
 pub(super) fn materialize_workspace_cursor_agents_symlink(
     project_root: &Path,
+    workspace_root: &Path,
     mode_name: &str,
 ) -> Result<Vec<PathBuf>> {
     let pack_agents =
@@ -104,7 +106,7 @@ pub(super) fn materialize_workspace_cursor_agents_symlink(
         .canonicalize()
         .map_err(|e| AgentpackError::io(&pack_agents, e))?;
 
-    let cursor_root = cursor_workspace_dir(project_root);
+    let cursor_root = cursor_workspace_dir(workspace_root);
     let agents_link = cursor_root.join(CURSOR_WORKSPACE_AGENTS_OVERLAY);
 
     match fs::symlink_metadata(&agents_link) {
@@ -131,7 +133,7 @@ pub(super) fn materialize_workspace_cursor_agents_symlink(
 
     fs::create_dir_all(&cursor_root).map_err(|e| AgentpackError::io(&cursor_root, e))?;
     symlink_or_copy_into_fake_home(&source, &agents_link, true)?;
-    Ok(vec![PathBuf::from(CURSOR_WORKSPACE_AGENTS_OVERLAY)])
+    Ok(vec![agents_link])
 }
 
 /// Write overlay manifest after finalization.

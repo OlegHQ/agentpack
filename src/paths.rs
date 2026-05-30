@@ -206,11 +206,7 @@ staging_dir_pair!(
     staging_grok_home_dir,
     "grok-home"
 );
-staging_dir_pair!(
-    staging_grok_dir_for_mode,
-    staging_grok_dir,
-    "grok"
-);
+staging_dir_pair!(staging_grok_dir_for_mode, staging_grok_dir, "grok");
 
 pub fn staging_grok_bundle_dir_for_mode(project_root: &Path, mode_name: &str) -> Result<PathBuf> {
     Ok(staging_grok_dir_for_mode(project_root, mode_name)?.join(STAGED_AGENTPACK_BUNDLE_NAME))

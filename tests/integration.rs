@@ -117,6 +117,19 @@ fn sync_stages_full_plugin_and_shadows_contained_skill() {
     let dir = tempdir().unwrap();
     let root: PathBuf = dir.path().to_path_buf();
     prep_store(&root);
+
+    // `agentpack agent` keys the Cursor workspace (and its `.cursor/agents` overlay) off the CWD,
+    // not the pack root — so simulate the user being `cd`'d into their project. Restored on drop
+    // (before `dir`, since locals drop in reverse order).
+    struct CwdGuard(PathBuf);
+    impl Drop for CwdGuard {
+        fn drop(&mut self) {
+            let _ = std::env::set_current_dir(&self.0);
+        }
+    }
+    let _cwd = CwdGuard(std::env::current_dir().unwrap());
+    std::env::set_current_dir(&root).unwrap();
+    let ws = std::env::current_dir().unwrap();
     run(Cli {
         project_root: Some(root.clone()),
         quiet: true,
@@ -240,7 +253,7 @@ fn sync_stages_full_plugin_and_shadows_contained_skill() {
     // Bare `agentpack sync` is target-agnostic, so the project-side `./.cursor/agents` symlink
     // (only needed by `agentpack agent`) should not be materialized here.
     assert!(
-        !cursor_workspace_dir(&root).join("agents").exists(),
+        !ws.join(".cursor/agents").exists(),
         "bare sync must not drop the Cursor workspace overlay into the project"
     );
 
@@ -259,9 +272,7 @@ fn sync_stages_full_plugin_and_shadows_contained_skill() {
     )
     .unwrap();
     assert!(
-        cursor_workspace_dir(&root)
-            .join("agents/from-plugin.md")
-            .is_file(),
+        ws.join(".cursor/agents/from-plugin.md").is_file(),
         "Cursor target should drop the ./.cursor/agents symlink"
     );
 
@@ -276,7 +287,7 @@ fn sync_stages_full_plugin_and_shadows_contained_skill() {
     )
     .unwrap();
     assert!(
-        !cursor_workspace_dir(&root).join("agents").exists(),
+        !ws.join(".cursor/agents").exists(),
         "Claude target should leave the Cursor workspace overlay absent"
     );
     assert!(

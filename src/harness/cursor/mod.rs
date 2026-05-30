@@ -25,7 +25,7 @@ use crate::hooks::render::HookRenderer;
 use crate::hooks::render::SupportLevel;
 use crate::hooks::runtime::output::cursor_output;
 use crate::paths::{
-    cursor_workspace_dir, staging_cursor_bundle_dir_for_mode, staging_cursor_home_dir_for_mode,
+    staging_cursor_bundle_dir_for_mode, staging_cursor_home_dir_for_mode,
     staging_cursor_pack_plugin_dir_for_mode,
 };
 use crate::staging::keep_attribution;
@@ -102,8 +102,12 @@ impl Harness for Cursor {
     }
 
     fn finalize_workspace_overlay(&self, ctx: &StageCtx) -> Result<()> {
+        // The `.cursor/agents` overlay must sit under the workspace Cursor will use (the CWD), so it
+        // matches `--workspace` — not necessarily the pack root.
+        let workspace = cursor_workspace_root(ctx.project_root);
         let entries = overlay::materialize_workspace_cursor_agents_symlink(
             ctx.project_root,
+            &workspace,
             ctx.mode.name(),
         )?;
         overlay::write_overlay_manifest(ctx.project_root, &entries)
@@ -189,13 +193,13 @@ impl Harness for Cursor {
             format!("cursor fake home missing .cursor/ under {}", home.display())
         })?;
         if ctx.launch_target == Some(HarnessTarget::Cursor) {
-            for rel in overlay::read_cursor_overlay_manifest(ctx.project_root)? {
-                let tracked = cursor_workspace_dir(ctx.project_root).join(&rel);
+            // Manifest entries are absolute paths (the overlay follows the CWD workspace, not a
+            // fixed `project_root/.cursor`), so check them directly.
+            for tracked in overlay::read_cursor_overlay_manifest(ctx.project_root)? {
                 if !tracked.exists() {
                     return Err(AgentpackError::Staging(format!(
-                        "cursor workspace overlay missing at {} (from cursor-overlay.manifest entry {})",
+                        "cursor workspace overlay missing at {} (from cursor-overlay.manifest)",
                         tracked.display(),
-                        rel.display()
                     )));
                 }
             }
@@ -206,20 +210,13 @@ impl Harness for Cursor {
     fn launch_command(&self, ctx: LaunchCtx) -> anyhow::Result<Command> {
         let fake_home_path = staging_cursor_home_dir_for_mode(ctx.project_root, ctx.mode.name())?;
         let fake_home: OsString = fake_home_path.into_os_string();
-        let project_norm = normalize_path(ctx.project_root);
-
         let mut args = ctx.passthrough;
         let workspace = match explicit_workspace_arg(&args) {
             Some(p) => normalize_path(&p),
             None => {
-                args.splice(
-                    0..0,
-                    [
-                        "--workspace".to_string(),
-                        project_norm.display().to_string(),
-                    ],
-                );
-                project_norm.clone()
+                let ws = cursor_workspace_root(ctx.project_root);
+                args.splice(0..0, ["--workspace".to_string(), ws.display().to_string()]);
+                ws
             }
         };
 
@@ -402,6 +399,19 @@ fn prepend_trust_if_needed(args: &mut Vec<String>) {
 
 fn normalize_path(path: &Path) -> PathBuf {
     path.canonicalize().unwrap_or_else(|_| path.to_path_buf())
+}
+
+/// The directory Cursor Agent treats as its workspace. Cursor's own `--workspace` defaults to the
+/// current directory; agentpack mirrors that — the user's **CWD**, not the pack root
+/// (`project_root`, which in a monorepo may be a *parent* where `agentpack.toml` lives, above the
+/// subproject you actually `cd`'d into). The workspace `.cursor/agents` subagent overlay and Cursor's
+/// workspace-trust both key off this same dir, so they follow the CWD too. Falls back to
+/// `project_root` only if the CWD can't be read.
+fn cursor_workspace_root(project_root: &Path) -> PathBuf {
+    match std::env::current_dir() {
+        Ok(cwd) => normalize_path(&cwd),
+        Err(_) => normalize_path(project_root),
+    }
 }
 
 fn push_env_if_absent(envs: &mut Vec<(&'static str, OsString)>, key: &'static str, value: PathBuf) {
