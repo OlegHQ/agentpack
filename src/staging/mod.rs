@@ -29,7 +29,7 @@ pub(crate) use agy::{
 };
 pub(crate) use attribution::{
     force_agy_attribution_off, force_codex_attribution_off, force_cursor_attribution_off,
-    force_grok_attribution_off, force_opencode_attribution_off, keep_attribution,
+    force_opencode_attribution_off, keep_attribution, NO_ATTRIBUTION_BODY,
 };
 pub(crate) use claude_home::{
     materialize_claude_settings_overlay, set_claude_settings_mcp_allowlist,
@@ -41,7 +41,8 @@ pub(crate) use cursor::{
 };
 pub(crate) use pack_overlay::skill_folder_name;
 pub use pack_overlay::skill_is_shadowed;
-pub(crate) use seed::{seed_codex_home, seed_grok_home, seed_opencode_root};
+pub(crate) use seed::{seed_codex_home, seed_opencode_root};
+pub(crate) use tree::copy_selected_entries;
 
 use harnesses::StagingPipeline;
 use pack_overlay::disabled_in_config;

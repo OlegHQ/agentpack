@@ -38,9 +38,6 @@ use crate::fs_util::{read_json_value_opt, remove_path_any, write_json_value, wri
 const KEEP_ENV: &str = "AGENTPACK_KEEP_ATTRIBUTION";
 const OPENCODE_INSTRUCTIONS_FILE: &str = "agentpack-no-attribution.md";
 const AGY_ATTRIBUTION_RULE_FILE: &str = "agentpack-no-attribution.md";
-const GROK_ATTRIBUTION_FILE: &str = "AGENTS.md";
-const GROK_ATTRIBUTION_BEGIN: &str = "<!-- agentpack:no-attribution:begin -->";
-const GROK_ATTRIBUTION_END: &str = "<!-- agentpack:no-attribution:end -->";
 /// Prose attribution-off guidance shared by the prompt-level harnesses (OpenCode / Grok / Agy)
 /// that have no first-class attribution setting.
 pub(crate) const NO_ATTRIBUTION_BODY: &str = "# Attribution policy
@@ -193,33 +190,6 @@ pub(crate) fn force_agy_attribution_off(bundle: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Grok has no confirmed first-class attribution setting. Add staged prompt-level guidance to
-/// `$GROK_HOME/AGENTS.md` only.
-pub(crate) fn force_grok_attribution_off(grok_home: &Path) -> Result<()> {
-    if keep_attribution() {
-        return Ok(());
-    }
-    let path = grok_home.join(GROK_ATTRIBUTION_FILE);
-    let existing = fs::read_to_string(&path).unwrap_or_default();
-    if existing.contains(GROK_ATTRIBUTION_BEGIN) {
-        return Ok(());
-    }
-    let mut out = existing.trim_end().to_string();
-    if out.is_empty() {
-        out.push_str("# AGENTS.md\n");
-    }
-    out.push_str("\n\n");
-    out.push_str(GROK_ATTRIBUTION_BEGIN);
-    out.push('\n');
-    out.push_str(NO_ATTRIBUTION_BODY.trim());
-    out.push('\n');
-    out.push_str(GROK_ATTRIBUTION_END);
-    out.push('\n');
-    crate::fs_util::write_text_file(&path, &out)?;
-    tracing::debug!(path = %path.display(), "staged Grok attribution-off guidance");
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -315,18 +285,6 @@ mod tests {
                 .count();
             assert_eq!(count, 1);
             assert!(dir.path().join(OPENCODE_INSTRUCTIONS_FILE).is_file());
-        });
-    }
-
-    #[test]
-    fn grok_attribution_adds_agents_guidance_idempotently() {
-        with_keep_unset(|| {
-            let dir = tempfile::tempdir().unwrap();
-            force_grok_attribution_off(dir.path()).unwrap();
-            force_grok_attribution_off(dir.path()).unwrap();
-            let text = std::fs::read_to_string(dir.path().join("AGENTS.md")).unwrap();
-            assert!(text.contains("Do not add any AI-attribution lines"));
-            assert_eq!(text.matches(GROK_ATTRIBUTION_BEGIN).count(), 1);
         });
     }
 }

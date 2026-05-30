@@ -31,6 +31,31 @@ Dependencies are identified by a Go-style module path — `github.com/<owner>/<r
 
 Everything else — downloaded trees, the metadata index, an optional offline mirror — lives in a **user-wide home** (`$AGENTPACK_HOME`, defaulting to the XDG data dir), *not* in a `.agentpack/` folder polluting your repo. Cache entries are content-addressed, so the same `owner/repo/path/commit` resolves to the same `cache_key` and gets downloaded exactly once across all your projects.
 
+## Storage: a content-addressed cache and an embedded index
+
+There are two storage layers under `$AGENTPACK_HOME`, and they do different jobs.
+
+**The cache is content-addressed on disk.** Every package tree lands in `cache/<cache_key>/`, where
+
+```
+cache_key = hex(SHA256(stable_source_identity + resolved_commit_sha))
+```
+
+The identity is normalized first — `https://github.com/...` tree URLs, `owner/repo/path` specs, and `local/` paths that point at the same `owner / repo / in-repo path / commit` all collapse to the **same** key, so a given pinned package is fetched exactly once and shared across every project on the machine. Because the key folds in the *resolved commit* (never a branch or tag name), two projects pinning `main` at the same SHA dedupe, and a project that floats `main` to a new SHA simply gets a new directory rather than mutating the old one. Filesystem (`path = "..."`) deps are content-hashed too, so editing a local dependency is detected and re-copied on the next `sync`.
+
+**The index is a single embedded `redb` database** — `cache/db.reddb`, a pure-Rust, single-file, ACID key-value store with no server process and no daemon. (The docs call it "RedDB"; it's the [`redb`](https://github.com/cberner/redb) crate.) Writes go through real transactions (`begin_write` → `insert` → `commit`); lookups use read transactions. It holds four tables, each value a small `serde_json` blob:
+
+| Table | Key | Value | Purpose |
+| --- | --- | --- | --- |
+| `cache_entries` | `cache_key` | `{kind, source_url, owner, repo, path, commit, fetched_at}` | what's in the cache, by content key |
+| `aliases` | lowercased shorthand (`anthropics/skills/canvas-design`) | `cache_key` | resolve a repeat `add` **offline**, before any network call |
+| `github_ref_cache` | `owner\0repo\0ref` | `{sha, checked_at}` | ref→commit lookups, **15-min TTL** |
+| `github_tag_cache` | `owner\0repo` | `{tags, checked_at}` | tag listings for semver matching, **60-min TTL** |
+
+The split is the point. The **cache directory** is the heavy, immutable content — keyed so it's never fetched twice. The **redb index** is the small, mutable metadata that makes the cache fast and offline-friendly: the alias table means re-adding a package you've seen before never touches GitHub, and the two TTL-bounded ref/tag tables collapse the GitHub REST traffic during `add` / `lock` / `sync`. When those tables are stale *and* the REST API is throttling, resolution falls back to the Git protocol (`ls-refs` via embedded `gix`) rather than trusting an expired row — so a rate-limit on github.com degrades to "slightly slower," not "can't resolve."
+
+Nothing in here is a service you run or a schema you migrate. It's one file you can delete; the next command rebuilds it from the cache and the network.
+
 ## The interesting part: staging, not symlinking
 
 Here's the design decision that makes agentpack actually usable: **it never copies pack content into your git workspace, and never symlinks project-specific pins into your global `~/.claude` or `~/.cursor`.** Doing either would leak one project's pins into your whole userspace — the exact problem that makes "just copy the files" unmaintainable.
