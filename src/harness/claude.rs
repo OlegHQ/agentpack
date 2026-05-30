@@ -1,3 +1,5 @@
+use std::path::{Path, PathBuf};
+
 use serde_norway::Mapping;
 
 use super::{require, Harness, HarnessTarget, StageCtx};
@@ -25,6 +27,15 @@ pub(super) fn seed_description_then_name(m: &mut Mapping, name: &str, descriptio
 impl Harness for Claude {
     fn id(&self) -> HarnessTarget {
         HarnessTarget::Claude
+    }
+
+    fn staged_root(&self, project_root: &Path, mode: &str) -> Result<PathBuf> {
+        Ok(staging_plugins_dir_for_mode(project_root, mode)?.join(STAGED_AGENTPACK_BUNDLE_NAME))
+    }
+
+    fn reset_paths(&self, project_root: &Path, mode: &str) -> Result<Vec<PathBuf>> {
+        // Wipe the whole `plugins/` parent (Claude loads it via `--plugin-dir`), not just the bundle.
+        Ok(vec![staging_plugins_dir_for_mode(project_root, mode)?])
     }
 
     fn raw_plugin_subdirs(&self) -> &'static [&'static str] {

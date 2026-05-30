@@ -1,9 +1,13 @@
+use std::path::{Path, PathBuf};
+
 use serde_norway::Mapping;
 
 use super::claude::{seed_description_then_name, CLAUDE_RAW_PLUGIN_SUBDIRS};
 use super::{require, Harness, HarnessTarget, StageCtx};
 use crate::error::Result;
-use crate::paths::{staging_grok_bundle_dir_for_mode, staging_grok_home_dir_for_mode};
+use crate::paths::{
+    staging_grok_bundle_dir_for_mode, staging_grok_dir_for_mode, staging_grok_home_dir_for_mode,
+};
 
 /// Grok: launched with a redirected `GROK_HOME`; pack content staged as a plugin bundle. Its
 /// artifact-rendering knobs are identical to Claude's.
@@ -12,6 +16,18 @@ pub(super) struct Grok;
 impl Harness for Grok {
     fn id(&self) -> HarnessTarget {
         HarnessTarget::Grok
+    }
+
+    fn staged_root(&self, project_root: &Path, mode: &str) -> Result<PathBuf> {
+        staging_grok_bundle_dir_for_mode(project_root, mode)
+    }
+
+    fn reset_paths(&self, project_root: &Path, mode: &str) -> Result<Vec<PathBuf>> {
+        // Pack content lives under `grok/`, but MCP/attribution/config live in `grok-home/`.
+        Ok(vec![
+            staging_grok_home_dir_for_mode(project_root, mode)?,
+            staging_grok_dir_for_mode(project_root, mode)?,
+        ])
     }
 
     fn raw_plugin_subdirs(&self) -> &'static [&'static str] {

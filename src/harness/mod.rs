@@ -17,7 +17,7 @@ mod cursor;
 mod grok;
 mod opencode;
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use serde_norway::Mapping;
 
@@ -59,6 +59,19 @@ fn require(cond: bool, msg: impl FnOnce() -> String) -> Result<()> {
 /// out `&'static dyn Harness`.
 pub trait Harness: Sync {
     fn id(&self) -> HarnessTarget;
+
+    // ---- staging paths (was: 9 StagingPipeline accessors + path selection in reset_all) ----
+
+    /// The directory pack content is staged into for this harness — the "pack-content root" the
+    /// shared overlay loop writes to (Claude→bundle, Grok→grok bundle, Cursor→pack plugin, …).
+    fn staged_root(&self, project_root: &Path, mode: &str) -> Result<PathBuf>;
+
+    /// The full set of directories to wipe before a rebuild. Defaults to just [`staged_root`];
+    /// harnesses whose wipe set is broader than the pack-content root (Claude's plugins parent,
+    /// Cursor's fake home, Grok's home, Agy's parent dir) override this.
+    fn reset_paths(&self, project_root: &Path, mode: &str) -> Result<Vec<PathBuf>> {
+        Ok(vec![self.staged_root(project_root, mode)?])
+    }
 
     // ---- artifact rendering knobs (was: 5 `match self` tables in artifacts/harness.rs) ----
 

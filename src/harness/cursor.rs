@@ -1,3 +1,5 @@
+use std::path::{Path, PathBuf};
+
 use serde_norway::Mapping;
 
 use super::{require, Harness, HarnessTarget, StageCtx};
@@ -16,6 +18,18 @@ pub(super) struct Cursor;
 impl Harness for Cursor {
     fn id(&self) -> HarnessTarget {
         HarnessTarget::Cursor
+    }
+
+    fn staged_root(&self, project_root: &Path, mode: &str) -> Result<PathBuf> {
+        staging_cursor_pack_plugin_dir_for_mode(project_root, mode)
+    }
+
+    fn reset_paths(&self, project_root: &Path, mode: &str) -> Result<Vec<PathBuf>> {
+        // The pack plugin lives under the bundle root; also wipe the fake HOME.
+        Ok(vec![
+            staging_cursor_bundle_dir_for_mode(project_root, mode)?,
+            staging_cursor_home_dir_for_mode(project_root, mode)?,
+        ])
     }
 
     fn raw_plugin_subdirs(&self) -> &'static [&'static str] {

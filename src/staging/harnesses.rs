@@ -8,9 +8,9 @@ use crate::manifest::AgentpackManifest;
 use crate::mode::filter::EffectiveMode;
 use crate::paths::{
     staging_codex_home_dir_for_mode, staging_cursor_bundle_dir_for_mode,
-    staging_cursor_home_dir_for_mode, staging_cursor_pack_plugin_dir_for_mode,
-    staging_grok_bundle_dir_for_mode, staging_grok_dir_for_mode, staging_grok_home_dir_for_mode,
-    staging_opencode_dir_for_mode, staging_plugins_dir_for_mode, STAGED_AGENTPACK_BUNDLE_NAME,
+    staging_cursor_pack_plugin_dir_for_mode, staging_grok_bundle_dir_for_mode,
+    staging_grok_dir_for_mode, staging_grok_home_dir_for_mode, staging_opencode_dir_for_mode,
+    staging_plugins_dir_for_mode, STAGED_AGENTPACK_BUNDLE_NAME,
 };
 
 use super::agy::{finalize_agy_staging, prepare_agy_staging_without_pack_overlay};
@@ -89,10 +89,6 @@ impl<'a> StagingPipeline<'a> {
 
     fn cursor_bundle_root(&self) -> Result<PathBuf> {
         staging_cursor_bundle_dir_for_mode(self.project_root, self.mode.name())
-    }
-
-    fn cursor_home(&self) -> Result<PathBuf> {
-        staging_cursor_home_dir_for_mode(self.project_root, self.mode.name())
     }
 
     pub(super) fn rebuild(&self) -> Result<Vec<PathBuf>> {
@@ -225,16 +221,11 @@ impl<'a> StagingPipeline<'a> {
     }
 
     fn reset_all(&self) -> Result<()> {
-        let mut paths = vec![
-            staging_plugins_dir_for_mode(self.project_root, self.mode.name())?,
-            self.opencode_root()?,
-            self.codex_home()?,
-            self.grok_home()?,
-            staging_grok_dir_for_mode(self.project_root, self.mode.name())?,
-            crate::paths::staging_agy_dir_for_mode(self.project_root, self.mode.name())?,
-            self.cursor_bundle_root()?,
-            self.cursor_home()?,
-        ];
+        let mode = self.mode.name();
+        let mut paths = Vec::new();
+        for harness in crate::harness::all() {
+            paths.extend(harness.reset_paths(self.project_root, mode)?);
+        }
         paths.sort();
         paths.dedup();
         for path in paths {
