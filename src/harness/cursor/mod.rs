@@ -286,9 +286,9 @@ impl Harness for Cursor {
         prepend_trust_if_needed(&mut args);
         ctx.ui.debug_message(msg);
 
-        let agent = resolve_harness_binary("CURSOR_AGENT_PATH", "agent").with_context(|| {
-            "Cursor Agent CLI (`agent`) not found.\n\
-             Install Cursor with the Agent CLI available on your PATH, or set CURSOR_AGENT_PATH to the `agent` executable."
+        let agent = resolve_harness_binary("CURSOR_AGENT_PATH", "cursor-agent").with_context(|| {
+            "Cursor Agent CLI (`cursor-agent`) not found.\n\
+             Install Cursor with the Agent CLI available on your PATH, or set CURSOR_AGENT_PATH to the `cursor-agent` executable."
         })?;
         let mut cmd = Command::new(&agent);
         for (key, value) in &envs {
