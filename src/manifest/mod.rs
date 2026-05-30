@@ -172,6 +172,7 @@ mod tests {
     use tempfile::tempdir;
 
     use super::*;
+    use crate::mode::ModeBase;
 
     fn write_manifest(root: &Path, extra: &str) {
         fs::write(
