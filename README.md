@@ -10,13 +10,15 @@
 
 <p align="center">
   <a href="https://oleghq.github.io/agentpack"><img alt="Documentation" src="https://img.shields.io/badge/docs-oleghq.github.io-1f6feb.svg"></a>
+  <a href="https://nexo.sh/posts/agentpack/"><img alt="Writeup" src="https://img.shields.io/badge/writeup-nexo.sh-ff6b6b.svg"></a>
   <a href="https://github.com/OlegHQ/agentpack/blob/dev/LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
-  <a href="https://github.com/OlegHQ/agentpack/releases"><img alt="Version" src="https://img.shields.io/badge/version-v0.3.1-blue.svg"></a>
+  <a href="https://github.com/OlegHQ/agentpack/releases"><img alt="Version" src="https://img.shields.io/badge/version-v0.3.3-blue.svg"></a>
   <a href="https://github.com/OlegHQ/agentpack"><img alt="Built with Rust" src="https://img.shields.io/badge/built_with-Rust-dea584.svg"></a>
 </p>
 
 <p align="center">
   <a href="https://oleghq.github.io/agentpack"><strong>Documentation</strong></a> ·
+  <a href="https://nexo.sh/posts/agentpack/"><strong>Writeup</strong></a> ·
   <a href="#quick-start">Quick Start</a> ·
   <a href="#how-it-works">How It Works</a> ·
   <a href="https://oleghq.github.io/agentpack/reference/cli.html">CLI Reference</a>
