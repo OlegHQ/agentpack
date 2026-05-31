@@ -1,69 +1,61 @@
-# Codex Integration
+# Codex
 
-agentpack supports [OpenAI Codex CLI](https://github.com/openai/codex) via the `agentpack codex` launcher.
+`agentpack codex` launches the [OpenAI Codex CLI](https://github.com/openai/codex) with a redirected home. Codex reads its config and skills from `CODEX_HOME` (default `~/.codex`), so agentpack stages a complete home and points the variable at it.
 
-## How it works
-
-Codex reads its configuration and agent instructions from the directory pointed to by `CODEX_HOME`. agentpack stages packaged content into a Codex-compatible directory structure and sets `CODEX_HOME` before exec-ing the `codex` binary.
-
-Codex caches login state either in `auth.json` or in the OS credential store. Because the keyring slot is derived from the canonical `CODEX_HOME` path, agentpack does not copy credentials into each per-project staged home. Instead, staged `auth.json` is linked to a shared source:
-
-- `~/.codex/auth.json` when the user already stores credentials in a file
-- `$AGENTPACK_HOME/shared/codex/auth.json` when the user stores credentials in the OS keychain
-
-When the shared file does not exist yet, agentpack materializes it from the real `~/.codex` keychain entry. The staged `config.toml` is then forced to `cli_auth_credentials_store = "file"` so every project sees the same refreshed token state.
-
-## Launching
+## What the launcher does
 
 ```sh
-agentpack codex
+CODEX_HOME="<staging>/modes/<mode>/codex-home" codex
 ```
 
-Extra arguments are forwarded to `codex`:
+Extra arguments are forwarded:
 
 ```sh
-agentpack codex --model o4-mini
+agentpack codex --model gpt-5-codex
+agentpack --yolo codex      # adds --dangerously-bypass-approvals-and-sandbox
 ```
 
-## CODEX_HOME override
+The staged home is **seeded** from your real `~/.codex/` (`config.toml`, `skills`, `themes`) so user config keeps working under the redirect.
 
-When launched, agentpack sets:
+## Credential bridging
 
-```sh
-CODEX_HOME="$AGENTPACK_STAGING_ROOT/codex-home"
-```
+Codex stores OAuth/API material in `auth.json` or in the OS keychain, keyed by the canonical `CODEX_HOME` path — so a staged path would otherwise miss your keychain entry and force re-login. agentpack avoids copying credentials per project by linking each staged `auth.json` to a shared source:
+
+- your real `~/.codex/auth.json` when that file already exists, or
+- `$AGENTPACK_HOME/shared/codex/auth.json`, which agentpack materializes from the real `~/.codex` keychain entry (service `Codex Auth`) when credentials live in the keychain.
+
+The staged `config.toml` is forced to `cli_auth_credentials_store = "file"`, so every project shares refresh-token updates through that one file.
 
 ## Staged layout
 
-```
-$AGENTPACK_STAGING_ROOT/codex-home/
+```text
+codex-home/
   auth.json -> ~/.codex/auth.json | $AGENTPACK_HOME/shared/codex/auth.json
-  config.toml
+  config.toml          # seeded + attribution off + merged [mcp_servers]
   skills/
-    <name>/
-      SKILL.md
+    <name>/SKILL.md
 ```
 
-## Artifact types
+## Artifact handling
+
+Codex gets the **portable skill subset** of pack content. agentpack does not synthesize Codex plugin marketplaces from Claude plugins.
 
 | Artifact | Staged as |
 |---|---|
-| Rules | `instructions/<name>.md` |
-| Agents / skills | `agents/<name>.md` |
-| Commands | Converted to agent instructions |
+| Skills | Codex skill under `skills/<name>/` |
+| Commands | Skill fallback |
+| Agents | Skill fallback |
+| Rules | Skill fallback |
+| MCP | Merged into `[mcp_servers]` in `config.toml` |
 
-## Environment variables
+Attribution is forced off via `commit_attribution = ""` in the staged `config.toml`. Set `AGENTPACK_KEEP_ATTRIBUTION=1` to keep your value.
 
-| Variable | Description |
+## Environment
+
+| Variable | Effect |
 |---|---|
-| `CODEX_HOME` | Set automatically by the launcher; override to customize |
-| `AGENTPACK_HOME` | Root for agentpack cache/state, including shared Codex auth when keychain bridging is needed |
+| `CODEX_PATH` | Path to the `codex` binary |
+| `AGENTPACK_HOME` | Cache/state root; also holds the shared Codex auth file when keychain bridging is needed |
 | `AGENTPACK_STAGING_ROOT` | Override the staging root |
-| `AGENTPACK_LAUNCH_FULL_SYNC` | Set to `1` to sync before launch |
 
-## Checking staged content
-
-```sh
-agentpack sync
-ls "$AGENTPACK_STAGING_ROOT/codex-home/"
-```
+See [Environment Variables](../reference/env-vars.md) for the complete list.

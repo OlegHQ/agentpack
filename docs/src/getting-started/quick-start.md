@@ -1,78 +1,76 @@
 # Quick Start
 
-This guide walks you from zero to a running agent in under five minutes.
+Zero to a running agent in a few minutes. The short version: `init`, `add`, launch.
 
 ## 1. Initialize a manifest
 
-Inside your project directory, run:
+From your project directory:
 
 ```sh
 agentpack init
 ```
 
-This creates `agentpack.toml` with a minimal `[package]` section:
+This writes a minimal `agentpack.toml` (identity is two top-level keys, not a `[package]` table) and an empty v2 `pack.lock`:
 
 ```toml
-[package]
 name = "my-project"
-version = "0.1.0"
+version = "0.0.1"
+
+[dependencies]
 ```
+
+`init` fails if `agentpack.toml` already exists, so it never clobbers your manifest.
 
 ## 2. Add a dependency
 
-Add a package using its module ID (Go-style path):
+`add` takes a package spec. The most explicit form is a Go-style module ID, but `owner/repo/path` shorthand and GitHub tree/blob URLs work too:
 
 ```sh
-agentpack add github.com/OlegHQ/paperclip-skills
+agentpack add anthropics/skills/skills/canvas-design
 ```
 
-agentpack resolves the latest compatible version and writes it into `[dependencies]` in `agentpack.toml`:
+agentpack resolves the spec, appends it under `[dependencies]`, refreshes `pack.lock`, and runs a sync — all in one command:
 
 ```toml
 [dependencies]
-"github.com/OlegHQ/paperclip-skills" = "^0.3.0"
+"github.com/anthropics/skills/skills/canvas-design" = {}
 ```
 
-## 3. Lock dependencies
+To pin a constraint, attach a `@ref` to the spec or edit the entry into table form (`{ version = "^1.0.0" }`, `{ branch = "main" }`, `{ tag = "v2.1.0" }`). See [Your First Manifest](./first-manifest.md). To stage nothing yet, pass `--no-sync`.
 
-Generate (or update) the lockfile:
+## 3. Lock and sync explicitly (optional)
+
+`add` already locked and synced. You only run these by hand for CI, or after editing the manifest directly:
 
 ```sh
-agentpack lock
+agentpack lock    # re-resolve agentpack.toml → pack.lock (network)
+agentpack sync    # fetch into the cache and rebuild every harness's staging
 ```
 
-This writes `pack.lock` with exact commit SHAs and content hashes for every dependency. Commit both `agentpack.toml` and `pack.lock` to version control.
+Commit both `agentpack.toml` and `pack.lock`. The first sync downloads everything; later syncs reuse the content-addressed cache and are fast.
 
-## 4. Sync the cache
+## 4. Launch an agent
 
-Pull all locked content into the local cache:
+Each launcher syncs (fast path when nothing changed), stages for that harness, and execs the real binary:
 
 ```sh
-agentpack sync
+agentpack claude     # Claude Code
+agentpack agent      # Cursor Agent (alias: cursor-agent)
+agentpack opencode   # OpenCode
+agentpack codex      # Codex
+agentpack grok       # Grok
+agentpack agy        # Antigravity
 ```
 
-The first run downloads everything. Subsequent runs are instant if the cache is already warm.
-
-## 5. Launch your agent
+Anything after the subcommand is forwarded to the underlying binary:
 
 ```sh
-# Claude Code
-agentpack claude
-
-# Cursor
-agentpack agent
-
-# OpenCode
-agentpack opencode
-
-# Codex
-agentpack codex
+agentpack codex --model gpt-5-codex
 ```
 
-Each launcher stages the dependencies for that harness, sets the appropriate environment variables, and execs the underlying agent binary.
+## Next steps
 
-## Next Steps
-
-- Learn about the [manifest format](./first-manifest.md)
-- Understand [dependency resolution](../concepts/resolution.md)
-- Explore [harness-specific guides](../harnesses/claude.md)
+- [Your First Manifest](./first-manifest.md) — version constraints, branches, local paths
+- [Dependency Resolution](../concepts/resolution.md) — how a constraint becomes a pinned commit
+- [Modes](../concepts/modes.md) — enable or disable subsets of your packages per task
+- [Harness guides](../harnesses/claude.md) — what each launcher actually does

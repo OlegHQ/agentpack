@@ -1,67 +1,63 @@
-# Claude Code Integration
+# Claude Code
 
-agentpack supports [Claude Code](https://claude.ai/code) via the `agentpack claude` launcher.
+`agentpack claude` launches [Claude Code](https://www.claude.com/product/claude-code) with your packages staged as a plugin directory. Claude's `--plugin-dir` flag is additive, so this layers on top of your normal configuration rather than replacing it.
 
-## How it works
+## What the launcher does
 
-Claude Code supports loading additional plugin directories via the `--plugin-dir` flag. agentpack stages all declared dependencies into a harness-specific directory and passes that directory to Claude Code at launch.
-
-The integration is **additive**: your existing `~/.claude/` configuration is untouched. Packaged commands and agents are layered on top.
-
-## Launching
+`sync` builds a single merged plugin bundle, then the launcher runs:
 
 ```sh
-agentpack claude
+claude --plugin-dir "<staging>/modes/<mode>/plugins/agentpack-bundle" \
+       --settings "$AGENTPACK_HOME/claude-settings.json"
 ```
 
-This is equivalent to:
+- `--plugin-dir` points at the staged `agentpack-bundle`.
+- `--settings` loads agentpack's attribution overlay (see below). It is omitted if you keep attribution on.
+
+Extra arguments are forwarded to `claude`:
 
 ```sh
-claude --plugin-dir "$AGENTPACK_STAGING_ROOT/claude"
+agentpack claude --model opus
+agentpack --yolo claude          # adds --dangerously-skip-permissions
 ```
 
-Any extra arguments you pass are forwarded to `claude`:
+`CLAUDE_CONFIG_DIR` is intentionally **never** set. Claude derives its keychain credential namespace from that variable, so a per-project value would forget your login on every project switch. Your real `~/.claude.json`, `~/.claude/settings.json`, and keychain entry are reused as-is.
 
-```sh
-agentpack claude --no-auto-update
+## What the bundle contains
+
+```text
+agentpack-bundle/
+  .claude-plugin/plugin.json
+  commands/   agents/   skills/    # converted markdown artifacts
+  hooks/  matchers/  core/  ...     # raw Claude support directories
+  mcp.json                          # merged MCP servers (see MCP Servers)
 ```
 
-## Staged layout
+agentpack does **not** copy your user-scoped `~/.claude/commands`, `agents`, or `skills` into the bundle. Claude already reads those from `$HOME`, and copying them would produce duplicate slash commands (e.g. both `/code-tutor` and `/agentpack-bundle:code-tutor`).
 
-```
-$AGENTPACK_STAGING_ROOT/claude/
-  .claude/
-    commands/
-      my-command.md
-      another-command.md
-    agents/
-      my-agent.md
-```
+## Artifact handling
 
-Commands are markdown files following Claude Code's command format. Agents are markdown files following Claude Code's agent format.
-
-## Artifact types
-
-| Artifact | Staged as |
+| Artifact | In the bundle |
 |---|---|
-| Commands | `.claude/commands/<name>.md` |
-| Agents / skills | `.claude/agents/<name>.md` |
-| Rules | Prepended to the session system prompt |
+| Commands | `commands/<name>.md`, Claude command frontmatter |
+| Agents | `agents/<name>.md`, Claude agent frontmatter |
+| Skills | `skills/<name>/`, normalized skill |
+| Rules | Best-effort skill fallback (Claude has no first-class rule files) |
+| Hooks | Supported — rendered into the bundle's `hooks/` |
+| MCP | Merged into `mcp.json` at the bundle root |
 
-## Full sync on launch
+Plugin-provided guidance is surfaced through a `SessionStart` hook that emits it as Claude's `additionalContext`, so the model sees it at the start of every session. See [Cross-Harness Conversion](./conversion.md) for the full mapping.
 
-By default, agentpack stages from the local cache without making network calls. To force a full network sync before launching:
+## Attribution
 
-```sh
-AGENTPACK_LAUNCH_FULL_SYNC=1 agentpack claude
-```
+By default `sync` writes `$AGENTPACK_HOME/claude-settings.json` with AI attribution forced off (`includeCoAuthoredBy = false`, empty commit/PR attribution) and the launcher passes it via `--settings`, which loads at `flagSettings` scope — above your user, project, and local settings. Your real config files are never modified. Set `AGENTPACK_KEEP_ATTRIBUTION=1` to keep your existing values. See [Overrides and Attribution](../guides/overrides.md).
 
-## Environment variables
+## Environment
 
-| Variable | Description |
+| Variable | Effect |
 |---|---|
-| `AGENTPACK_LAUNCH_FULL_SYNC` | Set to `1` to sync from network before launching |
-| `AGENTPACK_STAGING_ROOT` | Override the staging root directory |
-| `AGENTPACK_HOME` | Override the cache/config root |
+| `CLAUDE_CODE_PATH` | Path to the `claude` binary |
+| `AGENTPACK_STAGING_ROOT` | Override the staging root |
+| `AGENTPACK_HOME` | Override the cache/state root (also holds `claude-settings.json`) |
 
-See [Environment Variables](../reference/env-vars.md) for details.
+See [Environment Variables](../reference/env-vars.md) for the complete list.

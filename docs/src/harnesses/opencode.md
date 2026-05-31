@@ -1,65 +1,59 @@
-# OpenCode Integration
+# OpenCode
 
-agentpack supports [OpenCode](https://github.com/sst/opencode) via the `agentpack opencode` launcher.
+`agentpack opencode` launches [OpenCode](https://github.com/sst/opencode) with a redirected config root. Unlike Claude's additive plugin dir, OpenCode is configured by pointing it at a different config directory entirely.
 
-## How it works
+## What the launcher does
 
-OpenCode reads its configuration from the directory pointed to by `OPENCODE_CONFIG_DIR`. agentpack sets this variable to a staging directory containing all packaged content before exec-ing the `opencode` binary.
-
-## Launching
+OpenCode searches its config root — `opencode.json` plus `agents/`, `commands/`, `modes/`, `plugins/`, `skills/` — like the standard `.opencode` / `~/.config/opencode` locations. agentpack stages a complete root and runs:
 
 ```sh
-agentpack opencode
+OPENCODE_CONFIG_DIR="<staging>/modes/<mode>/opencode" opencode
 ```
 
-Extra arguments are forwarded to `opencode`:
+Extra arguments are forwarded:
 
 ```sh
-agentpack opencode --model anthropic/claude-sonnet-4-5
+agentpack opencode --model anthropic/claude-sonnet-4-6
+agentpack --yolo opencode      # stages opencode.json with "permission": "allow"
 ```
 
-## OPENCODE_CONFIG_DIR override
+## What the root contains
 
-When launched, agentpack sets:
-
-```sh
-OPENCODE_CONFIG_DIR="$AGENTPACK_STAGING_ROOT/opencode"
+```text
+opencode/
+  opencode.json          # seeded config + merged MCP + attribution instruction
+  agents/   commands/   skills/    # converted pack artifacts
+  plugins/  modes/
 ```
 
-agentpack merges packaged configuration with any existing OpenCode configuration at this path.
+The root is **seeded** from your real `~/.config/opencode/` (`opencode.json`, `agents`, `commands`, `modes`, `plugins`, `skills`) so provider and auth configuration keep working even though the config root is redirected. Converted pack content is then overlaid into OpenCode's native markdown locations.
 
-## Staged layout
-
-```
-$AGENTPACK_STAGING_ROOT/opencode/
-  config.json         # merged configuration
-  agents/
-    <name>.md
-  instructions/
-    <name>.md
-```
-
-## Artifact types
+## Artifact handling
 
 | Artifact | Staged as |
 |---|---|
-| Agents / skills | `agents/<name>.md` |
-| Rules | `instructions/<name>.md` |
-| Commands | Converted to agent instructions |
+| Commands | OpenCode command markdown |
+| Agents | OpenCode agent markdown |
+| Skills | OpenCode skill |
+| Rules | Best-effort skill fallback |
+| MCP | Merged into `opencode.json` |
 
-## Environment variables
+## Attribution
 
-| Variable | Description |
-|---|---|
-| `OPENCODE_CONFIG_DIR` | Set automatically by the launcher; override to customize |
-| `AGENTPACK_STAGING_ROOT` | Override the staging root |
-| `AGENTPACK_LAUNCH_FULL_SYNC` | Set to `1` to sync before launch |
+OpenCode has no first-class attribution setting. agentpack writes an `agentpack-no-attribution.md` system-prompt file and adds it to `instructions[]` in the staged `opencode.json` — prompt-level guidance, the best available lever. Set `AGENTPACK_KEEP_ATTRIBUTION=1` to skip it.
 
-## Checking the staged config
-
-Inspect what agentpack will pass to OpenCode before launching:
+## Inspecting the staged root
 
 ```sh
 agentpack sync
-ls "$AGENTPACK_STAGING_ROOT/opencode/"
+ls "$AGENTPACK_STAGING_ROOT/modes/default/opencode/"   # if AGENTPACK_STAGING_ROOT is set
 ```
+
+## Environment
+
+| Variable | Effect |
+|---|---|
+| `OPENCODE_PATH` | Path to the `opencode` binary |
+| `AGENTPACK_STAGING_ROOT` | Override the staging root |
+
+See [Environment Variables](../reference/env-vars.md) for the complete list.

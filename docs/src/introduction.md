@@ -1,43 +1,56 @@
 # Introduction
 
-**agentpack** is a package manager for AI coding agent configurations. It lets you declare the skills, rules, agents, and commands your project needs, resolve and lock exact versions, and launch supported AI harnesses with everything pre-staged.
+**agentpack** pins the skills, plugins, commands, and rules your project feeds to AI coding agents. You declare them once in `agentpack.toml`, lock them to exact commits in `pack.lock`, and launch any supported agent with everything already staged in its native format.
 
-## The Problem
+Think of it as `cargo` or `uv` for agent configuration: a manifest, a lockfile, a content-addressed cache, and reproducible builds — except the artifacts are skills and prompts instead of crates.
 
-AI coding agents are increasingly driven by configuration: system prompts, slash-command definitions, rules files, and agent skill libraries. These artifacts are scattered across GitHub repositories and local directories, have no standardized versioning story, and must be manually adapted when you switch between agents (Claude Code, Cursor, OpenCode, Codex). Teams copy-paste configs into their repos, configs drift, and there is no lockfile to guarantee reproducibility.
+## The problem it solves
 
-## What agentpack Provides
+Agent configuration has become real configuration. A project's behavior under Claude Code, Cursor, or Codex depends on slash commands, rules files, sub-agent definitions, MCP servers, and skill libraries. Today those artifacts live scattered across GitHub repos and local folders, with no shared versioning story, and each agent expects a different file layout.
 
-| Capability | Description |
+So teams copy-paste. The same skill gets pasted into `.claude/`, then adapted by hand for `.cursor/`, then forgotten when a third agent shows up. Versions drift between machines. Nothing records which commit of a shared rule set you actually ran. There is no lockfile.
+
+agentpack replaces the copy-paste with a dependency graph.
+
+## What it gives you
+
+| Capability | What it means |
 |---|---|
-| Declarative manifest | `agentpack.toml` lists dependencies with version constraints |
-| Deterministic lockfile | `pack.lock` pins exact commits and content hashes |
-| Content-addressed cache | Downloaded content is stored once under `$AGENTPACK_HOME/cache/` |
-| Per-harness staging | Artifacts are materialized into harness-specific staging directories outside your repo |
-| Cross-harness conversion | Skills, commands, agents, and rules are translated to each harness's native format |
-| Launchers | `agentpack claude`, `agentpack agent`, `agentpack opencode`, `agentpack codex` |
+| Declarative manifest | `agentpack.toml` lists direct dependencies with version constraints, modes, and MCP servers |
+| Deterministic lockfile | `pack.lock` (v2) pins every package — direct and transitive — to an exact commit and `cache_key` |
+| Content-addressed cache | Each package is fetched once into `$AGENTPACK_HOME/cache/<cache_key>/` and shared across projects |
+| Per-harness staging | Artifacts are materialized into per-harness staging trees **outside** your repo — never committed, never symlinked into your real `~/.claude` or `~/.cursor` |
+| Cross-harness conversion | A skill, command, agent, or rule is re-rendered into each harness's native format, not blindly copied |
+| Six launchers | `claude`, `agent` (Cursor), `opencode`, `codex`, `grok`, `agy` (Antigravity) — sync then exec the real binary |
 
-## Quick Example
+## A first taste
 
 ```toml
 # agentpack.toml
-[package]
 name = "my-project"
 version = "0.1.0"
 
 [dependencies]
-"github.com/OlegHQ/paperclip-skills" = "^0.3"
-"github.com/acme/shared-rules" = { version = "1.0", path = "rules" }
+"github.com/anthropics/skills/skills/canvas-design" = { branch = "main" }
+"github.com/anthropics/claude-plugins-official/plugins/hookify" = { version = "^1.0.0" }
 ```
 
+```sh
+agentpack add anthropics/skills/skills/canvas-design   # resolve, lock, sync
+agentpack claude                                       # launch Claude Code with both staged
 ```
-$ agentpack add github.com/OlegHQ/paperclip-skills
-$ agentpack lock
-$ agentpack claude
+
+The agent starts with every declared dependency in place — no manual copying, no drift, and nothing leaked into your global agent config.
+
+## How the pieces fit
+
+```text
+agentpack.toml  ──>  pack.lock  ──>  cache  ──>  staged bundles  ──>  launch
+  (you write)        (pinned)      (fetched)     (per-harness)       (agent runs)
 ```
 
-Your agent launches with every declared dependency staged and ready — no manual copying, no version drift.
+Read on through [Core Concepts](./concepts/manifest.md) to understand each step, or jump to the [Quick Start](./getting-started/quick-start.md) to get something running first.
 
-## Source and License
+## Source and license
 
-agentpack is open source at [https://github.com/OlegHQ/agentpack](https://github.com/OlegHQ/agentpack).
+agentpack is MIT-licensed and developed at [github.com/OlegHQ/agentpack](https://github.com/OlegHQ/agentpack). It is pre-release: the CLI, lockfile shape, staging layout, and defaults may change without a migration path until a stable release is declared.

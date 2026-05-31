@@ -15,6 +15,8 @@
 - [Dependency Resolution](./concepts/resolution.md)
 - [Content-Addressed Cache](./concepts/cache.md)
 - [Staging and Bundles](./concepts/staging.md)
+- [Modes](./concepts/modes.md)
+- [MCP Servers](./concepts/mcp.md)
 
 # Harness Guides
 
@@ -22,6 +24,8 @@
 - [Cursor Agent](./harnesses/cursor.md)
 - [OpenCode](./harnesses/opencode.md)
 - [Codex](./harnesses/codex.md)
+- [Grok](./harnesses/grok.md)
+- [Antigravity](./harnesses/antigravity.md)
 - [Cross-Harness Conversion](./harnesses/conversion.md)
 
 # Reference
@@ -34,4 +38,4 @@
 
 - [Publishing Packages](./guides/publishing.md)
 - [Team Workflows](./guides/team-workflows.md)
-- [Overrides and Customization](./guides/overrides.md)
+- [Overrides and Attribution](./guides/overrides.md)

@@ -1,84 +1,57 @@
-# Overrides and Customization
+# Overrides and Attribution
 
-agentpack provides several mechanisms to override or extend default behavior without modifying shared packages.
+How to bend agentpack's defaults without editing shared packages, plus how attribution is handled in staged configs.
 
-## Local path overrides
+## Override a dependency with a local copy
 
-Replace a remote dependency with a local copy during development. Edit `agentpack.toml`:
+To develop a package and test it in a consumer at the same time, swap the remote dependency for a `path`:
 
 ```toml
 [dependencies]
-# Temporarily override with local version
-"github.com/acme/shared-rules" = { path = "../shared-rules" }
+"shared-rules" = { path = "../shared-rules" }
 ```
 
-Run `agentpack sync` to stage from the local path. When development is done, restore the version constraint and run `agentpack lock`.
+`sync` re-copies the directory on every run, so edits show up immediately. Restore the version constraint and run `agentpack lock` when you're done.
 
-This is the recommended approach for developing a package and testing it in a consumer project simultaneously.
+## Pin an exact commit
 
-## Personal agent overlay (`AGENTPACK_DOT_AGENTS`)
+When you need a commit that isn't behind a tag, use the `commit` field directly — no branch tricks required:
 
-Add personal agent files that are staged on your machine but never committed to the project repository:
+```toml
+[dependencies]
+"github.com/acme/shared-rules" = { commit = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2" }
+```
+
+`tag` and `branch` are the other exact-pin options; see [Your First Manifest](../getting-started/first-manifest.md).
+
+## Project overlay and per-mode toggles
+
+For project-specific content that isn't a published package, use the committed `./.agents/` overlay ([Team Workflows](./team-workflows.md)). To turn whole packages, individual files, or MCP servers on and off per task, use [Modes](../concepts/modes.md). Both are first-class — reach for them before environment hacks.
+
+## Relocate state and staging
 
 ```sh
-# In your shell profile
-export AGENTPACK_DOT_AGENTS="$HOME/.my-agents"
+export AGENTPACK_STAGING_ROOT="/tmp/agentpack-staging"   # stable staging path
+export AGENTPACK_HOME="./.agentpack"                     # project-isolated cache/state
 ```
 
-Place any artifact files in that directory. agentpack will include them in every harness staging alongside the project's declared dependencies. Files in the overlay do not need a manifest.
+A project-local `AGENTPACK_HOME` keeps all cached content and bookkeeping inside the repo directory; add `.agentpack/` to `.gitignore`. See [Environment Variables](../reference/env-vars.md) for defaults.
 
-```
-~/.my-agents/
-  commands/
-    my-personal-command.md
-  rules/
-    my-preferences.md
-```
+## Attribution
 
-## Staging root override
+By default, `sync` forces AI attribution **off** in every staged harness config — Co-Authored-By trailers and "Generated with X" footers — so your project doesn't pick up agent credit lines unintentionally. Your real `~/.claude`, `~/.codex`, `~/.cursor`, and `~/.config/opencode` are never modified; only the staged copies and the Claude overlay file at `$AGENTPACK_HOME/claude-settings.json` are touched.
 
-Redirect all staging to a custom location (e.g. for testing or CI isolation):
+Set `AGENTPACK_KEEP_ATTRIBUTION=1` (or `true`/`yes`) to keep your existing values.
 
-```sh
-export AGENTPACK_STAGING_ROOT="/tmp/agentpack-test-staging"
-agentpack sync
-```
+How each harness is handled:
 
-## Harness-specific config dir overrides
+| Harness | Mechanism |
+|---|---|
+| Claude Code | `$AGENTPACK_HOME/claude-settings.json` via `--settings`: `includeCoAuthoredBy = false`, empty commit/PR attribution (loads at `flagSettings` scope) |
+| Codex | `commit_attribution = ""` in the staged `config.toml` |
+| Cursor | `attributeCommitsToAgent = false`, `attributePRsToAgent = false` in the staged `cli-config.json` (a real file, never your real one) |
+| OpenCode | No first-class setting; a system-prompt file is added to `instructions[]` |
+| Grok | No verified setting; prompt-level guidance only |
+| Antigravity | No verified setting; an always-apply plugin rule |
 
-Each launcher respects a dedicated override variable:
-
-| Harness | Variable | Default behavior |
-|---|---|---|
-| Cursor | `AGENTPACK_CURSOR_CONFIG_DIR` | Synthetic HOME approach |
-| OpenCode | `OPENCODE_CONFIG_DIR` (set by launcher) | `staging/opencode` |
-| Codex | `CODEX_HOME` (set by launcher) | `staging/codex` |
-
-Set these in your shell profile to point at a pre-existing config directory rather than the auto-generated staging location:
-
-```sh
-export AGENTPACK_CURSOR_CONFIG_DIR="$HOME/.cursor"
-```
-
-## Pinning a dependency to a specific commit
-
-If you need an exact commit that does not correspond to a published tag, use `branch` with a commit SHA (not a real branch, but git accepts SHAs as "branches" in some contexts). For clean reproducibility, the recommended approach is to ask the package author to tag the desired commit.
-
-## Disabling auto-sync on launch
-
-By default, launchers use the cached state without making network calls. If you have set `AGENTPACK_LAUNCH_FULL_SYNC=1` globally and want to disable it for a single invocation:
-
-```sh
-AGENTPACK_LAUNCH_FULL_SYNC=0 agentpack claude
-```
-
-## Overriding `AGENTPACK_HOME` per project
-
-Isolate a project's cache completely from other projects:
-
-```sh
-AGENTPACK_HOME="./.agentpack" agentpack sync
-AGENTPACK_HOME="./.agentpack" agentpack claude
-```
-
-This keeps all state inside the project directory. Add `.agentpack/` to `.gitignore`.
+Claude, Codex, and Cursor have real attribution settings, so those are exact. OpenCode, Grok, and Antigravity expose no such setting, so agentpack falls back to prompt-level guidance — best-effort, not guaranteed.

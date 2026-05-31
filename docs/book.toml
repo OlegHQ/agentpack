@@ -1,9 +1,9 @@
 [book]
 authors = ["Oleg Pustovit"]
 language = "en"
-multilingual = false
 src = "src"
 title = "agentpack documentation"
+description = "Documentation for agentpack — the package manager for AI coding agents."
 
 [output.html]
 default-theme = "navy"

@@ -1,51 +1,37 @@
-# Cross-Harness Artifact Conversion
+# Cross-Harness Conversion
 
-Each AI harness uses a different file format and directory structure for the same conceptual artifact types. When agentpack stages a package, it automatically converts every artifact to every supported harness's native format.
+Every harness names and formats the same ideas differently. agentpack does not copy artifacts verbatim — during `sync` it **parses** each markdown artifact from the cached package and **re-renders** it into every target harness's native format.
 
-## Artifact types
+## The four artifact types
 
-| Type | Description |
+| Type | What it is |
 |---|---|
-| **command** | A named slash-command the user can invoke (e.g. `/review`) |
-| **agent** | A named sub-agent or mode with a dedicated system prompt |
-| **skill** | A reusable instruction block, similar to an agent |
-| **rule** | A persistent context fragment injected into every session |
+| **command** | A named slash command (e.g. `/review`) |
+| **agent** | A named sub-agent with its own system prompt |
+| **skill** | A reusable instruction set with frontmatter |
+| **rule** | Context applied across a session (Cursor `.mdc`, Antigravity rules) |
 
-## Conversion table
+## How it works
 
-| Source artifact | Claude Code | Cursor | OpenCode | Codex |
-|---|---|---|---|---|
-| command | `.claude/commands/<n>.md` | Converted to rule | Agent instruction | Agent instruction |
-| agent | `.claude/agents/<n>.md` | `.cursor/rules/<n>.mdc` | `agents/<n>.md` | `agents/<n>.md` |
-| skill | `.claude/agents/<n>.md` | `.cursor/rules/<n>.mdc` | `agents/<n>.md` | `agents/<n>.md` |
-| rule | System prompt prepend | `.cursor/rules/<n>.mdc` | `instructions/<n>.md` | `instructions/<n>.md` |
+1. agentpack reads the artifact from the cached package, detecting its source format — Cursor plain markdown, OpenCode markdown frontmatter, Claude command/agent/skill frontmatter, or skill frontmatter.
+2. For each target harness, it re-renders the artifact in that harness's native shape: the right directory, filename, and frontmatter.
+3. When a harness lacks a first-class equivalent, agentpack uses a documented fallback rather than dropping the artifact.
 
-## How conversion works
+## Where each artifact lands
 
-1. A package declares its artifacts in a format-agnostic manifest inside the package itself.
-2. At stage time, agentpack reads the artifact declarations and the content files.
-3. For each target harness, agentpack writes the artifact in the native format.
+| Source | Claude | Cursor | OpenCode | Codex | Grok | Antigravity |
+|---|---|---|---|---|---|---|
+| command | command frontmatter | plain markdown | command markdown | skill fallback | command | command |
+| agent | agent frontmatter | agent markdown | agent markdown | skill fallback | agent | agent |
+| skill | normalized skill | skill | skill | Codex skill | skill | skill |
+| rule | skill fallback | `.mdc` (preserved) | skill fallback | skill fallback | skill fallback | rule (preserved) |
 
-The content itself is not transformed — only the file location, name, and any wrapping frontmatter are adjusted.
+Two harnesses have first-class rules — Cursor and Antigravity — so rules are preserved there. Everywhere else, a rule becomes a best-effort skill, with its original rule scope noted so the intent survives. Codex gets the portable skill subset: commands and agents fall back to skills.
 
-## Example
+## Frontmatter
 
-A package ships a skill called `code-review` with content in `skills/code-review.md`. After staging:
+agentpack writes whatever frontmatter the target format needs (for example, Cursor `.mdc` metadata), using the artifact's name and any metadata carried in the source. The instruction body is preserved; only the wrapper changes.
 
-```
-claude/   .claude/agents/code-review.md
-cursor/   home/.cursor/rules/code-review.mdc
-opencode/ agents/code-review.md
-codex/    agents/code-review.md
-```
+## Skill shadowing
 
-Each harness sees the same instructions in its own native location.
-
-## Frontmatter handling
-
-Some harnesses require frontmatter metadata (e.g. Cursor `.mdc` files). agentpack adds the required frontmatter when converting, using the artifact name and any metadata declared in the package.
-
-## Limitations
-
-- **Commands** are not fully first-class in all harnesses. For Cursor, OpenCode, and Codex, commands are folded into agent/instruction files with a note indicating their original command name.
-- Binary or non-text artifacts are not converted and are only staged for harnesses that declare support for them in the package manifest.
+A full plugin at repo path `P` (same owner / repo / commit) shadows any **skill** whose path is `P` or sits under `P/`. An empty `P` shadows every skill for that repo at that commit. This keeps a plugin and its bundled skills from staging duplicate copies of the same content.

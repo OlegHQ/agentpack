@@ -1,80 +1,61 @@
 # Staging and Bundles
 
-Staging is the process of materializing cached package content into a directory layout that a specific AI harness expects. Each harness has its own layout conventions, so agentpack maintains one staging directory per harness.
+Staging materializes cached packages into the directory layout each harness expects. Every harness has its own conventions, so `sync` builds a separate staging tree per harness and per [mode](./modes.md).
 
-## Why staging exists outside the repo
+## Staging stays outside your repo
 
-Staged artifacts are intentionally placed **outside your project's Git repository**. They are:
+Staged trees are deliberately kept out of your project's Git repository. They are machine-specific, regenerated on demand from the cache, and can be large. agentpack also does **not** symlink pack content into your real `~/.claude` or `~/.cursor` — that would leak project-specific pins into your global agent config.
 
-- Machine-specific (different harnesses may be installed in different locations)
-- Regenerated on demand from the cache (no need to commit them)
-- Potentially large (docs, examples, binaries)
-
-This keeps your repository clean. Only `agentpack.toml` and `pack.lock` belong in version control.
+Only `agentpack.toml` and `pack.lock` belong in version control. (Two opt-in exceptions exist: the `agentpack agent` and `agentpack agy` launchers create a single workspace symlink — see their harness guides.)
 
 ## Staging root
 
-By default the staging root is:
+The default staging root is a per-project directory in the system temp location:
 
-```
-$AGENTPACK_STAGING_ROOT/
-```
-
-If `AGENTPACK_STAGING_ROOT` is not set, agentpack derives a location under `$AGENTPACK_HOME`:
-
-```
-$AGENTPACK_HOME/staging/<project-hash>/
+```text
+<temp_dir>/agentpack-<project-hash>/
 ```
 
-Override the root:
+Set `AGENTPACK_STAGING_ROOT` to pin a stable location — useful when your OS rotates temp directories, or in CI for a fast local disk:
 
 ```sh
 export AGENTPACK_STAGING_ROOT=/tmp/agentpack-staging
 ```
 
-## Per-harness layout
+Each mode gets its own subtree under `modes/<mode>/`, and each harness gets a directory there:
 
-Inside the staging root, each harness gets its own subdirectory:
-
-```
-staging/
-  claude/
-    .claude/
-      commands/
-      agents/
-  cursor/
-    .cursor/
-      rules/
-  opencode/
-    ...
-  codex/
-    ...
+```text
+<staging-root>/
+  modes/
+    default/
+      plugins/agentpack-bundle/   # Claude --plugin-dir bundle
+      opencode/                   # OpenCode config root (OPENCODE_CONFIG_DIR)
+      codex-home/                 # Codex home (CODEX_HOME)
+      cursor/  cursor-home/       # Cursor plugin tree + fake HOME
+      grok/    grok-home/         # Grok bundle + home (GROK_HOME)
+      agy/                        # Antigravity workspace plugin
 ```
 
-Each launcher (`agentpack claude`, `agentpack agent`, etc.) points the harness at its own subdirectory by setting environment variables or CLI flags before exec-ing the binary.
+A launcher points its harness at the right subtree by setting an environment variable or CLI flag before exec-ing the binary — `claude --plugin-dir …`, `OPENCODE_CONFIG_DIR`, `CODEX_HOME`, `GROK_HOME`, a fake `HOME` for Cursor, a workspace `--add-dir` for Antigravity. The [harness guides](../harnesses/claude.md) cover each one.
 
-## Bundle contents
+## What a bundle contains
 
-A **bundle** is the collection of artifacts materialized from one package into a staging directory. Each package may contribute one or more artifact types:
+A **bundle** is what one package contributes to a staging tree. Packages carry some mix of:
 
-- **commands** — harness-specific slash-command definitions
+- **commands** — slash-command definitions
 - **agents** — sub-agent or mode definitions
-- **skills** — reusable instruction sets (called differently per harness)
-- **rules** — persistent context injected into every session
+- **skills** — reusable instruction sets
+- **rules** — persistent context applied across a session
+- **MCP servers** — merged into each harness's native MCP config
 
-Cross-harness [artifact conversion](../harnesses/conversion.md) happens at bundle time: a skill defined in one format is automatically converted to every harness's native format.
+[Cross-harness conversion](../harnesses/conversion.md) happens here: a skill authored in one format is re-rendered into every target harness's native format rather than copied verbatim. Layering order within a tree is user config first, then plugins (by `cache_key`), then bare skills, then the project's `./.agents/` overlay — later layers win on the same relative path.
 
-## Forcing a re-stage
+## Re-staging
 
-To wipe and re-materialize staging from the cache without re-downloading:
+`sync` rebuilds every harness's staging from the current cache state:
 
 ```sh
 agentpack sync
 ```
 
-`sync` always re-stages all harnesses from the current cache state. To run a full sync (including network) before launching, set:
-
-```sh
-export AGENTPACK_LAUNCH_FULL_SYNC=1
-agentpack claude
-```
+Launchers run a **fast pre-sync** when `agentpack.toml`, `pack.lock`, and `./.agents/` are unchanged since the last successful launch: they verify cache and staging integrity and skip the full lock-resolve, re-download, and rebuild. Because of that, floating pins do not advance on launch alone — run `agentpack sync` or `agentpack lock --update` when you need the lock refreshed.

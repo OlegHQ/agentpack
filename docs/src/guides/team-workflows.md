@@ -1,101 +1,83 @@
 # Team Workflows
 
-This guide covers common patterns for using agentpack in a team environment.
+Patterns for sharing agent configuration across a team.
 
-## Committing the manifest and lockfile
+## Commit the manifest and lockfile
 
-Always commit both `agentpack.toml` and `pack.lock` to your repository:
+Commit both files together:
 
 ```sh
 git add agentpack.toml pack.lock
 git commit -m "chore: add agentpack dependencies"
 ```
 
-This ensures every team member and every CI run resolves to the same package versions. Do not add the staging directories to version control — they are machine-local.
+That pair is what makes resolution identical for everyone. Staging trees are machine-local and live outside the repo by default, so there's nothing to ignore unless you've pointed `AGENTPACK_STAGING_ROOT` inside the project — in which case ignore that path.
 
-Add this to `.gitignore` if you want to be explicit (though staging directories are outside the repo by default):
+## Onboarding
 
-```gitignore
-# agentpack staging (if AGENTPACK_STAGING_ROOT is inside the repo)
-.agentpack-staging/
-```
-
-## Onboarding new developers
-
-New developers clone the repository and run:
+A new contributor clones the repo and runs one command:
 
 ```sh
-agentpack sync
+agentpack sync     # fetch everything pinned in pack.lock and stage it
+agentpack claude   # or any other launcher
 ```
 
-This downloads all packages locked in `pack.lock` into the local cache and stages them. After that, they can launch any supported harness:
-
-```sh
-agentpack claude
-```
-
-No manual copying of config files, no "which version of the rules are we on?" conversations.
+No copying config files, no "which version of the rules are we on" — `pack.lock` answers that.
 
 ## Updating a dependency
 
-One developer updates the version constraint in `agentpack.toml`:
+Edit the constraint, re-resolve, commit:
 
 ```toml
 [dependencies]
-"github.com/OlegHQ/paperclip-skills" = "^0.4"   # was ^0.3
+"github.com/acme/shared-rules" = "^0.4"   # was ^0.3
 ```
-
-Then regenerates the lockfile and commits:
 
 ```sh
-agentpack lock
+agentpack lock            # reconcile pack.lock with the changed manifest
 git add agentpack.toml pack.lock
-git commit -m "chore: upgrade paperclip-skills to ^0.4"
+git commit -m "chore: bump shared-rules to ^0.4"
 ```
 
-Other developers pull the commit and run `agentpack sync` to get the updated content.
-
-## CI integration
-
-In CI, run `agentpack sync` before any step that needs staged artifacts. Cache `$AGENTPACK_HOME/cache/` to avoid redundant downloads:
-
-```yaml
-# .github/workflows/ci.yml
-- name: Cache agentpack
-  uses: actions/cache@v4
-  with:
-    path: ~/.agentpack/cache
-    key: agentpack-${{ hashFiles('pack.lock') }}
-
-- name: Sync agentpack dependencies
-  run: agentpack sync
-```
+`lock` reconciles manifest edits. To advance a **floating** pin (a branch, or a constraint whose range hasn't changed) to its latest matching commit, use `agentpack lock --update`. Everyone else pulls the commit and runs `agentpack sync`.
 
 ## Shared team packages
 
-Create a private GitHub repository for team-specific agent skills and rules. Publish tagged releases and add it as a dependency in each project:
+Keep team-specific skills and rules in a GitHub repo, tag releases, and depend on it from each project:
 
 ```toml
 [dependencies]
 "github.com/acme/team-agent-config" = "^1.0"
 ```
 
-All projects stay in sync simply by running `agentpack lock && agentpack sync`.
+For a **private** repo, every machine and CI runner needs `GITHUB_TOKEN` (or `GH_TOKEN`) with read access. Projects stay aligned with `agentpack lock && agentpack sync`.
 
-## Per-developer overlays
+## A committed project overlay (`./.agents/`)
 
-For personal customizations that should not be committed, set `AGENTPACK_DOT_AGENTS` in your shell profile:
+To ship project-specific agent content that isn't a published package, drop it in `./.agents/` at the repo root and commit it. On `sync`, agentpack merges it into the harness trees that don't natively read it (the Claude bundle and Codex home), layered last so it wins on conflicts. Shape it like a harness layout: `rules/`, `skills/`, `agents/`, `commands/`, `hooks/`, `mcp.json`, top-level `AGENTS.md`/`CLAUDE.md`, and optional `claude/` and `codex/` subtrees.
 
-```sh
-export AGENTPACK_DOT_AGENTS="$HOME/.my-personal-agents"
+Cursor, OpenCode, and Antigravity already discover workspace customization natively, so `./.agents/` is not merged into their staging. Set `AGENTPACK_DOT_AGENTS=0` to skip the overlay entirely.
+
+## CI
+
+Run `agentpack sync` before any step that needs staged artifacts, and persist the cache between runs. Key on `pack.lock` so the cache invalidates when dependencies change:
+
+```yaml
+# .github/workflows/ci.yml
+- name: Cache agentpack
+  uses: actions/cache@v4
+  with:
+    path: ~/.local/share/agentpack/cache   # or $AGENTPACK_HOME/cache
+    key: agentpack-${{ hashFiles('pack.lock') }}
+
+- name: Sync agentpack
+  run: agentpack sync
 ```
 
-Files in this directory are staged into every harness on your machine only. Other team members are unaffected.
+## Merge conflicts in pack.lock
 
-## Handling merge conflicts in pack.lock
+`pack.lock` is plain TOML and usually merges cleanly, but two branches that both change dependencies can collide. The reliable fix:
 
-`pack.lock` is TOML and is relatively merge-friendly, but conflicts can occur when two branches both update dependencies. The safest resolution is:
-
-1. Accept either version of the conflicting section.
-2. Run `agentpack lock` to recompute a clean lockfile from the merged `agentpack.toml`.
-3. Commit the regenerated `pack.lock`.
+1. Resolve the conflict in `agentpack.toml` (the source of truth).
+2. Run `agentpack lock` to regenerate a clean `pack.lock` from the merged manifest.
+3. Commit the regenerated lockfile.

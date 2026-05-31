@@ -1,101 +1,89 @@
 # Publishing Packages
 
-Any GitHub repository can be an agentpack package. There is no registry — agentpack resolves packages directly from GitHub using tags as versions. Publishing a package means tagging a release.
+There is no registry. agentpack resolves packages straight from GitHub, using Git tags as versions. Publishing a package is just pushing a repo and tagging it.
 
-## Package structure
+A package is one of two kinds, detected by its layout:
 
-At minimum, a publishable package needs an `agentpack.toml` with `[package]` metadata at the root (or subdirectory) that consumers will reference:
+- **Skill** — a directory containing a `SKILL.md`.
+- **Plugin** — a directory containing a plugin manifest: `.claude-plugin/plugin.json`, `.cursor-plugin/plugin.json`, or both.
+
+You do **not** declare your artifacts in a table. agentpack discovers them by reading the package's content and re-renders them per harness (see [Cross-Harness Conversion](../harnesses/conversion.md)).
+
+## A skill package
+
+The minimal skill is a directory with a `SKILL.md`:
+
+```text
+canvas-design/
+  SKILL.md
+  reference.md      # any supporting files the skill references
+```
+
+Consumers depend on the directory's module ID:
 
 ```toml
-# agentpack.toml in your package repo
-[package]
-name    = "my-agent-skills"
-version = "1.0.0"
+[dependencies]
+"github.com/acme/skills/canvas-design" = "^1.0"
 ```
 
-Beyond the manifest, the package contains the actual artifact files. Typical layout:
+## A plugin package
 
-```
-my-package/
-  agentpack.toml
-  commands/
-    review.md
-    explain.md
-  agents/
-    code-reviewer.md
-  rules/
-    style-guide.md
+A plugin carries a manifest plus whatever artifact directories it ships. Layouts are normalized after fetch, so you can expose Claude and/or Cursor manifests:
+
+```text
+hookify/
+  .claude-plugin/plugin.json
+  commands/   agents/   skills/   rules/   hooks/
+  mcp.json
 ```
 
-## Artifact declarations
+## Transitive dependencies
 
-Declare your artifacts in `agentpack.toml` so agentpack knows what to stage and how:
+If your package depends on other packages, add an `agentpack.toml` to its root declaring `[dependencies]`. When someone depends on your package, agentpack reads that manifest at the resolved commit and pulls your dependencies into their graph. The manifest's `[dependencies]` table is the only part consulted for transitive resolution.
 
-```toml
-[package]
-name    = "my-skills"
-version = "1.0.0"
+## Versioning and tags
 
-[[artifact]]
-type = "command"
-name = "review"
-file = "commands/review.md"
-
-[[artifact]]
-type = "agent"
-name = "code-reviewer"
-file = "agents/code-reviewer.md"
-
-[[artifact]]
-type = "rule"
-name = "style-guide"
-file = "rules/style-guide.md"
-```
-
-## Versioning and tagging
-
-agentpack resolves versions from Git tags. Use SemVer tags:
+agentpack resolves SemVer tags. Both `v1.0.0` and `1.0.0` are recognized:
 
 ```sh
 git tag v1.0.0
 git push origin v1.0.0
 ```
 
-Both `v1.0.0` and `1.0.0` formats are recognized.
+Suggested bump policy:
 
-### When to bump versions
-
-| Change type | Version bump |
+| Change | Bump |
 |---|---|
-| New artifact added (backward compatible) | MINOR |
-| Artifact removed or renamed | MAJOR |
-| Content-only fix (no structural change) | PATCH |
-| Breaking change to artifact format | MAJOR |
+| New artifact, backward compatible | MINOR |
+| Content-only fix | PATCH |
+| Artifact removed/renamed, or format break | MAJOR |
 
 ## Monorepo packages
 
-If your package lives in a subdirectory of a larger repo, place `agentpack.toml` in that subdirectory. Consumers reference it with the full subpath:
+Put the package (its `SKILL.md` or plugin manifest, and an `agentpack.toml` if it has dependencies) in a subdirectory, and tag the repo normally. Consumers reference the full subpath in the module ID:
 
 ```toml
-# Consumer's agentpack.toml
 [dependencies]
 "github.com/acme/monorepo/packages/my-skills" = "^1.0"
 ```
 
-Tag the repo with SemVer tags as normal. agentpack reads the manifest from the subdirectory at the tagged commit.
+agentpack reads from that subdirectory at the tagged commit.
 
-## Testing your package locally
+## Test before you tag
 
-Before publishing, test your package as a local dependency:
+Develop against a consumer project using a local path dependency, then switch to a version constraint once you're happy:
 
 ```toml
-# In your test project's agentpack.toml
 [dependencies]
-"github.com/acme/my-skills" = { path = "../my-skills" }
+"my-skills" = { path = "../my-skills" }
 ```
 
-Run `agentpack sync` to stage and inspect the output. Then switch to a version constraint once you're satisfied and publish the tag.
+Run `agentpack sync` and inspect the staged output (the [harness guides](../harnesses/claude.md) show where each tree lives).
 
-## Visibility
+## Private repositories and rate limits
 
-agentpack works with public GitHub repositories. Private repository support depends on having a valid `GITHUB_TOKEN` with read access to the private repo in your environment.
+agentpack reads `GITHUB_TOKEN` (or `GH_TOKEN`) when present and sends it as a bearer token for ref/tag lookups and authenticated downloads. Set one to access private repos, and to avoid anonymous API rate limits on heavy resolution:
+
+```sh
+export GITHUB_TOKEN="ghp_..."
+```

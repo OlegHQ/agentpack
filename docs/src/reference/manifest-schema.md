@@ -1,137 +1,142 @@
 # Manifest Schema
 
-Full reference for `agentpack.toml`.
+Complete reference for `agentpack.toml`.
 
-## Top-level tables
-
-```toml
-[package]       # required
-[dependencies]  # optional
-[modes]         # optional
-[mcp.servers]   # optional
-```
-
----
-
-## `[package]`
+## Top-level shape
 
 ```toml
-[package]
-name    = "my-project"
-version = "0.1.0"
+name    = "my-project"   # required
+version = "0.0.1"        # required
+
+[dependencies]   # optional
+[modes]          # optional
+[mcp.servers]    # optional
 ```
 
-| Field | Type | Required | Description |
+Identity is two **top-level keys**, not a `[package]` table.
+
+| Key | Type | Required | Description |
 |---|---|---|---|
-| `name` | string | yes | Project name. Used in diagnostics and lock metadata. Must be non-empty. |
-| `version` | string | yes | SemVer string (`MAJOR.MINOR.PATCH`). |
-
----
+| `name` | string | yes | Project name; used in diagnostics and lock metadata |
+| `version` | string | yes | SemVer string |
 
 ## `[dependencies]`
 
-Each entry has a **key** (module ID) and a **value** (version constraint string or inline table).
+Each entry is a **key** (module ID) mapped to a **value** (short string or inline table).
 
 ### Key format
 
-```
+```text
 github.com/<owner>/<repo>
-github.com/<owner>/<repo>/<subpath>
+github.com/<owner>/<repo>/<p1>/<p2>/...
 ```
 
-The key must be a valid module ID. Only `github.com` is supported as the host for remote packages.
+Module IDs are lowercase Go-style paths. The host is always `github.com` for remote packages. A subdirectory inside a repo is part of the **key** — there is no field for it.
 
-### Value: version string
+### Value: short string
+
+A bare string is a version constraint, branch, tag, or commit:
 
 ```toml
 "github.com/acme/rules" = "^1.2"
 ```
 
-Shorthand for `{ version = "^1.2" }`.
-
 ### Value: inline table
 
 ```toml
-"github.com/acme/rules" = { version = "^1.2", path = "subdir" }
+"github.com/acme/rules" = { version = "^1.2" }
 ```
 
 | Field | Type | Description |
 |---|---|---|
-| `version` | string | SemVer constraint. Required unless `branch` is set. |
-| `path` | string | Subdirectory within the repository to treat as the package root. |
-| `branch` | string | Git branch to track instead of a version tag. Non-reproducible; avoid in production. |
+| `version` | string | SemVer constraint matched against the repo's tags |
+| `branch` | string | Track a branch; resolves to its HEAD at lock time (not reproducible over time) |
+| `tag` | string | Pin an exact tag |
+| `commit` | string | Pin an exact commit SHA |
+| `path` | string | **Local filesystem** directory relative to the project root (local development) |
 
 ### Local path dependency
 
-When `path` is a filesystem path (absolute or relative to the manifest), the dependency is resolved locally:
+A `path` field makes the dependency local — read from disk, never fetched from GitHub. No `version`/`branch`/`tag` is needed:
 
 ```toml
-"github.com/acme/my-lib" = { path = "../my-lib" }
+"local-rules" = { path = "../local-rules" }
 ```
 
-No `version` or `branch` field is needed for local path dependencies.
-
----
+The key is still used as the package's identity for deduplication.
 
 ## Version constraint syntax
 
 | Syntax | Semantics |
 |---|---|
-| `"1.2.3"` | Exact version 1.2.3 |
-| `"^1.2.3"` | >=1.2.3 and <2.0.0 |
-| `"~1.2.3"` | >=1.2.3 and <1.3.0 |
-| `">=1.0.0"` | Any version at or above 1.0.0 |
+| `"1.2.3"` | Exactly 1.2.3 |
+| `"^1.2.3"` | `>=1.2.3, <2.0.0` |
+| `"~1.2.3"` | `>=1.2.3, <1.3.0` |
+| `">=1.0.0"` | At or above 1.0.0 |
 | `">=1.0, <2.0"` | Explicit range |
 | `"*"` | Any version |
 
----
-
-## Complete example
-
-```toml
-[package]
-name    = "acme-backend"
-version = "0.5.0"
-
-[dependencies]
-"github.com/OlegHQ/paperclip-skills"    = "^0.3"
-"github.com/acme/shared-rules"          = "~1.4"
-"github.com/acme/monorepo"              = { version = "^2.0", path = "packages/agent" }
-"github.com/acme/experimental"          = { branch = "main" }
-"github.com/acme/local-dev"             = { path = "../local-dev" }
-
-[modes.default]
-base = "all"
-disable = ["package-path:github.com/acme/shared-rules:commands/noisy.md"]
-
-[modes.review]
-base = "none"
-enable = ["package:github.com/acme/shared-rules", ".agents:rules/backend.mdc"]
-```
-
 ## `[modes.<name>]`
 
-Modes are project-local staging presets. The reserved `default` mode is used whenever `--mode` is omitted.
+Project-local staging presets. The reserved `default` mode applies when `--mode` is omitted. See [Modes](../concepts/modes.md).
 
 ```toml
 [modes.default]
 base = "all"
-disable = ["mcp:filesystem"]
 
-[modes.design]
-base = "none"
-enable = ["package:github.com/acme/shared-rules"]
+[modes.writing]
+base    = "none"
+enable  = ["package:github.com/s1mplesonny/technical-writing-skill/technical-writing"]
+disable = ["mcp:linear"]
 ```
 
 | Field | Type | Description |
 |---|---|---|
-| `base` | `"all"` or `"none"` | Baseline capability state before selectors are applied |
+| `base` | `"all"` or `"none"` | Baseline before selectors are applied |
 | `enable` | string array | Selectors to turn on |
 | `disable` | string array | Selectors to turn off |
 
-Supported selectors:
+Selectors: `package:<module>`, `package-path:<module>:<relative-path>`, `mcp:<name>`, `.agents:<relative-path>`.
 
-- `package:<module>`
-- `package-path:<module>:<relative-path>`
-- `mcp:<name>`
-- `.agents:<relative-path>`
+## `[mcp.servers.<name>]`
+
+Project-level MCP server definitions, merged into each harness's native MCP config. See [MCP Servers](../concepts/mcp.md).
+
+```toml
+[mcp.servers.retrieval]
+command = "uvx"
+args    = ["mcp-retrieval"]
+env     = { API_KEY = "sk-..." }
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `command` | string | Executable that launches the server |
+| `args` | string array | Command arguments |
+| `env` | string map | Environment variables for the server process |
+| `disabled` | bool | Optional; skip this server when `true` |
+
+## Complete example
+
+```toml
+name    = "acme-backend"
+version = "0.5.0"
+
+[dependencies]
+"github.com/anthropics/skills/skills/canvas-design" = { branch = "main" }
+"github.com/acme/shared-rules"                      = { tag = "v2.1.0" }
+"github.com/acme/monorepo/packages/agent"           = "^2.0"
+"local-dev" = { path = "../local-dev" }
+
+[modes.default]
+base    = "all"
+disable = ["package-path:github.com/acme/shared-rules:commands/noisy.md"]
+
+[modes.review]
+base   = "none"
+enable = ["package:github.com/acme/shared-rules", ".agents:rules/backend.mdc"]
+
+[mcp.servers.filesystem]
+command = "npx"
+args    = ["-y", "@modelcontextprotocol/server-filesystem"]
+```

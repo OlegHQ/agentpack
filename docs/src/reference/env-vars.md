@@ -1,82 +1,74 @@
 # Environment Variables
 
-agentpack's behavior can be controlled through the following environment variables. Set them in your shell profile (`.bashrc`, `.zshrc`, `config.fish`, etc.) or in CI environment configuration.
+Set these in your shell profile (`.bashrc`, `.zshrc`, `config.fish`) or in CI.
 
----
+## State and staging
 
-## `AGENTPACK_HOME`
+### `AGENTPACK_HOME`
 
-**Default:** `~/.agentpack`
+The user-wide root for cache, the metadata index, the `local/` mirror, and per-project bookkeeping.
 
-Root directory for all agentpack state: the content-addressed cache, registry metadata, and derived staging directories (when `AGENTPACK_STAGING_ROOT` is not set).
-
-```sh
-export AGENTPACK_HOME="$HOME/.agentpack"
-```
-
-Change this to use a shared cache on a network mount, a non-home-directory location, or a per-project isolated store.
-
----
-
-## `AGENTPACK_STAGING_ROOT`
-
-**Default:** `$AGENTPACK_HOME/staging/<project-hash>`
-
-Root directory where harness-specific staging subdirectories are created. agentpack creates one subdirectory per supported harness (`claude/`, `cursor/`, `opencode/`, `codex/`) under this root.
+**Default:** `$XDG_DATA_HOME/agentpack` (or `$HOME/.local/share/agentpack`) on Unix; `%LOCALAPPDATA%\agentpack` on Windows.
 
 ```sh
-export AGENTPACK_STAGING_ROOT="/tmp/agentpack-staging"
+export AGENTPACK_HOME=/data/agentpack
 ```
 
-Useful in CI to ensure staging is on a fast local disk.
+Point it at a network mount for a shared cache, or somewhere project-specific for isolation.
 
----
+### `AGENTPACK_STAGING_ROOT`
 
-## `AGENTPACK_LAUNCH_FULL_SYNC`
+Root for per-harness, per-mode staging trees.
 
-**Default:** unset (equivalent to `0`)
-
-When set to `1`, each launcher command (`claude`, `agent`, `opencode`, `codex`) runs a full network sync before exec-ing the underlying binary. This ensures the latest locked content is present but adds latency on every launch.
+**Default:** `<temp_dir>/agentpack-<project-hash>`.
 
 ```sh
-export AGENTPACK_LAUNCH_FULL_SYNC=1
-agentpack claude
+export AGENTPACK_STAGING_ROOT=/tmp/agentpack-staging
 ```
 
-When unset or `0`, launchers stage from the local cache only (fast, offline-capable).
+Set this for a stable path when your OS rotates temp directories, or to put staging on a fast local disk in CI.
 
----
+## Behavior toggles
 
-## `AGENTPACK_DOT_AGENTS`
+### `AGENTPACK_KEEP_ATTRIBUTION`
 
-**Default:** unset
+**Default:** unset. Set to `1` / `true` / `yes` to keep your existing AI-attribution settings (Co-Authored-By trailers, "Generated with X" footers) in staged harness configs. By default agentpack forces attribution off in staging. See [Overrides and Attribution](../guides/overrides.md).
 
-Path to a directory of local agent/skill files to always include in every harness staging, regardless of `agentpack.toml`. Useful for personal overlays that should not be committed.
+### `AGENTPACK_DOT_AGENTS`
 
-```sh
-export AGENTPACK_DOT_AGENTS="$HOME/.my-agents"
-```
+**Default:** enabled. Set to `0` to skip merging the project's `./.agents/` overlay into harness staging.
 
----
+### `AGENTPACK_TUI_THEME`
 
-## `AGENTPACK_CURSOR_CONFIG_DIR`
+**Default:** auto-detected from the terminal background (OSC 11 luma / `COLORFGBG`), falling back to `dark`. Set to `light` or `dark` to force the `agentpack mode tui` palette.
 
-**Default:** `$AGENTPACK_STAGING_ROOT/cursor-home/.cursor`
+## GitHub access
 
-Overrides the Cursor configuration directory used by the `agentpack agent` launcher. When unset, agentpack points `CURSOR_CONFIG_DIR` at the staged fake-home `.cursor` directory.
+### `GITHUB_TOKEN` / `GH_TOKEN`
 
-```sh
-export AGENTPACK_CURSOR_CONFIG_DIR="$HOME/.cursor"
-```
+**Default:** unset. When set, agentpack sends it as a bearer token for GitHub ref/tag lookups and authenticated downloads. Set one to resolve private repositories or to avoid anonymous API rate limits during heavy resolution. `GITHUB_TOKEN` takes precedence over `GH_TOKEN`.
 
----
+## Binary paths
 
-## Summary table
+Override the path to each harness's executable when it isn't on `PATH` or you need a specific build:
 
-| Variable | Default | Description |
+| Variable | Binary |
+|---|---|
+| `CLAUDE_CODE_PATH` | `claude` |
+| `OPENCODE_PATH` | `opencode` |
+| `CODEX_PATH` | `codex` |
+| `CURSOR_AGENT_PATH` | `cursor-agent` |
+| `GROK_PATH` | `grok` |
+| `AGY_PATH` | `agy` |
+
+## Summary
+
+| Variable | Default | Purpose |
 |---|---|---|
-| `AGENTPACK_HOME` | `~/.agentpack` | Cache and state root |
-| `AGENTPACK_STAGING_ROOT` | `$AGENTPACK_HOME/staging/<hash>` | Staging directory root |
-| `AGENTPACK_LAUNCH_FULL_SYNC` | `0` | Sync from network on every launch |
-| `AGENTPACK_DOT_AGENTS` | unset | Always-included local agent overlay directory |
-| `AGENTPACK_CURSOR_CONFIG_DIR` | derived | Override Cursor config directory |
+| `AGENTPACK_HOME` | XDG / `%LOCALAPPDATA%` | Cache and state root |
+| `AGENTPACK_STAGING_ROOT` | `<temp>/agentpack-<hash>` | Staging root |
+| `AGENTPACK_KEEP_ATTRIBUTION` | unset | Keep AI attribution in staging |
+| `AGENTPACK_DOT_AGENTS` | enabled | Merge `./.agents/` overlay |
+| `AGENTPACK_TUI_THEME` | auto | Force `mode tui` palette |
+| `GITHUB_TOKEN` / `GH_TOKEN` | unset | GitHub auth for private repos and rate limits |
+| `CLAUDE_CODE_PATH` … `AGY_PATH` | — | Override harness binary paths |

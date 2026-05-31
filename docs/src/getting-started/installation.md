@@ -1,31 +1,40 @@
 # Installation
 
+agentpack ships as a single binary. The recommended path is Homebrew; everything else builds from source with a Rust toolchain.
+
 ## Homebrew (macOS and Linux)
 
-The easiest way to install agentpack on macOS or Linux is via Homebrew:
+```sh
+brew install OlegHQ/tap/agentpack
+```
+
+That one line taps `OlegHQ/homebrew-tap` and installs the formula. The two-step form works too:
 
 ```sh
-brew tap OlegHQ/agentpack
+brew tap OlegHQ/tap
 brew install agentpack
 ```
 
-To upgrade later:
+Upgrade later with:
 
 ```sh
 brew upgrade agentpack
 ```
 
-## From crates.io
+## Prebuilt binaries and the shell installer
 
-If you have a Rust toolchain installed (`rustup`), install the published crate:
+Each release publishes prebuilt binaries for macOS (arm64, x86_64), Linux (x86_64, arm64), and Windows (x86_64), built by [cargo-dist](https://github.com/axodotdev/cargo-dist). The release page carries a `curl | sh` installer:
 
 ```sh
-cargo install agentpack
+curl --proto '=https' --tlsv1.2 -LsSf \
+  https://github.com/OlegHQ/agentpack/releases/latest/download/agentpack-installer.sh | sh
 ```
 
-## From Source
+Pick a specific version from the [releases page](https://github.com/OlegHQ/agentpack/releases) if you don't want `latest`.
 
-Clone the repository and build with Cargo:
+## From source
+
+You need a Rust toolchain (edition 2021). Install [`rustup`](https://rustup.rs) if you don't have one, then:
 
 ```sh
 git clone https://github.com/OlegHQ/agentpack.git
@@ -33,22 +42,25 @@ cd agentpack
 cargo install --path .
 ```
 
-This places the `agentpack` binary in `~/.cargo/bin/`. Make sure that directory is on your `PATH`.
+This drops the `agentpack` binary in `~/.cargo/bin/`; make sure that directory is on your `PATH`. The repo's `Makefile` also offers `make install`, which builds in release mode and copies the binary to `~/.local/bin` (override with `make install INSTALL_DIR=/usr/local/bin`).
 
-## Verify the Installation
+## Verify
 
 ```sh
 agentpack --version
 ```
 
-You should see the version string printed to stdout.
+## Where agentpack keeps its state
 
-## Setting AGENTPACK_HOME
+All cached content, the metadata index, and per-project bookkeeping live under a single user-wide directory, **not** inside your repo. When `AGENTPACK_HOME` is unset, the default is:
 
-By default agentpack stores its cache and state under `~/.agentpack`. You can override this by setting `AGENTPACK_HOME` in your shell profile:
+- **Linux/macOS** — `$XDG_DATA_HOME/agentpack` if `XDG_DATA_HOME` is set, otherwise `$HOME/.local/share/agentpack`
+- **Windows** — `%LOCALAPPDATA%\agentpack`
+
+Override it by exporting the variable in your shell profile:
 
 ```sh
-export AGENTPACK_HOME="$HOME/.agentpack"
+export AGENTPACK_HOME="$HOME/.local/share/agentpack"
 ```
 
-See [Environment Variables](../reference/env-vars.md) for the full list of supported variables.
+A custom `AGENTPACK_HOME` is useful for a shared cache on a network mount, or for isolating a project's state. See [Environment Variables](../reference/env-vars.md) for the complete list.

@@ -1,146 +1,117 @@
 # CLI Commands
 
+`agentpack <command> [args]`. Global flags go **before** the subcommand; everything after a launcher subcommand is forwarded to the underlying agent binary.
+
 ## Global flags
 
 | Flag | Description |
 |---|---|
-| `--help`, `-h` | Print help for the command |
-| `--version`, `-V` | Print the agentpack version |
-| `--mode <name>` | Select the project-local mode used for `sync` and launcher commands |
+| `--project-root <path>` | Project root holding `agentpack.toml`/`pack.lock` (default: search upward from cwd) |
+| `--mode <name>` | Select a mode from `[modes]` (default: the reserved `default` mode) |
+| `--yolo` | Forward each harness's "skip permission prompts" / full-access flag |
+| `-q`, `--quiet` | Only print warnings and errors |
+| `--no-progress` | Disable spinners and progress bars |
+| `--debug` | Print launcher diagnostics (workspace paths, env overrides, fast-sync skip reason) |
+| `-h`, `--help` | Print help |
+| `-V`, `--version` | Print the agentpack version |
 
----
+## Lifecycle commands
 
-## `agentpack init`
+### `agentpack init`
 
-Initialize a new manifest in the current directory.
+Create `agentpack.toml` and a v2 `pack.lock` in the project root, and ensure `AGENTPACK_HOME` exists. Fails if `agentpack.toml` already exists.
 
 ```sh
 agentpack init
+agentpack init --name my-project --version 0.1.0
 ```
 
-Creates `agentpack.toml` with a `[package]` section derived from the directory name. Does nothing if a manifest already exists.
+### `agentpack add <spec>`
 
----
-
-## `agentpack add <module-id>`
-
-Add a dependency to the manifest.
+Resolve a package spec, append it under `[dependencies]`, refresh `pack.lock`, then sync.
 
 ```sh
-agentpack add github.com/OlegHQ/paperclip-skills
-agentpack add github.com/acme/monorepo/packages/rules@^1.2
+agentpack add anthropics/skills/skills/canvas-design
+agentpack add github.com/acme/monorepo/packages/rules@v1.2.0
+agentpack add ./local-rules
+agentpack add anthropics/skills/skills/canvas-design --no-sync
 ```
 
-| Argument | Description |
-|---|---|
-| `<module-id>` | Module ID, optionally followed by `@<constraint>` |
+A spec may be a module ID, `owner/repo[/path]` shorthand, a GitHub tree/blob URL, a single-segment local/alias name, or a filesystem path. An optional `@ref` pins a branch, tag, or commit. `--no-sync` skips the sync step. (Requires a manifest.)
 
-Writes the dependency to `[dependencies]` and runs `agentpack lock` automatically.
+### `agentpack remove <spec>`
 
----
-
-## `agentpack remove <module-id>`
-
-Remove a dependency from the manifest and regenerate the lockfile.
+Drop a matching `[dependencies]` entry, prune mode selectors that targeted it, refresh `pack.lock`, then sync unless `--no-sync`.
 
 ```sh
-agentpack remove github.com/OlegHQ/paperclip-skills
+agentpack remove github.com/acme/monorepo/packages/rules
 ```
 
----
+### `agentpack lock`
 
-## `agentpack lock`
-
-Resolve the dependency graph and write (or update) `pack.lock`.
+Resolve `agentpack.toml` and rewrite `pack.lock` (direct + transitive). Network calls for ref/tag resolution; no content download.
 
 ```sh
-agentpack lock
+agentpack lock            # keep commits already pinned
+agentpack lock --update   # re-resolve floating pins from GitHub
 ```
 
-Makes network calls to fetch available versions from GitHub. Does not download package content.
+### `agentpack sync`
 
----
-
-## `agentpack sync`
-
-Download all packages listed in `pack.lock` into the cache and materialize staging directories.
+Ensure the cache and rebuild staging for every harness. Recomputes `pack.lock` from the manifest when `[dependencies]` is non-empty.
 
 ```sh
 agentpack sync
-agentpack --mode design sync
+agentpack --mode writing sync
+agentpack sync --dry-run        # report actions without writing
+agentpack sync --verify-only    # check cache + staging integrity only
+agentpack sync --update-lock    # re-resolve floating pins while syncing
 ```
 
-Skips packages whose content hash is already in the cache. Always re-stages all harnesses.
+## Launchers
+
+Each launcher runs a fast pre-sync, stages for its harness, and execs the binary. Trailing arguments are forwarded.
+
+| Command | Launches | Mechanism |
+|---|---|---|
+| `agentpack claude` | Claude Code | `--plugin-dir` + `--settings` |
+| `agentpack agent` (alias `cursor-agent`) | Cursor Agent | synthetic `HOME` |
+| `agentpack opencode` | OpenCode | `OPENCODE_CONFIG_DIR` |
+| `agentpack codex` | Codex | `CODEX_HOME` |
+| `agentpack grok` | Grok | `GROK_HOME` (+ injected `--cwd`) |
+| `agentpack agy` | Antigravity | injected `--add-dir` |
+
+```sh
+agentpack claude --model opus
+agentpack --yolo codex
+agentpack --mode writing claude
+```
+
+See the [harness guides](../harnesses/claude.md) for what each one stages.
+
+## `agentpack mcp`
+
+Manage `[mcp.servers]` in the manifest. `add`/`remove` sync afterward unless `--no-sync`.
+
+```sh
+agentpack mcp add retrieval --command uvx --args mcp-retrieval --env API_KEY=sk-...
+agentpack mcp remove retrieval
+agentpack mcp list      # all servers with provenance (manifest / plugin / .agents)
+```
 
 ## `agentpack mode`
 
-Manage project-local modes stored in `agentpack.toml`.
+Manage `[modes]` in the manifest.
 
 ```sh
 agentpack mode list
-agentpack mode show default
-agentpack mode create design
-agentpack mode disable design package-path:github.com/acme/rules:commands/noisy.md
-agentpack mode base design none
-agentpack mode tui
+agentpack mode show writing
+agentpack mode create review
+agentpack mode base review none
+agentpack mode enable review package:github.com/acme/shared-rules
+agentpack mode disable review mcp:filesystem
+agentpack mode delete review        # `default` is reserved
+agentpack mode tui                  # interactive editor
 ```
 
----
-
-## `agentpack claude`
-
-Stage dependencies for Claude Code and launch `claude`.
-
-```sh
-agentpack claude [-- <claude-args>...]
-```
-
-Sets `--plugin-dir` pointing at the Claude staging directory, then execs `claude`.
-
----
-
-## `agentpack agent`
-
-Stage dependencies for Cursor and launch `cursor`.
-
-```sh
-agentpack agent [-- <cursor-args>...]
-```
-
-Overrides `HOME` with a synthetic directory containing packaged agent content, then execs `cursor`.
-
----
-
-## `agentpack opencode`
-
-Stage dependencies for OpenCode and launch `opencode`.
-
-```sh
-agentpack opencode [-- <opencode-args>...]
-```
-
-Sets `OPENCODE_CONFIG_DIR` to the OpenCode staging directory, then execs `opencode`.
-
----
-
-## `agentpack codex`
-
-Stage dependencies for Codex and launch `codex`.
-
-```sh
-agentpack codex [-- <codex-args>...]
-```
-
-Sets `CODEX_HOME` to the Codex staging directory, then execs `codex`.
-
----
-
-## Exit codes
-
-| Code | Meaning |
-|---|---|
-| `0` | Success |
-| `1` | General error (check stderr for details) |
-| `2` | Manifest or lockfile parse error |
-| `3` | Dependency resolution conflict |
-| `4` | Network error during lock or sync |
+See [Modes](../concepts/modes.md) for selector syntax.

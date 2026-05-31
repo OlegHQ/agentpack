@@ -1,82 +1,65 @@
-# Cursor Agent Integration
+# Cursor Agent
 
-agentpack supports [Cursor](https://www.cursor.com/) via the `agentpack agent` launcher.
+`agentpack agent` launches the [Cursor](https://www.cursor.com/) CLI (`cursor-agent`) with your packages staged. The subcommand has the alias `cursor-agent`.
 
-## How it works
+> The binary is `cursor-agent`, not `agent` — the bare name `agent` collides with other tools (Grok ships one). Override the path with `CURSOR_AGENT_PATH`.
 
-Cursor discovery for skills, commands, and agents is tied to the HOME-backed `.cursor` tree. agentpack therefore launches Cursor with a synthetic `HOME` containing a staged `.cursor/` directory that overlays packaged agent content on top of your real Cursor config and session state.
+## What the launcher does
 
-To keep external tools working inside Cursor, agentpack also bridges common tool-specific homes back to the real profile: `CARGO_HOME`, `RUSTUP_HOME`, and `DOCKER_CONFIG`.
+Cursor resolves user-scoped skills, commands, and agents from a `HOME`-backed `.cursor` tree, and it has no config-root override flag. So agentpack runs `cursor-agent` with a **synthetic `HOME`** at `<staging>/modes/<mode>/cursor-home`, whose `.cursor/` symlinks the staged pack assets alongside your real Cursor login and session files.
 
-## Launching
+It also sets a few environment variables on the child process:
+
+- `CURSOR_CONFIG_DIR` → the fake home's `.cursor`.
+- `CURSOR_DATA_DIR` → your **real** `~/.cursor` when unset, so workspace-trust state survives staging rebuilds.
+- `CARGO_HOME`, `RUSTUP_HOME`, `DOCKER_CONFIG` → bridged from your real home (unless you already set them) so shell tooling keeps working inside the staged `HOME`.
+
+agentpack itself writes nothing to your real `~/.cursor`. Cursor manages its own workspace trust and MCP approvals there.
+
+## Workspace and the agents symlink
+
+`--workspace` defaults to the **current working directory** where you invoked agentpack — not the pack root. In a monorepo where `agentpack.toml` lives in a parent directory, that distinction matters; pass `--workspace <path>` to override.
+
+Cursor reads sub-agents only from `resolve(--workspace)/.cursor/agents`. So, **only** `agentpack agent` creates `./.cursor/agents` as a symlink into the staged pack `agents/` (when the pack ships agent markdown) and records it in a per-project overlay manifest for safe cleanup. Bare `sync` and the other launchers leave the workspace alone and remove any stale symlink from a previous `agent` run. If `./.cursor/agents` already exists as a real directory or file, agentpack leaves it and logs a warning. Add `.cursor/agents` to `.gitignore` if you don't want the symlink tracked.
 
 ```sh
 agentpack agent
+agentpack agent --workspace ./packages/api
+agentpack --yolo agent              # adds --force
 ```
 
-You can pass additional arguments to the underlying `cursor` binary:
-
-```sh
-agentpack agent --new-window /path/to/project
-```
-
-## HOME override
-
-When launched, agentpack sets:
-
-```sh
-HOME="$AGENTPACK_STAGING_ROOT/cursor-home"
-```
-
-Inside that synthetic home:
-
-```
-$AGENTPACK_STAGING_ROOT/cursor-home/
-  .cursor/
-    commands/
-    agents/
-    skills/
-    rules/
-    # symlinks to real ~/.cursor state where needed
-```
-
-## Cursor config dir override
-
-You can still override the config directory Cursor sees by setting:
-
-```sh
-export AGENTPACK_CURSOR_CONFIG_DIR=/path/to/cursor-config
-```
-
-When unset, agentpack points `CURSOR_CONFIG_DIR` at the staged fake-home `.cursor` directory so Cursor resolves packaged skills and commands through the same path it expects normally.
+Cursor's `cursor-agent` only accepts `--trust` in `--print`/headless mode; agentpack prepends it automatically there.
 
 ## Staged layout
 
-```
-$AGENTPACK_STAGING_ROOT/cursor/
-  .cursor-plugin/
-    marketplace.json
-  agentpack-bundle/
-    .cursor-plugin/
-      plugin.json
-    rules/
-      <packaged-rule>.mdc
+```text
+modes/<mode>/
+  cursor/                          # Cursor plugins layout
+    .cursor-plugin/marketplace.json
+    agentpack-bundle/
+      .cursor-plugin/plugin.json
+      commands/ agents/ skills/ rules/ hooks/ mcp.json
+  cursor-home/                     # fake HOME
+    .cursor/   # symlinks to pack dirs + your real cli-config/session files
 ```
 
-Rules are `.mdc` files in Cursor's native format.
-
-## Artifact types
+## Artifact handling
 
 | Artifact | Staged as |
 |---|---|
-| Rules | `agentpack-bundle/rules/<name>.mdc` |
-| Commands | fake `HOME` `.cursor/commands/<name>.md` |
-| Agents / skills | fake `HOME` `.cursor/agents/` and `.cursor/skills/` |
+| Rules | `.mdc` files, Cursor's native format (preserved) |
+| Commands | Plain markdown |
+| Agents / skills | Cursor agent/skill markdown |
+| MCP | JSON `mcpServers`, merged with your real `~/.cursor/mcp.json` (your entries win) |
 
-## Environment variables
+Attribution is forced off via a **real** `cli-config.json` file in the staged tree (not a symlink), so agentpack's writes never bleed back into your real Cursor profile.
 
-| Variable | Description |
+## Environment
+
+| Variable | Effect |
 |---|---|
-| `AGENTPACK_CURSOR_CONFIG_DIR` | Override the Cursor config directory |
-| `AGENTPACK_STAGING_ROOT` | Override the staging root |
-| `AGENTPACK_LAUNCH_FULL_SYNC` | Set to `1` to sync before launch |
+| `CURSOR_AGENT_PATH` | Path to the `cursor-agent` binary |
+| `CURSOR_DATA_DIR` | Workspace-trust store; agentpack points it at real `~/.cursor` when unset |
+| `AGENTPACK_STAGING_ROOT` | Override the staging root (use this for a stable path when your OS rotates temp dirs) |
+
+See [Environment Variables](../reference/env-vars.md) for the complete list.

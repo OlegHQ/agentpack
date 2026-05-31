@@ -1,62 +1,64 @@
 # Manifest (agentpack.toml)
 
-The manifest is a TOML file named `agentpack.toml` that lives at the root of your project. It is the single source of truth for your project's identity and its declared dependencies.
+`agentpack.toml` is the human-edited source of truth for a project. It declares direct dependencies, project-local [modes](./modes.md), and [MCP servers](./mcp.md) — and nothing else. Transitive dependencies, resolved commits, and cache keys all live in the generated [`pack.lock`](./lockfile.md).
 
-## `[package]` table
+## Project identity
+
+Two top-level keys, written before any table:
 
 ```toml
-[package]
-name    = "my-project"   # required; used in lock metadata and error messages
-version = "0.1.0"        # required; SemVer string
+name    = "my-project"   # used in lock metadata and diagnostics
+version = "0.0.1"        # SemVer string
 ```
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `name` | string | yes | Human-readable project name |
-| `version` | string | yes | SemVer version of this project |
+There is no `[package]` wrapper. `init` fills both from the directory name and a default version; you can edit them freely.
 
-## `[dependencies]` table
+## `[dependencies]`
 
-Each key is a **module ID** — a slash-delimited path that uniquely identifies a package and an optional subdirectory within a repository.
-
-### Short form (version string only)
+Each key is a **module ID**; each value is either a short string or a table.
 
 ```toml
 [dependencies]
-"github.com/OlegHQ/paperclip-skills" = "^0.3"
+# Short form: a version constraint, branch, tag, or commit as a bare string
+"github.com/acme/lint-rules" = "^1.2"
+
+# Table form: anything richer
+"github.com/acme/shared-rules" = { tag = "v2.1.0" }
+"local-tools"                  = { path = "../local-tools" }
 ```
 
-### Long form (inline table)
-
-```toml
-[dependencies]
-"github.com/acme/repo" = { version = "^1.0", path = "subdir", branch = "main" }
-```
+### Table fields
 
 | Field | Type | Description |
 |---|---|---|
-| `version` | string | SemVer constraint. Omit if using `branch` |
-| `path` | string | Subdirectory within the repository to use as the package root |
-| `branch` | string | Git branch to track. Not recommended for reproducible builds |
+| `version` | string | SemVer constraint matched against the repo's tags |
+| `branch` | string | Track a branch; resolves to its HEAD at lock time (not reproducible over time) |
+| `tag` | string | Pin an exact tag |
+| `commit` | string | Pin an exact commit SHA |
+| `path` | string | **Local filesystem** directory, relative to the project root — for local development, *not* for selecting a repo subdirectory |
 
 ## Module ID format
 
-Module IDs mirror Go module paths:
+Module IDs are lowercase Go-style paths. The in-repo location of the package is encoded directly in the ID:
 
-```
-github.com/<owner>/<repo>
-github.com/<owner>/<repo>/<subdir>
-github.com/<owner>/<repo>/<nested>/<subdir>
+```text
+github.com/<owner>/<repo>                 # repository root
+github.com/<owner>/<repo>/<p1>            # the <p1> subdirectory
+github.com/<owner>/<repo>/<p1>/<p2>/...   # nested subdirectory
 ```
 
-The host is always `github.com` for remote packages. Local path dependencies use a path string relative to the manifest:
+The host is always `github.com` for remote packages. To depend on a subdirectory of a monorepo, put the subpath in the key:
 
 ```toml
-"github.com/acme/my-lib" = { path = "../my-lib" }
+"github.com/acme/monorepo/packages/agent-rules" = "^1.0"
 ```
 
-When `path` is an absolute or relative filesystem path the dependency is resolved locally and not fetched from GitHub. The module ID is still used for dependency deduplication across the graph.
+A human-typed spec may carry an optional `@ref` suffix (`...@v1.2`, `...@main`), but identity and `cache_key` always come from the resolved commit, never the ref name.
 
-## Commit the manifest
+### Remote vs. local
 
-`agentpack.toml` should always be committed to version control alongside `pack.lock`. Together they give every contributor and CI run identical dependency resolution.
+When a dependency has a `path` field, it is resolved from your filesystem and never fetched from GitHub. The module ID is still used as the package's identity for deduplication across the dependency graph.
+
+## Commit it
+
+Always commit `agentpack.toml` together with `pack.lock`. The pair gives every contributor and every CI run identical resolution. Editing the manifest by hand is fine — run `agentpack lock` afterward to reconcile the lockfile.
