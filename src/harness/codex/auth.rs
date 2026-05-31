@@ -34,9 +34,16 @@ pub(super) fn codex_cli_keyring_account(codex_home: &Path) -> String {
 }
 
 fn write_codex_auth_json(dest: &Path, json: &str) -> Result<()> {
-    if let Some(parent) = dest.parent() {
-        fs::create_dir_all(parent).map_err(|e| AgentpackError::io(parent, e))?;
-    }
+    let parent = dest
+        .parent()
+        .ok_or_else(|| AgentpackError::Cache("codex auth path has no parent".into()))?;
+    fs::create_dir_all(parent).map_err(|e| AgentpackError::io(parent, e))?;
+
+    // Write to a per-process temp file then atomically rename into place. The shared auth file at
+    // `$AGENTPACK_HOME/shared/codex/auth.json` may be materialized concurrently by two `agentpack
+    // codex` launches in different projects; a plain truncate-then-write could expose a half-written
+    // file to a third process reading through its symlink. Rename is atomic on POSIX.
+    let tmp = parent.join(format!(".auth.json.tmp.{}", std::process::id()));
     let mut open_opts = OpenOptions::new();
     open_opts.write(true).create(true).truncate(true);
     #[cfg(unix)]
@@ -45,11 +52,16 @@ fn write_codex_auth_json(dest: &Path, json: &str) -> Result<()> {
         open_opts.mode(0o600);
     }
     let mut file = open_opts
-        .open(dest)
-        .map_err(|e| AgentpackError::io(dest, e))?;
+        .open(&tmp)
+        .map_err(|e| AgentpackError::io(&tmp, e))?;
     file.write_all(json.as_bytes())
-        .map_err(|e| AgentpackError::io(dest, e))?;
-    file.flush().map_err(|e| AgentpackError::io(dest, e))?;
+        .map_err(|e| AgentpackError::io(&tmp, e))?;
+    file.flush().map_err(|e| AgentpackError::io(&tmp, e))?;
+    drop(file);
+    fs::rename(&tmp, dest).map_err(|e| {
+        let _ = fs::remove_file(&tmp);
+        AgentpackError::io(dest, e)
+    })?;
     Ok(())
 }
 

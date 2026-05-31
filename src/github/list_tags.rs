@@ -24,13 +24,22 @@ struct TagCommit {
 }
 
 /// `(tag_name, commit_sha)` for each tag (API returns newest-first-ish; we sort in caller).
-pub fn list_tags(client: &Client, owner: &str, repo: &str) -> Result<Vec<(String, String)>> {
+pub fn list_tags(
+    client: &Client,
+    owner: &str,
+    repo: &str,
+    force_refresh: bool,
+) -> Result<Vec<(String, String)>> {
     let cached = GitHubMetadataCache::load_tags(owner, repo)?;
-    if let Some(entry) = cached
-        .as_ref()
-        .filter(|entry| GitHubMetadataCache::tags_are_fresh(entry))
-    {
-        return Ok(entry.tags.clone());
+    // `force_refresh` bypasses the freshness window (see `resolve_ref_to_sha`); the cached value is
+    // still used as a stale fallback when the network is unavailable.
+    if !force_refresh {
+        if let Some(entry) = cached
+            .as_ref()
+            .filter(|entry| GitHubMetadataCache::tags_are_fresh(entry))
+        {
+            return Ok(entry.tags.clone());
+        }
     }
 
     let url = format!("https://api.github.com/repos/{owner}/{repo}/tags?per_page=100");
@@ -121,7 +130,7 @@ mod tests {
         GitHubMetadataCache::store_tags("owner", "repo", &expected).unwrap();
 
         let client = Client::builder().build().unwrap();
-        let tags = list_tags(&client, "owner", "repo").unwrap();
+        let tags = list_tags(&client, "owner", "repo", false).unwrap();
         assert_eq!(tags, expected);
     }
 }

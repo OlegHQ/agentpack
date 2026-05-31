@@ -65,7 +65,20 @@ fn stage_source_tree_all_harnesses(
         }
 
         let contents = fs::read_to_string(src).map_err(|e| AgentpackError::io(src, e))?;
-        if let Some(artifact) = parse_markdown_artifact(rel, &contents, bare_skill_name)? {
+        // Third-party packs are untrusted input: a single unparseable frontmatter must not abort
+        // staging for every harness. Warn and skip the offending file instead of propagating.
+        let parsed = match parse_markdown_artifact(rel, &contents, bare_skill_name) {
+            Ok(p) => p,
+            Err(e) => {
+                tracing::warn!(
+                    source = %rel.display(),
+                    error = %e,
+                    "skipping markdown artifact with invalid frontmatter"
+                );
+                return Ok(());
+            }
+        };
+        if let Some(artifact) = parsed {
             for (target, dest_root) in dests {
                 tracing::debug!(
                     source = %rel.display(),

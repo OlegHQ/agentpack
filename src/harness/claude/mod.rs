@@ -81,10 +81,16 @@ impl Harness for Claude {
     }
 
     fn finalize(&self, merged: &StagedMcpEntries, _ctx: &StageCtx) -> Result<()> {
-        // Pre-approve the staged MCP servers in the `--settings` overlay so Claude doesn't drop
-        // them as untrusted project-scope MCPs.
-        if !merged.is_empty() && !keep_attribution() {
-            let names: Vec<String> = merged.keys().cloned().collect();
+        // Pre-approve the staged (non-disabled) MCP servers in the `--settings` overlay so Claude
+        // doesn't drop them as untrusted project-scope MCPs. This is independent of attribution —
+        // `set_claude_settings_mcp_allowlist` creates the overlay if attribution-off removed it, so
+        // MCP enablement still works under `AGENTPACK_KEEP_ATTRIBUTION=1`.
+        let names: Vec<String> = merged
+            .iter()
+            .filter(|(_, (entry, _))| entry.disabled != Some(true))
+            .map(|(name, _)| name.clone())
+            .collect();
+        if !names.is_empty() {
             settings::set_claude_settings_mcp_allowlist(&names)?;
         }
         Ok(())
@@ -181,7 +187,12 @@ impl Harness for Claude {
 /// (Streamable HTTP, the modern remote transport).
 fn write_claude_mcp_servers_json(dest: &Path, merged: &StagedMcpEntries) -> Result<()> {
     let mut entries = bare_entries(merged);
+    // Claude's `.mcp.json` schema has no `disabled` field — a `"disabled": true` entry would be
+    // launched anyway. Drop disabled servers entirely instead (they're also kept out of the
+    // `enabledMcpjsonServers` allowlist in `finalize`).
+    entries.retain(|_, e| e.disabled != Some(true));
     for entry in entries.values_mut() {
+        entry.disabled = None;
         if entry.kind.is_none() && entry.is_remote() {
             entry.kind = Some("http".into());
         }
@@ -213,5 +224,20 @@ mod tests {
         assert!(text.contains("\"command\": \"cargo\""));
         // url-only remote entry gets a default `type: "http"`.
         assert!(text.contains("\"type\": \"http\""));
+    }
+
+    #[test]
+    fn claude_mcp_json_omits_disabled_servers() {
+        let dir = tempfile::tempdir().unwrap();
+        let dest = dir.path().join(".mcp.json");
+        let mut off = stdio_entry();
+        off.disabled = Some(true);
+        write_claude_mcp_servers_json(&dest, &merged(&[("on", stdio_entry()), ("off", off)]))
+            .unwrap();
+        let text = std::fs::read_to_string(&dest).unwrap();
+        // Claude has no disable marker, so the disabled server is dropped entirely, not emitted.
+        assert!(text.contains("\"on\""));
+        assert!(!text.contains("\"off\""));
+        assert!(!text.contains("disabled"));
     }
 }

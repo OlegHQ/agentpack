@@ -86,6 +86,16 @@ pub fn compute_launch_sync_digest(
     hasher.update(b"target\0");
     hasher.update(target.map(|t| t.as_str()).unwrap_or("__none__").as_bytes());
 
+    // For workspace-overlay harnesses (Cursor/Agy) the resolved workspace dir decides where the
+    // `.cursor/agents` / `.agents/plugins/...` symlink is created. It is independent of the manifest
+    // and CWD-derived, so without it a `cd` to a sibling subdir in a monorepo would hit the fast
+    // path and never materialize the overlay in the new location.
+    hasher.update(b"workspace\0");
+    if target.is_some_and(HarnessTarget::uses_workspace_overlay) {
+        let ws = crate::harness::workspace_root(project_root);
+        hasher.update(ws.as_os_str().as_encoded_bytes());
+    }
+
     Ok(hex::encode(hasher.finalize()))
 }
 
@@ -204,5 +214,36 @@ mod tests {
         assert_ne!(claude, cursor);
         assert_ne!(claude, none);
         assert_ne!(agy, cursor);
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn workspace_dir_changes_overlay_target_digest_only() {
+        let t = TempDir::new().unwrap();
+        let root = t.path();
+        write_file(root, "agentpack.toml", b"name=\"x\"\nversion=\"1\"\n");
+        write_file(root, "pack.lock", b"lockfile-version=2\n");
+        let sub_a = root.join("subA");
+        let sub_b = root.join("subB");
+        fs::create_dir_all(&sub_a).unwrap();
+        fs::create_dir_all(&sub_b).unwrap();
+        let mode = EffectiveMode::implicit_default();
+        let orig = env::current_dir().unwrap();
+
+        env::set_current_dir(&sub_a).unwrap();
+        let cursor_a =
+            compute_launch_sync_digest(root, &mode, Some(HarnessTarget::Cursor)).unwrap();
+        let claude_a =
+            compute_launch_sync_digest(root, &mode, Some(HarnessTarget::Claude)).unwrap();
+        env::set_current_dir(&sub_b).unwrap();
+        let cursor_b =
+            compute_launch_sync_digest(root, &mode, Some(HarnessTarget::Cursor)).unwrap();
+        let claude_b =
+            compute_launch_sync_digest(root, &mode, Some(HarnessTarget::Claude)).unwrap();
+        env::set_current_dir(&orig).unwrap();
+
+        // Cursor (workspace-overlay) digest must track the CWD; Claude must ignore it.
+        assert_ne!(cursor_a, cursor_b);
+        assert_eq!(claude_a, claude_b);
     }
 }

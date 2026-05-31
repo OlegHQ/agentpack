@@ -1,6 +1,7 @@
 use url::Url;
 
 use crate::error::{AgentpackError, Result};
+use crate::github::{DEFAULT_GIT_REF, GITHUB_HOST};
 
 /// Parsed GitHub repository pointer: branch/tag/commit + path within repo.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -19,10 +20,26 @@ fn strip_git_suffix(segment: &str) -> String {
 
 /// `owner` / `repo[/path...]` from golden-spec shorthand (segments split on `/`).
 pub fn github_source_from_segments(owner: &str, repo: &str, in_repo_path: &str) -> GitHubSource {
+    github_source_from_segments_ref(owner, repo, in_repo_path, "HEAD")
+}
+
+/// Like [`github_source_from_segments`] but pins an explicit ref (branch/tag/commit) instead of
+/// defaulting to `HEAD`. Used by `add owner/repo[/path]@<ref>`.
+pub fn github_source_from_segments_ref(
+    owner: &str,
+    repo: &str,
+    in_repo_path: &str,
+    git_ref: &str,
+) -> GitHubSource {
+    let git_ref = git_ref.trim();
     GitHubSource {
         owner: owner.to_string(),
         repo: repo.to_string(),
-        git_ref: "HEAD".to_string(),
+        git_ref: if git_ref.is_empty() {
+            DEFAULT_GIT_REF.to_string()
+        } else {
+            git_ref.to_string()
+        },
         path: in_repo_path.to_string(),
     }
 }
@@ -48,9 +65,9 @@ pub fn parse_github_url(raw: &str) -> Result<GitHubSource> {
     let u = Url::parse(raw.trim())
         .map_err(|e| AgentpackError::GitHubUrl(format!("invalid URL: {e}")))?;
     let host = u.host_str().unwrap_or("");
-    if host != "github.com" && !host.ends_with(".github.com") {
+    if host != GITHUB_HOST && !host.ends_with(&format!(".{GITHUB_HOST}")) {
         return Err(AgentpackError::GitHubUrl(format!(
-            "only github.com URLs supported, got {host}"
+            "only {GITHUB_HOST} URLs supported, got {host}"
         )));
     }
     let segments: Vec<String> = u
@@ -69,7 +86,7 @@ pub fn parse_github_url(raw: &str) -> Result<GitHubSource> {
         return Ok(GitHubSource {
             owner,
             repo,
-            git_ref: "HEAD".to_string(),
+            git_ref: DEFAULT_GIT_REF.to_string(),
             path: String::new(),
         });
     }

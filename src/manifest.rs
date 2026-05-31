@@ -191,15 +191,27 @@ fn get_or_insert_table<'d>(
 
 impl AgentpackManifest {
     pub fn append_dependency_key(project_root: &Path, module_key: &str) -> Result<()> {
+        Self::append_dependency_pin(project_root, module_key, None)
+    }
+
+    /// Append a dependency, optionally pinning a ref. With no ref (or `HEAD`) the value is an empty
+    /// inline table (`module = {}`); with an explicit ref it is recorded as a short string
+    /// (`module = "v1.2.3"`), which `agentpack.toml` treats as a branch/tag/ref pin.
+    pub fn append_dependency_pin(
+        project_root: &Path,
+        module_key: &str,
+        git_ref: Option<&str>,
+    ) -> Result<()> {
         with_manifest_document_mut(project_root, |doc| {
             let tab = get_or_insert_table(doc, "dependencies")?;
             if tab.get(module_key).is_none() {
-                tab.insert(
-                    module_key,
-                    toml_edit::Item::Value(toml_edit::Value::InlineTable(
-                        toml_edit::InlineTable::new(),
-                    )),
-                );
+                let value = match git_ref {
+                    Some(r) if !r.trim().is_empty() && r != crate::github::DEFAULT_GIT_REF => {
+                        toml_edit::Value::from(r.trim())
+                    }
+                    _ => toml_edit::Value::InlineTable(toml_edit::InlineTable::new()),
+                };
+                tab.insert(module_key, toml_edit::Item::Value(value));
             }
             Ok(())
         })
@@ -277,7 +289,11 @@ impl AgentpackManifest {
     }
 
     /// Remove an MCP server entry from `[mcp.servers]`.
-    pub fn remove_mcp_server(project_root: &Path, name: &str) -> Result<()> {
+    /// Remove an MCP server. Returns `true` if a server with that name existed and was removed,
+    /// `false` if there was no such server (so callers can report accurately rather than claiming
+    /// a no-op removal succeeded).
+    pub fn remove_mcp_server(project_root: &Path, name: &str) -> Result<bool> {
+        let mut removed = false;
         with_manifest_document_mut(project_root, |doc| {
             if let Some(servers) = doc
                 .get_mut("mcp")
@@ -285,10 +301,11 @@ impl AgentpackManifest {
                 .and_then(|t| t.get_mut("servers"))
                 .and_then(|s| s.as_table_mut())
             {
-                servers.remove(name);
+                removed = servers.remove(name).is_some();
             }
             Ok(())
-        })
+        })?;
+        Ok(removed)
     }
 
     /// Load the manifest, hand a mutable modes map to `f`, and persist the result.

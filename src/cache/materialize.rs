@@ -8,7 +8,7 @@ use crate::github::{
     archive_no_files_for_repo_path, canonical_github_tree_url, choose_package_prefix_for_blob_path,
     collect_repo_relative_paths, download_tarball_bytes, extract_tarball_with_prefix,
     parent_dir_in_repo, parse_github_url, path_in_repo_looks_like_file, resolve_ref_to_sha,
-    GitHubSource,
+    GitHubSource, DEFAULT_GIT_REF,
 };
 use crate::paths;
 use crate::ui::Ui;
@@ -39,7 +39,7 @@ fn github_prefix_cache_ready(owner: &str, repo: &str, commit: &str, path_prefix:
     let effective = GitHubSource {
         owner: owner.to_string(),
         repo: repo.to_string(),
-        git_ref: "HEAD".into(),
+        git_ref: DEFAULT_GIT_REF.into(),
         path: path_prefix.trim_matches('/').to_string(),
     };
     let identity = crate::github::normalized_identity(&effective, commit);
@@ -60,13 +60,20 @@ pub fn materialize_github_tree(
     source: &GitHubSource,
     display_url: &str,
     ui: &Ui,
+    force_refresh: bool,
 ) -> Result<LockPackage> {
     paths::ensure_user_agentpack_layout()?;
     let commit = if git_ref_is_full_commit_sha(&source.git_ref) {
         source.git_ref.to_lowercase()
     } else {
         let spinner = ui.spinner("Resolve Git ref → commit SHA");
-        let c = resolve_ref_to_sha(client, &source.owner, &source.repo, &source.git_ref)?;
+        let c = resolve_ref_to_sha(
+            client,
+            &source.owner,
+            &source.repo,
+            &source.git_ref,
+            force_refresh,
+        )?;
         Ui::finish_spinner(
             spinner.as_ref(),
             format!("Pinned {}…{}", &c[..4], &c[c.len() - 4..]),
@@ -138,7 +145,7 @@ pub fn materialize_github_tree(
 
 pub fn fetch_github_asset_from_url(client: &Client, raw_url: &str, ui: &Ui) -> Result<LockPackage> {
     let parsed = parse_github_url(raw_url)?;
-    materialize_github_tree(client, &parsed, raw_url, ui)
+    materialize_github_tree(client, &parsed, raw_url, ui, false)
 }
 
 #[cfg(test)]

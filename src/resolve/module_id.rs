@@ -1,7 +1,7 @@
 //! Go-style module paths: `github.com/<owner>/<repo>[/<path>][@<ref>]`.
 
 use crate::error::{AgentpackError, Result};
-use crate::github::GitHubSource;
+use crate::github::{GitHubSource, GITHUB_HOST};
 
 /// Canonical module path without `@ref` (e.g. `github.com/anthropics/skills/skills/foo`).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -25,12 +25,23 @@ impl ModuleId {
             return Err(AgentpackError::Cache("empty module id".into()));
         }
         let parts: Vec<&str> = base.split('/').filter(|x| !x.is_empty()).collect();
-        if parts.len() < 3 || parts[0] != "github.com" {
+        if parts.len() < 3 || parts[0] != GITHUB_HOST {
             return Err(AgentpackError::Cache(format!(
-                "module id must start with github.com/<owner>/<repo>[/…], got {module:?}"
+                "module id must start with {GITHUB_HOST}/<owner>/<repo>[/…], got {module:?}"
             )));
         }
-        Ok(ModuleId(base.to_lowercase()))
+        // Lowercase only the `<host>/<owner>/<repo>` prefix. GitHub in-repo paths are
+        // case-sensitive, so preserving `parts[3..]` verbatim keeps fetches resolvable.
+        let mut canon = format!(
+            "{GITHUB_HOST}/{}/{}",
+            parts[1].to_lowercase(),
+            parts[2].to_lowercase()
+        );
+        if parts.len() > 3 {
+            canon.push('/');
+            canon.push_str(&parts[3..].join("/"));
+        }
+        Ok(ModuleId(canon))
     }
 
     pub fn owner_repo_path_parts(&self) -> (String, String, String) {
@@ -49,7 +60,7 @@ impl ModuleId {
     pub fn from_owner_repo_path(owner: &str, repo: &str, path: &str) -> Self {
         let path = path.trim_matches('/');
         let mut id = format!(
-            "github.com/{}/{}",
+            "{GITHUB_HOST}/{}/{}",
             owner.to_lowercase(),
             repo.to_lowercase()
         );
@@ -89,6 +100,14 @@ mod tests {
     fn parses_github_module() {
         let m = ModuleId::parse("github.com/Anthropics/skills/skills/foo").unwrap();
         assert_eq!(m.as_str(), "github.com/anthropics/skills/skills/foo");
+    }
+
+    #[test]
+    fn preserves_in_repo_path_case() {
+        // owner/repo lowercased, but the case-sensitive GitHub path is preserved verbatim.
+        let m = ModuleId::parse("github.com/Anthropics/Skills/skills/PDF-Tools").unwrap();
+        assert_eq!(m.as_str(), "github.com/anthropics/skills/skills/PDF-Tools");
+        assert_eq!(m.to_github_source("HEAD").path, "skills/PDF-Tools");
     }
 
     #[test]

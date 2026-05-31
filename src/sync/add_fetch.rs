@@ -16,10 +16,12 @@ use crate::cache::{
 };
 use crate::error::{AgentpackError, Result};
 use crate::github::{
-    canonical_github_tree_url, github_source_from_segments, parse_github_url, GitHubSource,
+    canonical_github_tree_url, github_source_from_segments, github_source_from_segments_ref,
+    parse_github_url, GitHubSource, DEFAULT_GIT_REF, GITHUB_HOST,
 };
 use crate::lockfile::{LockPackage, PackageKind};
 use crate::paths;
+use crate::resolve::module_id::split_module_at_ref;
 use crate::ui::Ui;
 
 pub(super) fn http_client() -> Result<Client> {
@@ -115,39 +117,58 @@ fn add_from_local_mirror(
     classify_materialized(&out, &local_url, &gh, commit, cache_key)
 }
 
-fn add_two_segment(client: &Client, owner: &str, repo: &str, ui: &Ui) -> Result<LockPackage> {
+fn add_two_segment(
+    client: &Client,
+    owner: &str,
+    repo: &str,
+    git_ref: Option<&str>,
+    ui: &Ui,
+) -> Result<LockPackage> {
     let spec = format!("{owner}/{repo}");
-    let mirror = paths::local_mirror_path_from_shorthand(&spec)?;
-    if mirror.is_dir() {
-        return add_from_local_mirror(&spec, owner, repo, "", ui);
-    }
-    if let Some(ck) = lookup_alias(&spec)? {
-        if let Some(rec) = get_entry(&ck)? {
-            return recreate_fetched_from_record(client, &rec, &ck, ui);
+    // An explicit `@ref` bypasses the local mirror and cache-alias shortcuts (which are ref-blind)
+    // so we always fetch the requested revision.
+    if git_ref.is_none() {
+        let mirror = paths::local_mirror_path_from_shorthand(&spec)?;
+        if mirror.is_dir() {
+            return add_from_local_mirror(&spec, owner, repo, "", ui);
+        }
+        if let Some(ck) = lookup_alias(&spec)? {
+            if let Some(rec) = get_entry(&ck)? {
+                return recreate_fetched_from_record(client, &rec, &ck, ui);
+            }
         }
     }
-    let source = github_source_from_segments(owner, repo, "");
+    let source =
+        github_source_from_segments_ref(owner, repo, "", git_ref.unwrap_or(DEFAULT_GIT_REF));
     let display = canonical_github_tree_url(&source);
-    materialize_github_tree(client, &source, &display, ui)
+    materialize_github_tree(client, &source, &display, ui, false)
 }
 
-fn add_multi_segment(client: &Client, parts: &[&str], ui: &Ui) -> Result<LockPackage> {
+fn add_multi_segment(
+    client: &Client,
+    parts: &[&str],
+    git_ref: Option<&str>,
+    ui: &Ui,
+) -> Result<LockPackage> {
     let owner = parts[0];
     let repo = parts[1];
     let in_path = parts[2..].join("/");
     let spec = parts.join("/");
-    let mirror = paths::local_mirror_path_from_shorthand(&spec)?;
-    if mirror.is_dir() {
-        return add_from_local_mirror(&spec, owner, repo, &in_path, ui);
-    }
-    if let Some(ck) = lookup_alias(&spec)? {
-        if let Some(rec) = get_entry(&ck)? {
-            return recreate_fetched_from_record(client, &rec, &ck, ui);
+    if git_ref.is_none() {
+        let mirror = paths::local_mirror_path_from_shorthand(&spec)?;
+        if mirror.is_dir() {
+            return add_from_local_mirror(&spec, owner, repo, &in_path, ui);
+        }
+        if let Some(ck) = lookup_alias(&spec)? {
+            if let Some(rec) = get_entry(&ck)? {
+                return recreate_fetched_from_record(client, &rec, &ck, ui);
+            }
         }
     }
-    let source = github_source_from_segments(owner, repo, &in_path);
+    let source =
+        github_source_from_segments_ref(owner, repo, &in_path, git_ref.unwrap_or(DEFAULT_GIT_REF));
     let display = canonical_github_tree_url(&source);
-    materialize_github_tree(client, &source, &display, ui)
+    materialize_github_tree(client, &source, &display, ui, false)
 }
 
 fn add_one_segment(client: &Client, name: &str, ui: &Ui) -> Result<LockPackage> {
@@ -210,7 +231,7 @@ fn recreate_fetched_from_record(
     let src = GitHubSource {
         owner: rec.owner.clone(),
         repo: rec.repo.clone(),
-        git_ref: "HEAD".into(),
+        git_ref: DEFAULT_GIT_REF.into(),
         path: rec.path.clone(),
     };
     classify_materialized(
@@ -222,11 +243,15 @@ fn recreate_fetched_from_record(
     )
 }
 
-pub(super) fn resolve_add_spec(
-    client: &Client,
-    spec: &str,
-    ui: &Ui,
-) -> Result<(LockPackage, Option<String>)> {
+/// Outcome of resolving an `add` spec: the fetched package, an optional shorthand alias to record
+/// in the cache index, and the optional ref (`@branch`/`@tag`/`@commit`) to persist in the manifest.
+pub(super) struct ResolvedAdd {
+    pub package: LockPackage,
+    pub shorthand: Option<String>,
+    pub git_ref: Option<String>,
+}
+
+pub(super) fn resolve_add_spec(client: &Client, spec: &str, ui: &Ui) -> Result<ResolvedAdd> {
     let spec = spec.trim();
     if spec.is_empty() {
         return Err(AgentpackError::Cache("empty add spec".into()));
@@ -237,26 +262,52 @@ pub(super) fn resolve_add_spec(
                 "only https://github.com/… URLs are supported".into(),
             ));
         }
-        let f = fetch_github_asset_from_url(client, spec, ui)?;
-        return Ok((f, None));
+        let package = fetch_github_asset_from_url(client, spec, ui)?;
+        return Ok(ResolvedAdd {
+            package,
+            shorthand: None,
+            git_ref: None,
+        });
     }
     if let Some(canon) = resolve_existing_path(spec) {
-        let f = add_from_filesystem(&canon, ui)?;
-        return Ok((f, None));
+        let package = add_from_filesystem(&canon, ui)?;
+        return Ok(ResolvedAdd {
+            package,
+            shorthand: None,
+            git_ref: None,
+        });
     }
-    let parts: Vec<&str> = spec.split('/').filter(|s| !s.is_empty()).collect();
+    // Shorthand form: peel an optional `@ref`, then drop a leading `github.com/` host segment so the
+    // canonical module-id form (`github.com/owner/repo/path`, as shown in docs/manifest/pack.lock)
+    // and the bare `owner/repo/path` form both resolve.
+    let (base, git_ref) = split_module_at_ref(spec);
+    let mut parts: Vec<&str> = base.split('/').filter(|s| !s.is_empty()).collect();
+    if parts.first() == Some(&GITHUB_HOST) {
+        parts.remove(0);
+    }
     match parts.len() {
         0 => Err(AgentpackError::Cache("invalid add spec".into())),
-        1 => Ok((add_one_segment(client, parts[0], ui)?, None)),
+        // A bare single segment is a local-mirror / cache-alias lookup; `@ref` is not meaningful.
+        1 => Ok(ResolvedAdd {
+            package: add_one_segment(client, parts[0], ui)?,
+            shorthand: None,
+            git_ref: None,
+        }),
         2 => {
-            let sh = spec.to_string();
-            let f = add_two_segment(client, parts[0], parts[1], ui)?;
-            Ok((f, Some(sh)))
+            let package = add_two_segment(client, parts[0], parts[1], git_ref, ui)?;
+            Ok(ResolvedAdd {
+                package,
+                shorthand: Some(parts.join("/")),
+                git_ref: git_ref.map(str::to_string),
+            })
         }
         _ => {
-            let sh = spec.to_string();
-            let f = add_multi_segment(client, &parts, ui)?;
-            Ok((f, Some(sh)))
+            let package = add_multi_segment(client, &parts, git_ref, ui)?;
+            Ok(ResolvedAdd {
+                package,
+                shorthand: Some(parts.join("/")),
+                git_ref: git_ref.map(str::to_string),
+            })
         }
     }
 }
@@ -312,10 +363,56 @@ mod tests {
         .unwrap();
 
         let client = Client::builder().build().unwrap();
-        let (fetched, shorthand) =
+        let resolved =
             resolve_add_spec(&client, "owner/repo/skills/reuse-me", &Ui::test_stub()).unwrap();
 
-        assert_eq!(fetched.cache_key, cache_key);
-        assert_eq!(shorthand.as_deref(), Some("owner/repo/skills/reuse-me"));
+        assert_eq!(resolved.package.cache_key, cache_key);
+        assert_eq!(
+            resolved.shorthand.as_deref(),
+            Some("owner/repo/skills/reuse-me")
+        );
+        assert_eq!(resolved.git_ref, None);
+    }
+
+    #[test]
+    #[serial]
+    fn resolve_add_spec_strips_github_host_prefix() {
+        // The canonical `github.com/owner/repo/path` form (with host) must reuse the same cached
+        // alias as the bare `owner/repo/path` form rather than treating `github.com` as the owner.
+        let dir = tempdir().unwrap();
+        std::env::set_var("AGENTPACK_HOME", dir.path());
+
+        let cache_key = "host-prefixed-alias";
+        let cache_root = dir.path().join("cache").join(cache_key);
+        fs::create_dir_all(&cache_root).unwrap();
+        fs::write(cache_root.join("SKILL.md"), "# skill\n").unwrap();
+        upsert_entry(
+            cache_key,
+            &CacheEntryRecord {
+                kind: PackageKind::Skill,
+                source_url: "https://github.com/owner/repo/tree/main/skills/reuse-me".into(),
+                owner: "owner".into(),
+                repo: "repo".into(),
+                path: "skills/reuse-me".into(),
+                commit: "a".repeat(40),
+                fetched_at_unix: Utc::now().timestamp(),
+            },
+            &["owner/repo/skills/reuse-me".to_string()],
+        )
+        .unwrap();
+
+        let client = Client::builder().build().unwrap();
+        let resolved = resolve_add_spec(
+            &client,
+            "github.com/owner/repo/skills/reuse-me",
+            &Ui::test_stub(),
+        )
+        .unwrap();
+
+        assert_eq!(resolved.package.cache_key, cache_key);
+        assert_eq!(
+            resolved.shorthand.as_deref(),
+            Some("owner/repo/skills/reuse-me")
+        );
     }
 }

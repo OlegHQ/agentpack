@@ -73,7 +73,7 @@ fn pick_effective_git_ref(
             }
         }
     }
-    mc.pick_git_ref(client, owner, repo)
+    mc.pick_git_ref(client, owner, repo, opts.refresh_floating)
 }
 
 /// Regenerate **`pack.lock`** from **`agentpack.toml`** (transitive via nested manifests).
@@ -191,7 +191,8 @@ pub fn resolve_lock_from_manifest(
         let git_ref = pick_effective_git_ref(&mc, client, &owner, &repo, &mid, opts)?;
         let source = mid.to_github_source(&git_ref);
         let display = canonical_github_tree_url(&source);
-        let mut pkg = materialize_github_tree(client, &source, &display, ui)?;
+        let mut pkg =
+            materialize_github_tree(client, &source, &display, ui, opts.refresh_floating)?;
         pkg.module = mid.as_str().to_string();
         pkg.direct = direct_ids.contains(&mid);
         let pkg_cache_key = pkg.cache_key.clone();

@@ -1,8 +1,10 @@
 use std::fs;
 use std::path::Path;
 
+use crate::artifacts::parse_markdown_artifact;
 use crate::error::{AgentpackError, Result};
-use crate::fs_util::{remove_path_any, strip_under_root, walk_dir, WalkDirOpts};
+use crate::fs_util::{remove_path_any, strip_under_root, walk_dir, write_text_file, WalkDirOpts};
+use crate::harness::HarnessTarget;
 use crate::mode::filter::EffectiveMode;
 use crate::paths::{
     project_dot_agents_dir, staging_codex_home_dir_for_mode, staging_plugins_dir_for_mode,
@@ -98,6 +100,54 @@ fn copy_dot_agents_tree(
     Ok(())
 }
 
+/// Render `.agents/<source_rel>` (`agents/` or `commands/`) markdown into the **Codex** home as
+/// skills. Codex only reads `skills/`, so unlike the Claude bundle (which natively reads `agents/`
+/// and `commands/`) these must go through the artifact pipeline's Codex skill fallback — the same
+/// conversion pack-sourced commands/agents already get. Mirrors `super::pack_overlay`'s rendering.
+fn render_dot_agents_tree_as_codex_skills(
+    dot_agents_root: &Path,
+    source_rel: &str,
+    codex_dest: &Path,
+    mode: &EffectiveMode,
+) -> Result<()> {
+    let src = dot_agents_root.join(source_rel);
+    if !src.is_dir() {
+        return Ok(());
+    }
+    for entry in walk_dir(&src, WalkDirOpts::files()) {
+        let entry = entry?;
+        let path = entry.path();
+        let rel = strip_under_root(path, &src)?;
+        if rel.as_os_str().is_empty() {
+            continue;
+        }
+        // `selector_rel` keeps the `agents/`|`commands/` prefix so both the mode selector and the
+        // artifact kind-inference (which keys off that path segment) work.
+        let selector_rel = Path::new(source_rel).join(rel);
+        if !mode.allows_dot_agents_path(&selector_rel)? {
+            continue;
+        }
+        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+        if !ext.eq_ignore_ascii_case("md") && !ext.eq_ignore_ascii_case("mdc") {
+            continue;
+        }
+        let contents = fs::read_to_string(path).map_err(|e| AgentpackError::io(path, e))?;
+        match parse_markdown_artifact(&selector_rel, &contents, None) {
+            Ok(Some(artifact)) => {
+                let rendered = artifact.render(HarnessTarget::Codex);
+                write_text_file(&codex_dest.join(rendered.relative_path), &rendered.contents)?;
+            }
+            Ok(None) => {}
+            Err(e) => tracing::warn!(
+                source = %selector_rel.display(),
+                error = %e,
+                "skipping dot-agents artifact with invalid frontmatter"
+            ),
+        }
+    }
+    Ok(())
+}
+
 fn copy_dot_agents_file(
     dot_agents_root: &Path,
     source_rel: &str,
@@ -150,8 +200,12 @@ pub(crate) fn stage_dot_agents_overlay(
 
     copy_dot_agents_tree(&dot_agents, "skills", &bundle, false, mode)?;
     copy_dot_agents_tree(&dot_agents, "skills", &codex, false, mode)?;
+    // Claude reads `agents/` and `commands/` natively from the bundle (verbatim copy); Codex only
+    // reads `skills/`, so its copy is converted to the skill fallback via the artifact pipeline.
     copy_dot_agents_tree(&dot_agents, "agents", &bundle, false, mode)?;
     copy_dot_agents_tree(&dot_agents, "commands", &bundle, false, mode)?;
+    render_dot_agents_tree_as_codex_skills(&dot_agents, "agents", &codex, mode)?;
+    render_dot_agents_tree_as_codex_skills(&dot_agents, "commands", &codex, mode)?;
 
     copy_dot_agents_file(&dot_agents, "AGENTS.md", &codex.join("AGENTS.md"), mode)?;
     copy_dot_agents_file(&dot_agents, "CLAUDE.md", &bundle.join("CLAUDE.md"), mode)?;

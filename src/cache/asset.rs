@@ -121,6 +121,7 @@ pub fn fetch_skill_from_parsed(
         source,
         display_url,
         ui,
+        false,
     )?)
 }
 

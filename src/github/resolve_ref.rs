@@ -21,31 +21,33 @@ pub fn resolve_ref_to_sha(
     owner: &str,
     repo: &str,
     git_ref: &str,
+    force_refresh: bool,
 ) -> Result<String> {
     if git_ref.len() == 40 && git_ref.chars().all(|c| c.is_ascii_hexdigit()) {
         return Ok(git_ref.to_lowercase());
     }
 
     let cached = GitHubMetadataCache::load_ref(owner, repo, git_ref)?;
-    if let Some(entry) = cached
-        .as_ref()
-        .filter(|entry| GitHubMetadataCache::ref_is_fresh(entry))
-    {
-        return Ok(entry.sha.clone());
-    }
-    if let Some(tags) =
-        GitHubMetadataCache::load_tags(owner, repo)?.filter(GitHubMetadataCache::tags_are_fresh)
-    {
-        if let Some((_, sha)) = tags.tags.iter().find(|(name, _)| name == git_ref) {
-            return Ok(sha.clone());
+    // `force_refresh` (from `lock --update` / `sync --update-lock`) bypasses the freshness window so
+    // floating pins advance; `cached` is still loaded for the stale-fallback on network failure.
+    if !force_refresh {
+        if let Some(entry) = cached
+            .as_ref()
+            .filter(|entry| GitHubMetadataCache::ref_is_fresh(entry))
+        {
+            return Ok(entry.sha.clone());
+        }
+        if let Some(tags) =
+            GitHubMetadataCache::load_tags(owner, repo)?.filter(GitHubMetadataCache::tags_are_fresh)
+        {
+            if let Some((_, sha)) = tags.tags.iter().find(|(name, _)| name == git_ref) {
+                return Ok(sha.clone());
+            }
         }
     }
 
-    let url = if git_ref == "HEAD" {
-        format!("https://api.github.com/repos/{owner}/{repo}/commits/HEAD")
-    } else {
-        format!("https://api.github.com/repos/{owner}/{repo}/commits/{git_ref}")
-    };
+    // The commits endpoint accepts a sha, branch, tag, or the literal `HEAD` interchangeably.
+    let url = format!("https://api.github.com/repos/{owner}/{repo}/commits/{git_ref}");
     let mut req = client
         .get(&url)
         .header("Accept", "application/vnd.github+json");
@@ -156,7 +158,7 @@ mod tests {
         GitHubMetadataCache::store_ref("owner", "repo", "main", &"a".repeat(40)).unwrap();
 
         let client = Client::builder().build().unwrap();
-        let sha = resolve_ref_to_sha(&client, "owner", "repo", "main").unwrap();
+        let sha = resolve_ref_to_sha(&client, "owner", "repo", "main", false).unwrap();
         assert_eq!(sha, "a".repeat(40));
     }
 
@@ -169,7 +171,7 @@ mod tests {
             .unwrap();
 
         let client = Client::builder().build().unwrap();
-        let sha = resolve_ref_to_sha(&client, "owner", "repo", "v1.2.3").unwrap();
+        let sha = resolve_ref_to_sha(&client, "owner", "repo", "v1.2.3", false).unwrap();
         assert_eq!(sha, "b".repeat(40));
     }
 }

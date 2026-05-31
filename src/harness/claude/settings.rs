@@ -51,8 +51,10 @@ pub(super) fn materialize_claude_settings_overlay() -> Result<()> {
 /// approval.
 pub(super) fn set_claude_settings_mcp_allowlist(names: &[String]) -> Result<()> {
     let dest = agentpack_claude_settings_path()?;
-    if !dest.is_file() {
-        return Ok(());
+    // Create the overlay if attribution-off removed it (keep-attribution mode): the MCP allowlist
+    // must reach Claude via `--settings` regardless of attribution handling.
+    if let Some(parent) = dest.parent() {
+        fs::create_dir_all(parent).map_err(|e| AgentpackError::io(parent, e))?;
     }
     let mut value = read_json_value_opt(&dest)?.unwrap_or_else(|| json!({}));
     let obj = value.as_object_mut().ok_or_else(|| {
@@ -116,6 +118,26 @@ mod tests {
             std::env::set_var("AGENTPACK_KEEP_ATTRIBUTION", "1");
             materialize_claude_settings_overlay().unwrap();
             assert!(!agentpack_claude_settings_path().unwrap().exists());
+            std::env::remove_var("AGENTPACK_KEEP_ATTRIBUTION");
+        });
+    }
+
+    #[test]
+    #[serial]
+    fn allowlist_persists_under_keep_attribution() {
+        with_home(|| {
+            // keep-attribution removes the overlay; the MCP allowlist must still create it so
+            // `--settings` carries `enabledMcpjsonServers`, without re-introducing attribution keys.
+            std::env::set_var("AGENTPACK_KEEP_ATTRIBUTION", "1");
+            materialize_claude_settings_overlay().unwrap();
+            assert!(!agentpack_claude_settings_path().unwrap().exists());
+
+            set_claude_settings_mcp_allowlist(&["linear".to_string()]).unwrap();
+            let v: Value = read_json_value_opt(&agentpack_claude_settings_path().unwrap())
+                .unwrap()
+                .unwrap();
+            assert_eq!(v["enabledMcpjsonServers"], json!(["linear"]));
+            assert!(v.get("attribution").is_none());
             std::env::remove_var("AGENTPACK_KEEP_ATTRIBUTION");
         });
     }

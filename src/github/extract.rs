@@ -12,13 +12,33 @@
 use std::collections::HashSet;
 use std::fs;
 use std::io::Cursor;
-use std::path::Path;
+use std::path::{Component, Path, PathBuf};
 
 use flate2::read::GzDecoder;
 use tar::Archive;
 
 use crate::error::{AgentpackError, Result};
 use crate::ui::Ui;
+
+/// Join an archive-derived relative path onto `out_dir`, refusing any entry that would escape the
+/// destination. GitHub's git trees can't contain `..`/absolute components, but agentpack extracts
+/// untrusted third-party archives, so we defend against path traversal ("zip slip") regardless:
+/// any `..`, absolute, or drive-prefixed component is rejected rather than written outside the cache.
+fn safe_extract_path(out_dir: &Path, extract_rel: &str) -> Result<PathBuf> {
+    let rel = Path::new(extract_rel);
+    let unsafe_component = rel.components().any(|c| {
+        matches!(
+            c,
+            Component::ParentDir | Component::RootDir | Component::Prefix(_)
+        )
+    });
+    if unsafe_component {
+        return Err(AgentpackError::Archive(format!(
+            "unsafe path in archive entry (path traversal): {extract_rel}"
+        )));
+    }
+    Ok(out_dir.join(rel))
+}
 
 /// Strip the GitHub top-level `reponame-sha/` wrapper from an archive path.
 /// Returns the repo-relative path, or `None` for the bare wrapper dir itself.
@@ -113,7 +133,7 @@ pub fn extract_tarball_with_prefix(
             continue;
         };
 
-        let out_path = out_dir.join(Path::new(extract_rel));
+        let out_path = safe_extract_path(out_dir, extract_rel)?;
         if entry.header().entry_type().is_dir() {
             fs::create_dir_all(&out_path).map_err(|e| AgentpackError::io(&out_path, e))?;
         } else {
@@ -205,7 +225,7 @@ pub fn write_entries_with_prefix(
             continue;
         };
 
-        let out_path = out_dir.join(Path::new(extract_rel));
+        let out_path = safe_extract_path(out_dir, extract_rel)?;
         if entry.is_dir {
             fs::create_dir_all(&out_path).map_err(|e| AgentpackError::io(&out_path, e))?;
         } else {
@@ -263,5 +283,61 @@ mod tests {
         let dir2 = tempfile::tempdir().unwrap();
         let n2 = extract_tarball_with_prefix(&gz, "does-not-exist", dir2.path(), &ui).unwrap();
         assert_eq!(n2, 0);
+    }
+
+    /// Build a gzipped tar with a raw (unvalidated) entry name. The safe `Header::set_path` API
+    /// rejects `..`, so a real path-traversal archive can only come from a hand-crafted tar — which
+    /// is exactly the untrusted-input case `safe_extract_path` defends against.
+    fn malicious_tar_gz(name: &str, body: &[u8]) -> Vec<u8> {
+        let mut header = [0u8; 512];
+        let nb = name.as_bytes();
+        header[..nb.len()].copy_from_slice(nb);
+        header[100..108].copy_from_slice(b"0000644\0");
+        header[108..116].copy_from_slice(b"0000000\0");
+        header[116..124].copy_from_slice(b"0000000\0");
+        header[124..136].copy_from_slice(format!("{:011o}\0", body.len()).as_bytes());
+        header[136..148].copy_from_slice(b"00000000000\0");
+        header[156] = b'0'; // regular file
+        header[257..263].copy_from_slice(b"ustar\0");
+        header[263..265].copy_from_slice(b"00");
+        header[148..156].copy_from_slice(b"        "); // checksum field = spaces while summing
+        let sum: u32 = header.iter().map(|&b| b as u32).sum();
+        header[148..156].copy_from_slice(format!("{sum:06o}\0 ").as_bytes());
+
+        let mut tar = Vec::new();
+        tar.extend_from_slice(&header);
+        tar.extend_from_slice(body);
+        tar.extend(std::iter::repeat_n(0u8, (512 - body.len() % 512) % 512));
+        tar.extend(std::iter::repeat_n(0u8, 1024)); // two zero blocks terminate the archive
+
+        let mut gz = Vec::new();
+        let mut enc = GzEncoder::new(&mut gz, Compression::default());
+        enc.write_all(&tar).unwrap();
+        enc.finish().unwrap();
+        gz
+    }
+
+    #[test]
+    fn rejects_path_traversal_entry() {
+        // A malicious archive whose entry escapes the wrapper dir must be refused, not written.
+        let gz = malicious_tar_gz("repo-abcdef0/../../escape.txt", b"pwned\n");
+        let dir = tempfile::tempdir().unwrap();
+        let ui = crate::ui::Ui::test_stub();
+        let err = extract_tarball_with_prefix(&gz, "", dir.path(), &ui).unwrap_err();
+        assert!(
+            matches!(err, AgentpackError::Archive(ref m) if m.contains("path traversal")),
+            "expected path-traversal archive error, got {err:?}"
+        );
+        // Nothing escaped to the parent of the destination.
+        assert!(!dir.path().parent().unwrap().join("escape.txt").exists());
+    }
+
+    #[test]
+    fn safe_extract_path_allows_normal_and_blocks_escape() {
+        let out = Path::new("/tmp/out");
+        assert!(safe_extract_path(out, "a/b/c.md").is_ok());
+        assert!(safe_extract_path(out, "../etc/passwd").is_err());
+        assert!(safe_extract_path(out, "a/../../b").is_err());
+        assert!(safe_extract_path(out, "/abs/path").is_err());
     }
 }

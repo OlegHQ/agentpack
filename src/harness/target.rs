@@ -61,4 +61,12 @@ impl HarnessTarget {
     pub(crate) fn harness(self) -> &'static dyn Harness {
         get(self)
     }
+
+    /// Whether launching this harness materializes a symlink overlay inside the **workspace** dir
+    /// (Cursor `./.cursor/agents`, Antigravity `./.agents/plugins/agentpack-bundle`). For these the
+    /// resolved workspace path is a sync input — it must feed the launch fingerprint so a `cd` to a
+    /// sibling subdir re-creates the overlay instead of taking the fast path.
+    pub(crate) fn uses_workspace_overlay(self) -> bool {
+        matches!(self, HarnessTarget::Cursor | HarnessTarget::Agy)
+    }
 }

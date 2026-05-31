@@ -6,6 +6,7 @@ use std::path::Path;
 use anyhow::Context;
 
 use super::{Cli, Command, McpAction, ModeAction};
+use crate::error::AgentpackError;
 use crate::harness::{launch, HarnessTarget};
 use crate::ui::Ui;
 use crate::{lockfile, manifest, paths, sync};
@@ -162,7 +163,12 @@ fn run_mcp(root: &Path, action: McpAction, ui: &Ui) -> anyhow::Result<()> {
             }
         }
         McpAction::Remove { name, no_sync } => {
-            manifest::AgentpackManifest::remove_mcp_server(root, &name)?;
+            if !manifest::AgentpackManifest::remove_mcp_server(root, &name)? {
+                return Err(AgentpackError::Cache(format!(
+                    "no MCP server named \"{name}\" in agentpack.toml [mcp.servers]"
+                ))
+                .into());
+            }
             ui.message(format!("Removed MCP server \"{name}\" from agentpack.toml"));
             if !no_sync {
                 sync::run_sync(root, false, false, false, None, None, ui)?;

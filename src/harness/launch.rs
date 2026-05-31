@@ -58,7 +58,7 @@ pub(super) fn args_have_flag_with_value(args: &[String], flag: &str) -> bool {
 /// they `cd`'d into). The workspace overlay (`.cursor/agents` / `.agents/plugins/...`) and the
 /// harness's workspace trust follow this same dir. Falls back to `project_root` if the CWD can't be
 /// read. Returns a canonicalized absolute path.
-pub(super) fn workspace_root(project_root: &Path) -> PathBuf {
+pub(crate) fn workspace_root(project_root: &Path) -> PathBuf {
     let raw = std::env::current_dir().unwrap_or_else(|_| project_root.to_path_buf());
     raw.canonicalize().unwrap_or(raw)
 }

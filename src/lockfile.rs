@@ -105,6 +105,13 @@ impl PackLock {
         let raw = fs::read_to_string(p).map_err(|e| AgentpackError::io(p, e))?;
         let lock: PackLock =
             toml::from_str(&raw).map_err(|e| AgentpackError::LockfileParse(e.to_string()))?;
+        if lock.lockfile_version != 2 {
+            return Err(AgentpackError::LockfileParse(format!(
+                "unsupported lockfile-version {} (expected 2); run `agentpack lock` to regenerate {}",
+                lock.lockfile_version,
+                p.display()
+            )));
+        }
         Ok(lock)
     }
 
@@ -224,10 +231,26 @@ cache_key = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     }
 
     #[test]
+    fn rejects_unsupported_lockfile_version() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        fs::write(
+            lock_path(root),
+            "lockfile_version = 1\n[meta]\nname = \"x\"\nversion = \"0\"\n",
+        )
+        .unwrap();
+        let error = PackLock::load(root).unwrap_err();
+        assert!(
+            matches!(error, AgentpackError::LockfileParse(m) if m.contains("lockfile-version"))
+        );
+    }
+
+    #[test]
     fn roundtrip_skill() {
         let dir = tempdir().unwrap();
         let root = dir.path();
         let mut p = PackLock {
+            lockfile_version: 2,
             meta: Meta {
                 name: "proj".into(),
                 version: "0.1.0".into(),

@@ -82,7 +82,9 @@ impl Selector {
         module: &str,
         rel_path: &Path,
     ) -> Result<Option<MatchSpecificity>> {
-        let rel_path = normalize_relative_runtime_path(rel_path)?;
+        // A `Package` selector ignores the path, so don't normalize it here — otherwise a
+        // whole-package query with an empty path (as the mode TUI does to compute a row's base
+        // glyph) would error and the row would render as neutral instead of enabled/disabled.
         let matched = match self {
             Self::Package {
                 module: selector_module,
@@ -90,10 +92,10 @@ impl Selector {
             Self::PackagePath {
                 module: selector_module,
                 rel_path: selector_rel_path,
-            } if selector_module == module
-                && path_selector_matches(selector_rel_path, &rel_path) =>
-            {
-                Some(MatchSpecificity::from_rel_path(selector_rel_path))
+            } if selector_module == module => {
+                let rel_path = normalize_relative_runtime_path(rel_path)?;
+                path_selector_matches(selector_rel_path, &rel_path)
+                    .then(|| MatchSpecificity::from_rel_path(selector_rel_path))
             }
             _ => None,
         };

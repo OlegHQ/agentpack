@@ -1,6 +1,6 @@
 use crate::cache::blob_path_parent_prefixes;
 use crate::error::{AgentpackError, Result};
-use crate::github::{parse_github_url, path_in_repo_looks_like_file};
+use crate::github::{parse_github_url, path_in_repo_looks_like_file, GITHUB_HOST};
 use crate::manifest::AgentpackManifest;
 use crate::resolve::module_id::{split_module_at_ref, ModuleId};
 
@@ -54,16 +54,30 @@ pub(super) fn resolve_remove_spec_to_key(
     let parts: Vec<&str> = spec.split('/').filter(|s| !s.is_empty()).collect();
     if parts.len() == 1 {
         let tail = parts[0].to_lowercase();
-        for k in manifest.dependencies.keys() {
-            let kl = k.to_lowercase();
-            if kl == tail || kl.ends_with(&format!("/{tail}")) {
-                return Ok(k.clone());
+        let matches: Vec<String> = manifest
+            .dependencies
+            .keys()
+            .filter(|k| {
+                let kl = k.to_lowercase();
+                kl == tail || kl.ends_with(&format!("/{tail}"))
+            })
+            .cloned()
+            .collect();
+        match matches.len() {
+            0 => {}
+            1 => return Ok(matches.into_iter().next().unwrap()),
+            _ => {
+                return Err(AgentpackError::Cache(format!(
+                    "ambiguous remove spec '{spec}' matches multiple dependencies ({}); \
+                     specify a fuller owner/repo/path",
+                    matches.join(", ")
+                )))
             }
         }
     }
 
     let (base, _) = split_module_at_ref(spec);
-    if parts.len() >= 2 && parts[0] != "github.com" {
+    if parts.len() >= 2 && parts[0] != GITHUB_HOST {
         let path = parts[2..].join("/");
         for k in module_key_candidates(parts[0], parts[1], &path) {
             if manifest.dependencies.contains_key(&k) {

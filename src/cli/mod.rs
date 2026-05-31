@@ -146,8 +146,8 @@ pub enum McpAction {
         /// Command to run the MCP server
         #[arg(long)]
         command: String,
-        /// Arguments for the command
-        #[arg(long, num_args = 0..)]
+        /// Arguments for the command (values may start with `-`, e.g. `--args -y pkg`)
+        #[arg(long, num_args = 0.., allow_hyphen_values = true)]
         args: Vec<String>,
         /// Environment variables (KEY=VALUE pairs)
         #[arg(long, value_parser = parse_env_pair, num_args = 0..)]

@@ -15,10 +15,16 @@ pub use download::{
 pub use extract::{collect_repo_relative_paths, extract_tarball_with_prefix};
 pub use list_tags::list_tags;
 pub use parse_url::{
-    canonical_github_tree_url, github_source_from_segments, normalized_identity, parse_github_url,
-    GitHubSource,
+    canonical_github_tree_url, github_source_from_segments, github_source_from_segments_ref,
+    normalized_identity, parse_github_url, GitHubSource,
 };
 pub use resolve_ref::resolve_ref_to_sha;
+
+/// Canonical GitHub host. Module ids, lockfile urls, and shorthand specs are all rooted here.
+pub const GITHUB_HOST: &str = "github.com";
+
+/// Ref used when a dependency pins no branch/tag/commit — resolves to the repo's default branch.
+pub const DEFAULT_GIT_REF: &str = "HEAD";
 
 /// Return a GitHub API bearer token from `GITHUB_TOKEN` or `GH_TOKEN`, if set.
 pub(crate) fn github_token() -> Option<String> {

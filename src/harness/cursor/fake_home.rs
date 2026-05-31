@@ -70,6 +70,7 @@ fn materialize_cursor_platform_user_data(fake_home: &Path, real_home: &Path) -> 
     {
         let config_base = std::env::var_os("XDG_CONFIG_HOME")
             .map(PathBuf::from)
+            .filter(|s| !s.as_os_str().is_empty())
             .unwrap_or_else(|| real_home.join(".config"));
         symlink_dir_if_present(
             &config_base.join("Cursor"),
@@ -77,6 +78,7 @@ fn materialize_cursor_platform_user_data(fake_home: &Path, real_home: &Path) -> 
         )?;
         let data_base = std::env::var_os("XDG_DATA_HOME")
             .map(PathBuf::from)
+            .filter(|s| !s.as_os_str().is_empty())
             .unwrap_or_else(|| real_home.join(".local/share"));
         symlink_dir_if_present(
             &data_base.join("Cursor"),

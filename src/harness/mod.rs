@@ -19,7 +19,7 @@ mod launch;
 mod opencode;
 mod target;
 
-pub(crate) use launch::launch;
+pub(crate) use launch::{launch, workspace_root};
 pub use target::HarnessTarget;
 
 use std::path::{Path, PathBuf};

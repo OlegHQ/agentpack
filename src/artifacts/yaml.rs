@@ -7,6 +7,9 @@ use crate::error::{AgentpackError, Result};
 use super::ArtifactKind;
 
 pub(super) fn split_frontmatter(contents: &str) -> Result<(Option<Mapping>, String)> {
+    // Strip a leading UTF-8 BOM so a `---` frontmatter delimiter saved with a BOM still parses
+    // (otherwise the whole file is treated as body and declared name/description are dropped).
+    let contents = contents.strip_prefix('\u{feff}').unwrap_or(contents);
     let Some((yaml, body)) = extract_frontmatter_sections(contents) else {
         return Ok((None, ensure_trailing_newline(contents).into_owned()));
     };

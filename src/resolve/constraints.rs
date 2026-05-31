@@ -4,7 +4,7 @@ use reqwest::blocking::Client;
 use semver::VersionReq;
 
 use crate::error::{AgentpackError, Result};
-use crate::github::list_tags;
+use crate::github::{list_tags, DEFAULT_GIT_REF};
 use crate::manifest::{DepSpecToml, DepTable};
 
 #[derive(Debug, Clone, Default)]
@@ -59,12 +59,18 @@ impl ModuleConstraints {
         Ok(())
     }
 
-    pub fn pick_git_ref(&self, client: &Client, owner: &str, repo: &str) -> Result<String> {
+    pub fn pick_git_ref(
+        &self,
+        client: &Client,
+        owner: &str,
+        repo: &str,
+        force_refresh: bool,
+    ) -> Result<String> {
         if let Some(c) = &self.exact {
             return Ok(c.clone());
         }
         if !self.semver_reqs.is_empty() {
-            let tags = list_tags(client, owner, repo)?;
+            let tags = list_tags(client, owner, repo, force_refresh)?;
             let mut candidates: Vec<(semver::Version, String)> = Vec::new();
             for (name, _sha) in tags {
                 let vpart = name.strip_prefix('v').unwrap_or(&name);
@@ -90,9 +96,9 @@ impl ModuleConstraints {
             return Ok(b.clone());
         }
         if self.latest {
-            return Ok("HEAD".into());
+            return Ok(DEFAULT_GIT_REF.into());
         }
-        Ok("HEAD".into())
+        Ok(DEFAULT_GIT_REF.into())
     }
 }
 

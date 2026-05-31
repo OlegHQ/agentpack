@@ -99,17 +99,23 @@ pub fn run_add(project_root: &Path, spec: &str, no_sync: bool, ui: &Ui) -> Resul
 
     let client = http_client()?;
     let _ = require_manifest(project_root)?;
-    let (fetched, shorthand) = resolve_add_spec(&client, spec, ui)?;
+    let resolved = resolve_add_spec(&client, spec, ui)?;
+    let fetched = resolved.package;
     let module_key = crate::cache::asset::dependency_key_for_entry(
         &fetched.module,
         &fetched.owner,
         &fetched.repo,
         &fetched.path,
     );
-    AgentpackManifest::append_dependency_key(project_root, &module_key)?;
+    // Persist an explicit `@ref` so `lock`/`sync` re-resolve the same pin (otherwise it floats).
+    AgentpackManifest::append_dependency_pin(
+        project_root,
+        &module_key,
+        resolved.git_ref.as_deref(),
+    )?;
     // Update the cache alias index before resolving so transitive lookups via
     // shorthand can reuse the just-fetched cache_key.
-    upsert_fetched_index(&fetched, shorthand.as_deref())?;
+    upsert_fetched_index(&fetched, resolved.shorthand.as_deref())?;
     let manifest = require_manifest(project_root)?;
     let primed = [fetched];
     resolve_and_save_lock(project_root, &manifest, &client, ui, false, &primed)?;
