@@ -193,6 +193,7 @@ For Cursor specifically, **`$STAGING/cursor-home/.cursor/cli-config.json`** is m
 | **`AGENTPACK_HOME`** | User agentpack root (`cache/`, `local/`, `projects/`, `db.reddb`). Overrides XDG / OS defaults. |
 | **`AGENTPACK_STAGING_ROOT`** | Staging root override (default: `temp_dir()/agentpack-<hash>`). |
 | **`AGENTPACK_KEEP_ATTRIBUTION`** | Set to **`1`** / **`true`** / **`yes`** to keep AI attribution settings (Co-Authored-By trailers, "Generated with X" footers) in staged harness configs. Default: drop attribution (see below). |
+| **`AGENTPACK_TUI_THEME`** | Force the mode TUI palette: **`light`** or **`dark`**. Unset = auto-detect from the terminal background (OSC 11 luma / `COLORFGBG`), falling back to **`dark`**. |
 | **`CLAUDE_CODE_PATH`** | Path to the **`claude`** binary. |
 | **`OPENCODE_PATH`** | Path to the **`opencode`** binary. |
 | **`CODEX_PATH`** | Path to the **`codex`** binary. |

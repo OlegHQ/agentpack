@@ -142,13 +142,12 @@ fn handle_tree_key(app: &mut TuiApp, code: KeyCode) {
             }
         }
         KeyCode::Enter | KeyCode::Char(' ') => {
-            let (id, expandable, expanded) = &snapshot[app.tree_cursor];
-            if *expandable {
-                if *expanded {
-                    app.expanded.remove(id);
-                } else {
-                    app.expanded.insert(id.clone());
-                }
+            // Primary action: cycle the state of a selectable row; a bare
+            // section header has nothing to set, so it folds instead.
+            if cursor_selector(app).is_some() {
+                cycle_cursor_selector(app);
+            } else {
+                toggle_fold_at_cursor(app);
             }
         }
         KeyCode::Char('e') => {
@@ -159,9 +158,6 @@ fn handle_tree_key(app: &mut TuiApp, code: KeyCode) {
         }
         KeyCode::Char('c') => {
             clear_cursor_selector(app);
-        }
-        KeyCode::Char('t') => {
-            cycle_cursor_selector(app);
         }
         KeyCode::Char('E') => {
             apply_cursor_subtree(app, true);
@@ -203,6 +199,21 @@ fn cursor_selector(app: &TuiApp) -> Option<Selector> {
 fn cursor_node_id(app: &TuiApp) -> Option<String> {
     let visible = app.flatten_tree();
     visible.get(app.tree_cursor).map(|row| row.node.id.clone())
+}
+
+fn toggle_fold_at_cursor(app: &mut TuiApp) {
+    let Some(id) = cursor_node_id(app) else {
+        return;
+    };
+    let expandable = find_node(&app.tree, &id).is_some_and(|node| !node.children.is_empty());
+    if !expandable {
+        return;
+    }
+    if app.expanded.contains(&id) {
+        app.expanded.remove(&id);
+    } else {
+        app.expanded.insert(id);
+    }
 }
 
 fn apply_cursor_selector(app: &mut TuiApp, enable: Option<bool>) {

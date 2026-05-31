@@ -10,6 +10,7 @@ use crate::mode::catalog::CapabilityCatalog;
 use crate::mode::filter::EffectiveMode;
 
 use super::state::ModeEditorState;
+use super::theme::Theme;
 use super::tree::{build_tree, TreeNode};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -37,6 +38,7 @@ pub struct TuiApp {
     pub project_root: PathBuf,
     pub state: ModeEditorState,
     pub catalog: CapabilityCatalog,
+    pub theme: Theme,
     pub tree: Vec<TreeNode>,
     pub focus: Focus,
     pub modes_cursor: usize,
@@ -54,6 +56,7 @@ impl TuiApp {
         manifest: &AgentpackManifest,
         catalog: CapabilityCatalog,
         selected_mode: Option<&str>,
+        theme: Theme,
     ) -> Result<Self> {
         let state = ModeEditorState::load(manifest, selected_mode)?;
         let tree = build_tree(&catalog);
@@ -71,6 +74,7 @@ impl TuiApp {
             project_root: project_root.to_path_buf(),
             state,
             catalog,
+            theme,
             tree,
             focus: Focus::Modes,
             modes_cursor,

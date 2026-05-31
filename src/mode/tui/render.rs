@@ -3,7 +3,7 @@
 use std::path::Path;
 
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Wrap};
 
@@ -13,6 +13,7 @@ use crate::mode::{is_reserved_mode, ModeBase};
 
 use super::app::{Focus, MessageKind, Prompt, TuiApp, VisibleRow};
 use super::state::{ModeEditorState, SelectorState};
+use super::theme::Theme;
 use super::tree::TreeNode;
 
 pub fn render(frame: &mut ratatui::Frame, app: &TuiApp) {
@@ -31,9 +32,9 @@ pub fn render(frame: &mut ratatui::Frame, app: &TuiApp) {
     render_footer(frame, outer[2], app);
 
     if let Some(prompt) = &app.prompt {
-        render_prompt(frame, area, prompt);
+        render_prompt(frame, area, prompt, &app.theme);
     } else if app.show_help {
-        render_help(frame, area);
+        render_help(frame, area, &app.theme);
     }
 }
 
@@ -45,7 +46,11 @@ fn render_title(frame: &mut ratatui::Frame, area: Rect, app: &TuiApp) {
         dirty
     );
     frame.render_widget(
-        Paragraph::new(title).style(Style::default().add_modifier(Modifier::BOLD)),
+        Paragraph::new(title).style(
+            Style::default()
+                .fg(app.theme.accent)
+                .add_modifier(Modifier::BOLD),
+        ),
         area,
     );
 }
@@ -66,22 +71,20 @@ fn render_body(frame: &mut ratatui::Frame, area: Rect, app: &TuiApp) {
 }
 
 fn render_modes(frame: &mut ratatui::Frame, area: Rect, app: &TuiApp) {
+    let theme = &app.theme;
     let names = app.mode_names();
     let items: Vec<ListItem> = names
         .iter()
         .map(|name| {
             let mut spans = Vec::new();
             if is_reserved_mode(name) {
-                spans.push(Span::styled("● ", Style::default().fg(Color::Yellow)));
+                spans.push(Span::styled("● ", Style::default().fg(theme.warn)));
             } else {
                 spans.push(Span::raw("  "));
             }
             spans.push(Span::raw(name.clone()));
             if is_reserved_mode(name) {
-                spans.push(Span::styled(
-                    "  (read-only)",
-                    Style::default().fg(Color::DarkGray),
-                ));
+                spans.push(Span::styled("  (read-only)", Style::default().fg(theme.dim)));
             }
             ListItem::new(Line::from(spans))
         })
@@ -90,20 +93,21 @@ fn render_modes(frame: &mut ratatui::Frame, area: Rect, app: &TuiApp) {
     list_state.select(Some(app.modes_cursor));
     let block = Block::default()
         .borders(Borders::ALL)
-        .title(focus_title(" Modes ", app.focus == Focus::Modes));
+        .title(focus_title(theme, " Modes ", app.focus == Focus::Modes));
     let list = List::new(items)
         .block(block)
-        .highlight_style(selection_style(app.focus == Focus::Modes))
+        .highlight_style(selection_style(theme, app.focus == Focus::Modes))
         .highlight_symbol(" ▶ ");
     frame.render_stateful_widget(list, area, &mut list_state);
 }
 
 fn render_tree(frame: &mut ratatui::Frame, area: Rect, app: &TuiApp) {
+    let theme = &app.theme;
     let visible = app.flatten_tree();
     let effective = app.effective_mode();
     let items: Vec<ListItem> = visible
         .iter()
-        .map(|row| ListItem::new(tree_row_line(row, &app.state, &effective)))
+        .map(|row| ListItem::new(tree_row_line(row, &app.state, &effective, theme)))
         .collect();
 
     let mut list_state = ListState::default();
@@ -113,23 +117,24 @@ fn render_tree(frame: &mut ratatui::Frame, area: Rect, app: &TuiApp) {
 
     let block = Block::default()
         .borders(Borders::ALL)
-        .title(focus_title(" Capability tree ", app.focus == Focus::Tree));
+        .title(focus_title(theme, " Capability tree ", app.focus == Focus::Tree));
     let list = List::new(items)
         .block(block)
-        .highlight_style(selection_style(app.focus == Focus::Tree))
+        .highlight_style(selection_style(theme, app.focus == Focus::Tree))
         .highlight_symbol(" ▶ ");
     frame.render_stateful_widget(list, area, &mut list_state);
 }
 
-/// Selection background that stays dark enough for the underlying span colors
-/// (yellow reserved-mode bullet, default text, dimmed subtitles) to remain
-/// readable. Avoids ratatui's bright `Color::Blue`, which renders close to a
-/// light cyan on many terminals and washes out the highlighted row.
-fn selection_style(focused: bool) -> Style {
+/// Selection background. We only set a background (and bold) so the per-span
+/// foreground colors — green/red glyphs, dimmed subtitles, default body text —
+/// keep their meaning while highlighted. The theme supplies a background that
+/// contrasts with the terminal's own foreground (dark bg on dark terminals,
+/// light bg on light terminals).
+fn selection_style(theme: &Theme, focused: bool) -> Style {
     let bg = if focused {
-        Color::Rgb(38, 70, 120)
+        theme.sel_focused_bg
     } else {
-        Color::Rgb(48, 48, 48)
+        theme.sel_unfocused_bg
     };
     Style::default().bg(bg).add_modifier(Modifier::BOLD)
 }
@@ -138,6 +143,7 @@ fn tree_row_line<'a>(
     row: &VisibleRow<'a>,
     state: &ModeEditorState,
     effective: &EffectiveMode,
+    theme: &Theme,
 ) -> Line<'a> {
     let indent = "  ".repeat(row.depth);
     let caret = if row.expandable {
@@ -149,7 +155,7 @@ fn tree_row_line<'a>(
     } else {
         "• "
     };
-    let (glyph, glyph_style) = row_glyph(row.node, state, effective);
+    let (glyph, glyph_style) = row_glyph(row.node, state, effective, theme);
     let label_style = if row.node.selector.is_none() {
         Style::default().add_modifier(Modifier::BOLD)
     } else {
@@ -165,7 +171,7 @@ fn tree_row_line<'a>(
     if let Some(subtitle) = &row.node.subtitle {
         spans.push(Span::styled(
             format!("  {subtitle}"),
-            Style::default().fg(Color::DarkGray),
+            Style::default().fg(theme.dim),
         ));
     }
     Line::from(spans)
@@ -175,17 +181,18 @@ fn row_glyph(
     node: &TreeNode,
     state: &ModeEditorState,
     effective: &EffectiveMode,
+    theme: &Theme,
 ) -> (&'static str, Style) {
     let Some(selector) = &node.selector else {
-        return ("[ ]", Style::default().fg(Color::DarkGray));
+        return ("[ ]", Style::default().fg(theme.neutral));
     };
     let canonical = selector.canonical_string();
     let explicit = state.selector_state(&canonical);
     let allowed = selector_is_allowed(effective, selector);
     let base_color = match allowed {
-        Some(true) => Color::Green,
-        Some(false) => Color::Red,
-        None => Color::DarkGray,
+        Some(true) => theme.enabled,
+        Some(false) => theme.disabled,
+        None => theme.neutral,
     };
     let glyph = match (explicit, allowed) {
         (SelectorState::ExplicitEnable, _) => "[+]",
@@ -214,6 +221,7 @@ fn selector_is_allowed(effective: &EffectiveMode, selector: &Selector) -> Option
 }
 
 fn render_details(frame: &mut ratatui::Frame, area: Rect, app: &TuiApp) {
+    let theme = &app.theme;
     let mut lines: Vec<Line> = Vec::new();
     let definition = app.state.selected_definition();
     let mut mode_spans = vec![
@@ -221,10 +229,7 @@ fn render_details(frame: &mut ratatui::Frame, area: Rect, app: &TuiApp) {
         Span::raw(app.state.selected_mode.clone()),
     ];
     if app.state.selected_is_read_only() {
-        mode_spans.push(Span::styled(
-            "  (read-only)",
-            Style::default().fg(Color::DarkGray),
-        ));
+        mode_spans.push(Span::styled("  (read-only)", Style::default().fg(theme.dim)));
     }
     lines.push(Line::from(mode_spans));
     lines.push(Line::from(vec![
@@ -232,8 +237,8 @@ fn render_details(frame: &mut ratatui::Frame, area: Rect, app: &TuiApp) {
         Span::styled(
             definition.base.to_string(),
             Style::default().fg(match definition.base {
-                ModeBase::All => Color::Green,
-                ModeBase::None => Color::Red,
+                ModeBase::All => theme.enabled,
+                ModeBase::None => theme.disabled,
             }),
         ),
     ]));
@@ -264,7 +269,7 @@ fn render_details(frame: &mut ratatui::Frame, area: Rect, app: &TuiApp) {
     if definition.enable.is_empty() {
         lines.push(Line::from(Span::styled(
             "  (none)",
-            Style::default().fg(Color::DarkGray),
+            Style::default().fg(theme.dim),
         )));
     } else {
         for entry in &definition.enable {
@@ -279,7 +284,7 @@ fn render_details(frame: &mut ratatui::Frame, area: Rect, app: &TuiApp) {
     if definition.disable.is_empty() {
         lines.push(Line::from(Span::styled(
             "  (none)",
-            Style::default().fg(Color::DarkGray),
+            Style::default().fg(theme.dim),
         )));
     } else {
         for entry in &definition.disable {
@@ -294,74 +299,71 @@ fn render_details(frame: &mut ratatui::Frame, area: Rect, app: &TuiApp) {
 }
 
 fn render_footer(frame: &mut ratatui::Frame, area: Rect, app: &TuiApp) {
+    let theme = &app.theme;
     let layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(1), Constraint::Length(2)])
         .split(area);
 
     let message = match &app.message {
-        Some((text, MessageKind::Info)) => Line::from(Span::styled(
-            text.clone(),
-            Style::default().fg(Color::LightGreen),
-        )),
-        Some((text, MessageKind::Error)) => Line::from(Span::styled(
-            text.clone(),
-            Style::default().fg(Color::LightRed),
-        )),
+        Some((text, MessageKind::Info)) => {
+            Line::from(Span::styled(text.clone(), Style::default().fg(theme.success)))
+        }
+        Some((text, MessageKind::Error)) => {
+            Line::from(Span::styled(text.clone(), Style::default().fg(theme.error)))
+        }
         None => Line::from(""),
     };
     frame.render_widget(Paragraph::new(message), layout[0]);
 
+    // Keep the always-visible hint line short — the full keymap and the glyph
+    // legend live in the `?` help overlay so the footer never feels crowded.
     let hints = match app.focus {
-        Focus::Modes => {
-            "[↑/↓] select  [n]ew  [r]ename  [d]elete  [b]ase all/none  [Tab] tree  [s]ave  [?] help  [q]uit"
-        }
+        Focus::Modes => "↑↓ select · n new · r rename · d delete · b base · Tab tree · s save · ? help",
         Focus::Tree => {
-            "[↑/↓] move  [←/→] fold  [t] cycle  [e] enable  [x] disable  [c] clear  [E/X] subtree  [a/A] add  [Tab] modes  [s]ave  [q]uit"
+            "↑↓ move · ←→ fold · Space set · E/X subtree · a add · Tab modes · s save · ? help"
         }
     };
     frame.render_widget(
-        Paragraph::new(Line::from(Span::styled(
-            hints,
-            Style::default().fg(Color::Gray),
-        )))
-        .block(Block::default().borders(Borders::TOP)),
+        Paragraph::new(Line::from(Span::styled(hints, Style::default().fg(theme.dim))))
+            .block(Block::default().borders(Borders::TOP)),
         layout[1],
     );
 }
 
-fn focus_title(text: &str, focused: bool) -> Span<'_> {
+fn focus_title<'a>(theme: &Theme, text: &'a str, focused: bool) -> Span<'a> {
     if focused {
         Span::styled(
             text,
             Style::default()
-                .fg(Color::LightCyan)
+                .fg(theme.accent)
                 .add_modifier(Modifier::BOLD),
         )
     } else {
-        Span::styled(text, Style::default().fg(Color::Gray))
+        Span::styled(text, Style::default().fg(theme.dim))
     }
 }
 
-fn render_prompt(frame: &mut ratatui::Frame, area: Rect, prompt: &Prompt) {
+fn render_prompt(frame: &mut ratatui::Frame, area: Rect, prompt: &Prompt, theme: &Theme) {
     let modal = centered_rect(60, 20, area);
     frame.render_widget(ratatui::widgets::Clear, modal);
+    let input_line = |buffer: &str| {
+        Line::from(vec![
+            Span::raw("> "),
+            Span::styled(buffer.to_string(), Style::default().fg(theme.accent)),
+            Span::styled("_", Style::default().add_modifier(Modifier::SLOW_BLINK)),
+        ])
+    };
+    let cancel_hint = |text: &'static str| Line::from(Span::styled(text, Style::default().fg(theme.dim)));
     let (title, body) = match prompt {
         Prompt::CreateMode { buffer } => (
             " Create mode ",
             vec![
                 Line::from("Enter a name for the new mode."),
                 Line::from(""),
-                Line::from(vec![
-                    Span::raw("> "),
-                    Span::styled(buffer.clone(), Style::default().fg(Color::LightCyan)),
-                    Span::styled("_", Style::default().add_modifier(Modifier::SLOW_BLINK)),
-                ]),
+                input_line(buffer),
                 Line::from(""),
-                Line::from(Span::styled(
-                    "[Enter] confirm  [Esc] cancel",
-                    Style::default().fg(Color::Gray),
-                )),
+                cancel_hint("[Enter] confirm  [Esc] cancel"),
             ],
         ),
         Prompt::RenameMode { buffer } => (
@@ -369,16 +371,9 @@ fn render_prompt(frame: &mut ratatui::Frame, area: Rect, prompt: &Prompt) {
             vec![
                 Line::from("Enter the new mode name."),
                 Line::from(""),
-                Line::from(vec![
-                    Span::raw("> "),
-                    Span::styled(buffer.clone(), Style::default().fg(Color::LightCyan)),
-                    Span::styled("_", Style::default().add_modifier(Modifier::SLOW_BLINK)),
-                ]),
+                input_line(buffer),
                 Line::from(""),
-                Line::from(Span::styled(
-                    "[Enter] confirm  [Esc] cancel",
-                    Style::default().fg(Color::Gray),
-                )),
+                cancel_hint("[Enter] confirm  [Esc] cancel"),
             ],
         ),
         Prompt::AddSelector { buffer, enable } => (
@@ -392,16 +387,9 @@ fn render_prompt(frame: &mut ratatui::Frame, area: Rect, prompt: &Prompt) {
                     "Type a selector: package:<mod> | package-path:<mod>:<rel> | mcp:<name> | .agents:<rel>",
                 ),
                 Line::from(""),
-                Line::from(vec![
-                    Span::raw("> "),
-                    Span::styled(buffer.clone(), Style::default().fg(Color::LightCyan)),
-                    Span::styled("_", Style::default().add_modifier(Modifier::SLOW_BLINK)),
-                ]),
+                input_line(buffer),
                 Line::from(""),
-                Line::from(Span::styled(
-                    "[Enter] confirm  [Esc] cancel",
-                    Style::default().fg(Color::Gray),
-                )),
+                cancel_hint("[Enter] confirm  [Esc] cancel"),
             ],
         ),
         Prompt::ConfirmDelete { mode } => (
@@ -409,10 +397,7 @@ fn render_prompt(frame: &mut ratatui::Frame, area: Rect, prompt: &Prompt) {
             vec![
                 Line::from(format!("Delete mode \"{mode}\"? This cannot be undone.")),
                 Line::from(""),
-                Line::from(Span::styled(
-                    "[y] confirm  [n/Esc] cancel",
-                    Style::default().fg(Color::Gray),
-                )),
+                cancel_hint("[y] confirm  [n/Esc] cancel"),
             ],
         ),
         Prompt::ConfirmQuitDirty => (
@@ -420,10 +405,7 @@ fn render_prompt(frame: &mut ratatui::Frame, area: Rect, prompt: &Prompt) {
             vec![
                 Line::from("You have unsaved changes. Save before exit?"),
                 Line::from(""),
-                Line::from(Span::styled(
-                    "[y] save & quit  [n] discard & quit  [Esc] cancel",
-                    Style::default().fg(Color::Gray),
-                )),
+                cancel_hint("[y] save & quit  [n] discard & quit  [Esc] cancel"),
             ],
         ),
     };
@@ -434,54 +416,74 @@ fn render_prompt(frame: &mut ratatui::Frame, area: Rect, prompt: &Prompt) {
             Block::default().borders(Borders::ALL).title(Span::styled(
                 title,
                 Style::default()
-                    .fg(Color::LightYellow)
+                    .fg(theme.heading)
                     .add_modifier(Modifier::BOLD),
             )),
         );
     frame.render_widget(paragraph, modal);
 }
 
-fn render_help(frame: &mut ratatui::Frame, area: Rect) {
-    let modal = centered_rect(60, 60, area);
+fn render_help(frame: &mut ratatui::Frame, area: Rect, theme: &Theme) {
+    let modal = centered_rect(64, 80, area);
     frame.render_widget(ratatui::widgets::Clear, modal);
+    let section = |text: &'static str| {
+        Line::from(Span::styled(
+            text,
+            Style::default().add_modifier(Modifier::BOLD),
+        ))
+    };
+    let dim = |text: &'static str| Line::from(Span::styled(text, Style::default().fg(theme.dim)));
     let help = vec![
         Line::from(Span::styled(
             " agentpack mode tui ",
             Style::default()
-                .fg(Color::LightYellow)
+                .fg(theme.heading)
                 .add_modifier(Modifier::BOLD),
         )),
         Line::from(""),
-        Line::from("Global:"),
-        Line::from("  Tab       switch focus between Modes and Capability tree"),
-        Line::from("  s         save modes to agentpack.toml"),
-        Line::from("  q, Ctrl-C quit (prompts if unsaved)"),
-        Line::from("  ?, F1     toggle this help"),
+        section("Global"),
+        Line::from("  Tab        switch focus between Modes and Capability tree"),
+        Line::from("  s          save modes to agentpack.toml"),
+        Line::from("  q, Ctrl-C  quit (prompts if unsaved)"),
+        Line::from("  ?, F1      toggle this help"),
         Line::from(""),
-        Line::from("Modes pane:"),
-        Line::from("  ↑/↓ k/j   move selection"),
-        Line::from("  Enter/→   focus capability tree"),
-        Line::from("  n         new mode"),
-        Line::from("  r         rename (default is reserved)"),
-        Line::from("  d / Del   delete (default is reserved)"),
-        Line::from("  b         toggle base between all and none"),
+        section("Modes pane"),
+        Line::from("  ↑/↓ k/j    move selection"),
+        Line::from("  Enter/→    focus capability tree"),
+        Line::from("  n          new mode"),
+        Line::from("  r          rename (default is reserved)"),
+        Line::from("  d / Del    delete (default is reserved)"),
+        Line::from("  b          toggle base between all and none"),
         Line::from(""),
-        Line::from("Capability tree pane:"),
-        Line::from("  ↑/↓ k/j   move cursor"),
-        Line::from("  ←/→ h/l   fold / unfold"),
-        Line::from("  Enter/Sp  toggle fold at cursor"),
-        Line::from("  t         cycle: neutral → enable → disable → neutral"),
-        Line::from("  e         force-enable selector at cursor"),
-        Line::from("  x         force-disable selector at cursor"),
-        Line::from("  c         clear selector at cursor"),
-        Line::from("  E         enable every selector under cursor (subtree)"),
-        Line::from("  X         disable every selector under cursor (subtree)"),
-        Line::from("  a         prompt to add an enable selector"),
-        Line::from("  A         prompt to add a disable selector"),
+        section("Capability tree pane"),
+        Line::from("  ↑/↓ k/j    move cursor"),
+        Line::from("  →/l  ←/h   expand / collapse a folder"),
+        Line::from("  Space      set state at cursor: neutral → enable → disable → …"),
+        Line::from("  Enter      same as Space on an item; folds a section header"),
+        Line::from("  c          clear (back to neutral) at cursor"),
+        Line::from("  e / x      force enable / disable at cursor"),
+        Line::from("  E / X      enable / disable the whole subtree under cursor"),
+        Line::from("  a / A      type an enable / disable selector"),
         Line::from(""),
-        Line::from(
-            "Selectors: package:<mod> · package-path:<mod>:<rel> · mcp:<name> · .agents:<rel>",
-        ),
+        section("State glyphs"),
+        Line::from(vec![
+            Span::styled("  [+]", Style::default().fg(theme.enabled)),
+            Span::raw("  explicitly enabled        "),
+            Span::styled("[-]", Style::default().fg(theme.disabled)),
+            Span::raw("  explicitly disabled"),
+        ]),
+        Line::from(vec![
+            Span::styled("  [✓]", Style::default().fg(theme.enabled)),
+            Span::raw("  on via base               "),
+            Span::styled("[✗]", Style::default().fg(theme.disabled)),
+            Span::raw("  off via base"),
+        ]),
+        Line::from(vec![
+            Span::styled("  [ ]", Style::default().fg(theme.neutral)),
+            Span::raw("  section header / no explicit state"),
+        ]),
+        Line::from(""),
+        dim("Selectors: package:<mod> · package-path:<mod>:<rel> · mcp:<name> · .agents:<rel>"),
     ];
     let paragraph = Paragraph::new(help)
         .wrap(Wrap { trim: false })

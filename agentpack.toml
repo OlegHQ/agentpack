@@ -5,3 +5,15 @@ version = "0.0.1"
 "github.com/oleghq/agent-configs/mcps/linear" = {}
 "github.com/oleghq/agent-configs/plugins/rust-dev" = {}
 "github.com/oleghq/agent-configs/plugins/simplifier" = {}
+"github.com/mccteam/minecraft-console-client/.skills/humanizer" = {}
+"github.com/s1mplesonny/technical-writing-skill/technical-writing" = {}
+
+[modes]
+
+[modes.default]
+base = "all"
+
+[modes.writing]
+base = "none"
+enable = ["package:github.com/mccteam/minecraft-console-client/.skills/humanizer", "package:github.com/s1mplesonny/technical-writing-skill/technical-writing"]
+disable = ["mcp:linear"]

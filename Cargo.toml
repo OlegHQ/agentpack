@@ -48,6 +48,9 @@ regex = "1"
 ratatui = "0.30"
 crossterm = "0.29"
 which = "8"
+# Queries the terminal's background luma (OSC 11 / COLORFGBG) so the mode TUI
+# can pick a light- or dark-readable palette instead of assuming a dark theme.
+terminal-light = "1.8"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 keyring = { version = "3", features = ["apple-native"] }
