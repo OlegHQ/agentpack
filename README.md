@@ -24,6 +24,12 @@
   <a href="https://oleghq.github.io/agentpack/reference/cli.html">CLI Reference</a>
 </p>
 
+```sh
+brew install OlegHQ/tap/agentpack
+```
+
+<p align="center"><sub>Other install options (Cargo, from source) are <a href="#install">below</a>.</sub></p>
+
 ---
 
 ## The Problem
