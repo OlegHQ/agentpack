@@ -225,7 +225,7 @@ version = "0.0.1"
 
 [dependencies]
 "github.com/anthropics/skills/skills/canvas-design" = { branch = "main" }
-"github.com/anthropics/claude-plugins-official/plugins/hookify" = { version = "^1.0.0" }
+"github.com/anthropics/claude-plugins-official/plugins/hookify" = { branch = "main" }
 mcp-retrieval = { path = "../mcp-retrieval" }
 
 [modes.default]

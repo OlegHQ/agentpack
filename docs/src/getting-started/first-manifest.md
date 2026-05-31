@@ -78,7 +78,7 @@ version = "0.2.1"
 
 [dependencies]
 "github.com/anthropics/skills/skills/canvas-design"      = { branch = "main" }
-"github.com/anthropics/claude-plugins-official/plugins/hookify" = { version = "^1.0.0" }
+"github.com/anthropics/claude-plugins-official/plugins/hookify" = { branch = "main" }
 "github.com/acme/monorepo/packages/coding-agent"         = "^2.0"
 "local-rules" = { path = "../local-rules" }
 ```

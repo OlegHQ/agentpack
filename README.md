@@ -73,8 +73,8 @@ agentpack init
 # Add a skill from GitHub (resolves, locks, and syncs in one step)
 agentpack add anthropics/skills/skills/canvas-design
 
-# Pin to a tag with an @ref, or edit the entry to { version = "^1.0.0" }
-agentpack add anthropics/claude-plugins-official/plugins/hookify@v1.0.0
+# Pin to a branch, tag, or commit with an @ref, or edit the entry to a table like { version = "^1.0.0" }
+agentpack add anthropics/claude-plugins-official/plugins/hookify@main
 
 # Launch Claude Code with everything bundled
 agentpack claude
@@ -115,7 +115,7 @@ version = "0.1.0"
 
 [dependencies]
 "github.com/anthropics/skills/skills/canvas-design" = { branch = "main" }
-"github.com/anthropics/claude-plugins-official/plugins/hookify" = { version = "^1.0.0" }
+"github.com/anthropics/claude-plugins-official/plugins/hookify" = { branch = "main" }
 "github.com/my-org/internal-tools/skills/deploy" = { tag = "v2.1.0" }
 
 [modes.default]

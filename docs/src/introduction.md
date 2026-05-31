@@ -32,7 +32,7 @@ version = "0.1.0"
 
 [dependencies]
 "github.com/anthropics/skills/skills/canvas-design" = { branch = "main" }
-"github.com/anthropics/claude-plugins-official/plugins/hookify" = { version = "^1.0.0" }
+"github.com/anthropics/claude-plugins-official/plugins/hookify" = { branch = "main" }
 ```
 
 ```sh
