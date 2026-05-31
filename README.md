@@ -28,7 +28,7 @@
 brew install OlegHQ/tap/agentpack
 ```
 
-<p align="center"><sub>Other install options (Cargo, from source) are <a href="#install">below</a>.</sub></p>
+<p align="center"><sub>Prefer a script, prebuilt binary, or Cargo? See <a href="#install">all install options</a>.</sub></p>
 
 ---
 
@@ -47,20 +47,42 @@ agentpack.toml  ──>  pack.lock  ──>  staged bundles  ──>  launch
 
 ## Install
 
-### Homebrew (recommended)
+Prebuilt binaries are published for every release. Pick whichever fits your platform.
+
+### Homebrew — macOS & Linux (recommended)
 
 ```bash
 brew install OlegHQ/tap/agentpack
 ```
 
-To upgrade:
+Upgrade with `brew upgrade agentpack`. Served from the shared tap
+[OlegHQ/homebrew-tap](https://github.com/OlegHQ/homebrew-tap) (`brew tap OlegHQ/tap && brew install agentpack` also works).
+
+### Install script — macOS & Linux
 
 ```bash
-brew upgrade agentpack
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/OlegHQ/agentpack/releases/latest/download/agentpack-installer.sh | sh
 ```
 
-Served from the shared tap [OlegHQ/homebrew-tap](https://github.com/OlegHQ/homebrew-tap)
-(`brew tap OlegHQ/tap && brew install agentpack` also works).
+### Install script — Windows (PowerShell)
+
+```powershell
+powershell -ExecutionPolicy Bypass -c "irm https://github.com/OlegHQ/agentpack/releases/latest/download/agentpack-installer.ps1 | iex"
+```
+
+### Prebuilt binaries
+
+Download an archive for your platform from the [latest release](https://github.com/OlegHQ/agentpack/releases/latest), extract it, and put `agentpack` on your `PATH`. Supported targets:
+
+| Platform | Target |
+| --- | --- |
+| macOS (Apple Silicon) | `aarch64-apple-darwin` |
+| macOS (Intel) | `x86_64-apple-darwin` |
+| Linux (x86-64) | `x86_64-unknown-linux-gnu` |
+| Linux (ARM64) | `aarch64-unknown-linux-gnu` |
+| Windows (x86-64) | `x86_64-pc-windows-msvc` |
+
+Each archive ships with a `.sha256` checksum; `sha256.sum` and a signed `dist-manifest.json` cover the whole release.
 
 ### From source
 
@@ -70,7 +92,7 @@ cargo install --path .
 make install   # release build to ~/.local/bin (override: make install INSTALL_DIR=/usr/local/bin)
 ```
 
-**Prerequisites:** Rust toolchain (edition 2021). Optional: [GitHub CLI](https://cli.github.com/) for release automation.
+**Prerequisites (source builds only):** Rust toolchain (edition 2021). Optional: [GitHub CLI](https://cli.github.com/) for release automation.
 
 ## Quick Start
 
