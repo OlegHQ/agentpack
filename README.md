@@ -9,22 +9,30 @@
 </p>
 
 <p align="center">
+  <a href="https://oleghq.github.io/agentpack"><img alt="Documentation" src="https://img.shields.io/badge/docs-oleghq.github.io-1f6feb.svg"></a>
   <a href="https://github.com/OlegHQ/agentpack/blob/dev/LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
   <a href="https://github.com/OlegHQ/agentpack/releases"><img alt="Version" src="https://img.shields.io/badge/version-v0.3.1-blue.svg"></a>
   <a href="https://github.com/OlegHQ/agentpack"><img alt="Built with Rust" src="https://img.shields.io/badge/built_with-Rust-dea584.svg"></a>
+</p>
+
+<p align="center">
+  <a href="https://oleghq.github.io/agentpack"><strong>Documentation</strong></a> ·
+  <a href="#quick-start">Quick Start</a> ·
+  <a href="#how-it-works">How It Works</a> ·
+  <a href="https://oleghq.github.io/agentpack/reference/cli.html">CLI Reference</a>
 </p>
 
 ---
 
 ## The Problem
 
-Every AI coding agent has its own way of managing skills, plugins, commands, and rules — different file layouts, different config formats, different discovery mechanisms. If you use more than one agent (or want your team to share a curated set of tools), you are stuck copying files around manually.
+Every coding agent manages skills, plugins, commands, and rules its own way — different file layouts, config formats, and discovery rules. Run more than one agent, or share a curated toolset across a team, and you end up pasting the same files into each agent's config by hand and watching the copies drift apart. There's no lockfile to say which version everyone is actually on.
 
-## The Solution
+## What agentpack Does
 
-**agentpack** gives you one manifest (`agentpack.toml`) that declares your agent dependencies. It resolves versions, caches content, converts artifacts per-harness, and launches each agent with the right configuration — automatically.
+Declare your agent dependencies once in `agentpack.toml`. agentpack resolves them to exact commits, pins those in a lockfile, caches the content, re-renders each artifact into the target agent's native format, and launches the agent with everything staged. Your repo stays clean: nothing is copied into it, and nothing is written to your global agent config.
 
-```
+```text
 agentpack.toml  ──>  pack.lock  ──>  staged bundles  ──>  launch
    (you write)        (pinned)        (per-harness)        (agent runs)
 ```
@@ -121,14 +129,14 @@ disable = ["mcp:filesystem"]
 
 ## Key Features
 
-- **One manifest, six agents** — Write `agentpack.toml` once, launch Claude, Cursor, OpenCode, Codex, Grok, or Antigravity with the same skill set.
-- **Deterministic lockfile** — `pack.lock` pins exact commits and content hashes. Reproducible across machines.
-- **Transitive resolution** — Dependencies can declare their own `agentpack.toml`; agentpack resolves the full tree.
-- **Content-addressed cache** — Downloaded packages stored once in `$AGENTPACK_HOME/cache/` and shared across projects.
-- **No workspace pollution** — Pack content lives in staging directories, not in your git repo.
-- **Offline-first** — Local mirrors and cached metadata reduce network calls; git protocol fallback when REST API is throttled.
-- **Fast launch path** — Launchers skip full re-sync when inputs have not changed since the last successful run.
-- **Project-local modes** — `agentpack --mode <name>` to selectively enable or disable package paths and MCP servers.
+- **One manifest, six agents** — Write `agentpack.toml` once; launch Claude, Cursor, OpenCode, Codex, Grok, or Antigravity with the same skill set.
+- **Deterministic lockfile** — `pack.lock` pins every package, direct and transitive, to an exact commit and content hash, so resolution matches across machines and CI.
+- **Transitive resolution** — A package can declare its own `agentpack.toml`; agentpack walks the full graph and resolves conflicts.
+- **Content-addressed cache** — Each package is fetched once into `$AGENTPACK_HOME/cache/<cache_key>/` and shared by every project on the machine.
+- **No workspace pollution** — Pack content stays in staging trees outside your repo, and never symlinks into your real `~/.claude` or `~/.cursor`.
+- **Resilient resolution** — Cached metadata and a `local/` mirror cut network calls; when the GitHub REST API is throttled, agentpack falls back to the Git protocol.
+- **Fast launch path** — When the manifest, lock, and `./.agents/` are unchanged, launchers verify staging and skip the full re-sync.
+- **Project-local modes** — `agentpack --mode <name>` enables or disables packages, individual files, and MCP servers per task.
 
 ## Comparison
 
@@ -162,13 +170,15 @@ disable = ["mcp:filesystem"]
 
 ## Documentation
 
-The **[documentation book](docs/src/SUMMARY.md)** under `docs/` is the place to start — getting started, core concepts (manifest, lockfile, resolution, cache, staging, modes, MCP), a guide per harness, and a full CLI/manifest/env reference. Build it locally with [`mdbook`](https://rust-lang.github.io/mdBook/):
+Full docs live at **<https://oleghq.github.io/agentpack>** — getting started, core concepts (manifest, lockfile, resolution, cache, staging, modes, MCP), a guide per harness, and a complete CLI / manifest / environment reference.
+
+The book source is in `docs/`. To preview changes locally, install [`mdbook`](https://rust-lang.github.io/mdBook/) and run:
 
 ```bash
 mdbook serve docs   # http://localhost:3000
 ```
 
-[AGENTS.md](AGENTS.md) is the contributor-facing source of truth for internal behavior: data layout, staging internals, per-harness mechanics, and the lockfile format.
+For internals, [AGENTS.md](AGENTS.md) is the contributor-facing source of truth: data layout, staging internals, per-harness mechanics, and the lockfile format.
 
 ## Releasing (maintainers)
 
