@@ -8,7 +8,7 @@ BINARY := agentpack
 RELEASE_BIN := target/release/$(BINARY)
 RELEASE_BRANCH ?= dev
 
-.PHONY: help all build release install uninstall minor patch ship-minor ship-patch _ship check-clean
+.PHONY: help all build release install uninstall minor patch ship-minor ship-patch _ship check-clean fmt lint ci hooks
 
 .DEFAULT_GOAL := help
 
@@ -18,6 +18,12 @@ help:
 	@echo "  build           cargo build (debug)"
 	@echo "  install         release, then copy binary to INSTALL_DIR ($(INSTALL_DIR))"
 	@echo "  uninstall       remove binary from INSTALL_DIR"
+	@echo ""
+	@echo "Quality gates (same checks CI runs):"
+	@echo "  fmt             cargo fmt --all (auto-format)"
+	@echo "  lint            cargo clippy --all-targets -- -D warnings"
+	@echo "  ci              run the full CI gate locally (fmt --check + clippy + test)"
+	@echo "  hooks           install git hooks (core.hooksPath -> .githooks) so the gate runs pre-commit/pre-push"
 	@echo ""
 	@echo "Release — cargo-dist builds binaries + Homebrew formula + GitHub release on tag push:"
 	@echo "  minor / patch   bump Cargo.toml semver only"
@@ -29,6 +35,23 @@ all: release
 
 build:
 	$(CARGO) build
+
+fmt:
+	$(CARGO) fmt --all
+
+lint:
+	$(CARGO) clippy --all-targets -- -D warnings
+
+# Mirror .github/workflows/ci.yml so a green `make ci` means green CI.
+ci:
+	$(CARGO) fmt --all -- --check
+	$(CARGO) clippy --all-targets -- -D warnings
+	$(CARGO) test
+
+# Point git at the tracked hooks in .githooks/ (one-time, per clone).
+hooks:
+	git config core.hooksPath .githooks
+	@echo "git hooks installed (core.hooksPath -> .githooks)"
 
 release:
 	$(CARGO) build --release

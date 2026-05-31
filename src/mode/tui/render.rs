@@ -84,16 +84,21 @@ fn render_modes(frame: &mut ratatui::Frame, area: Rect, app: &TuiApp) {
             }
             spans.push(Span::raw(name.clone()));
             if is_reserved_mode(name) {
-                spans.push(Span::styled("  (read-only)", Style::default().fg(theme.dim)));
+                spans.push(Span::styled(
+                    "  (read-only)",
+                    Style::default().fg(theme.dim),
+                ));
             }
             ListItem::new(Line::from(spans))
         })
         .collect();
     let mut list_state = ListState::default();
     list_state.select(Some(app.modes_cursor));
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .title(focus_title(theme, " Modes ", app.focus == Focus::Modes));
+    let block = Block::default().borders(Borders::ALL).title(focus_title(
+        theme,
+        " Modes ",
+        app.focus == Focus::Modes,
+    ));
     let list = List::new(items)
         .block(block)
         .highlight_style(selection_style(theme, app.focus == Focus::Modes))
@@ -115,9 +120,11 @@ fn render_tree(frame: &mut ratatui::Frame, area: Rect, app: &TuiApp) {
         list_state.select(Some(app.tree_cursor.min(visible.len() - 1)));
     }
 
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .title(focus_title(theme, " Capability tree ", app.focus == Focus::Tree));
+    let block = Block::default().borders(Borders::ALL).title(focus_title(
+        theme,
+        " Capability tree ",
+        app.focus == Focus::Tree,
+    ));
     let list = List::new(items)
         .block(block)
         .highlight_style(selection_style(theme, app.focus == Focus::Tree))
@@ -229,7 +236,10 @@ fn render_details(frame: &mut ratatui::Frame, area: Rect, app: &TuiApp) {
         Span::raw(app.state.selected_mode.clone()),
     ];
     if app.state.selected_is_read_only() {
-        mode_spans.push(Span::styled("  (read-only)", Style::default().fg(theme.dim)));
+        mode_spans.push(Span::styled(
+            "  (read-only)",
+            Style::default().fg(theme.dim),
+        ));
     }
     lines.push(Line::from(mode_spans));
     lines.push(Line::from(vec![
@@ -306,9 +316,10 @@ fn render_footer(frame: &mut ratatui::Frame, area: Rect, app: &TuiApp) {
         .split(area);
 
     let message = match &app.message {
-        Some((text, MessageKind::Info)) => {
-            Line::from(Span::styled(text.clone(), Style::default().fg(theme.success)))
-        }
+        Some((text, MessageKind::Info)) => Line::from(Span::styled(
+            text.clone(),
+            Style::default().fg(theme.success),
+        )),
         Some((text, MessageKind::Error)) => {
             Line::from(Span::styled(text.clone(), Style::default().fg(theme.error)))
         }
@@ -319,14 +330,19 @@ fn render_footer(frame: &mut ratatui::Frame, area: Rect, app: &TuiApp) {
     // Keep the always-visible hint line short — the full keymap and the glyph
     // legend live in the `?` help overlay so the footer never feels crowded.
     let hints = match app.focus {
-        Focus::Modes => "↑↓ select · n new · r rename · d delete · b base · Tab tree · s save · ? help",
+        Focus::Modes => {
+            "↑↓ select · n new · r rename · d delete · b base · Tab tree · s save · ? help"
+        }
         Focus::Tree => {
             "↑↓ move · ←→ fold · Space set · E/X subtree · a add · Tab modes · s save · ? help"
         }
     };
     frame.render_widget(
-        Paragraph::new(Line::from(Span::styled(hints, Style::default().fg(theme.dim))))
-            .block(Block::default().borders(Borders::TOP)),
+        Paragraph::new(Line::from(Span::styled(
+            hints,
+            Style::default().fg(theme.dim),
+        )))
+        .block(Block::default().borders(Borders::TOP)),
         layout[1],
     );
 }
@@ -354,7 +370,8 @@ fn render_prompt(frame: &mut ratatui::Frame, area: Rect, prompt: &Prompt, theme:
             Span::styled("_", Style::default().add_modifier(Modifier::SLOW_BLINK)),
         ])
     };
-    let cancel_hint = |text: &'static str| Line::from(Span::styled(text, Style::default().fg(theme.dim)));
+    let cancel_hint =
+        |text: &'static str| Line::from(Span::styled(text, Style::default().fg(theme.dim)));
     let (title, body) = match prompt {
         Prompt::CreateMode { buffer } => (
             " Create mode ",

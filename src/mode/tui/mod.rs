@@ -44,7 +44,13 @@ pub fn run_mode_tui(
     // Probe the terminal background before we take over the screen — the query
     // writes/reads an escape sequence that must not race the alternate screen.
     let theme = Theme::detect();
-    let mut app = TuiApp::new(project_root, manifest, catalog.clone(), selected_mode, theme)?;
+    let mut app = TuiApp::new(
+        project_root,
+        manifest,
+        catalog.clone(),
+        selected_mode,
+        theme,
+    )?;
 
     let mut terminal = enter_tui(project_root)?;
     let run_result = run_event_loop(&mut terminal, &mut app, project_root);

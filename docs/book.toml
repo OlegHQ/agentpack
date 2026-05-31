@@ -6,7 +6,9 @@ title = "agentpack documentation"
 description = "Documentation for agentpack — the package manager for AI coding agents."
 
 [output.html]
-default-theme = "navy"
-preferred-dark-theme = "navy"
+# Serve the white/light theme by default, even for dark-mode browsers. Readers
+# can still switch themes with the paintbrush toggle.
+default-theme = "light"
+preferred-dark-theme = "light"
 git-repository-url = "https://github.com/OlegHQ/agentpack"
 edit-url-template = "https://github.com/OlegHQ/agentpack/edit/dev/docs/{path}"
