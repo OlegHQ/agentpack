@@ -28,6 +28,32 @@ fn require_manifest(project_root: &Path) -> Result<AgentpackManifest> {
         .ok_or_else(|| AgentpackError::ManifestMissing(paths::manifest_path(project_root)))
 }
 
+fn ensure_project_files_for_add(project_root: &Path, ui: &Ui) -> Result<()> {
+    let manifest_path = paths::manifest_path(project_root);
+    let lock_path = paths::lock_path(project_root);
+    if manifest_path.is_file() {
+        return Ok(());
+    }
+
+    ui.message(format!(
+        "Warning: no agentpack.toml found; initializing agentpack.toml and pack.lock in {}.",
+        project_root.display()
+    ));
+    let dirname = project_root
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("project");
+    AgentpackManifest::write_stub(project_root, dirname, "0.0.1")?;
+    if !lock_path.is_file() {
+        crate::lockfile::init_lockfile(
+            project_root,
+            Some(dirname.to_string()),
+            Some("0.0.1".into()),
+        )?;
+    }
+    Ok(())
+}
+
 fn resolve_and_save_lock(
     project_root: &Path,
     manifest: &AgentpackManifest,
@@ -86,7 +112,7 @@ pub fn run_add(project_root: &Path, spec: &str, no_sync: bool, ui: &Ui) -> Resul
         let rel_str = rel_path
             .to_str()
             .ok_or_else(|| AgentpackError::Cache("path contains non-UTF8 characters".into()))?;
-        let _ = require_manifest(project_root)?;
+        ensure_project_files_for_add(project_root, ui)?;
         AgentpackManifest::append_path_dependency(project_root, basename, rel_str)?;
         let manifest = require_manifest(project_root)?;
         let client = http_client()?;
@@ -98,7 +124,6 @@ pub fn run_add(project_root: &Path, spec: &str, no_sync: bool, ui: &Ui) -> Resul
     }
 
     let client = http_client()?;
-    let _ = require_manifest(project_root)?;
     let resolved = resolve_add_spec(&client, spec, ui)?;
     let fetched = resolved.package;
     let module_key = crate::cache::asset::dependency_key_for_entry(
@@ -107,6 +132,7 @@ pub fn run_add(project_root: &Path, spec: &str, no_sync: bool, ui: &Ui) -> Resul
         &fetched.repo,
         &fetched.path,
     );
+    ensure_project_files_for_add(project_root, ui)?;
     // Persist an explicit `@ref` so `lock`/`sync` re-resolve the same pin (otherwise it floats).
     AgentpackManifest::append_dependency_pin(
         project_root,
@@ -173,7 +199,17 @@ pub fn sync_for_launch(
 ) -> Result<EffectiveMode> {
     paths::ensure_user_agentpack_layout()?;
     let manifest = AgentpackManifest::load(project_root)?;
-    let lock = PackLock::load(project_root)?;
+    let lock = match PackLock::load(project_root) {
+        Ok(lock) => lock,
+        Err(AgentpackError::Io { path, source }) if path == paths::lock_path(project_root) => {
+            if source.kind() == std::io::ErrorKind::NotFound {
+                PackLock::empty_for_project(project_root)
+            } else {
+                return Err(AgentpackError::Io { path, source });
+            }
+        }
+        Err(err) => return Err(err),
+    };
     let mode = resolve_effective_mode(project_root, manifest.as_ref(), &lock, selected_mode)?;
 
     if let Some(stored) = read_stored_launch_digest(project_root, mode.name())? {

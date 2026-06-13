@@ -4,7 +4,7 @@ use chrono::Utc;
 
 use crate::cache::index::{list_keys, upsert_entry, CacheEntryRecord};
 use crate::cache::{backfill_plugin_lock_entry, ensure_lock_cached};
-use crate::error::Result;
+use crate::error::{AgentpackError, Result};
 use crate::harness::HarnessTarget;
 use crate::lockfile::{LockPackage, PackLock, PackageKind};
 use crate::manifest::AgentpackManifest;
@@ -38,7 +38,19 @@ pub fn run_sync(
         )?;
     }
 
-    let lock = PackLock::load(project_root)?;
+    let lock = match PackLock::load(project_root) {
+        Ok(lock) => lock,
+        Err(AgentpackError::Io { path, source })
+            if target.is_some() && path == paths::lock_path(project_root) =>
+        {
+            if source.kind() == std::io::ErrorKind::NotFound {
+                PackLock::empty_for_project(project_root)
+            } else {
+                return Err(AgentpackError::Io { path, source });
+            }
+        }
+        Err(err) => return Err(err),
+    };
     let mode =
         super::run::resolve_effective_mode(project_root, manifest.as_ref(), &lock, selected_mode)?;
     let plugins: Vec<&LockPackage> = lock.plugins().collect();

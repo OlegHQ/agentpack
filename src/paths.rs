@@ -99,7 +99,8 @@ pub fn find_project_root(start: &Path) -> Result<PathBuf> {
     Err(AgentpackError::NoPackLock(start.to_path_buf()))
 }
 
-/// Discover root: explicit `--project-root`, or walk from cwd.
+/// Discover root for commands that require an existing pack: explicit `--project-root`, or walk
+/// from cwd.
 pub fn resolve_project_root(explicit: Option<&Path>) -> Result<PathBuf> {
     if let Some(p) = explicit {
         let p = p.canonicalize().map_err(|e| AgentpackError::io(p, e))?;
@@ -110,6 +111,22 @@ pub fn resolve_project_root(explicit: Option<&Path>) -> Result<PathBuf> {
     }
     let cwd = env::current_dir().map_err(|e| AgentpackError::io(PathBuf::from("."), e))?;
     find_project_root(&cwd)
+}
+
+/// Discover root for commands that can run before project files exist. Existing ancestor packs
+/// still win; otherwise the explicit path or cwd becomes an ephemeral/lazy-init project root.
+pub fn resolve_project_root_or_cwd(explicit: Option<&Path>) -> Result<PathBuf> {
+    if let Some(p) = explicit {
+        return p.canonicalize().map_err(|e| AgentpackError::io(p, e));
+    }
+    let cwd = env::current_dir().map_err(|e| AgentpackError::io(PathBuf::from("."), e))?;
+    match find_project_root(&cwd) {
+        Ok(root) => Ok(root),
+        Err(AgentpackError::NoPackLock(_)) => {
+            cwd.canonicalize().map_err(|e| AgentpackError::io(&cwd, e))
+        }
+        Err(err) => Err(err),
+    }
 }
 
 pub fn lock_path(project_root: &Path) -> PathBuf {
@@ -314,5 +331,12 @@ mod tests {
         let design_root = staging_root_for_mode(root, "design").unwrap();
         assert_ne!(default_root, design_root);
         assert!(design_root.to_string_lossy().contains("design"));
+    }
+
+    #[test]
+    fn permissive_root_accepts_explicit_dir_without_pack_files() {
+        let dir = tempdir().unwrap();
+        let root = resolve_project_root_or_cwd(Some(dir.path())).unwrap();
+        assert_eq!(root, dir.path().canonicalize().unwrap());
     }
 }

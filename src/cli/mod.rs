@@ -55,7 +55,7 @@ pub enum Command {
         #[arg(long)]
         update: bool,
     },
-    /// Resolve a package spec and append its module id under **[dependencies]** in `agentpack.toml` (requires manifest); then resolve and sync unless `--no-sync`
+    /// Resolve a package spec and append its module id under **[dependencies]** in `agentpack.toml`; lazily initializes project files when missing, then resolves and syncs unless `--no-sync`
     Add {
         spec: String,
         #[arg(long)]

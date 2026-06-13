@@ -101,6 +101,21 @@ pub struct Config {
 }
 
 impl PackLock {
+    pub fn empty_for_project(project_root: &Path) -> Self {
+        let dirname = project_root
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("project");
+        Self {
+            lockfile_version: 2,
+            meta: Meta {
+                name: dirname.to_string(),
+                version: "0.0.1".to_string(),
+            },
+            ..Default::default()
+        }
+    }
+
     pub fn load_from_path(p: &Path) -> Result<Self> {
         let raw = fs::read_to_string(p).map_err(|e| AgentpackError::io(p, e))?;
         let lock: PackLock =
@@ -172,14 +187,9 @@ pub fn init_lockfile(
         .file_name()
         .and_then(|n| n.to_str())
         .unwrap_or("project");
-    let lock = PackLock {
-        lockfile_version: 2,
-        meta: Meta {
-            name: name.unwrap_or_else(|| dirname.to_string()),
-            version: version.unwrap_or_else(|| "0.0.1".to_string()),
-        },
-        ..Default::default()
-    };
+    let mut lock = PackLock::empty_for_project(project_root);
+    lock.meta.name = name.unwrap_or_else(|| dirname.to_string());
+    lock.meta.version = version.unwrap_or_else(|| "0.0.1".to_string());
     crate::paths::ensure_user_agentpack_layout()?;
     lock.save(project_root)?;
     Ok(())

@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 use agentpack::cli::dispatch::run;
 use agentpack::cli::{Cli, Command, ModeAction};
+use agentpack::harness::HarnessTarget;
 use agentpack::lockfile::{LockPackage, PackLock, PackageKind};
 use agentpack::mode::filter::EffectiveMode;
 use agentpack::paths::{
@@ -16,6 +17,14 @@ use agentpack::sync::launch_fingerprint::{
 };
 use serial_test::serial;
 use tempfile::tempdir;
+
+struct CwdGuard(PathBuf);
+
+impl Drop for CwdGuard {
+    fn drop(&mut self) {
+        let _ = std::env::set_current_dir(&self.0);
+    }
+}
 
 fn prep_store(root: &Path) {
     std::env::set_var("AGENTPACK_HOME", root.join("_test_uap"));
@@ -78,6 +87,100 @@ fn init_refuses_existing_lock() {
     })
     .unwrap_err();
     assert!(e.to_string().contains("agentpack.toml"));
+}
+
+#[test]
+#[serial]
+fn add_lazily_initializes_project_files_in_cwd() {
+    let dir = tempdir().unwrap();
+    let root: PathBuf = dir.path().to_path_buf();
+    prep_store(&root);
+    let _cwd = CwdGuard(std::env::current_dir().unwrap());
+    std::env::set_current_dir(&root).unwrap();
+
+    let skill = root.join("local-skill");
+    fs::create_dir_all(&skill).unwrap();
+    fs::write(skill.join("SKILL.md"), "# local skill\n").unwrap();
+
+    run(Cli {
+        project_root: None,
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        mode: None,
+        debug: false,
+        command: Command::Add {
+            spec: "local-skill".into(),
+            no_sync: true,
+        },
+    })
+    .unwrap();
+
+    let manifest = fs::read_to_string(root.join("agentpack.toml")).unwrap();
+    assert!(manifest.contains("[dependencies]"));
+    assert!(manifest.contains("local-skill = { path = \"local-skill\" }"));
+    let lock = PackLock::load(&root).unwrap();
+    assert_eq!(lock.lockfile_version, 2);
+    assert_eq!(lock.packages.len(), 1);
+}
+
+#[test]
+#[serial]
+fn manifestless_launch_sync_uses_empty_ephemeral_pack() {
+    let dir = tempdir().unwrap();
+    let root: PathBuf = dir.path().to_path_buf();
+    prep_store(&root);
+
+    let ui = agentpack::ui::Ui::new(true, true, false);
+    let mode = agentpack::sync::sync_for_launch(&root, None, HarnessTarget::Claude, &ui).unwrap();
+
+    assert_eq!(mode.name(), "default");
+    assert!(!root.join("agentpack.toml").exists());
+    assert!(!root.join("pack.lock").exists());
+    assert!(staging_plugins_dir(&root)
+        .unwrap()
+        .join("agentpack-bundle/.claude-plugin/plugin.json")
+        .is_file());
+}
+
+#[test]
+#[serial]
+fn manifestless_launch_rejects_non_default_mode() {
+    let dir = tempdir().unwrap();
+    let root: PathBuf = dir.path().to_path_buf();
+    prep_store(&root);
+
+    let ui = agentpack::ui::Ui::new(true, true, false);
+    let err = agentpack::sync::sync_for_launch(&root, Some("custom"), HarnessTarget::Claude, &ui)
+        .unwrap_err();
+    assert!(err.to_string().contains("unknown mode: custom"));
+}
+
+#[test]
+#[serial]
+fn sync_still_requires_existing_project_files() {
+    let dir = tempdir().unwrap();
+    let root: PathBuf = dir.path().to_path_buf();
+    prep_store(&root);
+    let _cwd = CwdGuard(std::env::current_dir().unwrap());
+    std::env::set_current_dir(&root).unwrap();
+
+    let err = run(Cli {
+        project_root: None,
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        mode: None,
+        debug: false,
+        command: Command::Sync {
+            dry_run: false,
+            verify_only: false,
+            update_lock: false,
+        },
+    })
+    .unwrap_err();
+
+    assert!(err.to_string().contains("no pack.lock found"));
 }
 
 #[test]

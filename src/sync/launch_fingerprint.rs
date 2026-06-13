@@ -66,8 +66,12 @@ pub fn compute_launch_sync_digest(
 
     let lock_path = paths::lock_path(project_root);
     hasher.update(b"lock\0");
-    let lock_bytes = fs::read(&lock_path).map_err(|e| AgentpackError::io(&lock_path, e))?;
-    hasher.update(&lock_bytes);
+    if lock_path.is_file() {
+        let lock_bytes = fs::read(&lock_path).map_err(|e| AgentpackError::io(&lock_path, e))?;
+        hasher.update(&lock_bytes);
+    } else {
+        hasher.update(b"__missing__");
+    }
 
     hasher.update(b"dot_agents\0");
     let dot = paths::project_dot_agents_dir(project_root);

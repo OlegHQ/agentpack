@@ -38,7 +38,11 @@ pub fn run(cli: Cli) -> anyhow::Result<()> {
         return crate::cli::hook_exec::run(args);
     }
 
-    let root = paths::resolve_project_root(cli.project_root.as_deref())?;
+    let root = if command_allows_missing_project_files(&cli.command) {
+        paths::resolve_project_root_or_cwd(cli.project_root.as_deref())?
+    } else {
+        paths::resolve_project_root(cli.project_root.as_deref())?
+    };
 
     match cli.command {
         Command::Init { .. } => unreachable!(),
@@ -137,6 +141,19 @@ pub fn run(cli: Cli) -> anyhow::Result<()> {
         }
     }
     Ok(())
+}
+
+fn command_allows_missing_project_files(command: &Command) -> bool {
+    matches!(
+        command,
+        Command::Add { .. }
+            | Command::Claude { .. }
+            | Command::Opencode { .. }
+            | Command::Codex { .. }
+            | Command::Grok { .. }
+            | Command::Agy { .. }
+            | Command::Agent { .. }
+    )
 }
 
 fn run_mcp(root: &Path, action: McpAction, ui: &Ui) -> anyhow::Result<()> {
