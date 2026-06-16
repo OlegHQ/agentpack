@@ -43,6 +43,7 @@ fn init_writes_pack_lock_and_agentpack_dir() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Init {
             name: Some("myproj".into()),
             version: Some("0.0.1".into()),
@@ -67,6 +68,7 @@ fn init_refuses_existing_lock() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -80,6 +82,7 @@ fn init_refuses_existing_lock() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -109,6 +112,7 @@ fn add_lazily_initializes_project_files_in_cwd() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Add {
             spec: "local-skill".into(),
             no_sync: true,
@@ -172,6 +176,7 @@ fn sync_still_requires_existing_project_files() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
@@ -240,6 +245,7 @@ fn sync_stages_full_plugin_and_shadows_contained_skill() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -296,6 +302,7 @@ fn sync_stages_full_plugin_and_shadows_contained_skill() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
@@ -427,6 +434,7 @@ fn sync_stages_bare_skills_for_all_launchers() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -461,6 +469,7 @@ fn sync_stages_bare_skills_for_all_launchers() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
@@ -509,6 +518,7 @@ fn sync_stages_bare_skill_under_lockfile_slug_when_frontmatter_name_differs() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -548,6 +558,7 @@ fn sync_stages_bare_skill_under_lockfile_slug_when_frontmatter_name_differs() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
@@ -582,6 +593,7 @@ fn sync_stages_cursor_and_claude_plugin_with_skill_support_and_command_sidecars(
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -638,6 +650,7 @@ fn sync_stages_cursor_and_claude_plugin_with_skill_support_and_command_sidecars(
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
@@ -689,6 +702,7 @@ fn sync_converts_markdown_artifacts_per_target_harness() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -754,6 +768,7 @@ fn sync_converts_markdown_artifacts_per_target_harness() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
@@ -824,6 +839,7 @@ fn sync_leaves_project_cursor_files_alone_when_pack_overlaps_names() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -875,6 +891,7 @@ fn sync_leaves_project_cursor_files_alone_when_pack_overlaps_names() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
@@ -910,6 +927,7 @@ fn sync_does_not_remove_user_cursor_files_when_pack_entries_removed() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -954,6 +972,7 @@ fn sync_does_not_remove_user_cursor_files_when_pack_entries_removed() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
@@ -977,6 +996,7 @@ fn sync_does_not_remove_user_cursor_files_when_pack_entries_removed() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
@@ -1010,6 +1030,7 @@ fn sync_merges_dot_agents_into_staging() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -1042,6 +1063,7 @@ fn sync_merges_dot_agents_into_staging() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
@@ -1089,6 +1111,7 @@ fn sync_applies_default_and_selected_modes_to_staging() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -1151,6 +1174,7 @@ fn sync_applies_default_and_selected_modes_to_staging() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
@@ -1171,6 +1195,7 @@ fn sync_applies_default_and_selected_modes_to_staging() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Mode {
             action: ModeAction::Disable {
                 name: "default".into(),
@@ -1190,6 +1215,7 @@ fn sync_applies_default_and_selected_modes_to_staging() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Mode {
             action: ModeAction::Create {
                 name: "design".into(),
@@ -1204,6 +1230,7 @@ fn sync_applies_default_and_selected_modes_to_staging() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Mode {
             action: ModeAction::Disable {
                 name: "design".into(),
@@ -1225,6 +1252,7 @@ fn sync_applies_default_and_selected_modes_to_staging() {
         yolo: false,
         mode: Some("design".into()),
         debug: false,
+        proxy: false,
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
@@ -1271,6 +1299,7 @@ fn add_real_github_skill() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -1284,6 +1313,7 @@ fn add_real_github_skill() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Add {
             spec: "https://github.com/anthropics/skills/tree/main/skills/canvas-design".into(),
             no_sync: false,
@@ -1311,6 +1341,7 @@ fn sync_stages_hooks_for_all_harnesses() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -1398,6 +1429,7 @@ fn sync_stages_hooks_for_all_harnesses() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
@@ -1481,6 +1513,7 @@ fn sync_skips_unsupported_cursor_matcher_gracefully() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -1538,6 +1571,7 @@ fn sync_skips_unsupported_cursor_matcher_gracefully() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
@@ -1561,6 +1595,7 @@ fn sync_disables_attribution_in_all_supported_harnesses_by_default() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -1575,6 +1610,7 @@ fn sync_disables_attribution_in_all_supported_harnesses_by_default() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Sync {
             dry_run: false,
             verify_only: false,
@@ -1656,6 +1692,7 @@ fn sync_keeps_attribution_when_env_opt_in() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Init {
             name: None,
             version: None,
@@ -1669,6 +1706,7 @@ fn sync_keeps_attribution_when_env_opt_in() {
         yolo: false,
         mode: None,
         debug: false,
+        proxy: false,
         command: Command::Sync {
             dry_run: false,
             verify_only: false,

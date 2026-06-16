@@ -1,7 +1,7 @@
-use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::error::{AgentpackError, Result};
+use crate::error::Result;
+use crate::fs_util::remove_rebuild_path;
 use crate::harness::HarnessTarget;
 use crate::hooks::stage::stage_hooks_all_harnesses;
 use crate::lockfile::PackLock;
@@ -129,9 +129,7 @@ impl<'a> StagingPipeline<'a> {
         paths.sort();
         paths.dedup();
         for path in paths {
-            if path.exists() {
-                fs::remove_dir_all(&path).map_err(|e| AgentpackError::io(&path, e))?;
-            }
+            remove_rebuild_path(&path)?;
         }
         Ok(())
     }

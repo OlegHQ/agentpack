@@ -25,6 +25,7 @@ pub(crate) fn launch(
     passthrough: Vec<String>,
     selected_mode: Option<&str>,
     yolo: bool,
+    proxy: bool,
     ui: &Ui,
 ) -> anyhow::Result<()> {
     let mode = sync_for_launch(project_root, selected_mode, id, ui)?;
@@ -35,7 +36,15 @@ pub(crate) fn launch(
         yolo,
         ui,
     };
-    let cmd = id.harness().launch_command(ctx)?;
+    let mut cmd = id.harness().launch_command(ctx)?;
+    if proxy {
+        if id != HarnessTarget::Claude {
+            return Err(anyhow::anyhow!("proxy launch is only supported for Claude"));
+        }
+        let running = crate::proxy::start(ui)?;
+        running.apply_claude_env(&mut cmd);
+        return spawn_inherit_and_wait(cmd, Some(running));
+    }
     exec_inherit(cmd)
 }
 
@@ -172,6 +181,26 @@ fn exec_inherit(mut cmd: Command) -> anyhow::Result<()> {
             .with_context(|| format!("failed to run {prog}"))?;
         std::process::exit(status.code().unwrap_or(1));
     }
+}
+
+fn spawn_inherit_and_wait(
+    mut cmd: Command,
+    proxy: Option<crate::proxy::RunningProxy>,
+) -> anyhow::Result<()> {
+    let prog = cmd.get_program().to_string_lossy().into_owned();
+    let status = match cmd.status() {
+        Ok(status) => status,
+        Err(err) => {
+            if let Some(proxy) = proxy {
+                proxy.shutdown();
+            }
+            return Err(anyhow::Error::new(err)).with_context(|| format!("failed to run {prog}"));
+        }
+    };
+    if let Some(proxy) = proxy {
+        proxy.shutdown();
+    }
+    std::process::exit(status.code().unwrap_or(1));
 }
 
 #[cfg(test)]

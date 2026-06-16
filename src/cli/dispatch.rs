@@ -37,6 +37,11 @@ pub fn run(cli: Cli) -> anyhow::Result<()> {
     if let Command::HookExec(args) = cli.command {
         return crate::cli::hook_exec::run(args);
     }
+    if cli.proxy && !matches!(cli.command, Command::Claude { .. }) {
+        return Err(anyhow::anyhow!(
+            "--proxy is only supported with `agentpack claude`"
+        ));
+    }
 
     let root = if command_allows_missing_project_files(&cli.command) {
         paths::resolve_project_root_or_cwd(cli.project_root.as_deref())?
@@ -80,6 +85,7 @@ pub fn run(cli: Cli) -> anyhow::Result<()> {
                 args,
                 cli.mode.as_deref(),
                 cli.yolo,
+                cli.proxy,
                 &ui,
             )?;
         }
@@ -90,6 +96,7 @@ pub fn run(cli: Cli) -> anyhow::Result<()> {
                 args,
                 cli.mode.as_deref(),
                 cli.yolo,
+                false,
                 &ui,
             )?;
         }
@@ -100,6 +107,7 @@ pub fn run(cli: Cli) -> anyhow::Result<()> {
                 args,
                 cli.mode.as_deref(),
                 cli.yolo,
+                false,
                 &ui,
             )?;
         }
@@ -110,6 +118,7 @@ pub fn run(cli: Cli) -> anyhow::Result<()> {
                 args,
                 cli.mode.as_deref(),
                 cli.yolo,
+                false,
                 &ui,
             )?;
         }
@@ -120,6 +129,7 @@ pub fn run(cli: Cli) -> anyhow::Result<()> {
                 args,
                 cli.mode.as_deref(),
                 cli.yolo,
+                false,
                 &ui,
             )?;
         }
@@ -130,6 +140,7 @@ pub fn run(cli: Cli) -> anyhow::Result<()> {
                 args,
                 cli.mode.as_deref(),
                 cli.yolo,
+                false,
                 &ui,
             )?;
         }

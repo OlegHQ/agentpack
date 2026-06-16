@@ -36,6 +36,10 @@ pub struct Cli {
     #[arg(long, global = true)]
     pub debug: bool,
 
+    /// For `agentpack claude`, start a supervised Anthropic-compatible proxy backed by OpenAI/Codex auth
+    #[arg(long, global = true)]
+    pub proxy: bool,
+
     #[command(subcommand)]
     pub command: Command,
 }

@@ -1,0 +1,74 @@
+{
+  "model": "gpt-5.4",
+  "system": [
+    { "type": "text", "text": "You are terse." },
+    { "type": "text", "text": "x-anthropic-billing-header: ignored" },
+    { "type": "text", "text": "Use tools carefully." }
+  ],
+  "messages": [
+    { "role": "user", "content": "hello" },
+    {
+      "role": "assistant",
+      "content": [
+        { "type": "text", "text": "I will call a tool." },
+        { "type": "tool_use", "id": "toolu_1", "name": "Read", "input": { "file_path": "Cargo.toml" } }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_1",
+          "content": [
+            { "type": "text", "text": "visible output" },
+            { "type": "thinking", "thinking": "hidden thought" },
+            { "type": "image", "source": { "type": "base64", "media_type": "image/png", "data": "abc" } }
+          ]
+        },
+        { "type": "text", "text": "continue" },
+        { "type": "image", "source": { "type": "url", "url": "https://example.invalid/a.png" } }
+      ]
+    },
+    { "role": "system", "content": "runtime constraint" }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "name": "Read",
+      "description": "Read a file",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "file_path": { "type": "string" },
+          "pages": { "type": "string" }
+        },
+        "required": ["file_path"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "type": "web_search_20250305",
+      "name": "web_search",
+      "allowed_domains": ["github.com"],
+      "blocked_domains": ["example.com"]
+    }
+  ],
+  "tool_choice": { "type": "tool", "name": "web_search" },
+  "output_config": {
+    "effort": "medium",
+    "format": {
+      "type": "json_schema",
+      "name": "answer",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ok": { "type": "boolean" },
+          "reason": { "type": "string" }
+        },
+        "required": ["ok"],
+        "additionalProperties": false
+      }
+    }
+  }
+}

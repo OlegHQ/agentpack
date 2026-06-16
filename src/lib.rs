@@ -10,6 +10,7 @@ pub mod lockfile;
 pub(crate) mod manifest;
 pub mod mode;
 pub mod paths;
+pub(crate) mod proxy;
 mod resolve;
 pub(crate) mod slug;
 pub(crate) mod staging;

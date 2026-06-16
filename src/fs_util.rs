@@ -2,7 +2,7 @@
 
 use std::fs;
 use std::io::{self, ErrorKind};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use serde_json::Value;
 use walkdir::{DirEntry, WalkDir};
@@ -75,6 +75,46 @@ pub(crate) fn remove_path_any(path: &Path) -> Result<()> {
     }
 
     Ok(())
+}
+
+/// Move a stale rebuild target aside, then remove it recursively. This avoids `Directory not
+/// empty` races when the path is also the active config/cache root of the process invoking
+/// `agentpack` and background writers recreate files while `remove_dir_all` is walking it.
+pub(crate) fn remove_rebuild_path(path: &Path) -> Result<()> {
+    let meta = match fs::symlink_metadata(path) {
+        Ok(meta) => meta,
+        Err(err) if err.kind() == ErrorKind::NotFound => return Ok(()),
+        Err(err) => return Err(AgentpackError::io(path, err)),
+    };
+
+    if !meta.is_dir() || meta.file_type().is_symlink() {
+        return remove_path_any(path);
+    }
+
+    let trash = unique_rebuild_trash_path(path);
+    fs::rename(path, &trash).map_err(|err| AgentpackError::io(path, err))?;
+    remove_path_any(&trash)
+}
+
+fn unique_rebuild_trash_path(path: &Path) -> PathBuf {
+    let parent = path.parent().unwrap_or_else(|| Path::new("."));
+    let name = path
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("staging");
+    for attempt in 0..1000u32 {
+        let candidate = parent.join(format!(
+            ".agentpack-reset-{name}-{}-{attempt}",
+            std::process::id()
+        ));
+        if !candidate.exists() {
+            return candidate;
+        }
+    }
+    parent.join(format!(
+        ".agentpack-reset-{name}-{}-fallback",
+        std::process::id()
+    ))
 }
 
 /// Read and parse a JSON file. Errors if the file is missing.

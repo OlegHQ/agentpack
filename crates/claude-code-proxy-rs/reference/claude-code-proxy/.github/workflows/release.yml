@@ -1,0 +1,174 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+env:
+  BIN_NAME: claude-code-proxy
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: bun-darwin-arm64
+            platform: darwin-arm64
+            ext: ""
+            archive: tar.gz
+          - target: bun-darwin-x64
+            platform: darwin-amd64
+            ext: ""
+            archive: tar.gz
+          - target: bun-linux-x64
+            platform: linux-amd64
+            ext: ""
+            archive: tar.gz
+          - target: bun-linux-arm64
+            platform: linux-arm64
+            ext: ""
+            archive: tar.gz
+          - target: bun-windows-x64
+            platform: windows-amd64
+            ext: .exe
+            archive: zip
+          - target: bun-windows-arm64
+            platform: windows-arm64
+            ext: .exe
+            archive: zip
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Build
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          mkdir -p dist
+          bun build ./src/cli.ts \
+            --compile \
+            --target=${{ matrix.target }} \
+            --define BUILD_VERSION="\"${VERSION#v}\"" \
+            --outfile dist/${BIN_NAME}${{ matrix.ext }}
+      - name: Package
+        run: |
+          archive="${BIN_NAME}-${{ matrix.platform }}.${{ matrix.archive }}"
+          if [[ "${{ matrix.archive }}" == "zip" ]]; then
+            (cd dist && zip "../$archive" ${BIN_NAME}${{ matrix.ext }})
+          else
+            tar -C dist -czf "$archive" ${BIN_NAME}${{ matrix.ext }}
+          fi
+          shasum -a 256 "$archive" > "${BIN_NAME}-${{ matrix.platform }}.sha256"
+      - uses: actions/upload-artifact@v5
+        with:
+          name: ${{ matrix.platform }}
+          path: |
+            ${{ env.BIN_NAME }}-${{ matrix.platform }}.${{ matrix.archive }}
+            ${{ env.BIN_NAME }}-${{ matrix.platform }}.sha256
+
+  smoke-windows:
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          name: windows-amd64
+      - shell: pwsh
+        run: |
+          Expand-Archive claude-code-proxy-windows-amd64.zip -DestinationPath .
+          .\claude-code-proxy.exe --version
+
+  release:
+    needs: [build, smoke-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.RELEASE_TOKEN }}
+          generate_release_notes: true
+          files: |
+            *.tar.gz
+            *.zip
+            *.sha256
+
+  update-tap:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          merge-multiple: true
+      - uses: actions/checkout@v5
+        with:
+          repository: raine/homebrew-claude-code-proxy
+          token: ${{ secrets.RELEASE_TOKEN }}
+          path: tap
+      - name: Generate formula and push to tap
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          VERSION="${VERSION#v}"
+          SHA_ARM=$(awk '{print $1}' claude-code-proxy-darwin-arm64.sha256)
+          SHA_INTEL=$(awk '{print $1}' claude-code-proxy-darwin-amd64.sha256)
+          SHA_LINUX_AMD=$(awk '{print $1}' claude-code-proxy-linux-amd64.sha256)
+          SHA_LINUX_ARM=$(awk '{print $1}' claude-code-proxy-linux-arm64.sha256)
+
+          mkdir -p tap/Formula
+          cat > tap/Formula/claude-code-proxy.rb << EOF
+          class ClaudeCodeProxy < Formula
+            desc "Local proxy: Claude Code to ChatGPT subscription via Codex Responses API"
+            homepage "https://github.com/raine/claude-code-proxy"
+            version "${VERSION}"
+            license "MIT"
+
+            on_macos do
+              if Hardware::CPU.arm?
+                url "https://github.com/raine/claude-code-proxy/releases/download/v${VERSION}/claude-code-proxy-darwin-arm64.tar.gz"
+                sha256 "${SHA_ARM}"
+              else
+                url "https://github.com/raine/claude-code-proxy/releases/download/v${VERSION}/claude-code-proxy-darwin-amd64.tar.gz"
+                sha256 "${SHA_INTEL}"
+              end
+            end
+
+            on_linux do
+              if Hardware::CPU.arm?
+                url "https://github.com/raine/claude-code-proxy/releases/download/v${VERSION}/claude-code-proxy-linux-arm64.tar.gz"
+                sha256 "${SHA_LINUX_ARM}"
+              else
+                url "https://github.com/raine/claude-code-proxy/releases/download/v${VERSION}/claude-code-proxy-linux-amd64.tar.gz"
+                sha256 "${SHA_LINUX_AMD}"
+              end
+            end
+
+            def install
+              bin.install "claude-code-proxy"
+            end
+
+            test do
+              assert_match version.to_s, shell_output("\#{bin}/claude-code-proxy --version")
+            end
+          end
+          EOF
+          sed -i 's/^          //' tap/Formula/claude-code-proxy.rb
+
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/claude-code-proxy.rb
+          git commit -m "claude-code-proxy ${VERSION}"
+          git pull --rebase
+          git push
