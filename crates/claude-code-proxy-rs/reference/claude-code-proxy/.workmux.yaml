@@ -1,5 +1,0 @@
-panes:
-  - command: claude
-    focus: true
-  - split: horizontal
-    command: bun install

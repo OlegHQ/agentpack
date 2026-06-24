@@ -117,6 +117,22 @@ agentpack grok      # Grok
 agentpack agy       # Antigravity
 ```
 
+### Experimental Claude Proxy Mode
+
+`agentpack --proxy claude` starts Claude Code through an experimental, supervised
+Anthropic-compatible proxy backed by OpenAI/Codex credentials. The proxy is started for that Claude
+session, `ANTHROPIC_BASE_URL` and `ANTHROPIC_AUTH_TOKEN` are injected into the child process, and the
+proxy is shut down when Claude exits.
+
+```bash
+agentpack --proxy claude
+```
+
+Authentication is resolved from `OPENAI_API_KEY` first, then from Codex auth (`~/.codex/auth.json`,
+the Codex keychain entry, or agentpack's shared Codex auth file). The Rust proxy core is ported from
+the Codex/OpenAI path in [raine/claude-code-proxy](https://github.com/raine/claude-code-proxy);
+thanks to [@raine](https://github.com/raine) for the original project and reference behavior.
+
 ## How It Works
 
 1. **`agentpack.toml`** — Declare dependencies (GitHub repos, subdirectories, or local paths) with version constraints.

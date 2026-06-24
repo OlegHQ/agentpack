@@ -8,10 +8,12 @@ rust_out
 .codex
 .envrc
 
+# Local upstream reference checkout used while porting the Rust proxy core.
+/crates/claude-code-proxy-rs/reference/claude-code-proxy/
+
 
 # Added by cargo
 #
 # already existing elements were commented out
 
 #/target
-
