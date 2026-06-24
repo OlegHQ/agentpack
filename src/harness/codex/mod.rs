@@ -45,6 +45,11 @@ impl Harness for Codex {
         force_codex_attribution_off(&root)
     }
 
+    fn pre_reset(&self, ctx: &StageCtx) -> Result<()> {
+        let root = self.staged_root(ctx.project_root, ctx.mode.name())?;
+        auth::preserve_staged_codex_auth(&root)
+    }
+
     fn write_mcp(&self, merged: &StagedMcpEntries, ctx: &StageCtx) -> Result<()> {
         let home = self.staged_root(ctx.project_root, ctx.mode.name())?;
         merge_into_toml_mcp_config(&home.join("config.toml"), merged)

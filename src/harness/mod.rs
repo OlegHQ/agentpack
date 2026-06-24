@@ -101,6 +101,12 @@ pub(crate) trait Harness: Sync {
     /// manifest, and force AI attribution off. Runs before the shared pack/skill overlay loop.
     fn prepare(&self, ctx: &StageCtx) -> Result<()>;
 
+    /// Preserve any state that would otherwise be lost when this harness's staging root is reset.
+    /// Runs immediately before [`reset_paths`](Self::reset_paths) are removed.
+    fn pre_reset(&self, _ctx: &StageCtx) -> Result<()> {
+        Ok(())
+    }
+
     // ---- artifact rendering knobs (was: 5 `match self` tables in artifacts/harness.rs) ----
 
     /// Portable plugin subtrees copied verbatim from cached plugins before the markdown overlay

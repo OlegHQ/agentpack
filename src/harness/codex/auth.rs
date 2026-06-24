@@ -119,10 +119,10 @@ pub(super) fn try_materialize_codex_auth_json_from_user_keyring(
     Ok(true)
 }
 
-fn shared_codex_auth_source(user_codex_home: &Path) -> Result<Option<PathBuf>> {
+fn shared_codex_auth_source(user_codex_home: &Path) -> Result<PathBuf> {
     let user_auth = user_codex_home.join("auth.json");
     if user_auth.is_file() {
-        return Ok(Some(user_auth));
+        return Ok(user_auth);
     }
 
     let shared = paths::shared_codex_auth_path()?;
@@ -130,14 +130,44 @@ fn shared_codex_auth_source(user_codex_home: &Path) -> Result<Option<PathBuf>> {
         fs::create_dir_all(parent).map_err(|e| AgentpackError::io(parent, e))?;
     }
     if shared.is_file() {
-        return Ok(Some(shared));
+        return Ok(shared);
     }
-    let materialized = try_materialize_codex_auth_json_from_user_keyring(user_codex_home, &shared)?;
-    if materialized {
-        Ok(Some(shared))
-    } else {
-        Ok(None)
+    let _ = try_materialize_codex_auth_json_from_user_keyring(user_codex_home, &shared)?;
+    Ok(shared)
+}
+
+pub(super) fn preserve_staged_codex_auth(staging_root: &Path) -> Result<()> {
+    let shared = paths::shared_codex_auth_path()?;
+    if shared.is_file() {
+        return Ok(());
     }
+
+    let staged_auth = staging_root.join("auth.json");
+    let meta = match fs::symlink_metadata(&staged_auth) {
+        Ok(meta) => meta,
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(err) => return Err(AgentpackError::io(&staged_auth, err)),
+    };
+    if meta.file_type().is_symlink() || !meta.is_file() {
+        return Ok(());
+    }
+
+    let json = fs::read_to_string(&staged_auth).map_err(|e| AgentpackError::io(&staged_auth, e))?;
+    if serde_json::from_str::<serde_json::Value>(&json).is_err() {
+        tracing::debug!(
+            path = %staged_auth.display(),
+            "staged Codex auth.json is not valid JSON; skipping preservation"
+        );
+        return Ok(());
+    }
+
+    write_codex_auth_json(&shared, &json)?;
+    tracing::debug!(
+        staged = %staged_auth.display(),
+        shared = %shared.display(),
+        "preserved staged Codex auth.json before rebuild"
+    );
+    Ok(())
 }
 
 fn link_staged_codex_auth(source: &Path, staged_auth: &Path) -> Result<()> {
@@ -146,9 +176,7 @@ fn link_staged_codex_auth(source: &Path, staged_auth: &Path) -> Result<()> {
     }
     remove_path_any(staged_auth)?;
 
-    let target = source
-        .canonicalize()
-        .unwrap_or_else(|_| source.to_path_buf());
+    let target = stable_auth_link_target(source);
 
     #[cfg(unix)]
     {
@@ -170,6 +198,14 @@ fn link_staged_codex_auth(source: &Path, staged_auth: &Path) -> Result<()> {
                     ))
                 })?;
             }
+            Err(symlink_err) if !target.exists() => {
+                tracing::warn!(
+                    target = %target.display(),
+                    staged = %staged_auth.display(),
+                    "could not create dangling Codex auth.json symlink on Windows: {symlink_err}; first login will be preserved on the next agentpack rebuild"
+                );
+                return Ok(());
+            }
             Err(symlink_err) => {
                 return Err(AgentpackError::Staging(format!(
                     "failed to symlink staged Codex auth.json to {}: {}",
@@ -188,16 +224,26 @@ fn link_staged_codex_auth(source: &Path, staged_auth: &Path) -> Result<()> {
     Ok(())
 }
 
+fn stable_auth_link_target(source: &Path) -> PathBuf {
+    if let Ok(target) = source.canonicalize() {
+        return target;
+    }
+    if let (Some(parent), Some(name)) = (source.parent(), source.file_name()) {
+        if let Ok(parent) = parent.canonicalize() {
+            return parent.join(name);
+        }
+    }
+    if source.is_absolute() {
+        source.to_path_buf()
+    } else {
+        std::env::current_dir()
+            .unwrap_or_else(|_| PathBuf::from("."))
+            .join(source)
+    }
+}
+
 pub(super) fn prepare_staged_codex_auth(user_codex_home: &Path, staging_root: &Path) -> Result<()> {
-    let Some(source) = shared_codex_auth_source(user_codex_home)? else {
-        tracing::debug!(
-            "no Codex auth source available ({}); skipping staged auth.json link",
-            user_codex_home.display()
-        );
-        let staged_auth = staging_root.join("auth.json");
-        let _ = remove_path_any(&staged_auth);
-        return Ok(());
-    };
+    let source = shared_codex_auth_source(user_codex_home)?;
     let staged_auth = staging_root.join("auth.json");
     link_staged_codex_auth(&source, &staged_auth)
 }
@@ -235,11 +281,31 @@ pub(super) fn force_staged_codex_credentials_store_to_file(staging_root: &Path) 
 mod tests {
     use super::{
         codex_cli_keyring_account, force_staged_codex_credentials_store_to_file,
-        link_staged_codex_auth,
+        link_staged_codex_auth, preserve_staged_codex_auth,
     };
     use sha2::Digest;
+    use std::ffi::OsString;
     use std::fs;
     use std::path::Path;
+
+    struct AgentpackHomeGuard(Option<OsString>);
+
+    impl AgentpackHomeGuard {
+        fn set(value: impl AsRef<std::ffi::OsStr>) -> Self {
+            let previous = std::env::var_os("AGENTPACK_HOME");
+            std::env::set_var("AGENTPACK_HOME", value);
+            Self(previous)
+        }
+    }
+
+    impl Drop for AgentpackHomeGuard {
+        fn drop(&mut self) {
+            match self.0.take() {
+                Some(value) => std::env::set_var("AGENTPACK_HOME", value),
+                None => std::env::remove_var("AGENTPACK_HOME"),
+            }
+        }
+    }
 
     #[test]
     fn codex_keyring_account_matches_sha256_prefix_rule() {
@@ -299,5 +365,40 @@ mod tests {
 
         let observed = fs::read_to_string(&staged).unwrap();
         assert!(observed.contains("\"new\""));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn staged_auth_link_allows_first_login_to_create_shared_source() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("shared").join("auth.json");
+        let staged = dir.path().join("staged").join("auth.json");
+        fs::create_dir_all(source.parent().unwrap()).unwrap();
+
+        link_staged_codex_auth(&source, &staged).unwrap();
+        fs::write(&staged, "{\"refresh_token\":\"new\"}\n").unwrap();
+
+        let observed = fs::read_to_string(&source).unwrap();
+        assert!(observed.contains("\"new\""));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn preserve_staged_auth_copies_regular_file_to_shared_source() {
+        let dir = tempfile::tempdir().unwrap();
+        let _home_guard = AgentpackHomeGuard::set(dir.path().join("agentpack-home"));
+        let staging = dir.path().join("staging");
+        fs::create_dir_all(&staging).unwrap();
+        fs::write(
+            staging.join("auth.json"),
+            "{\"tokens\":{\"refresh_token\":\"old\"}}\n",
+        )
+        .unwrap();
+
+        preserve_staged_codex_auth(&staging).unwrap();
+
+        let shared = crate::paths::shared_codex_auth_path().unwrap();
+        let observed = fs::read_to_string(shared).unwrap();
+        assert!(observed.contains("\"old\""));
     }
 }

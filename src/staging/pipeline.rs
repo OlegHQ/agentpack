@@ -45,6 +45,7 @@ impl<'a> StagingPipeline<'a> {
     }
 
     pub(super) fn rebuild(&self) -> Result<Vec<PathBuf>> {
+        self.pre_reset_all()?;
         self.reset_all()?;
         self.prepare_all()?;
 
@@ -116,6 +117,14 @@ impl<'a> StagingPipeline<'a> {
         let ctx = self.stage_ctx();
         for harness in crate::harness::all() {
             harness.prepare(&ctx)?;
+        }
+        Ok(())
+    }
+
+    fn pre_reset_all(&self) -> Result<()> {
+        let ctx = self.stage_ctx();
+        for harness in crate::harness::all() {
+            harness.pre_reset(&ctx)?;
         }
         Ok(())
     }

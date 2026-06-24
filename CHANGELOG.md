@@ -5,6 +5,14 @@ All notable changes to `agentpack` are documented here. The format is based on
 "Pre-release" note in `AGENTS.md` — breaking changes may land between versions without a migration
 window.
 
+## [0.3.6]
+
+### Fixed
+- **Codex first-login preservation.** Staged `CODEX_HOME/auth.json` now always points at the shared
+  agentpack auth file, even before that file exists, so the first Codex login in a staged home is
+  kept for later launches. Rebuilds also preserve legacy regular staged `auth.json` files before the
+  Codex staging root is reset.
+
 ## [0.3.3]
 
 ### Security

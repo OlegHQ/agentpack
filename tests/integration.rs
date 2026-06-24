@@ -8,9 +8,9 @@ use agentpack::lockfile::{LockPackage, PackLock, PackageKind};
 use agentpack::mode::filter::EffectiveMode;
 use agentpack::paths::{
     agentpack_claude_settings_path, cache_dir, cursor_workspace_dir, project_dot_agents_dir,
-    staging_codex_home_dir, staging_codex_home_dir_for_mode, staging_cursor_bundle_dir,
-    staging_cursor_home_dir, staging_cursor_pack_plugin_dir, staging_opencode_dir,
-    staging_plugins_dir, staging_plugins_dir_for_mode,
+    shared_codex_auth_path, staging_codex_home_dir, staging_codex_home_dir_for_mode,
+    staging_cursor_bundle_dir, staging_cursor_home_dir, staging_cursor_pack_plugin_dir,
+    staging_opencode_dir, staging_plugins_dir, staging_plugins_dir_for_mode,
 };
 use agentpack::sync::launch_fingerprint::{
     compute_launch_sync_digest, read_stored_launch_digest, write_launch_sync_state,
@@ -1676,6 +1676,74 @@ fn sync_disables_attribution_in_all_supported_harnesses_by_default() {
         .iter()
         .any(|x| x.as_str() == Some("agentpack-no-attribution.md")));
     assert!(opencode_root.join("agentpack-no-attribution.md").is_file());
+}
+
+#[test]
+#[serial]
+fn sync_preserves_legacy_regular_staged_codex_auth_before_rebuild() {
+    let dir = tempdir().unwrap();
+    let root: PathBuf = dir.path().to_path_buf();
+    prep_store(&root);
+    run(Cli {
+        project_root: Some(root.clone()),
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        mode: None,
+        debug: false,
+        proxy: false,
+        command: Command::Init {
+            name: None,
+            version: None,
+        },
+    })
+    .unwrap();
+    run(Cli {
+        project_root: Some(root.clone()),
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        mode: None,
+        debug: false,
+        proxy: false,
+        command: Command::Sync {
+            dry_run: false,
+            verify_only: false,
+            update_lock: false,
+        },
+    })
+    .unwrap();
+
+    let shared = shared_codex_auth_path().unwrap();
+    let _ = fs::remove_file(&shared);
+    let codex_auth = staging_codex_home_dir(&root).unwrap().join("auth.json");
+    let _ = fs::remove_file(&codex_auth);
+    fs::write(
+        &codex_auth,
+        "{\"tokens\":{\"access_token\":\"old-access\",\"refresh_token\":\"old-refresh\"}}\n",
+    )
+    .unwrap();
+
+    run(Cli {
+        project_root: Some(root.clone()),
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        mode: None,
+        debug: false,
+        proxy: false,
+        command: Command::Sync {
+            dry_run: false,
+            verify_only: false,
+            update_lock: false,
+        },
+    })
+    .unwrap();
+
+    let shared_auth = fs::read_to_string(shared).unwrap();
+    assert!(shared_auth.contains("old-refresh"));
+    let staged_auth = fs::read_to_string(codex_auth).unwrap();
+    assert!(staged_auth.contains("old-refresh"));
 }
 
 #[test]
