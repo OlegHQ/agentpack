@@ -89,6 +89,16 @@ pub fn agy_overlay_manifest_path(project_root: &Path) -> Result<PathBuf> {
     Ok(project_state_dir(project_root)?.join("agy-overlay.manifest"))
 }
 
+pub fn proxy_log_dir(project_root: &Path) -> Result<PathBuf> {
+    if let Ok(path) = env::var("AGENTPACK_PROXY_LOG_DIR") {
+        let path = path.trim();
+        if !path.is_empty() {
+            return Ok(PathBuf::from(path));
+        }
+    }
+    Ok(project_state_dir(project_root)?.join("proxy-logs"))
+}
+
 /// Resolve project root by walking ancestors until **`agentpack.toml`** or **`pack.lock`** is found.
 pub fn find_project_root(start: &Path) -> Result<PathBuf> {
     for dir in start.ancestors() {

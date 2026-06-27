@@ -4,6 +4,8 @@ use std::thread;
 
 use crate::codex::{accumulate_codex_response, codex_stream_to_anthropic_sse};
 
+use super::diagnostics::ProxyDiagnostics;
+
 pub struct AnthropicSseReader {
     rx: Receiver<Vec<u8>>,
     current: Cursor<Vec<u8>>,
@@ -11,7 +13,13 @@ pub struct AnthropicSseReader {
 }
 
 impl AnthropicSseReader {
-    pub fn spawn<F>(upstream: F, message_id: String, model: String) -> Self
+    pub fn spawn_with_diagnostics<F>(
+        upstream: F,
+        message_id: String,
+        model: String,
+        diagnostics: ProxyDiagnostics,
+        request_id: u64,
+    ) -> Self
     where
         F: FnOnce() -> anyhow::Result<Vec<u8>> + Send + 'static,
     {
@@ -39,6 +47,10 @@ impl AnthropicSseReader {
                         }
                     }
                     Err(err) => {
+                        diagnostics.event(
+                            "stream_bridge_error",
+                            serde_json::json!({"request_id": request_id, "error": format!("{err:#}")}),
+                        );
                         let _ = tx.send(error_event(&err.to_string()).into_bytes());
                     }
                 }

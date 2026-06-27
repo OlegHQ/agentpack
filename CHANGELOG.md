@@ -5,6 +5,15 @@ All notable changes to `agentpack` are documented here. The format is based on
 "Pre-release" note in `AGENTS.md` — breaking changes may land between versions without a migration
 window.
 
+## [0.3.7]
+
+### Added
+- **Claude proxy diagnostics.** `agentpack --proxy claude` now writes per-request JSONL diagnostics under `$AGENTPACK_HOME/projects/<project-hash>/proxy-logs` by default, with `AGENTPACK_PROXY_LOG_DIR` for custom locations and opt-in payload snippets via `AGENTPACK_PROXY_LOG_PAYLOADS=1`.
+- **Proxy log analysis skill.** The repository now includes a local `.agents` skill that summarizes proxy logs and flags stalled requests, WebSocket setup failures, auth refresh issues, upstream HTTP errors, translation failures, and downstream disconnects.
+
+### Changed
+- **Proxy launch tracing.** Claude proxy launch now passes the resolved project-state log directory into the proxy supervisor so diagnostics follow the same per-project storage layout as other agentpack state.
+
 ## [0.3.6]
 
 ### Fixed

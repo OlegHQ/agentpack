@@ -1,4 +1,5 @@
 mod config;
+mod diagnostics;
 mod model;
 mod stream;
 mod websocket;
@@ -17,6 +18,8 @@ use tiny_http::{Header, Method, Request, Response, Server, StatusCode};
 use crate::anthropic::{anthropic_error_body, AnthropicRequest};
 use crate::auth::ORIGINATOR;
 use crate::codex::{translate_anthropic_to_codex, TranslateOptions};
+
+use diagnostics::ProxyDiagnostics;
 
 pub use config::{ProxyConfig, TransportMode};
 pub use model::{ModelMap, ProxyModel};
@@ -38,9 +41,8 @@ pub trait AuthManager: Send + Sync {
 
 pub struct ProxyServer {
     server: Server,
-    config: ProxyConfig,
-    auth: Arc<dyn AuthManager>,
-    http: Client,
+    handler: ProxyServerHandle,
+    diagnostics: ProxyDiagnostics,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -59,11 +61,32 @@ impl ProxyServer {
             .timeout(config.request_timeout)
             .build()
             .context("build proxy HTTP client")?;
+        let diagnostics = match ProxyDiagnostics::new(&config.diagnostics) {
+            Ok(diagnostics) => diagnostics,
+            Err(err) => {
+                eprintln!("agentpack proxy: disabled diagnostics: {err:#}");
+                ProxyDiagnostics::noop()
+            }
+        };
+        diagnostics.event(
+            "proxy_start",
+            json!({
+                "bind_addr": addr,
+                "transport": config.transport.as_str(),
+                "request_timeout_ms": config.request_timeout.as_millis(),
+                "connect_timeout_ms": config.connect_timeout.as_millis(),
+                "websocket_idle_timeout_ms": config.websocket_idle_timeout.as_millis(),
+            }),
+        );
         Ok(Self {
             server,
-            config,
-            auth,
-            http,
+            handler: ProxyServerHandle {
+                config,
+                auth,
+                http,
+                diagnostics: diagnostics.clone(),
+            },
+            diagnostics,
         })
     }
 
@@ -71,12 +94,18 @@ impl ProxyServer {
         format!("http://{}", self.server.server_addr())
     }
 
+    pub fn diagnostics_path(&self) -> Option<&std::path::Path> {
+        self.diagnostics.path()
+    }
+
     pub fn run(self: Arc<Self>) {
         for request in self.server.incoming_requests() {
-            if self.handle(request) == ServeAction::Shutdown {
+            if self.handle_control(request) == ServeAction::Shutdown {
                 break;
             }
         }
+        self.diagnostics
+            .event("proxy_stop", json!({"reason": "accept_loop_exit"}));
     }
 
     pub fn run_in_thread(self: Arc<Self>) -> anyhow::Result<thread::JoinHandle<()>> {
@@ -86,7 +115,7 @@ impl ProxyServer {
             .context("start Claude proxy thread")
     }
 
-    fn handle(&self, mut request: Request) -> ServeAction {
+    fn handle_control(&self, request: Request) -> ServeAction {
         let method = request.method().clone();
         let path = request
             .url()
@@ -96,12 +125,15 @@ impl ProxyServer {
             .to_string();
 
         if path == "/__agentpack/shutdown" {
+            self.diagnostics
+                .event("shutdown_requested", json!({"path": path}));
             let _ = request.respond(json_response(StatusCode(200), json!({"ok": true})));
             return ServeAction::Shutdown;
         }
 
         if path == "/health" || path == "/healthz" {
             let upstream = self
+                .handler
                 .auth
                 .snapshot()
                 .map(|snapshot| snapshot.endpoint_url)
@@ -113,12 +145,51 @@ impl ProxyServer {
             return ServeAction::Continue;
         }
 
+        let handler = self.handler.clone();
+        let request_id = next_request_id();
+        handler.diagnostics.event(
+            "request_accept",
+            json!({
+                "request_id": request_id,
+                "method": method.as_str(),
+                "path": path,
+            }),
+        );
+        let _ = thread::Builder::new()
+            .name(format!("agentpack-proxy-request-{request_id}"))
+            .spawn(move || handler.handle(request_id, request));
+        ServeAction::Continue
+    }
+}
+
+#[derive(Clone)]
+struct ProxyServerHandle {
+    config: ProxyConfig,
+    auth: Arc<dyn AuthManager>,
+    http: Client,
+    diagnostics: ProxyDiagnostics,
+}
+
+impl ProxyServerHandle {
+    fn handle(&self, request_id: u64, mut request: Request) {
+        let method = request.method().clone();
+        let path = request
+            .url()
+            .split('?')
+            .next()
+            .unwrap_or(request.url())
+            .to_string();
+
         if !self.authorized(&request) {
+            self.diagnostics.event(
+                "request_rejected",
+                json!({"request_id": request_id, "path": path, "reason": "invalid_proxy_token"}),
+            );
             let _ = request.respond(json_response(
                 StatusCode(401),
                 anthropic_error_body("authentication_error", "invalid proxy token"),
             ));
-            return ServeAction::Continue;
+            return;
         }
 
         match (method, path.as_str()) {
@@ -137,6 +208,10 @@ impl ProxyServer {
                         ));
                     }
                     Err(err) => {
+                        self.diagnostics.event(
+                            "request_error",
+                            json!({"request_id": request_id, "path": path, "error": err.to_string()}),
+                        );
                         let _ = request.respond(error_response(400, "invalid_request_error", err));
                     }
                 }
@@ -144,8 +219,12 @@ impl ProxyServer {
             (Method::Post, "/v1/messages") => {
                 let session_id = header_value(&request, "x-claude-code-session-id");
                 match read_anthropic_body(&mut request) {
-                    Ok(body) => self.respond_messages(request, body, session_id),
+                    Ok(body) => self.respond_messages(request_id, request, body, session_id),
                     Err(err) => {
+                        self.diagnostics.event(
+                            "request_error",
+                            json!({"request_id": request_id, "path": path, "error": err.to_string()}),
+                        );
                         let _ = request.respond(error_response(400, "invalid_request_error", err));
                     }
                 }
@@ -158,11 +237,11 @@ impl ProxyServer {
                 ));
             }
         }
-        ServeAction::Continue
     }
 
     fn respond_messages(
         &self,
+        request_id: u64,
         request: Request,
         body: AnthropicRequest,
         session_id: Option<String>,
@@ -172,41 +251,63 @@ impl ProxyServer {
         let message_id = next_message_id();
 
         if wants_stream {
-            let this = self.clone_for_thread();
+            let this = self.clone();
             let upstream_body = body.clone();
-            let reader = stream::AnthropicSseReader::spawn(
-                move || this.call_upstream_bytes(&upstream_body, session_id.as_deref()),
+            let reader = stream::AnthropicSseReader::spawn_with_diagnostics(
+                move || this.call_upstream_bytes(request_id, &upstream_body, session_id.as_deref()),
                 message_id,
                 requested_model,
+                self.diagnostics.clone(),
+                request_id,
             );
-            let _ = request.respond(sse_stream_response(StatusCode(200), reader));
+            if let Err(err) = request.respond(sse_stream_response(StatusCode(200), reader)) {
+                self.diagnostics.event(
+                    "downstream_response_error",
+                    json!({"request_id": request_id, "error": err.to_string()}),
+                );
+            }
             return;
         }
 
-        match self.call_upstream_bytes(&body, session_id.as_deref()) {
+        match self.call_upstream_bytes(request_id, &body, session_id.as_deref()) {
             Ok(bytes) => {
                 match stream::accumulate_anthropic_response(&bytes, &message_id, &requested_model) {
                     Ok(value) => {
-                        let _ = request.respond(json_response(StatusCode(200), value));
+                        if let Err(err) = request.respond(json_response(StatusCode(200), value)) {
+                            self.diagnostics.event(
+                                "downstream_response_error",
+                                json!({"request_id": request_id, "error": err.to_string()}),
+                            );
+                        }
                     }
                     Err(err) => {
+                        self.diagnostics.event(
+                            "response_translate_error",
+                            json!({"request_id": request_id, "error": format!("{err:#}")}),
+                        );
                         trace_proxy_error(&err);
-                        let _ = request.respond(error_response(502, "api_error", err));
+                        if let Err(err) = request.respond(error_response(502, "api_error", err)) {
+                            self.diagnostics.event(
+                                "downstream_response_error",
+                                json!({"request_id": request_id, "error": err.to_string()}),
+                            );
+                        }
                     }
                 }
             }
             Err(err) => {
+                self.diagnostics.event(
+                    "upstream_error",
+                    json!({"request_id": request_id, "error": format!("{err:#}")}),
+                );
                 trace_proxy_error(&err);
-                let _ = request.respond(error_response(502, "api_error", err));
+                if let Err(err) = request.respond(error_response(502, "api_error", err)) {
+                    self.diagnostics.event(
+                        "downstream_response_error",
+                        json!({"request_id": request_id, "error": err.to_string()}),
+                    );
+                }
             }
-        }
-    }
-
-    fn clone_for_thread(&self) -> ProxyServerHandle {
-        ProxyServerHandle {
-            config: self.config.clone(),
-            auth: Arc::clone(&self.auth),
-            http: self.http.clone(),
         }
     }
 
@@ -228,40 +329,44 @@ impl ProxyServer {
 
     fn call_upstream_bytes(
         &self,
-        anthropic: &AnthropicRequest,
-        session_id: Option<&str>,
-    ) -> anyhow::Result<Vec<u8>> {
-        self.clone_for_thread()
-            .call_upstream_bytes(anthropic, session_id)
-    }
-}
-
-#[derive(Clone)]
-struct ProxyServerHandle {
-    config: ProxyConfig,
-    auth: Arc<dyn AuthManager>,
-    http: Client,
-}
-
-impl ProxyServerHandle {
-    fn call_upstream_bytes(
-        &self,
+        request_id: u64,
         anthropic: &AnthropicRequest,
         session_id: Option<&str>,
     ) -> anyhow::Result<Vec<u8>> {
         let snapshot = self.auth.snapshot()?;
         let (payload, requested) = self.translate_request(anthropic, session_id)?;
+        self.diagnostics.event(
+            "upstream_request",
+            json!({
+                "request_id": request_id,
+                "requested_model": requested.requested,
+                "upstream_model": requested.upstream,
+                "service_tier": requested.service_tier,
+                "transport": self.config.transport.as_str(),
+            }),
+        );
         match self.config.transport {
-            TransportMode::Http => self.call_http(&snapshot, &payload, session_id),
-            TransportMode::WebSocket => self.call_websocket(&snapshot, &payload, session_id),
+            TransportMode::Http => self.call_http(request_id, &snapshot, &payload, session_id),
+            TransportMode::WebSocket => {
+                self.call_websocket(request_id, &snapshot, &payload, session_id)
+            }
             TransportMode::Auto => self
-                .call_websocket(&snapshot, &payload, session_id)
+                .call_websocket(request_id, &snapshot, &payload, session_id)
                 .or_else(|err| {
+                    self.diagnostics.event(
+                        "transport_fallback",
+                        json!({
+                            "request_id": request_id,
+                            "from": "websocket",
+                            "to": "http",
+                            "error": format!("{err:#}"),
+                        }),
+                    );
                     eprintln!(
                         "agentpack proxy: Codex WebSocket failed for {}; falling back to HTTP: {err:#}",
                         requested.upstream
                     );
-                    self.call_http(&snapshot, &payload, session_id)
+                    self.call_http(request_id, &snapshot, &payload, session_id)
                 }),
         }
     }
@@ -289,29 +394,52 @@ impl ProxyServerHandle {
 
     fn call_http(
         &self,
+        request_id: u64,
         snapshot: &AuthSnapshot,
         payload: &Value,
         session_id: Option<&str>,
     ) -> anyhow::Result<Vec<u8>> {
+        self.diagnostics
+            .event("http_attempt", json!({"request_id": request_id}));
         let mut response = self.send_http_once(snapshot, payload, session_id)?;
         if response.status() == reqwest::StatusCode::UNAUTHORIZED
             && self.auth.refresh_after_unauthorized()?
         {
+            self.diagnostics.event(
+                "auth_refresh",
+                json!({"request_id": request_id, "transport": "http"}),
+            );
             let refreshed = self.auth.snapshot()?;
             response = self.send_http_once(&refreshed, payload, session_id)?;
         }
         let status = response.status();
         if !status.is_success() {
             let text = response.text().context("read upstream error body")?;
+            let mut fields = json!({
+                "request_id": request_id,
+                "status": status.as_u16(),
+            });
+            if self.diagnostics.log_payloads() {
+                fields["body"] = json!(diagnostics::snippet(
+                    &text,
+                    self.diagnostics.max_body_bytes()
+                ));
+            }
+            self.diagnostics.event("http_error", fields);
             return Err(anyhow::anyhow!(
                 "upstream Codex request failed: {status}; body={}",
                 truncate(&text, 1000)
             ));
         }
-        response
+        let bytes = response
             .bytes()
             .map(|bytes| bytes.to_vec())
-            .context("read upstream Codex SSE body")
+            .context("read upstream Codex SSE body")?;
+        self.diagnostics.event(
+            "http_complete",
+            json!({"request_id": request_id, "bytes": bytes.len()}),
+        );
+        Ok(bytes)
     }
 
     fn send_http_once(
@@ -331,25 +459,51 @@ impl ProxyServerHandle {
 
     fn call_websocket(
         &self,
+        request_id: u64,
         snapshot: &AuthSnapshot,
         payload: &Value,
         session_id: Option<&str>,
     ) -> anyhow::Result<Vec<u8>> {
         let headers = codex_headers(snapshot, session_id, true)?;
+        self.diagnostics
+            .event("websocket_attempt", json!({"request_id": request_id}));
         match websocket::codex_websocket_request(
             &snapshot.endpoint_url,
             &headers,
             payload,
             self.config.connect_timeout,
             self.config.websocket_idle_timeout,
+            &self.diagnostics,
+            request_id,
         ) {
-            Ok(bytes) => Ok(bytes),
+            Ok(bytes) => {
+                self.diagnostics.event(
+                    "websocket_complete",
+                    json!({"request_id": request_id, "bytes": bytes.len()}),
+                );
+                Ok(bytes)
+            }
             Err(err) => {
                 if let Some(ws) = err.downcast_ref::<websocket::CodexWebSocketSetupError>() {
+                    self.diagnostics.event(
+                        "websocket_setup_error",
+                        json!({
+                            "request_id": request_id,
+                            "status": ws.status,
+                            "code": ws.code,
+                            "retry_after": ws.retry_after,
+                            "request_sent": ws.request_sent,
+                            "message": ws.message,
+                        }),
+                    );
                     if matches!(ws.status, Some(401 | 403))
                         && !ws.request_sent
                         && self.auth.refresh_after_unauthorized()?
                     {
+                        self.diagnostics.event(
+                            "auth_refresh",
+                            json!({"request_id": request_id, "transport": "websocket"}),
+                        );
                         let refreshed = self.auth.snapshot()?;
                         let refreshed_headers = codex_headers(&refreshed, session_id, true)?;
                         return websocket::codex_websocket_request(
@@ -358,9 +512,15 @@ impl ProxyServerHandle {
                             payload,
                             self.config.connect_timeout,
                             self.config.websocket_idle_timeout,
+                            &self.diagnostics,
+                            request_id,
                         );
                     }
                 }
+                self.diagnostics.event(
+                    "websocket_error",
+                    json!({"request_id": request_id, "error": format!("{err:#}")}),
+                );
                 Err(err)
             }
         }
@@ -481,12 +641,12 @@ fn next_message_id() -> String {
     format!("msg_agentpack_{millis}_{n}")
 }
 
+fn next_request_id() -> u64 {
+    MESSAGE_COUNTER.fetch_add(1, Ordering::Relaxed)
+}
+
 fn truncate(s: &str, max: usize) -> String {
-    if s.len() <= max {
-        s.to_string()
-    } else {
-        format!("{}...", &s[..max])
-    }
+    diagnostics::snippet(s, max)
 }
 
 fn trace_proxy_error(err: &anyhow::Error) {
@@ -544,6 +704,7 @@ mod tests {
             connect_timeout: Duration::from_secs(1),
             websocket_idle_timeout: Duration::from_secs(1),
             model_map: ModelMap::default(),
+            diagnostics: Default::default(),
         }
     }
 

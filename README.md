@@ -12,7 +12,7 @@
   <a href="https://oleghq.github.io/agentpack"><img alt="Documentation" src="https://img.shields.io/badge/docs-oleghq.github.io-1f6feb.svg"></a>
   <a href="https://nexo.sh/posts/agentpack/"><img alt="Writeup" src="https://img.shields.io/badge/writeup-nexo.sh-ff6b6b.svg"></a>
   <a href="https://github.com/OlegHQ/agentpack/blob/dev/LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
-  <a href="https://github.com/OlegHQ/agentpack/releases"><img alt="Version" src="https://img.shields.io/badge/version-v0.3.6-blue.svg"></a>
+  <a href="https://github.com/OlegHQ/agentpack/releases"><img alt="Version" src="https://img.shields.io/badge/version-v0.3.7-blue.svg"></a>
   <a href="https://github.com/OlegHQ/agentpack"><img alt="Built with Rust" src="https://img.shields.io/badge/built_with-Rust-dea584.svg"></a>
 </p>
 
@@ -132,6 +132,11 @@ Authentication is resolved from `OPENAI_API_KEY` first, then from Codex auth (`~
 the Codex keychain entry, or agentpack's shared Codex auth file). The Rust proxy core is ported from
 the Codex/OpenAI path in [raine/claude-code-proxy](https://github.com/raine/claude-code-proxy);
 thanks to [@raine](https://github.com/raine) for the original project and reference behavior.
+
+Proxy diagnostics are written as JSONL under
+`$AGENTPACK_HOME/projects/<project-hash>/proxy-logs/` by default. Set
+`AGENTPACK_PROXY_LOG_DIR` to override the directory. Logs omit request payloads unless
+`AGENTPACK_PROXY_LOG_PAYLOADS=1` is set.
 
 ## How It Works
 

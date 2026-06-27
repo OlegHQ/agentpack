@@ -1,6 +1,10 @@
 /target
 /docs/book
-.agents
+.agents/*
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/analyze-proxy-log/
+!.agents/skills/analyze-proxy-log/**
 .DS_Store
 rust_out
 .cursor

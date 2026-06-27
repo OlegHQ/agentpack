@@ -1,0 +1,3 @@
+display_name: Analyze Proxy Log
+short_description: Diagnose agentpack Claude proxy JSONL logs.
+default_prompt: Analyze the latest agentpack proxy log and identify the likely cause of the hang or proxy error.

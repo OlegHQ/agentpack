@@ -1,11 +1,16 @@
+use std::net::{TcpStream, ToSocketAddrs};
 use std::time::Duration;
 
 use anyhow::Context;
 use http::{HeaderMap, HeaderValue};
 use serde_json::Value;
 use tungstenite::client::IntoClientRequest;
-use tungstenite::{connect, Message};
+use tungstenite::handshake::HandshakeError;
+use tungstenite::stream::MaybeTlsStream;
+use tungstenite::{client_tls_with_config, Error as WsError, Message, WebSocket};
 use url::Url;
+
+use super::diagnostics::ProxyDiagnostics;
 
 pub const WEBSOCKET_PROTOCOL_HEADER: &str = "responses_websockets=2026-02-06";
 
@@ -55,26 +60,33 @@ pub fn codex_websocket_request(
     url: &str,
     headers: &HeaderMap,
     body: &Value,
-    _connect_timeout: Duration,
-    _idle_timeout: Duration,
+    connect_timeout: Duration,
+    idle_timeout: Duration,
+    diagnostics: &ProxyDiagnostics,
+    request_id: u64,
 ) -> anyhow::Result<Vec<u8>> {
     let ws_url = to_websocket_url(url)?;
     let request_headers = codex_websocket_headers(headers);
-    let mut request = ws_url
-        .into_client_request()
-        .context("build Codex WebSocket request")?;
-    for (name, value) in request_headers.iter() {
-        request.headers_mut().insert(name.clone(), value.clone());
-    }
-
-    let (mut socket, _) = connect(request).context("connect Codex WebSocket")?;
+    let mut socket = connect_timeout_aware(
+        &ws_url,
+        &request_headers,
+        connect_timeout,
+        idle_timeout,
+        diagnostics,
+        request_id,
+    )?;
     let payload = websocket_payload(body);
     socket
         .send(Message::Text(payload.into()))
         .context("send Codex WebSocket response.create")?;
+    diagnostics.event(
+        "websocket_payload_sent",
+        serde_json::json!({"request_id": request_id}),
+    );
 
     let mut out = Vec::new();
     let mut request_sent = true;
+    let mut frames = 0_u64;
     loop {
         let message = match socket.read() {
             Ok(message) => message,
@@ -92,6 +104,7 @@ pub fn codex_websocket_request(
                 break;
             }
         };
+        frames += 1;
 
         match message {
             Message::Text(text) => {
@@ -103,6 +116,14 @@ pub fn codex_websocket_request(
                 }
                 out.extend_from_slice(encode_frame_as_sse(&text).as_bytes());
                 if is_terminal_frame(&text) {
+                    diagnostics.event(
+                        "websocket_terminal_frame",
+                        serde_json::json!({
+                            "request_id": request_id,
+                            "frames": frames,
+                            "terminal_type": frame_type(&text),
+                        }),
+                    );
                     break;
                 }
             }
@@ -124,12 +145,119 @@ pub fn codex_websocket_request(
             }
             Message::Ping(bytes) => {
                 let _ = socket.send(Message::Pong(bytes));
+                diagnostics.event(
+                    "websocket_ping",
+                    serde_json::json!({"request_id": request_id}),
+                );
             }
             Message::Pong(_) | Message::Frame(_) => {}
         }
         request_sent = true;
     }
     Ok(out)
+}
+
+fn connect_timeout_aware(
+    ws_url: &str,
+    headers: &HeaderMap,
+    connect_timeout: Duration,
+    idle_timeout: Duration,
+    diagnostics: &ProxyDiagnostics,
+    request_id: u64,
+) -> anyhow::Result<WebSocket<MaybeTlsStream<TcpStream>>> {
+    let parsed =
+        Url::parse(ws_url).with_context(|| format!("parse Codex WebSocket URL {ws_url}"))?;
+    let host = parsed
+        .host_str()
+        .ok_or_else(|| anyhow::anyhow!("Codex WebSocket URL has no host"))?;
+    let port = parsed.port_or_known_default().ok_or_else(|| {
+        anyhow::anyhow!(
+            "Codex WebSocket URL has no port for scheme {}",
+            parsed.scheme()
+        )
+    })?;
+    let addrs = (host, port)
+        .to_socket_addrs()
+        .with_context(|| format!("resolve Codex WebSocket host {host}:{port}"))?
+        .collect::<Vec<_>>();
+    if addrs.is_empty() {
+        return Err(anyhow::anyhow!(
+            "resolve Codex WebSocket host {host}:{port}: no addresses"
+        ));
+    }
+
+    let mut last_error = None;
+    for addr in addrs {
+        diagnostics.event(
+            "websocket_connect_attempt",
+            serde_json::json!({"request_id": request_id, "addr": addr.to_string()}),
+        );
+        let stream = match TcpStream::connect_timeout(&addr, connect_timeout) {
+            Ok(stream) => stream,
+            Err(err) => {
+                last_error = Some(anyhow::anyhow!("connect {addr}: {err}"));
+                continue;
+            }
+        };
+        stream
+            .set_read_timeout(Some(idle_timeout))
+            .with_context(|| format!("set Codex WebSocket read timeout on {addr}"))?;
+        stream
+            .set_write_timeout(Some(idle_timeout))
+            .with_context(|| format!("set Codex WebSocket write timeout on {addr}"))?;
+
+        let request = websocket_request(ws_url, headers)?;
+        match client_tls_with_config(request, stream, None, None) {
+            Ok((socket, _)) => {
+                diagnostics.event(
+                    "websocket_connected",
+                    serde_json::json!({"request_id": request_id, "addr": addr.to_string()}),
+                );
+                return Ok(socket);
+            }
+            Err(err) => match websocket_handshake_error(err) {
+                Ok(setup) => return Err(setup.into()),
+                Err(err) => last_error = Some(err),
+            },
+        }
+    }
+
+    Err(last_error.unwrap_or_else(|| anyhow::anyhow!("connect Codex WebSocket failed")))
+}
+
+fn websocket_request(ws_url: &str, headers: &HeaderMap) -> anyhow::Result<http::Request<()>> {
+    let mut request = ws_url
+        .into_client_request()
+        .context("build Codex WebSocket request")?;
+    for (name, value) in headers.iter() {
+        request.headers_mut().insert(name.clone(), value.clone());
+    }
+    Ok(request)
+}
+
+fn websocket_handshake_error(
+    err: HandshakeError<tungstenite::ClientHandshake<MaybeTlsStream<TcpStream>>>,
+) -> Result<CodexWebSocketSetupError, anyhow::Error> {
+    match err {
+        HandshakeError::Failure(WsError::Http(response)) => {
+            let status = response.status().as_u16();
+            Ok(CodexWebSocketSetupError {
+                message: format!("Codex WebSocket handshake failed: HTTP {status}"),
+                status: Some(status),
+                code: None,
+                retry_after: response
+                    .headers()
+                    .get("retry-after")
+                    .and_then(|value| value.to_str().ok())
+                    .map(str::to_string),
+                request_sent: false,
+            })
+        }
+        HandshakeError::Failure(err) => Err(anyhow::anyhow!("connect Codex WebSocket: {err}")),
+        HandshakeError::Interrupted(_) => Err(anyhow::anyhow!(
+            "connect Codex WebSocket interrupted during blocking handshake"
+        )),
+    }
 }
 
 fn websocket_payload(body: &Value) -> String {
@@ -201,6 +329,17 @@ fn is_terminal_frame(text: &str) -> bool {
                 | "error"
         )
     )
+}
+
+fn frame_type(text: &str) -> Option<String> {
+    serde_json::from_str::<Value>(text)
+        .ok()
+        .and_then(|payload| {
+            payload
+                .get("type")
+                .and_then(Value::as_str)
+                .map(str::to_string)
+        })
 }
 
 #[cfg(test)]

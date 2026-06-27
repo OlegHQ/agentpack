@@ -41,7 +41,7 @@ pub(crate) fn launch(
         if id != HarnessTarget::Claude {
             return Err(anyhow::anyhow!("proxy launch is only supported for Claude"));
         }
-        let running = crate::proxy::start(ui)?;
+        let running = crate::proxy::start(project_root, ui)?;
         running.apply_claude_env(&mut cmd);
         return spawn_inherit_and_wait(cmd, Some(running));
     }

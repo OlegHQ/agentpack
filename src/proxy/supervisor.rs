@@ -1,6 +1,8 @@
+use std::path::Path;
 use std::process::Command;
 use std::sync::Arc;
 use std::thread::JoinHandle;
+use std::time::Duration;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::Context;
@@ -28,23 +30,34 @@ impl RunningProxy {
     }
 
     pub(crate) fn shutdown(mut self) {
-        let _ = reqwest::blocking::get(format!("{}/__agentpack/shutdown", self.base_url));
+        if let Ok(client) = reqwest::blocking::Client::builder()
+            .timeout(Duration::from_secs(2))
+            .build()
+        {
+            let _ = client
+                .get(format!("{}/__agentpack/shutdown", self.base_url))
+                .send();
+        }
         if let Some(join) = self.join.take() {
             let _ = join.join();
         }
     }
 }
 
-pub(crate) fn start(ui: &Ui) -> anyhow::Result<RunningProxy> {
+pub(crate) fn start(project_root: &Path, ui: &Ui) -> anyhow::Result<RunningProxy> {
     let token = make_client_token();
     let auth = Arc::new(UpstreamAuth::load()?);
     let mut config = ProxyConfig::from_env(token.clone());
     if std::env::var("AGENTPACK_PROXY_TRANSPORT").is_err() {
         config.transport = auth.default_transport();
     }
+    config.diagnostics.log_dir = Some(crate::paths::proxy_log_dir(project_root)?);
     let server = Arc::new(ProxyServer::bind(config, auth)?);
     let base_url = server.base_url();
     ui.debug_message(format!("Claude proxy listening on {base_url}"));
+    if let Some(path) = server.diagnostics_path() {
+        ui.debug_message(format!("Claude proxy log: {}", path.display()));
+    }
     let join = server.run_in_thread().context("start Claude proxy")?;
     Ok(RunningProxy {
         base_url,

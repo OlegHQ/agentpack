@@ -42,6 +42,36 @@ Set this for a stable path when your OS rotates temp directories, or to put stag
 
 **Default:** auto-detected from the terminal background (OSC 11 luma / `COLORFGBG`), falling back to `dark`. Set to `light` or `dark` to force the `agentpack mode tui` palette.
 
+## Claude proxy diagnostics
+
+### `AGENTPACK_PROXY_LOG_DIR`
+
+Directory for `agentpack --proxy claude` JSONL diagnostics.
+
+**Default:** `$AGENTPACK_HOME/projects/<project-hash>/proxy-logs`.
+
+### `AGENTPACK_PROXY_LOG_PAYLOADS`
+
+**Default:** unset. Set to `1` / `true` / `yes` to include truncated upstream error bodies and payload snippets in proxy logs. Leave unset for sanitized metadata-only logs.
+
+### `AGENTPACK_PROXY_LOG_MAX_BODY_BYTES`
+
+Maximum bytes retained for any payload snippet when payload logging is enabled.
+
+**Default:** `4096`.
+
+### `AGENTPACK_PROXY_WS_CONNECT_TIMEOUT_SECS`
+
+WebSocket TCP connect timeout for proxy upstream connections.
+
+**Default:** `15`.
+
+### `AGENTPACK_PROXY_WS_IDLE_TIMEOUT_SECS`
+
+WebSocket read/write idle timeout for proxy upstream connections.
+
+**Default:** `300`.
+
 ## GitHub access
 
 ### `GITHUB_TOKEN` / `GH_TOKEN`
@@ -70,5 +100,8 @@ Override the path to each harness's executable when it isn't on `PATH` or you ne
 | `AGENTPACK_KEEP_ATTRIBUTION` | unset | Keep AI attribution in staging |
 | `AGENTPACK_DOT_AGENTS` | enabled | Merge `./.agents/` overlay |
 | `AGENTPACK_TUI_THEME` | auto | Force `mode tui` palette |
+| `AGENTPACK_PROXY_LOG_DIR` | project state dir | Claude proxy JSONL diagnostics |
+| `AGENTPACK_PROXY_LOG_PAYLOADS` | unset | Include truncated payload snippets in proxy logs |
+| `AGENTPACK_PROXY_LOG_MAX_BODY_BYTES` | `4096` | Payload snippet byte cap |
 | `GITHUB_TOKEN` / `GH_TOKEN` | unset | GitHub auth for private repos and rate limits |
 | `CLAUDE_CODE_PATH` … `AGY_PATH` | — | Override harness binary paths |
