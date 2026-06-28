@@ -54,14 +54,44 @@ fn symlink_dir_if_present(src: &Path, dst: &Path) -> Result<()> {
     symlink_or_copy_into_fake_home(src, dst, true)
 }
 
+fn symlink_dir_creating_source(src: &Path, dst: &Path) -> Result<()> {
+    fs::create_dir_all(src).map_err(|e| AgentpackError::io(src, e))?;
+    symlink_dir_if_present(src, dst)
+}
+
+fn symlink_mutable_file(src: &Path, dst: &Path) -> Result<()> {
+    if let Some(parent) = src.parent() {
+        fs::create_dir_all(parent).map_err(|e| AgentpackError::io(parent, e))?;
+    }
+    if fs::symlink_metadata(dst).is_ok() {
+        remove_path_any(dst)?;
+    }
+    if let Some(parent) = dst.parent() {
+        fs::create_dir_all(parent).map_err(|e| AgentpackError::io(parent, e))?;
+    }
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(src, dst).map_err(|e| AgentpackError::io(dst, e))?;
+        Ok(())
+    }
+    #[cfg(windows)]
+    {
+        if src.exists() {
+            symlink_or_copy_into_fake_home(src, dst, false)
+        } else {
+            Ok(())
+        }
+    }
+}
+
 fn materialize_cursor_platform_user_data(fake_home: &Path, real_home: &Path) -> Result<()> {
     #[cfg(target_os = "macos")]
     {
-        symlink_dir_if_present(
+        symlink_dir_creating_source(
             &real_home.join("Library/Keychains"),
             &fake_home.join("Library/Keychains"),
         )?;
-        symlink_dir_if_present(
+        symlink_dir_creating_source(
             &real_home.join("Library/Application Support/Cursor"),
             &fake_home.join("Library/Application Support/Cursor"),
         )?;
@@ -72,7 +102,7 @@ fn materialize_cursor_platform_user_data(fake_home: &Path, real_home: &Path) -> 
             .map(PathBuf::from)
             .filter(|s| !s.as_os_str().is_empty())
             .unwrap_or_else(|| real_home.join(".config"));
-        symlink_dir_if_present(
+        symlink_dir_creating_source(
             &config_base.join("Cursor"),
             &fake_home.join(".config/Cursor"),
         )?;
@@ -80,14 +110,14 @@ fn materialize_cursor_platform_user_data(fake_home: &Path, real_home: &Path) -> 
             .map(PathBuf::from)
             .filter(|s| !s.as_os_str().is_empty())
             .unwrap_or_else(|| real_home.join(".local/share"));
-        symlink_dir_if_present(
+        symlink_dir_creating_source(
             &data_base.join("Cursor"),
             &fake_home.join(".local/share/Cursor"),
         )?;
     }
     #[cfg(windows)]
     {
-        symlink_dir_if_present(
+        symlink_dir_creating_source(
             &real_home.join("AppData/Roaming/Cursor"),
             &fake_home.join("AppData/Roaming/Cursor"),
         )?;
@@ -150,6 +180,18 @@ fn symlink_entries_into(src_base: &Path, dst_base: &Path, names: &[&str]) -> Res
     Ok(())
 }
 
+fn symlink_mutable_cursor_files(src_base: &Path, dst_base: &Path) -> Result<()> {
+    for name in CURSOR_FAKE_HOME_CREDENTIAL_FILES {
+        // `cli-config.json` is materialized as a real staged file below so attribution can be forced
+        // off without editing the user's real Cursor profile.
+        if *name == "cli-config.json" {
+            continue;
+        }
+        symlink_mutable_file(&src_base.join(name), &dst_base.join(name))?;
+    }
+    Ok(())
+}
+
 pub(super) fn materialize_cursor_fake_home(project_root: &Path, mode_name: &str) -> Result<()> {
     let fake_home = staging_cursor_home_dir_for_mode(project_root, mode_name)?;
     if fake_home.exists() {
@@ -188,9 +230,7 @@ pub(super) fn materialize_cursor_fake_home(project_root: &Path, mode_name: &str)
     merge_cursor_hooks_into_fake_home(&pack, real_cursor.as_deref(), &fake_cursor)?;
 
     if let Some(ref rc) = real_cursor {
-        if rc.is_dir() {
-            symlink_entries_into(rc, &fake_cursor, CURSOR_FAKE_HOME_CREDENTIAL_FILES)?;
-        }
+        symlink_mutable_cursor_files(rc, &fake_cursor)?;
     }
 
     // Replace any `cli-config.json` symlink with a real file containing forced attribution off.
@@ -289,4 +329,47 @@ fn merge_cursor_hooks_into_fake_home(
         &serde_json::to_string_pretty(&out)
             .map_err(|e| AgentpackError::Staging(format!("hooks.json merge: {e}")))?,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn mutable_file_symlink_allows_first_write_to_persist() {
+        let dir = tempfile::tempdir().unwrap();
+        let real = dir.path().join("real/.cursor/agent-cli-state.json");
+        let fake = dir.path().join("fake/.cursor/agent-cli-state.json");
+
+        symlink_mutable_file(&real, &fake).unwrap();
+
+        let meta = fs::symlink_metadata(&fake).unwrap();
+        assert!(meta.file_type().is_symlink());
+        assert!(!real.exists());
+
+        fs::write(&fake, r#"{"token":"persisted"}"#).unwrap();
+        assert_eq!(
+            fs::read_to_string(&real).unwrap(),
+            r#"{"token":"persisted"}"#
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn platform_dir_link_creates_real_target_before_staging_link() {
+        let dir = tempfile::tempdir().unwrap();
+        let real = dir.path().join("real/.local/share/Cursor");
+        let fake = dir.path().join("fake/.local/share/Cursor");
+
+        symlink_dir_creating_source(&real, &fake).unwrap();
+
+        assert!(real.is_dir());
+        assert!(fs::symlink_metadata(&fake)
+            .unwrap()
+            .file_type()
+            .is_symlink());
+        fs::write(fake.join("session.json"), "{}").unwrap();
+        assert!(real.join("session.json").is_file());
+    }
 }

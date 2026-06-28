@@ -6,7 +6,7 @@
 
 ## What the launcher does
 
-Cursor resolves user-scoped skills, commands, and agents from a `HOME`-backed `.cursor` tree, and it has no config-root override flag. So agentpack runs `cursor-agent` with a **synthetic `HOME`** at `<staging>/modes/<mode>/cursor-home`, whose `.cursor/` symlinks the staged pack assets alongside your real Cursor login and session files.
+Cursor resolves user-scoped skills, commands, and agents from a `HOME`-backed `.cursor` tree. So agentpack runs `cursor-agent` with a **synthetic `HOME`** at `<staging>/modes/<mode>/cursor-home`, whose `.cursor/` symlinks the staged pack assets alongside your real Cursor login and session paths.
 
 It also sets a few environment variables on the child process:
 
@@ -14,7 +14,7 @@ It also sets a few environment variables on the child process:
 - `CURSOR_DATA_DIR` → your **real** `~/.cursor` when unset, so workspace-trust state survives staging rebuilds.
 - `CARGO_HOME`, `RUSTUP_HOME`, `DOCKER_CONFIG` → bridged from your real home (unless you already set them) so shell tooling keeps working inside the staged `HOME`.
 
-agentpack itself writes nothing to your real `~/.cursor`. Cursor manages its own workspace trust and MCP approvals there.
+agentpack does not install pack content into your real `~/.cursor`. It may create the durable Cursor profile directories and staged symlinks needed for first-time login/session files to persist; Cursor manages the actual auth, workspace trust, and MCP approval contents.
 
 ## Workspace and the agents symlink
 

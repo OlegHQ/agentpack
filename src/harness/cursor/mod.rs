@@ -93,8 +93,8 @@ impl Harness for Cursor {
 
     fn finalize(&self, _merged: &StagedMcpEntries, ctx: &StageCtx) -> Result<()> {
         // After pack content is staged: write the pack README and build the fake HOME (symlinks pack
-        // dirs). agentpack writes NOTHING to the real `~/.cursor` — cursor itself manages workspace
-        // trust + MCP approvals (auto under `--trust`/`--force`; a one-time prompt otherwise).
+        // dirs). Pack content stays staged; the fake home only bridges Cursor's mutable profile
+        // paths so Cursor itself can persist login, workspace trust, and MCP approvals.
         let mode = ctx.mode.name();
         manifests::write_cursor_pack_plugin_readme(&self.staged_root(ctx.project_root, mode)?)?;
         fake_home::materialize_cursor_fake_home(ctx.project_root, mode)
