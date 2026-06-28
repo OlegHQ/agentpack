@@ -5,6 +5,14 @@ All notable changes to `agentpack` are documented here. The format is based on
 "Pre-release" note in `AGENTS.md` — breaking changes may land between versions without a migration
 window.
 
+## [0.3.8]
+
+### Fixed
+- **Cursor Agent login persistence on Linux.** `agentpack agent` now bridges mutable Cursor
+  auth/session files and platform profile directories to durable real-profile paths even before
+  they exist, so a first login performed inside the staged fake home survives later staging
+  rebuilds.
+
 ## [0.3.7]
 
 ### Added
