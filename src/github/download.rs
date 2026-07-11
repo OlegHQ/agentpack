@@ -93,7 +93,10 @@ the directory may not exist at this commit or may have been renamed/moved (updat
     ))
 }
 
-/// Download a repo tarball and extract a subtree. Pass **`blob_target_file`** when `path_prefix` points at a single file in the repo: the archive is scanned and the deepest enclosing **package root** (`.claude-plugin`, `.cursor-plugin`, `SKILL.md`, or `agentpack.toml`) is extracted instead.
+/// Download a repo tarball and extract a subtree. Pass **`blob_target_file`** when `path_prefix`
+/// points at a single file in the repo: the archive is scanned and the deepest enclosing package
+/// root (native plugin manifest, marketplace manifest, `SKILL.md`, or `agentpack.toml`) is extracted
+/// instead.
 ///
 /// When `blob_target_file` is set, uses a single-decompression strategy: the tarball is decoded
 /// once, entries are buffered in memory, the prefix is determined from the path index, and only

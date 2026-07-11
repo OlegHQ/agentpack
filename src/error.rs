@@ -53,11 +53,11 @@ pub enum AgentpackError {
     #[error("skill at {0} has no SKILL.md")]
     MissingSkillMd(PathBuf),
 
-    #[error("plugin at {0} has no .claude-plugin/plugin.json")]
+    #[error("plugin at {0} has no .claude-plugin, .cursor-plugin, or .codex-plugin manifest")]
     MissingPluginManifest(PathBuf),
 
     #[error(
-        "cache at {0} is not a package root (expected SKILL.md, agentpack.toml, or .claude-plugin / .cursor-plugin)"
+        "cache at {0} is not a package root (expected SKILL.md, agentpack.toml, a plugin manifest, or a marketplace manifest)"
     )]
     InvalidCacheLayout(PathBuf),
 }

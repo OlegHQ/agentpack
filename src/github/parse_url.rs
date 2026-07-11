@@ -107,7 +107,11 @@ pub fn parse_github_url(raw: &str) -> Result<GitHubSource> {
             if pth.ends_with("plugin.json")
                 && pth
                     .parent()
-                    .map(|par| par.ends_with(".claude-plugin") || par.ends_with(".cursor-plugin"))
+                    .map(|par| {
+                        par.ends_with(".claude-plugin")
+                            || par.ends_with(".cursor-plugin")
+                            || par.ends_with(".codex-plugin")
+                    })
                     .unwrap_or(false)
             {
                 path = pth
@@ -187,6 +191,14 @@ mod tests {
     fn parses_blob_cursor_plugin_json() {
         let s =
             parse_github_url("https://github.com/foo/bar/blob/main/p/.cursor-plugin/plugin.json")
+                .unwrap();
+        assert_eq!(s.path, "p");
+    }
+
+    #[test]
+    fn parses_blob_codex_plugin_json() {
+        let s =
+            parse_github_url("https://github.com/foo/bar/blob/main/p/.codex-plugin/plugin.json")
                 .unwrap();
         assert_eq!(s.path, "p");
     }

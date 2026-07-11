@@ -140,7 +140,7 @@ Proxy diagnostics are written as JSONL under
 
 ## How It Works
 
-1. **`agentpack.toml`** — Declare dependencies (GitHub repos, subdirectories, or local paths) with version constraints.
+1. **`agentpack.toml`** — Declare dependencies (GitHub repos, subdirectories, single-plugin marketplace repos, or local paths) with version constraints.
 2. **`pack.lock`** — Deterministic lockfile pins every package to an exact commit + content hash.
 3. **`sync`** — Downloads, caches, and converts artifacts into per-harness staging directories.
 4. **Launchers** — `agentpack claude`, `agent`, `opencode`, `codex`, `grok`, `agy` each start the target agent with the staged bundle injected via that agent's native extension mechanism.

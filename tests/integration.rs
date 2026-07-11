@@ -130,6 +130,113 @@ fn add_lazily_initializes_project_files_in_cwd() {
 
 #[test]
 #[serial]
+fn add_single_plugin_marketplace_normalizes_and_stages_all_providers() {
+    let dir = tempdir().unwrap();
+    let root: PathBuf = dir.path().join("project");
+    fs::create_dir_all(&root).unwrap();
+    prep_store(&root);
+
+    let marketplace = root.join("paddle-agent-skills");
+    let claude = marketplace.join("providers/claude/plugin");
+    let cursor = marketplace.join("providers/cursor/plugin");
+    let codex = marketplace.join("providers/codex/plugin");
+    for (provider, manifest_dir) in [
+        (&claude, ".claude-plugin"),
+        (&cursor, ".cursor-plugin"),
+        (&codex, ".codex-plugin"),
+    ] {
+        fs::create_dir_all(provider.join(manifest_dir)).unwrap();
+        fs::write(
+            provider.join(manifest_dir).join("plugin.json"),
+            r#"{"name":"paddle","version":"1.0.0","description":"Paddle Billing"}"#,
+        )
+        .unwrap();
+    }
+    fs::create_dir_all(claude.join("skills/billing")).unwrap();
+    fs::write(
+        claude.join("skills/billing/SKILL.md"),
+        "---\nname: billing\ndescription: Paddle billing help\n---\n\n# Billing\n",
+    )
+    .unwrap();
+    fs::create_dir_all(cursor.join("rules")).unwrap();
+    fs::write(
+        cursor.join("rules/paddle.mdc"),
+        "---\ndescription: Paddle rule\nalwaysApply: true\n---\n\nUse Paddle safely.\n",
+    )
+    .unwrap();
+    fs::write(
+        cursor.join("mcp.json"),
+        r#"{"mcpServers":{"paddle-docs":{"type":"http","url":"https://example.com/mcp"}}}"#,
+    )
+    .unwrap();
+    fs::create_dir_all(codex.join("assets")).unwrap();
+    fs::write(codex.join("assets/paddle.svg"), "<svg/>\n").unwrap();
+
+    fs::create_dir_all(marketplace.join(".claude-plugin")).unwrap();
+    fs::write(
+        marketplace.join(".claude-plugin/marketplace.json"),
+        r#"{"plugins":[{"name":"paddle","source":"./providers/claude/plugin"}]}"#,
+    )
+    .unwrap();
+    fs::create_dir_all(marketplace.join(".cursor-plugin")).unwrap();
+    fs::write(
+        marketplace.join(".cursor-plugin/marketplace.json"),
+        r#"{"plugins":[{"name":"paddle","source":"./providers/cursor/plugin"}]}"#,
+    )
+    .unwrap();
+    fs::create_dir_all(marketplace.join(".agents/plugins")).unwrap();
+    fs::write(
+        marketplace.join(".agents/plugins/marketplace.json"),
+        r#"{"plugins":[{"name":"paddle","source":{"source":"local","path":"./providers/codex/plugin"}}]}"#,
+    )
+    .unwrap();
+
+    run(Cli {
+        project_root: Some(root.clone()),
+        quiet: true,
+        no_progress: true,
+        yolo: false,
+        mode: None,
+        debug: false,
+        proxy: false,
+        command: Command::Add {
+            spec: marketplace.to_string_lossy().into_owned(),
+            no_sync: false,
+        },
+    })
+    .unwrap();
+
+    let lock = PackLock::load(&root).unwrap();
+    assert_eq!(lock.packages.len(), 1);
+    assert_eq!(lock.packages[0].kind, PackageKind::Plugin);
+    let normalized_cache = cache_dir().unwrap().join(&lock.packages[0].cache_key);
+    assert!(normalized_cache
+        .join(".claude-plugin/plugin.json")
+        .is_file());
+    assert!(normalized_cache
+        .join(".cursor-plugin/plugin.json")
+        .is_file());
+    assert!(normalized_cache.join(".codex-plugin/plugin.json").is_file());
+    assert!(normalized_cache.join("skills/billing/SKILL.md").is_file());
+    assert!(normalized_cache.join("rules/paddle.mdc").is_file());
+    assert!(normalized_cache.join("assets/paddle.svg").is_file());
+    assert!(normalized_cache.join("mcp.json").is_file());
+
+    let claude_bundle = staging_plugins_dir(&root).unwrap().join("agentpack-bundle");
+    assert!(claude_bundle.join("skills/billing/SKILL.md").is_file());
+    assert!(claude_bundle.join(".mcp.json").is_file());
+    let cursor_bundle = staging_cursor_pack_plugin_dir(&root).unwrap();
+    assert!(cursor_bundle.join("rules/paddle.mdc").is_file());
+    assert!(cursor_bundle.join("mcp.json").is_file());
+    let codex_home = staging_codex_home_dir(&root).unwrap();
+    assert!(codex_home.join("skills/billing/SKILL.md").is_file());
+    assert!(fs::read_to_string(codex_home.join("config.toml"))
+        .unwrap()
+        .contains("paddle-docs"));
+}
+
+#[test]
+#[serial]
 fn manifestless_launch_sync_uses_empty_ephemeral_pack() {
     let dir = tempdir().unwrap();
     let root: PathBuf = dir.path().to_path_buf();

@@ -1,6 +1,7 @@
 pub(crate) mod asset;
 pub(crate) mod index;
 mod layout;
+mod marketplace;
 mod materialize;
 mod restore;
 mod tree;
@@ -9,8 +10,8 @@ pub(crate) use asset::classify_materialized;
 pub use asset::{backfill_plugin_lock_entry, fetch_skill_from_parsed, fetch_skill_from_url};
 pub use layout::{
     cache_dir_is_package_root_in_filesystem, cache_entry_dir, cache_has_plugin_manifest,
-    claude_plugin_manifest_path, compute_cache_key, cursor_plugin_manifest_path,
-    ensure_plugin_manifest, ensure_skill_md, hash_directory_contents,
+    claude_plugin_manifest_path, codex_plugin_manifest_path, compute_cache_key,
+    cursor_plugin_manifest_path, ensure_plugin_manifest, ensure_skill_md, hash_directory_contents,
     normalize_plugin_cache_layout, repo_dir_is_package_root,
 };
 pub(crate) use materialize::blob_path_parent_prefixes;
@@ -90,6 +91,55 @@ mod tests {
     }
 
     #[test]
+    fn package_root_detectors_recognize_marketplaces_and_codex_plugins() {
+        let dir = tempfile::tempdir().unwrap();
+        let marketplace = dir.path().join("marketplace");
+        fs::create_dir_all(marketplace.join(".agents/plugins")).unwrap();
+        fs::write(
+            marketplace.join(".agents/plugins/marketplace.json"),
+            r#"{"plugins":[]}"#,
+        )
+        .unwrap();
+        assert!(cache_dir_is_package_root_in_filesystem(&marketplace));
+
+        let codex = dir.path().join("codex");
+        fs::create_dir_all(codex.join(".codex-plugin")).unwrap();
+        fs::write(codex.join(".codex-plugin/plugin.json"), "{}").unwrap();
+        assert!(cache_dir_is_package_root_in_filesystem(&codex));
+
+        let mut idx = std::collections::HashSet::new();
+        idx.insert(".agents/plugins/marketplace.json".into());
+        assert!(repo_dir_is_package_root(&idx, ""));
+        idx.clear();
+        idx.insert("plugins/p/.codex-plugin/plugin.json".into());
+        assert!(repo_dir_is_package_root(&idx, "plugins/p"));
+    }
+
+    #[test]
+    fn codex_only_plugin_is_normalized_for_all_harnesses() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        fs::create_dir_all(root.join(".codex-plugin")).unwrap();
+        fs::write(
+            root.join(".codex-plugin/plugin.json"),
+            r#"{"name":"native-codex","version":"2.0.0"}"#,
+        )
+        .unwrap();
+        fs::write(
+            root.join(".mcp.json"),
+            r#"{"mcpServers":{"docs":{"url":"https://example.com"}}}"#,
+        )
+        .unwrap();
+
+        normalize_plugin_cache_layout(root).unwrap();
+
+        assert!(root.join(".claude-plugin/plugin.json").is_file());
+        assert!(root.join(".cursor-plugin/plugin.json").is_file());
+        assert!(root.join(".codex-plugin/plugin.json").is_file());
+        assert!(root.join("mcp.json").is_file());
+    }
+
+    #[test]
     fn agentpack_toml_only_synthesizes_plugin_manifests() {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
@@ -106,5 +156,6 @@ description = "test plugin from manifest only"
         normalize_plugin_cache_layout(root).unwrap();
         assert!(root.join(".claude-plugin/plugin.json").is_file());
         assert!(root.join(".cursor-plugin/plugin.json").is_file());
+        assert!(root.join(".codex-plugin/plugin.json").is_file());
     }
 }

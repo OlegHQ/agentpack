@@ -10,6 +10,11 @@ use crate::fs_util::{read_json_value, write_json_value};
 use crate::manifest::AgentpackManifest;
 use crate::paths;
 
+use super::marketplace::{
+    cache_has_marketplace_manifest, materialize_single_plugin_marketplace,
+    repo_dir_has_marketplace_manifest,
+};
+
 /// `hex(SHA256(identity_string))` — identity should include stable source + commit.
 pub fn compute_cache_key(identity: &str) -> String {
     let mut hash = Sha256::new();
@@ -29,10 +34,15 @@ pub fn cursor_plugin_manifest_path(cache_root: &Path) -> PathBuf {
     cache_root.join(".cursor-plugin").join("plugin.json")
 }
 
-/// Legacy helper name: true if Claude and/or Cursor plugin manifest exists.
+pub fn codex_plugin_manifest_path(cache_root: &Path) -> PathBuf {
+    cache_root.join(".codex-plugin").join("plugin.json")
+}
+
+/// True if a Claude, Cursor, and/or Codex plugin manifest exists.
 pub fn cache_has_plugin_manifest(cache_root: &Path) -> bool {
     claude_plugin_manifest_path(cache_root).is_file()
         || cursor_plugin_manifest_path(cache_root).is_file()
+        || codex_plugin_manifest_path(cache_root).is_file()
 }
 
 /// Paths relative to a **package directory** that identify it as a fetchable pack (plugin, skill, or nested manifest).
@@ -40,6 +50,7 @@ pub fn cache_dir_is_package_root_in_filesystem(dir: &Path) -> bool {
     dir.join("SKILL.md").is_file()
         || cache_has_plugin_manifest(dir)
         || dir.join(crate::paths::MANIFEST_NAME).is_file()
+        || cache_has_marketplace_manifest(dir)
 }
 
 /// Same semantics as [`cache_dir_is_package_root_in_filesystem`], but for paths in a repo-relative path index (forward slashes).
@@ -56,6 +67,8 @@ pub fn repo_dir_is_package_root(rel_paths: &HashSet<String>, dir: &str) -> bool 
         || rel_paths.contains(&package_path(".cursor-plugin/plugin.json"))
         || rel_paths.contains(&package_path("SKILL.md"))
         || rel_paths.contains(&package_path(crate::paths::MANIFEST_NAME))
+        || rel_paths.contains(&package_path(".codex-plugin/plugin.json"))
+        || repo_dir_has_marketplace_manifest(rel_paths, dir)
 }
 
 pub fn ensure_skill_md(cache_root: &Path) -> Result<()> {
@@ -164,31 +177,27 @@ pub(super) fn hash_and_copy_source_tree(src: &Path, dst: &Path) -> Result<String
     Ok(full[..40].to_string())
 }
 
-fn synthesize_cursor_manifest_from_claude(cache_root: &Path, claude_manifest: &Path) -> Result<()> {
-    let value = read_json_value(claude_manifest)?;
-    let cursor_dir = cache_root.join(".cursor-plugin");
-    fs::create_dir_all(&cursor_dir).map_err(|err| AgentpackError::io(&cursor_dir, err))?;
+fn synthesize_plugin_manifest(
+    cache_root: &Path,
+    source_manifest: &Path,
+    target_dir_name: &str,
+) -> Result<()> {
+    let value = read_json_value(source_manifest)?;
+    let target_dir = cache_root.join(target_dir_name);
+    fs::create_dir_all(&target_dir).map_err(|err| AgentpackError::io(&target_dir, err))?;
     let name = value["name"].as_str().unwrap_or("plugin");
-    let stub = serde_json::json!({
-        "name": name,
-        "displayName": value.get("displayName").and_then(|x| x.as_str()).unwrap_or(name),
-        "version": value.get("version").and_then(|x| x.as_str()).unwrap_or("1.0.0"),
-        "description": value.get("description").and_then(|x| x.as_str()).unwrap_or(""),
-    });
-    write_json_value(&cursor_dir.join("plugin.json"), &stub)
-}
-
-fn synthesize_claude_manifest_from_cursor(cache_root: &Path, cursor_manifest: &Path) -> Result<()> {
-    let value = read_json_value(cursor_manifest)?;
-    let claude_dir = cache_root.join(".claude-plugin");
-    fs::create_dir_all(&claude_dir).map_err(|err| AgentpackError::io(&claude_dir, err))?;
-    let name = value["name"].as_str().unwrap_or("plugin");
-    let stub = serde_json::json!({
+    let mut stub = serde_json::json!({
         "name": name,
         "version": value.get("version").and_then(|x| x.as_str()).unwrap_or("1.0.0"),
         "description": value.get("description").or_else(|| value.get("displayName")).and_then(|x| x.as_str()).unwrap_or(""),
     });
-    write_json_value(&claude_dir.join("plugin.json"), &stub)
+    if target_dir_name == ".cursor-plugin" {
+        stub["displayName"] = serde_json::json!(value
+            .get("displayName")
+            .and_then(|x| x.as_str())
+            .unwrap_or(name));
+    }
+    write_json_value(&target_dir.join("plugin.json"), &stub)
 }
 
 fn synthesize_plugin_manifests_from_agentpack_manifest(cache_root: &Path) -> Result<()> {
@@ -216,15 +225,45 @@ fn synthesize_plugin_manifests_from_agentpack_manifest(cache_root: &Path) -> Res
     write_json_value(&cursor_dir.join("plugin.json"), &cursor_stub)
 }
 
-/// Ensure both `.claude-plugin` and `.cursor-plugin` exist when one side is present.
-pub fn normalize_plugin_cache_layout(cache_root: &Path) -> Result<()> {
-    let claude_manifest = claude_plugin_manifest_path(cache_root);
-    let cursor_manifest = cursor_plugin_manifest_path(cache_root);
-
-    match (claude_manifest.is_file(), cursor_manifest.is_file()) {
-        (true, true) => Ok(()),
-        (true, false) => synthesize_cursor_manifest_from_claude(cache_root, &claude_manifest),
-        (false, true) => synthesize_claude_manifest_from_cursor(cache_root, &cursor_manifest),
-        (false, false) => synthesize_plugin_manifests_from_agentpack_manifest(cache_root),
+fn normalize_mcp_filename(cache_root: &Path) -> Result<()> {
+    let source = cache_root.join(".mcp.json");
+    let target = cache_root.join("mcp.json");
+    if source.is_file() && !target.is_file() {
+        crate::fs_util::fast_copy_file(&source, &target)?;
     }
+    Ok(())
+}
+
+/// Resolve a single-plugin marketplace root, then ensure Claude, Cursor, and Codex manifests exist
+/// when any supported native manifest is present.
+pub fn normalize_plugin_cache_layout(cache_root: &Path) -> Result<()> {
+    if !cache_has_plugin_manifest(cache_root)
+        && !cache_root.join("SKILL.md").is_file()
+        && !cache_root.join(crate::paths::MANIFEST_NAME).is_file()
+    {
+        materialize_single_plugin_marketplace(cache_root)?;
+    }
+
+    let manifests = [
+        (".claude-plugin", claude_plugin_manifest_path(cache_root)),
+        (".cursor-plugin", cursor_plugin_manifest_path(cache_root)),
+        (".codex-plugin", codex_plugin_manifest_path(cache_root)),
+    ];
+    if !manifests.iter().any(|(_, path)| path.is_file()) {
+        synthesize_plugin_manifests_from_agentpack_manifest(cache_root)?;
+    }
+
+    let Some(source_manifest) = manifests
+        .iter()
+        .find_map(|(_, path)| path.is_file().then_some(path.clone()))
+    else {
+        return Ok(());
+    };
+
+    for (target_dir, target_manifest) in manifests {
+        if !target_manifest.is_file() {
+            synthesize_plugin_manifest(cache_root, &source_manifest, target_dir)?;
+        }
+    }
+    normalize_mcp_filename(cache_root)
 }

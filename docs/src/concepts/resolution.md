@@ -38,6 +38,25 @@ Because the lockfile stores the resolved commit, a branch pin does not move on i
 
 A `path` dependency skips version selection entirely. agentpack reads the directory on disk and computes its content hash from the files present at lock time, so local edits are reflected on the next `lock`/`sync`.
 
+## Package roots and marketplace repositories
+
+Agentpack recognizes a directory as a package root when it contains one of these markers:
+
+- `SKILL.md`
+- `agentpack.toml`
+- `.claude-plugin/plugin.json`, `.cursor-plugin/plugin.json`, or `.codex-plugin/plugin.json`
+- `.claude-plugin/marketplace.json`, `.cursor-plugin/marketplace.json`, or `.agents/plugins/marketplace.json`
+
+A marketplace root can represent one logical plugin through separate local source directories for Claude, Cursor, and Codex. Agentpack resolves those paths relative to the marketplace root, verifies that their plugin names agree, and merges them into one canonical cache package before staging. This supports repositories such as:
+
+```text
+.claude-plugin/marketplace.json  -> ./providers/claude/plugin
+.cursor-plugin/marketplace.json  -> ./providers/cursor/plugin
+.agents/plugins/marketplace.json -> ./providers/codex/plugin
+```
+
+Marketplace source paths must remain inside the repository. A catalog with multiple plugin names is ambiguous for one dependency, so agentpack rejects it with guidance to add the desired plugin source directory directly.
+
 ## Metadata caching and the offline fallback
 
 GitHub ref→commit and tag-list lookups are cached in `$AGENTPACK_HOME/cache/db.reddb` and reused across `add`, `lock`, and `sync`, which keeps repeat resolutions off the network. When the GitHub REST API fails or is throttled, agentpack falls back to the Git protocol — an embedded `gix` `ls-refs` against `https://github.com/<owner>/<repo>.git` — before resorting to stale cached metadata. There is no hard dependency on the REST API for ref and tag resolution.

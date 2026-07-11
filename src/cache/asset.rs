@@ -8,8 +8,8 @@ use crate::lockfile::{LockPackage, PackageKind};
 use crate::ui::Ui;
 
 use super::layout::{
-    claude_plugin_manifest_path, cursor_plugin_manifest_path, ensure_plugin_manifest,
-    normalize_plugin_cache_layout,
+    claude_plugin_manifest_path, codex_plugin_manifest_path, cursor_plugin_manifest_path,
+    ensure_plugin_manifest, normalize_plugin_cache_layout,
 };
 
 pub fn dependency_key_for_entry(module: &str, owner: &str, repo: &str, path: &str) -> String {
@@ -69,6 +69,7 @@ pub(crate) fn classify_materialized(
     normalize_plugin_cache_layout(cache_root)?;
     if claude_plugin_manifest_path(cache_root).is_file()
         || cursor_plugin_manifest_path(cache_root).is_file()
+        || codex_plugin_manifest_path(cache_root).is_file()
     {
         ensure_plugin_manifest(cache_root)?;
         return Ok(lock_package_from(
@@ -94,7 +95,7 @@ pub(crate) fn classify_materialized(
 fn ensure_skill(pkg: LockPackage) -> Result<LockPackage> {
     if pkg.kind == PackageKind::Plugin {
         return Err(AgentpackError::Cache(
-            "this path is a full Claude plugin directory (.claude-plugin present); \
+            "this path is a full plugin directory (native plugin manifest present); \
              add it as a plugin entry instead of a bare skill"
                 .into(),
         ));
@@ -138,7 +139,7 @@ pub fn backfill_plugin_lock_entry(
     let resolved = super::materialize::fetch_github_asset_from_url(client, &url, ui)?;
     if resolved.kind == PackageKind::Skill {
         return Err(AgentpackError::Cache(format!(
-            "plugin URL {} resolved to a skill subtree, not a .claude-plugin package",
+            "plugin URL {} resolved to a skill subtree, not a plugin package",
             plugin.url
         )));
     }

@@ -1,6 +1,6 @@
 # agentpack
 
-`agentpack` is a Rust CLI that pins **GitHub-hosted skills** and **plugin directories** (`.claude-plugin` and/or `.cursor-plugin`) for a project.
+`agentpack` is a Rust CLI that pins **GitHub-hosted skills**, **plugin directories** (`.claude-plugin`, `.cursor-plugin`, and/or `.codex-plugin`), and single-plugin marketplace repositories for a project.
 
 **Source of truth for what to install** is **`agentpack.toml`** at the repo root (direct dependencies, project-local modes, and MCP settings). **`pack.lock`** (v2) lists every resolved **package** (direct and transitive from nested `agentpack.toml` files inside dependencies) with pinned commits and `cache_key`s. Both files live in the **project repo**.
 
@@ -58,7 +58,7 @@ Transitive dependencies come **only** from a **`agentpack.toml`** (dependencies 
 
 Resolution order (network/local):
 
-1. **`https://github.com/…`** — tree or blob URL; the **directory** containing **`SKILL.md`** or a plugin manifest is fetched; the module id is derived from **owner / repo / in-repo path**.
+1. **`https://github.com/…`** — tree or blob URL; the **directory** containing **`SKILL.md`**, a plugin manifest, or a marketplace manifest is fetched; the module id is derived from **owner / repo / in-repo path**.
 2. **`owner/repo`** — tries **`$AGENTPACK_HOME/local/<owner>/<repo>`** first (copy); else **GitHub** at **repo root**.
 3. **`owner/repo/p1/p2/...`** — tries **`local/…/full/slash/spec`** first; else **GitHub** with in-repo path **`p1/p2/...`**.
 4. **Single segment** **`name`** — **`local/<name>`** only, or **alias** in RedDB to reuse a **`cache_key`** without network.
@@ -67,7 +67,9 @@ Repeat **`owner/repo`** and **`owner/repo/path`** adds also consult the RedDB al
 
 5. **Filesystem path** (`./rel/dir`, `/abs/dir`) — the directory is copied to cache; an entry like **`name = { path = "rel/path" }`** is written to **`agentpack.toml`** where **`name`** is the directory basename and the path is relative to the project root. On **`lock`** / **`sync`**, path deps are always re-copied from source (content hash detects changes). **`sync`** will error on other machines if the path is missing and the cache slot is empty.
 
-Duplicate content for the same **`owner` / `repo` / in-repo `path` / commit** hits the same **`cache_key`**. Plugins may expose **`.claude-plugin`**, **`.cursor-plugin`**, or both; layouts are normalized after fetch.
+Duplicate content for the same **`owner` / `repo` / in-repo `path` / commit** hits the same **`cache_key`**. Plugins may expose **`.claude-plugin`**, **`.cursor-plugin`**, **`.codex-plugin`**, or any combination; layouts are normalized after fetch.
+
+A repository root with **`.claude-plugin/marketplace.json`**, **`.cursor-plugin/marketplace.json`**, and/or **`.agents/plugins/marketplace.json`** is accepted when every catalog describes the same logical plugin name and at least one entry points to a local plugin directory inside the repository. Agentpack merges those per-harness source directories into one canonical cache package before classification. A marketplace containing multiple plugin names is not flattened; add the intended plugin source directory instead. Parent traversal and local sources that escape the marketplace root are rejected.
 
 ### Lockfile v2 and **`sync`**
 

@@ -62,6 +62,7 @@ fn download_from_github(pkg: &LockPackage, client: &Client, out: &Path, ui: &Ui)
         ui,
         blob_hint(pkg),
     )?;
+    normalize_plugin_cache_layout(out)?;
     if pkg.kind == PackageKind::Plugin {
         ensure_plugin_manifest(out)
     } else {

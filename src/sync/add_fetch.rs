@@ -11,8 +11,8 @@ use crate::cache::index::{
 };
 use crate::cache::{
     cache_entry_dir, cache_has_plugin_manifest, classify_materialized, claude_plugin_manifest_path,
-    copy_package_dir_to_cache, cursor_plugin_manifest_path, ensure_lock_cached,
-    fetch_github_asset_from_url, materialize_github_tree,
+    codex_plugin_manifest_path, copy_package_dir_to_cache, cursor_plugin_manifest_path,
+    ensure_lock_cached, fetch_github_asset_from_url, materialize_github_tree,
 };
 use crate::error::{AgentpackError, Result};
 use crate::github::{
@@ -35,6 +35,7 @@ fn read_plugin_package_name(cache_root: &Path) -> Option<String> {
     [
         claude_plugin_manifest_path(cache_root),
         cursor_plugin_manifest_path(cache_root),
+        codex_plugin_manifest_path(cache_root),
     ]
     .iter()
     .filter(|p| p.is_file())
