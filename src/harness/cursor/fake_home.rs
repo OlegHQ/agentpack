@@ -84,6 +84,31 @@ fn symlink_mutable_file(src: &Path, dst: &Path) -> Result<()> {
     }
 }
 
+#[cfg(target_os = "linux")]
+fn materialize_cursor_linux_user_data(
+    fake_home: &Path,
+    config_base: &Path,
+    data_base: &Path,
+) -> Result<()> {
+    // Cursor's Electron profile uses an uppercase directory, while current Cursor Agent builds
+    // persist CLI authentication in `$XDG_CONFIG_HOME/cursor/auth.json` (lowercase). Bridge both:
+    // agentpack points the child XDG roots at the fake home, so omitting the lowercase directory
+    // would make each project/staging rebuild appear logged out.
+    symlink_dir_creating_source(
+        &config_base.join("Cursor"),
+        &fake_home.join(".config/Cursor"),
+    )?;
+    symlink_dir_creating_source(
+        &config_base.join("cursor"),
+        &fake_home.join(".config/cursor"),
+    )?;
+    symlink_dir_creating_source(
+        &data_base.join("Cursor"),
+        &fake_home.join(".local/share/Cursor"),
+    )?;
+    Ok(())
+}
+
 fn materialize_cursor_platform_user_data(fake_home: &Path, real_home: &Path) -> Result<()> {
     #[cfg(target_os = "macos")]
     {
@@ -102,18 +127,11 @@ fn materialize_cursor_platform_user_data(fake_home: &Path, real_home: &Path) -> 
             .map(PathBuf::from)
             .filter(|s| !s.as_os_str().is_empty())
             .unwrap_or_else(|| real_home.join(".config"));
-        symlink_dir_creating_source(
-            &config_base.join("Cursor"),
-            &fake_home.join(".config/Cursor"),
-        )?;
         let data_base = std::env::var_os("XDG_DATA_HOME")
             .map(PathBuf::from)
             .filter(|s| !s.as_os_str().is_empty())
             .unwrap_or_else(|| real_home.join(".local/share"));
-        symlink_dir_creating_source(
-            &data_base.join("Cursor"),
-            &fake_home.join(".local/share/Cursor"),
-        )?;
+        materialize_cursor_linux_user_data(fake_home, &config_base, &data_base)?;
     }
     #[cfg(windows)]
     {
@@ -371,5 +389,40 @@ mod tests {
             .is_symlink());
         fs::write(fake.join("session.json"), "{}").unwrap();
         assert!(real.join("session.json").is_file());
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn linux_cursor_cli_auth_persists_outside_fake_home() {
+        let dir = tempfile::tempdir().unwrap();
+        let real_config = dir.path().join("real-config");
+        let real_data = dir.path().join("real-data");
+        let fake_home = dir.path().join("fake-home");
+
+        materialize_cursor_linux_user_data(&fake_home, &real_config, &real_data).unwrap();
+
+        let fake_cli_config = fake_home.join(".config/cursor");
+        assert!(fs::symlink_metadata(&fake_cli_config)
+            .unwrap()
+            .file_type()
+            .is_symlink());
+        fs::write(
+            fake_cli_config.join("auth.json"),
+            r#"{"token":"persisted"}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            fs::read_to_string(real_config.join("cursor/auth.json")).unwrap(),
+            r#"{"token":"persisted"}"#
+        );
+
+        assert!(fs::symlink_metadata(fake_home.join(".config/Cursor"))
+            .unwrap()
+            .file_type()
+            .is_symlink());
+        assert!(fs::symlink_metadata(fake_home.join(".local/share/Cursor"))
+            .unwrap()
+            .file_type()
+            .is_symlink());
     }
 }

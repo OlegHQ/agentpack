@@ -5,6 +5,14 @@ All notable changes to `agentpack` are documented here. The format is based on
 "Pre-release" note in `AGENTS.md` — breaking changes may land between versions without a migration
 window.
 
+## [0.3.10]
+
+### Fixed
+- **Cursor Agent login persistence with current Linux CLI builds.** The staged fake home now links
+  the lowercase `$XDG_CONFIG_HOME/cursor` profile used for `auth.json`, in addition to Cursor's
+  uppercase Electron profile, so browser login is shared across Agentpack projects and survives
+  staging rebuilds.
+
 ## [0.3.8]
 
 ### Fixed
