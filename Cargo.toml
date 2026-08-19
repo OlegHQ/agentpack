@@ -46,6 +46,7 @@ reflink-copy = "0.1"
 json-strip-comments = "3.1.0"
 shell-escape = "0.1.5"
 regex = "1"
+same-file = "1"
 ratatui = "0.30"
 crossterm = "0.29"
 which = "8"
@@ -61,6 +62,7 @@ keyring = { version = "3", features = ["linux-native"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 keyring = { version = "3", features = ["windows-native"] }
+junction = "1"
 
 [dev-dependencies]
 tempfile = "3"

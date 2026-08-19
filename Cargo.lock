@@ -24,6 +24,7 @@ dependencies = [
  "ignore",
  "indicatif",
  "json-strip-comments",
+ "junction",
  "keyring",
  "pathdiff",
  "ratatui",
@@ -32,6 +33,7 @@ dependencies = [
  "reflink-copy",
  "regex",
  "reqwest 0.12.28",
+ "same-file",
  "semver",
  "serde",
  "serde_json",
@@ -2518,6 +2520,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "25376d12b2f6ae53f986f86e2a808a56af03d72284ae24fc35a2e290d09ee3c3"
 dependencies = [
  "memchr",
+]
+
+[[package]]
+name = "junction"
+version = "1.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8cfc352a66ba903c23239ef51e809508b6fc2b0f90e3476ac7a9ff47e863ae95"
+dependencies = [
+ "scopeguard",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

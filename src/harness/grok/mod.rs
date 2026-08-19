@@ -1,3 +1,5 @@
+mod history;
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -61,7 +63,14 @@ impl Harness for Grok {
         let grok_home = staging_grok_home_dir_for_mode(ctx.project_root, mode)?;
         fs::create_dir_all(&grok_home).map_err(|e| AgentpackError::io(&grok_home, e))?;
         seed_grok_home(&grok_home, &grok_bundle)?;
+        if let Some(native_home) = history::native_home() {
+            history::prepare(&grok_home, &native_home)?;
+        }
         force_grok_attribution_off(&grok_home)
+    }
+
+    fn pre_reset(&self, ctx: &StageCtx) -> Result<()> {
+        history::recover_all_modes(ctx.project_root, ctx.mode.name())
     }
 
     fn write_mcp(&self, merged: &StagedMcpEntries, ctx: &StageCtx) -> Result<()> {
@@ -113,7 +122,11 @@ impl Harness for Grok {
                 "grok bundle missing {}",
                 grok_bundle.join("plugin.json").display()
             )
-        })
+        })?;
+        if let Some(native_home) = history::native_home() {
+            history::verify(&grok_home, &native_home)?;
+        }
+        Ok(())
     }
 
     fn launch_command(&self, ctx: LaunchCtx) -> anyhow::Result<Command> {

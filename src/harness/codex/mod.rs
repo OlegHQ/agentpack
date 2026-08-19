@@ -1,4 +1,5 @@
 mod auth;
+mod history;
 mod hooks;
 
 use std::fs;
@@ -42,12 +43,16 @@ impl Harness for Codex {
         let root = self.staged_root(ctx.project_root, ctx.mode.name())?;
         fs::create_dir_all(&root).map_err(|e| AgentpackError::io(&root, e))?;
         seed_codex_home(&root)?;
+        if let Some(native_home) = history::native_home() {
+            history::prepare(&root, &native_home)?;
+        }
         force_codex_attribution_off(&root)
     }
 
     fn pre_reset(&self, ctx: &StageCtx) -> Result<()> {
         let root = self.staged_root(ctx.project_root, ctx.mode.name())?;
-        auth::preserve_staged_codex_auth(&root)
+        auth::preserve_staged_codex_auth(&root)?;
+        history::recover_all_modes(ctx.project_root, ctx.mode.name())
     }
 
     fn write_mcp(&self, merged: &StagedMcpEntries, ctx: &StageCtx) -> Result<()> {
@@ -89,7 +94,11 @@ impl Harness for Codex {
         let root = staging_codex_home_dir_for_mode(ctx.project_root, ctx.mode.name())?;
         require(root.is_dir(), || {
             format!("codex home staging missing {}", root.display())
-        })
+        })?;
+        if let Some(native_home) = history::native_home() {
+            history::verify(&root, &native_home)?;
+        }
+        Ok(())
     }
 
     fn launch_command(&self, ctx: LaunchCtx) -> anyhow::Result<Command> {

@@ -219,6 +219,8 @@ disable = ["mcp:filesystem"]
 | `grok` | Sync + launch Grok with `GROK_HOME` |
 | `agy` | Sync + launch Antigravity with the project as a workspace dir |
 
+Redirected harness homes do not make resume history temporary: Codex history is shared with `~/.codex`, Grok sessions with `~/.grok/sessions`, and legacy temp-staging history is imported on upgrade without overwriting native files.
+
 ## Documentation
 
 Full docs live at **<https://oleghq.github.io/agentpack>** — getting started, core concepts (manifest, lockfile, resolution, cache, staging, modes, MCP), a guide per harness, and a complete CLI / manifest / environment reference.

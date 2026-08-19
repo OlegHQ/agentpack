@@ -17,12 +17,15 @@ agentpack --yolo grok       # adds --always-approve
 
 The staged home is **seeded** from your real `~/.grok/` (`config.toml`, `skills`, `agents`, `commands`, `plugins`) so user config keeps working. Auth survives staging rebuilds: agentpack links your real `~/.grok/auth.json` and `mcp_credentials.json` when present.
 
+Grok session transcripts are durable too: staged `sessions/` links to `~/.grok/sessions/`. This makes agentpack and direct Grok launches share the same resume history across staging rebuilds and machine restarts. On upgrade, surviving session files from old staging modes are imported without overwriting native files; collisions are saved under `$AGENTPACK_HOME/recovery/session-history/grok/`.
+
 ## Staged layout
 
 ```text
 grok-home/
   config.toml          # seeded + [plugins].paths + [mcp_servers] + attribution guidance
   auth.json            # linked to real ~/.grok/auth.json
+  sessions/ -> ~/.grok/sessions/
 grok/
   agentpack-bundle/
     plugin.json
@@ -39,7 +42,7 @@ Because Grok also reads Claude-compatible user sources from your real `~/.claude
 
 ## Attribution
 
-`grok 0.1.219` has no verified first-class attribution-off setting. agentpack stages prompt-level guidance (`AGENTS.md` in the staged home) and does not modify your real `~/.grok`.
+`grok 0.1.219` has no verified first-class attribution-off setting. agentpack stages prompt-level guidance (`AGENTS.md` in the staged home) and does not modify your real Grok configuration; Grok writes session state through the durable `~/.grok/sessions/` link.
 
 ## Environment
 

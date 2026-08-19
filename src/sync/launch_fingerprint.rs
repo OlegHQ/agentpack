@@ -13,6 +13,10 @@ use crate::harness::HarnessTarget;
 use crate::mode::filter::EffectiveMode;
 use crate::paths;
 
+// Bump whenever agentpack's generated staging layout or persistence wiring changes. This makes
+// launchers rebuild otherwise-valid staging created by an older binary after an upgrade.
+const STAGING_LAYOUT_VERSION: &str = "2";
+
 #[derive(Serialize, Deserialize)]
 struct LaunchSyncState {
     digest: String,
@@ -31,6 +35,9 @@ fn hash_dot_agents_tree(dir: &Path) -> Result<Vec<u8>> {
     entries.sort();
 
     let mut hasher = Sha256::new();
+
+    hasher.update(b"staging_layout_version\0");
+    hasher.update(STAGING_LAYOUT_VERSION.as_bytes());
     for path in &entries {
         let rel = path.strip_prefix(dir).map_err(|_| {
             AgentpackError::Cache("dot-agents path strip_prefix failed".to_string())

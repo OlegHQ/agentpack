@@ -89,6 +89,20 @@ pub fn agy_overlay_manifest_path(project_root: &Path) -> Result<PathBuf> {
     Ok(project_state_dir(project_root)?.join("agy-overlay.manifest"))
 }
 
+pub fn session_history_recovery_dir_for_component(
+    project_root: &Path,
+    harness: &str,
+    mode_component: &str,
+) -> Result<PathBuf> {
+    Ok(user_agentpack_home()?
+        .join("recovery")
+        .join("session-history")
+        .join(harness)
+        .join(project_path_hash(project_root)?)
+        .join(mode_component)
+        .join("conflicts"))
+}
+
 pub fn proxy_log_dir(project_root: &Path) -> Result<PathBuf> {
     if let Ok(path) = env::var("AGENTPACK_PROXY_LOG_DIR") {
         let path = path.trim();

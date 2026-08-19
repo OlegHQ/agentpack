@@ -1,7 +1,7 @@
 //! Small filesystem helpers shared across crates.
 
 use std::fs;
-use std::io::{self, ErrorKind};
+use std::io::{self, ErrorKind, Write};
 use std::path::{Path, PathBuf};
 
 use serde_json::Value;
@@ -75,6 +75,201 @@ pub(crate) fn remove_path_any(path: &Path) -> Result<()> {
     }
 
     Ok(())
+}
+
+/// Point a staged directory at a durable native directory. The link must remain live: a copied
+/// fallback would look correct until the next staging reset, then lose every later harness write.
+pub(crate) fn link_durable_dir(native: &Path, staged: &Path) -> Result<()> {
+    fs::create_dir_all(native).map_err(|e| AgentpackError::io(native, e))?;
+    remove_path_any(staged)?;
+    if let Some(parent) = staged.parent() {
+        fs::create_dir_all(parent).map_err(|e| AgentpackError::io(parent, e))?;
+    }
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(native, staged).map_err(|e| AgentpackError::io(staged, e))?;
+    #[cfg(windows)]
+    {
+        if std::os::windows::fs::symlink_dir(native, staged).is_err() {
+            junction::create(native, staged).map_err(|e| AgentpackError::io(staged, e))?;
+        }
+    }
+    Ok(())
+}
+
+/// Point a staged mutable file at its durable native copy. Windows prefers a hard link because it
+/// works without Developer Mode; a file symlink covers cross-volume staging when privileges allow.
+pub(crate) fn link_durable_file(native: &Path, staged: &Path) -> Result<()> {
+    if let Some(parent) = native.parent() {
+        fs::create_dir_all(parent).map_err(|e| AgentpackError::io(parent, e))?;
+    }
+    fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(native)
+        .map_err(|e| AgentpackError::io(native, e))?;
+    remove_path_any(staged)?;
+    if let Some(parent) = staged.parent() {
+        fs::create_dir_all(parent).map_err(|e| AgentpackError::io(parent, e))?;
+    }
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(native, staged).map_err(|e| AgentpackError::io(staged, e))?;
+    #[cfg(windows)]
+    {
+        if fs::hard_link(native, staged).is_err() {
+            std::os::windows::fs::symlink_file(native, staged).map_err(|e| {
+                AgentpackError::io(
+                    staged,
+                    io::Error::new(
+                        e.kind(),
+                        format!(
+                            "cannot create durable file link: {e}; keep staging on the same volume or enable Windows Developer Mode"
+                        ),
+                    ),
+                )
+            })?;
+        }
+    }
+    Ok(())
+}
+
+/// True when `path` resolves to `target`, for both symlinks and Windows junctions/hard links.
+pub(crate) fn durable_path_matches(path: &Path, target: &Path) -> bool {
+    same_file::is_same_file(path, target).unwrap_or(false)
+}
+
+/// Recover a legacy staged file/tree without ever replacing native harness state. Differing
+/// collisions are copied to `conflicts_root`, retaining their relative path plus a content hash.
+pub(crate) fn recover_without_overwrite(
+    source: &Path,
+    destination: &Path,
+    conflicts_root: &Path,
+) -> Result<()> {
+    let source_meta = match fs::symlink_metadata(source) {
+        Ok(meta) => meta,
+        Err(e) if e.kind() == ErrorKind::NotFound => return Ok(()),
+        Err(e) => return Err(AgentpackError::io(source, e)),
+    };
+    if source_meta.file_type().is_symlink() {
+        if durable_path_matches(source, destination) {
+            return Ok(());
+        }
+        return Err(AgentpackError::Staging(format!(
+            "refusing to recover unexpected symlink {}",
+            source.display()
+        )));
+    }
+    if source_meta.is_file() {
+        return recover_file(
+            source,
+            destination,
+            conflicts_root,
+            Path::new("history.jsonl"),
+        );
+    }
+    if !source_meta.is_dir() {
+        return Ok(());
+    }
+    if durable_path_matches(source, destination) {
+        return Ok(());
+    }
+    for entry in WalkDir::new(source).follow_links(false).into_iter() {
+        let entry = entry.map_err(map_walk_err)?;
+        let rel = entry.path().strip_prefix(source).map_err(|_| {
+            AgentpackError::Staging(format!(
+                "path outside recovery root: {}",
+                entry.path().display()
+            ))
+        })?;
+        if rel.as_os_str().is_empty() {
+            continue;
+        }
+        let ty = entry.file_type();
+        if ty.is_symlink() {
+            return Err(AgentpackError::Staging(format!(
+                "refusing to recover symlink inside session history: {}",
+                entry.path().display()
+            )));
+        }
+        if ty.is_dir() {
+            let dir = destination.join(rel);
+            fs::create_dir_all(&dir).map_err(|e| AgentpackError::io(&dir, e))?;
+        } else if ty.is_file() {
+            recover_file(entry.path(), &destination.join(rel), conflicts_root, rel)?;
+        }
+    }
+    Ok(())
+}
+
+fn file_sha256(path: &Path) -> Result<[u8; 32]> {
+    use sha2::Digest;
+    let mut hasher = sha2::Sha256::new();
+    stream_file_into_hasher(path, &mut hasher)?;
+    Ok(hasher.finalize().into())
+}
+
+fn recover_file(
+    source: &Path,
+    destination: &Path,
+    conflicts_root: &Path,
+    rel: &Path,
+) -> Result<()> {
+    if let Some(parent) = destination.parent() {
+        fs::create_dir_all(parent).map_err(|e| AgentpackError::io(parent, e))?;
+    }
+    match fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(destination)
+    {
+        Ok(mut output) => {
+            let before = fs::metadata(source).map_err(|e| AgentpackError::io(source, e))?;
+            let mut input = io::BufReader::new(
+                fs::File::open(source).map_err(|e| AgentpackError::io(source, e))?,
+            );
+            io::copy(&mut input, &mut output).map_err(|e| AgentpackError::io(destination, e))?;
+            output
+                .flush()
+                .map_err(|e| AgentpackError::io(destination, e))?;
+            let after = fs::metadata(source).map_err(|e| AgentpackError::io(source, e))?;
+            if before.len() != after.len() || before.modified().ok() != after.modified().ok() {
+                drop(output);
+                let _ = fs::remove_file(destination);
+                return Err(AgentpackError::Staging(format!(
+                    "session history changed during recovery: {}; close the active harness and retry",
+                    source.display()
+                )));
+            }
+            Ok(())
+        }
+        Err(e) if e.kind() == ErrorKind::AlreadyExists => {
+            let source_hash = file_sha256(source)?;
+            if file_sha256(destination)? == source_hash {
+                return Ok(());
+            }
+            let hash = hex::encode(&source_hash[..6]);
+            let name = rel
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("session");
+            let conflict_rel = rel.with_file_name(format!("{name}.{hash}.conflict"));
+            let conflict = conflicts_root.join(conflict_rel);
+            if conflict.is_file() && file_sha256(&conflict)? == source_hash {
+                return Ok(());
+            }
+            if let Some(parent) = conflict.parent() {
+                fs::create_dir_all(parent).map_err(|e| AgentpackError::io(parent, e))?;
+            }
+            fs::copy(source, &conflict).map_err(|e| AgentpackError::io(&conflict, e))?;
+            tracing::warn!(
+                source = %source.display(),
+                native = %destination.display(),
+                recovery = %conflict.display(),
+                "preserved conflicting legacy session history"
+            );
+            Ok(())
+        }
+        Err(e) => Err(AgentpackError::io(destination, e)),
+    }
 }
 
 /// Move a stale rebuild target aside, then remove it recursively. This avoids `Directory not
@@ -312,6 +507,63 @@ pub(crate) fn stream_file_into_hasher(path: &Path, hasher: &mut sha2::Sha256) ->
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn recovery_keeps_native_collision_and_saves_staged_copy() {
+        let t = tempfile::tempdir().unwrap();
+        let source = t.path().join("staged/sessions");
+        let destination = t.path().join("native/sessions");
+        let conflicts = t.path().join("recovery");
+        fs::create_dir_all(&source).unwrap();
+        fs::create_dir_all(&destination).unwrap();
+        fs::write(source.join("new.jsonl"), "new").unwrap();
+        fs::write(source.join("collision.jsonl"), "staged").unwrap();
+        fs::write(destination.join("collision.jsonl"), "native").unwrap();
+
+        recover_without_overwrite(&source, &destination, &conflicts).unwrap();
+
+        assert_eq!(
+            fs::read_to_string(destination.join("new.jsonl")).unwrap(),
+            "new"
+        );
+        assert_eq!(
+            fs::read_to_string(destination.join("collision.jsonl")).unwrap(),
+            "native"
+        );
+        let recovered = fs::read_dir(&conflicts)
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .find(|path| {
+                path.file_name()
+                    .unwrap()
+                    .to_string_lossy()
+                    .starts_with("collision.")
+            })
+            .unwrap();
+        assert_eq!(fs::read_to_string(recovered).unwrap(), "staged");
+    }
+
+    #[test]
+    fn durable_links_share_writes_with_native_state() {
+        let t = tempfile::tempdir().unwrap();
+        let native_dir = t.path().join("native/sessions");
+        let staged_dir = t.path().join("staged/sessions");
+        let native_file = t.path().join("native/history.jsonl");
+        let staged_file = t.path().join("staged/history.jsonl");
+
+        link_durable_dir(&native_dir, &staged_dir).unwrap();
+        link_durable_file(&native_file, &staged_file).unwrap();
+        fs::write(staged_dir.join("thread.jsonl"), "thread").unwrap();
+        fs::write(&staged_file, "prompt").unwrap();
+
+        assert!(durable_path_matches(&staged_dir, &native_dir));
+        assert!(durable_path_matches(&staged_file, &native_file));
+        assert_eq!(
+            fs::read_to_string(native_dir.join("thread.jsonl")).unwrap(),
+            "thread"
+        );
+        assert_eq!(fs::read_to_string(native_file).unwrap(), "prompt");
+    }
 
     #[test]
     #[cfg(unix)]

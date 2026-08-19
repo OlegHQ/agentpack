@@ -28,6 +28,11 @@ impl Drop for CwdGuard {
 
 fn prep_store(root: &Path) {
     std::env::set_var("AGENTPACK_HOME", root.join("_test_uap"));
+    let test_home = root.join("_test_home");
+    fs::create_dir_all(&test_home).unwrap();
+    std::env::set_var("HOME", &test_home);
+    #[cfg(windows)]
+    std::env::set_var("USERPROFILE", &test_home);
 }
 
 #[test]

@@ -26,11 +26,20 @@ Codex stores OAuth/API material in `auth.json` or in the OS keychain, keyed by t
 
 The staged `config.toml` is forced to `cli_auth_credentials_store = "file"`, so every project shares refresh-token updates through that one file.
 
+## Session history
+
+The staged home is disposable, but Codex resume state is not. agentpack links staged `sessions/`, `archived_sessions/`, and `history.jsonl` to their native locations under `~/.codex/`, and defaults `sqlite_home` to `~/.codex`. Sessions created through agentpack therefore appear in direct `codex resume` and survive staging cleanup, project/mode changes, and machine restarts.
+
+On the first sync after upgrading, agentpack imports surviving history from every old staging mode before rebuilding it. Existing native files always win; differing collisions are retained under `$AGENTPACK_HOME/recovery/session-history/codex/` for manual inspection. An explicitly configured `sqlite_home` is preserved.
+
 ## Staged layout
 
 ```text
 codex-home/
   auth.json -> ~/.codex/auth.json | $AGENTPACK_HOME/shared/codex/auth.json
+  sessions/ -> ~/.codex/sessions/
+  archived_sessions/ -> ~/.codex/archived_sessions/
+  history.jsonl -> ~/.codex/history.jsonl
   config.toml          # seeded + attribution off + merged [mcp_servers]
   skills/
     <name>/SKILL.md
