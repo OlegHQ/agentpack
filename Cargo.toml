@@ -3,7 +3,7 @@ members = [".", "xtask", "crates/claude-code-proxy-rs"]
 
 [package]
 name = "agentpack"
-version = "0.3.11"
+version = "0.3.12"
 edition = "2021"
 description = "The package manager for AI coding agents — pin, resolve, and sync skills & plugins across Claude Code, Cursor, OpenCode, and Codex"
 license = "MIT"
