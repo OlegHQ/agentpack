@@ -56,23 +56,51 @@ pub(super) fn recover_all_modes(project_root: &Path, current_mode: &str) -> Resu
         if !staged.is_dir() {
             continue;
         }
-        reject_active_writers(&staged)?;
-        let conflicts =
-            session_history_recovery_dir_for_component(project_root, "codex", &mode_component)?;
-        for name in DURABLE_DIRS {
-            recover_without_overwrite(
-                &staged.join(name),
-                &native_home.join(name),
-                &conflicts.join(name),
-            )?;
-        }
-        recover_without_overwrite(
-            &staged.join(PROMPT_HISTORY),
-            &native_home.join(PROMPT_HISTORY),
-            &conflicts.join(PROMPT_HISTORY),
-        )?;
+        recover_staged_home(project_root, &mode_component, &staged, &native_home)?;
     }
     Ok(())
+}
+
+fn recover_staged_home(
+    project_root: &Path,
+    mode_component: &str,
+    staged_home: &Path,
+    native_home: &Path,
+) -> Result<()> {
+    if !needs_recovery(staged_home, native_home)? {
+        return Ok(());
+    }
+    reject_active_writers(staged_home)?;
+    let conflicts =
+        session_history_recovery_dir_for_component(project_root, "codex", mode_component)?;
+    for name in DURABLE_DIRS {
+        recover_without_overwrite(
+            &staged_home.join(name),
+            &native_home.join(name),
+            &conflicts.join(name),
+        )?;
+    }
+    recover_without_overwrite(
+        &staged_home.join(PROMPT_HISTORY),
+        &native_home.join(PROMPT_HISTORY),
+        &conflicts.join(PROMPT_HISTORY),
+    )
+}
+
+/// Whether this staged home still owns history that must be copied before it is reset. Current
+/// staging homes already link every history path to the native home, so an active Codex process
+/// holding a writer lock there does not make the legacy-recovery pass unsafe.
+fn needs_recovery(staged_home: &Path, native_home: &Path) -> Result<bool> {
+    for name in DURABLE_DIRS.iter().copied().chain([PROMPT_HISTORY]) {
+        let staged = staged_home.join(name);
+        match fs::symlink_metadata(&staged) {
+            Ok(_) if !durable_path_matches(&staged, &native_home.join(name)) => return Ok(true),
+            Ok(_) => {}
+            Err(e) if e.kind() == ErrorKind::NotFound => {}
+            Err(e) => return Err(AgentpackError::io(&staged, e)),
+        }
+    }
+    Ok(false)
 }
 
 pub(super) fn verify(staged_home: &Path, native_home: &Path) -> Result<()> {
@@ -205,5 +233,51 @@ mod tests {
         assert!(fs::read_to_string(staged.join("config.toml"))
             .unwrap()
             .contains("/custom/state"));
+    }
+
+    #[test]
+    fn active_writer_does_not_block_when_history_is_already_durable() {
+        let t = tempfile::tempdir().unwrap();
+        let native = t.path().join("native-codex");
+        let staged = t.path().join("staging/codex-home");
+        prepare(&staged, &native).unwrap();
+
+        let lock_dir = staged.join("thread-writer-locks");
+        fs::create_dir_all(&lock_dir).unwrap();
+        let lock_path = lock_dir.join("thread.lock");
+        let held_lock = fs::OpenOptions::new()
+            .create(true)
+            .read(true)
+            .write(true)
+            .truncate(false)
+            .open(lock_path)
+            .unwrap();
+        held_lock.lock().unwrap();
+
+        recover_staged_home(t.path(), "default", &staged, &native).unwrap();
+    }
+
+    #[test]
+    fn active_writer_still_blocks_legacy_history_recovery() {
+        let t = tempfile::tempdir().unwrap();
+        let native = t.path().join("native-codex");
+        let staged = t.path().join("staging/codex-home");
+        fs::create_dir_all(staged.join("sessions")).unwrap();
+        fs::write(staged.join("sessions/thread.jsonl"), "session").unwrap();
+
+        let lock_dir = staged.join("thread-writer-locks");
+        fs::create_dir_all(&lock_dir).unwrap();
+        let lock_path = lock_dir.join("thread.lock");
+        let held_lock = fs::OpenOptions::new()
+            .create(true)
+            .read(true)
+            .write(true)
+            .truncate(false)
+            .open(lock_path)
+            .unwrap();
+        held_lock.lock().unwrap();
+
+        let error = recover_staged_home(t.path(), "default", &staged, &native).unwrap_err();
+        assert!(error.to_string().contains("active Codex session"));
     }
 }
