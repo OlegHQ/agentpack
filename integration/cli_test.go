@@ -97,6 +97,40 @@ func TestCompiledCLISyncRejectsUnknownModeCapability(t *testing.T) {
 	}
 }
 
+func TestCompiledCLISyncStagesLocalSkillForEveryHarness(t *testing.T) {
+	project := t.TempDir()
+	skill := filepath.Join(project, "portable-skill")
+	if err := os.Mkdir(skill, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, filepath.Join(skill, "SKILL.md"), "---\nname: portable-skill\ndescription: portable fixture\n---\n\n# Portable\n")
+	if result := runCLI(t, project, "init"); result.err != nil {
+		t.Fatalf("init: stderr=%q err=%v", result.stderr, result.err)
+	}
+	if result := runCLI(t, project, "add", "portable-skill", "--no-sync"); result.err != nil {
+		t.Fatalf("add: stdout=%q stderr=%q err=%v", result.stdout, result.stderr, result.err)
+	}
+	if result := runCLI(t, project, "sync"); result.err != nil {
+		t.Fatalf("sync: stdout=%q stderr=%q err=%v", result.stdout, result.stderr, result.err)
+	}
+	root := filepath.Join(project, "_staging", "modes", "default")
+	for _, relative := range []string{
+		"plugins/agentpack-bundle/skills/portable-skill/SKILL.md",
+		"opencode/skills/portable-skill/SKILL.md",
+		"codex-home/skills/portable-skill/SKILL.md",
+		"cursor/agentpack-bundle/skills/portable-skill/SKILL.md",
+		"grok/agentpack-bundle/skills/portable-skill/SKILL.md",
+		"agy/agentpack-bundle/skills/portable-skill/SKILL.md",
+	} {
+		if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(relative))); err != nil {
+			t.Errorf("%s: %v", relative, err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(project, "_agentpack", "cache", "db.reddb")); err != nil {
+		t.Errorf("documented cache index path: %v", err)
+	}
+}
+
 type commandResult struct {
 	stdout string
 	stderr string
