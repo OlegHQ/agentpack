@@ -4,15 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
-	"time"
 
 	bolt "go.etcd.io/bbolt"
 
+	"github.com/OlegHQ/agentpack/internal/database"
 	"github.com/OlegHQ/agentpack/internal/lockfile"
-	"github.com/OlegHQ/agentpack/internal/paths"
 )
 
 var (
@@ -31,23 +28,13 @@ type EntryRecord struct {
 }
 
 func UpsertEntry(cacheKey string, record EntryRecord, aliases []string) error {
-	if _, err := paths.EnsureUserAgentpackLayout(); err != nil {
-		return err
-	}
-	databasePath, err := paths.CacheDBPath()
-	if err != nil {
-		return err
-	}
-	if err := os.MkdirAll(filepath.Dir(databasePath), 0o755); err != nil {
-		return fmt.Errorf("create cache database directory: %w", err)
-	}
 	encoded, err := json.Marshal(record)
 	if err != nil {
 		return fmt.Errorf("serialize cache entry: %w", err)
 	}
-	database, err := bolt.Open(databasePath, 0o600, &bolt.Options{Timeout: 2 * time.Second})
+	database, err := database.OpenCache(false)
 	if err != nil {
-		return fmt.Errorf("open cache database %s: %w", databasePath, err)
+		return err
 	}
 	updateErr := database.Update(func(transaction *bolt.Tx) error {
 		entries, err := transaction.CreateBucketIfNotExists(entriesBucket)
@@ -157,18 +144,12 @@ func AliasesForGitHubEntry(owner, repo, inRepoPath, packageName string) []string
 }
 
 func viewDatabase(view func(*bolt.Tx) error) error {
-	databasePath, err := paths.CacheDBPath()
+	database, err := database.OpenCache(true)
 	if err != nil {
 		return err
 	}
-	if _, err := os.Stat(databasePath); errors.Is(err, os.ErrNotExist) {
+	if database == nil {
 		return nil
-	} else if err != nil {
-		return fmt.Errorf("inspect cache database %s: %w", databasePath, err)
-	}
-	database, err := bolt.Open(databasePath, 0o600, &bolt.Options{ReadOnly: true, Timeout: 2 * time.Second})
-	if err != nil {
-		return fmt.Errorf("open cache database %s: %w", databasePath, err)
 	}
 	viewErr := database.View(view)
 	closeErr := database.Close()

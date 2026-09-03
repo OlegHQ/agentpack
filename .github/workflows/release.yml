@@ -9,6 +9,8 @@ on:
       - go.sum
       - cmd/**
       - internal/**
+      - integration/**
+      - scripts/**
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+*"
@@ -33,6 +35,8 @@ jobs:
           distribution: goreleaser
           version: "~> v2"
           args: check
+      - name: Test release installers
+        run: go test ./integration -run 'TestReleaseInstaller' -count=1
       - name: Snapshot release
         if: github.event_name == 'pull_request'
         uses: goreleaser/goreleaser-action@v7

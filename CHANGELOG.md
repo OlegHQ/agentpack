@@ -22,6 +22,13 @@ window.
 - Durable, project-scoped Codex MCP OAuth credentials shared across staging modes.
 - Linux, macOS, and Windows Go CI, race detection, compiled CLI integration coverage, and benchmark
   baselines for cache hashing and mode filtering.
+- Checksum-verifying shell and PowerShell release installers, preserving the one-command install
+  path from the previous release pipeline.
+
+### Fixed
+
+- Existing Rust RedDB metadata indexes are preserved and replaced automatically on first Go use,
+  so upgrading does not require users to delete `$AGENTPACK_HOME/cache/db.reddb` manually.
 
 ## [0.3.10]
 
