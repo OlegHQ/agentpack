@@ -33,6 +33,37 @@ func TestExtractTarballWithPrefixAndCollectPaths(t *testing.T) {
 	}
 }
 
+func TestExtractTarballSkipsDirectoryEntryAtSelectedPrefix(t *testing.T) {
+	t.Parallel()
+	var compressed bytes.Buffer
+	gzipWriter := gzip.NewWriter(&compressed)
+	tarWriter := tar.NewWriter(gzipWriter)
+	for _, header := range []*tar.Header{
+		{Name: "repo-sha/plugins/pkg/", Typeflag: tar.TypeDir, Mode: 0o755},
+		{Name: "repo-sha/plugins/pkg/SKILL.md", Mode: 0o644, Size: 6},
+	} {
+		if err := tarWriter.WriteHeader(header); err != nil {
+			t.Fatal(err)
+		}
+		if header.Size != 0 {
+			if _, err := tarWriter.Write([]byte("# Demo")); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	if err := tarWriter.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := gzipWriter.Close(); err != nil {
+		t.Fatal(err)
+	}
+	destination := t.TempDir()
+	count, err := ExtractTarballWithPrefix(bytes.NewReader(compressed.Bytes()), "plugins/pkg", destination)
+	if err != nil || count != 1 {
+		t.Fatalf("ExtractTarballWithPrefix() = %d, %v", count, err)
+	}
+}
+
 func TestArchivePathHelpers(t *testing.T) {
 	t.Parallel()
 	paths := map[string]struct{}{"plugins/demo/.claude-plugin/plugin.json": {}}

@@ -124,6 +124,7 @@ func repoRelative(name string) (string, bool) {
 }
 
 func stripRepoPrefix(relative, prefix string) (string, bool) {
+	relative = strings.TrimSuffix(relative, "/")
 	if prefix == "" {
 		return relative, relative != ""
 	}

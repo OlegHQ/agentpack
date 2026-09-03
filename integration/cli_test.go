@@ -33,7 +33,7 @@ func TestMain(m *testing.M) {
 
 func TestCompiledCLIHelpAndVersion(t *testing.T) {
 	result := runCLI(t, t.TempDir(), "--version")
-	if result.err != nil || strings.TrimSpace(result.stdout) != "agentpack 0.3.15" {
+	if result.err != nil || strings.TrimSpace(result.stdout) != "agentpack 0.3.16" {
 		t.Fatalf("--version: stdout=%q stderr=%q err=%v", result.stdout, result.stderr, result.err)
 	}
 	result = runCLI(t, t.TempDir(), "mode", "--help")
@@ -79,7 +79,7 @@ func TestCompiledCLIAddLocalDependencyFromWorkingDirectory(t *testing.T) {
 		t.Fatalf("manifest=%q", manifest)
 	}
 	lock := readFile(t, filepath.Join(project, "pack.lock"))
-	if !strings.Contains(lock, "lockfile-version = 2") || !(strings.Contains(lock, "module = \"local-skill\"") || strings.Contains(lock, "module = 'local-skill'")) {
+	if !strings.Contains(lock, "lockfile_version = 2") || !(strings.Contains(lock, "module = \"local-skill\"") || strings.Contains(lock, "module = 'local-skill'")) {
 		t.Fatalf("lock=%q", lock)
 	}
 }
@@ -131,6 +131,32 @@ func TestCompiledCLISyncStagesLocalSkillForEveryHarness(t *testing.T) {
 	}
 }
 
+func TestCompiledCLILaunchesFromNestedRustV2Project(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("fake POSIX harness executable")
+	}
+	project := t.TempDir()
+	writeFile(t, filepath.Join(project, "agentpack.toml"), "name = \"real-project\"\nversion = \"0.0.1\"\n\n[dependencies]\n")
+	writeFile(t, filepath.Join(project, "pack.lock"), "lockfile_version = 2\n\n[meta]\nname = \"real-project\"\nversion = \"0.0.1\"\n")
+	nested := filepath.Join(project, "apps", "web", "src")
+	if err := os.MkdirAll(nested, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	fakeCodex := filepath.Join(project, "fake-codex")
+	writeFile(t, fakeCodex, "#!/bin/sh\nexit 0\n")
+	if err := os.Chmod(fakeCodex, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	result := runCLIWithEnv(t, nested, []string{"--yolo", "codex"}, "CODEX_PATH="+fakeCodex)
+	if result.err != nil {
+		t.Fatalf("nested Rust-v2 launch: stdout=%q stderr=%q err=%v", result.stdout, result.stderr, result.err)
+	}
+	if _, err := os.Stat(filepath.Join(nested, "_staging", "modes", "default", "codex-home", "config.toml")); err != nil {
+		t.Fatalf("staging was not rooted at ancestor project: %v", err)
+	}
+}
+
 type commandResult struct {
 	stdout string
 	stderr string
@@ -138,6 +164,10 @@ type commandResult struct {
 }
 
 func runCLI(t *testing.T, workingDirectory string, arguments ...string) commandResult {
+	return runCLIWithEnv(t, workingDirectory, arguments)
+}
+
+func runCLIWithEnv(t *testing.T, workingDirectory string, arguments []string, extraEnvironment ...string) commandResult {
 	t.Helper()
 	home := filepath.Join(workingDirectory, "_home")
 	agentpackHome := filepath.Join(workingDirectory, "_agentpack")
@@ -147,7 +177,8 @@ func runCLI(t *testing.T, workingDirectory string, arguments ...string) commandR
 	}
 	command := exec.Command(agentpackBinary, arguments...)
 	command.Dir = workingDirectory
-	command.Env = append(os.Environ(), "HOME="+home, "USERPROFILE="+home, "AGENTPACK_HOME="+agentpackHome, "AGENTPACK_STAGING_ROOT="+stagingRoot)
+	overrides := []string{"HOME=" + home, "USERPROFILE=" + home, "AGENTPACK_HOME=" + agentpackHome, "AGENTPACK_STAGING_ROOT=" + stagingRoot}
+	command.Env = installerEnvironment(append(overrides, extraEnvironment...)...)
 	var stdout, stderr strings.Builder
 	command.Stdout, command.Stderr = &stdout, &stderr
 	err := command.Run()
