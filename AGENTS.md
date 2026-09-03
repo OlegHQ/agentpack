@@ -16,6 +16,10 @@ Every GitHub release description must begin with copyable, version-pinned instal
 
 Installer scripts must default to the user-owned `$HOME/.local/bin` directory on every platform. They may create that directory and replace the `agentpack` executable inside it, but must never edit shell startup files, change the current process environment, or persistently modify the user's `PATH`. `AGENTPACK_INSTALL_DIR` is the only supported destination override.
 
+Before tagging a release, run launch E2E from a nested directory in representative real sibling projects whose `agentpack.toml` and `pack.lock` live in an ancestor. Exercise all six harness launchers with their real binaries; for authenticated harnesses, complete a headless prompt and verify its exact response. A version-only subprocess or fixture-only test is not sufficient evidence for launch compatibility.
+
+The mode editor is a responsive Bubble Tea/Lip Gloss TUI, with the Rust `v0.3.12` Ratatui editor as its behavioral baseline: modes, capability tree, details, effective-state glyphs, tri-state and subtree edits, prompts, help, scrolling, light/dark palettes, dirty confirmation, and atomic save must remain covered. At narrow terminal widths, prioritize readable panes over preserving three crushed columns.
+
 ### Code structure (contributor rule)
 
 **Per-harness code lives in `internal/harness/<name>/`. Shared code lives in its subsystem. No forwarding aliases, no orphaned glue, and no tiny single-purpose packages.**
@@ -81,7 +85,8 @@ A repository root with **`.claude-plugin/marketplace.json`**, **`.cursor-plugin/
 
 ### Lockfile v2 and **`sync`**
 
-- **`pack.lock`** with **`lockfile-version = 2`** stores **`[[packages]]`** only. Legacy **`[[skills]]`** / **`[[plugins]]`** sections are rejected. In-memory **`skills`** / **`plugins`** are derived views rebuilt from canonical packages after load.
+- **`pack.lock`** with **`lockfile_version = 2`** stores **`[[packages]]`** only. Legacy **`[[skills]]`** / **`[[plugins]]`** sections are rejected. In-memory **`skills`** / **`plugins`** are derived views rebuilt from canonical packages after load.
+- **Rust v2 compatibility is mandatory.** `lockfile_version` and `disabled_plugins` are the canonical underscore keys emitted by Rust `v0.3.12`. The reader also accepts the erroneous `lockfile-version` spelling emitted briefly by the early Go port, but the writer always emits the canonical underscore spelling. Decoder implementation terms such as “strict mode” must never leak into CLI errors; unsupported fields are reported by name with a regeneration command.
 - **`sync`** refreshes **`pack.lock`** from **`agentpack.toml`** only when **`[dependencies]`** is **non-empty**. With an **empty** dependency table, **`sync`** treats the existing lock as authoritative (manual edits, tests, or hybrid workflows).
 - Run **`agentpack lock`** to force a full resolve from the manifest (requires **`agentpack.toml`**).
 - Harness launchers (**`agentpack claude`**, **`opencode`**, **`codex`**, **`agent`**) run a **fast pre-sync** when **`agentpack.toml`**, **`pack.lock`**, and **`./.agents/`** are unchanged since the last successful launch sync: they verify cache + staging integrity and **skip** full lock resolve, re-download, and staging rebuild. Floating pins (branch / floating semver) therefore **do not advance** on launch alone — run **`agentpack sync`** or **`agentpack lock`** when you need **`pack.lock`** refreshed from the manifest.
@@ -262,7 +267,7 @@ env = { API_KEY = "sk-..." }
 ### `pack.lock` sketch (v2)
 
 ```toml
-lockfile-version = 2
+lockfile_version = 2
 
 [meta]
 name = "myproj"

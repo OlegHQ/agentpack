@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/OlegHQ/agentpack/internal/paths"
 	"github.com/pelletier/go-toml/v2"
@@ -58,7 +59,7 @@ func (pkg Package) NeedsBackfill() bool {
 }
 
 type PackLock struct {
-	LockfileVersion uint32    `toml:"lockfile-version"`
+	LockfileVersion uint32    `toml:"lockfile_version"`
 	Meta            Meta      `toml:"meta"`
 	Config          Config    `toml:"config,omitempty"`
 	Packages        []Package `toml:"packages,omitempty"`
@@ -67,10 +68,11 @@ type PackLock struct {
 // diskLock uses a pointer so the empty config table is omitted exactly as it
 // is by the canonical writer. PackLock keeps the friendlier concrete value in code.
 type diskLock struct {
-	LockfileVersion uint32    `toml:"lockfile-version"`
-	Meta            Meta      `toml:"meta"`
-	Config          *Config   `toml:"config,omitempty"`
-	Packages        []Package `toml:"packages,omitempty"`
+	LockfileVersion       uint32    `toml:"lockfile_version"`
+	LegacyLockfileVersion uint32    `toml:"lockfile-version,omitempty"`
+	Meta                  Meta      `toml:"meta"`
+	Config                *Config   `toml:"config,omitempty"`
+	Packages              []Package `toml:"packages,omitempty"`
 }
 
 func EmptyForProject(projectRoot string) PackLock {
@@ -94,10 +96,23 @@ func LoadFromPath(path string) (PackLock, error) {
 	var disk diskLock
 	decoder := toml.NewDecoder(file).DisallowUnknownFields()
 	if err := decoder.Decode(&disk); err != nil {
+		var unknown *toml.StrictMissingError
+		if errors.As(err, &unknown) {
+			fields := make([]string, 0, len(unknown.Errors))
+			for _, item := range unknown.Errors {
+				fields = append(fields, strings.Join(item.Key(), "."))
+			}
+			return PackLock{}, fmt.Errorf("parse lockfile: unsupported field(s) %s in %s; run `agentpack lock` to regenerate it", strings.Join(fields, ", "), path)
+		}
 		return PackLock{}, fmt.Errorf("parse lockfile: %w", err)
 	}
+	if disk.LockfileVersion == 0 {
+		disk.LockfileVersion = disk.LegacyLockfileVersion
+	} else if disk.LegacyLockfileVersion != 0 && disk.LegacyLockfileVersion != disk.LockfileVersion {
+		return PackLock{}, fmt.Errorf("parse lockfile: conflicting lockfile_version values in %s", path)
+	}
 	if disk.LockfileVersion != Version {
-		return PackLock{}, fmt.Errorf("parse lockfile: unsupported lockfile-version %d (expected %d); run `agentpack lock` to regenerate %s", disk.LockfileVersion, Version, path)
+		return PackLock{}, fmt.Errorf("parse lockfile: unsupported lockfile_version %d (expected %d); run `agentpack lock` to regenerate %s", disk.LockfileVersion, Version, path)
 	}
 	lock := PackLock{LockfileVersion: disk.LockfileVersion, Meta: disk.Meta, Packages: disk.Packages}
 	if disk.Config != nil {
