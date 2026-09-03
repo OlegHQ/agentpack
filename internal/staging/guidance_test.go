@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	base "github.com/OlegHQ/agentpack/internal/harness"
 )
 
 func TestWriteGuidancePreservesUserContentAndIsIdempotent(t *testing.T) {
@@ -12,10 +14,10 @@ func TestWriteGuidancePreservesUserContentAndIsIdempotent(t *testing.T) {
 	if err := os.WriteFile(path, []byte("# User\n\nKeep me.\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := WriteGuidance(path, "first"); err != nil {
+	if err := base.WriteGuidance(path, "first"); err != nil {
 		t.Fatal(err)
 	}
-	if err := WriteGuidance(path, "second"); err != nil {
+	if err := base.WriteGuidance(path, "second"); err != nil {
 		t.Fatal(err)
 	}
 	data, _ := os.ReadFile(path)
@@ -23,7 +25,7 @@ func TestWriteGuidancePreservesUserContentAndIsIdempotent(t *testing.T) {
 	if !strings.Contains(output, "Keep me.") || !strings.Contains(output, "second") || strings.Contains(output, "first") {
 		t.Fatalf("output = %q", output)
 	}
-	if strings.Count(output, guidanceBegin) != 1 {
+	if strings.Count(output, "<!-- agentpack:guidance:begin -->") != 1 {
 		t.Fatalf("markers = %q", output)
 	}
 }

@@ -14,11 +14,6 @@ import (
 	"github.com/OlegHQ/agentpack/internal/paths"
 )
 
-const (
-	guidanceBegin = "<!-- agentpack:guidance:begin -->"
-	guidanceEnd   = "<!-- agentpack:guidance:end -->"
-)
-
 func CollectGuidance(projectRoot string, lock lockfile.PackLock, effective mode.Effective) (string, error) {
 	var rules []*artifacts.Markdown
 	plugins := lock.Plugins()
@@ -99,34 +94,4 @@ func collectRules(root string, allowed func(string) (bool, error)) ([]*artifacts
 		return nil
 	})
 	return rules, err
-}
-
-func WriteGuidance(path, blob string) error {
-	existing, _ := os.ReadFile(path)
-	base := stripPriorGuidance(string(existing))
-	output := strings.TrimRight(base, "\n")
-	if output == "" {
-		output = "# AGENTS.md"
-	}
-	output += "\n\n" + guidanceBegin + "\n" + strings.TrimSpace(blob) + "\n" + guidanceEnd + "\n"
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return fmt.Errorf("create guidance parent: %w", err)
-	}
-	if err := os.WriteFile(path, []byte(output), 0o644); err != nil {
-		return fmt.Errorf("write guidance %s: %w", path, err)
-	}
-	return nil
-}
-
-func stripPriorGuidance(text string) string {
-	begin := strings.Index(text, guidanceBegin)
-	if begin < 0 {
-		return text
-	}
-	relativeEnd := strings.Index(text[begin:], guidanceEnd)
-	if relativeEnd < 0 {
-		return text
-	}
-	end := begin + relativeEnd + len(guidanceEnd)
-	return strings.TrimRight(text[:begin], "\n") + strings.TrimLeft(text[end:], "\n")
 }
