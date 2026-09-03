@@ -108,6 +108,10 @@ func (catalog CapabilityCatalog) Validate(selector mode.Selector) error {
 	return nil
 }
 
+func (catalog CapabilityCatalog) ValidateSelector(selector mode.Selector) error {
+	return catalog.Validate(selector)
+}
+
 func packagePaths(pkg lockfile.Package) (map[string]struct{}, error) {
 	if pkg.CacheKey == "" {
 		return map[string]struct{}{}, nil

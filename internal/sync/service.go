@@ -13,6 +13,7 @@ import (
 	"github.com/OlegHQ/agentpack/internal/lockfile"
 	"github.com/OlegHQ/agentpack/internal/manifest"
 	"github.com/OlegHQ/agentpack/internal/mode"
+	"github.com/OlegHQ/agentpack/internal/modecatalog"
 	"github.com/OlegHQ/agentpack/internal/paths"
 	"github.com/OlegHQ/agentpack/internal/resolve"
 	"github.com/OlegHQ/agentpack/internal/staging"
@@ -166,7 +167,7 @@ func (service Service) Sync(ctx context.Context, projectRoot string, options Syn
 	if err != nil {
 		return SyncResult{}, err
 	}
-	effective, err := resolveMode(project, options.Mode)
+	effective, err := resolveMode(projectRoot, project, &lock, options.Mode)
 	if err != nil {
 		return SyncResult{}, err
 	}
@@ -250,7 +251,7 @@ func (service Service) SyncForLaunch(ctx context.Context, projectRoot, selectedM
 	if err != nil {
 		return mode.Effective{}, false, err
 	}
-	effective, err := resolveMode(project, selectedMode)
+	effective, err := resolveMode(projectRoot, project, &lock, selectedMode)
 	if err != nil {
 		return mode.Effective{}, false, err
 	}
@@ -280,7 +281,7 @@ func (service Service) SyncForLaunch(ctx context.Context, projectRoot, selectedM
 	}
 	return effective, false, nil
 }
-func resolveMode(project *manifest.Manifest, name string) (mode.Effective, error) {
+func resolveMode(projectRoot string, project *manifest.Manifest, lock *lockfile.PackLock, name string) (mode.Effective, error) {
 	if name == "" {
 		name = mode.DefaultName
 	}
@@ -294,7 +295,11 @@ func resolveMode(project *manifest.Manifest, name string) (mode.Effective, error
 	} else if name != mode.DefaultName {
 		return mode.Effective{}, fmt.Errorf("unknown mode: %s", name)
 	}
-	return mode.NewEffective(name, definition, nil)
+	catalog, err := modecatalog.BuildCapabilityCatalog(projectRoot, lock, project)
+	if err != nil {
+		return mode.Effective{}, fmt.Errorf("build mode capability catalog: %w", err)
+	}
+	return mode.NewEffective(name, definition, catalog)
 }
 func ensureProjectFiles(root string) error {
 	if project, err := manifest.Load(root); err != nil {

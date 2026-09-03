@@ -36,7 +36,7 @@ func TestCacheIndexRoundTrip(t *testing.T) {
 		t.Fatalf("LookupAlias() = %q, %v, %v", key, found, err)
 	}
 	databasePath, err := paths.CacheDBPath()
-	if err != nil || databasePath != home+string(filepath.Separator)+"cache"+string(filepath.Separator)+"db.bbolt" {
+	if err != nil || databasePath != home+string(filepath.Separator)+"cache"+string(filepath.Separator)+"db.reddb" {
 		t.Fatalf("CacheDBPath() = %q, %v", databasePath, err)
 	}
 }

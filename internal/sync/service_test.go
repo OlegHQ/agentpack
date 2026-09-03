@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	base "github.com/OlegHQ/agentpack/internal/harness"
@@ -99,5 +100,22 @@ func TestServiceDryRunDoesNotBuildStaging(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(os.Getenv("AGENTPACK_STAGING_ROOT"), "modes")); !os.IsNotExist(err) {
 		t.Fatal("dry run created staging")
+	}
+}
+
+func TestServiceRejectsModeSelectorsMissingFromCapabilityCatalog(t *testing.T) {
+	project := t.TempDir()
+	t.Setenv("AGENTPACK_HOME", t.TempDir())
+	t.Setenv("AGENTPACK_STAGING_ROOT", t.TempDir())
+	contents := "name = \"demo\"\nversion = \"0.0.1\"\n\n[dependencies]\n\n[modes.default]\nbase = \"all\"\ndisable = [\"package:github.com/example/missing\"]\n"
+	if err := os.WriteFile(filepath.Join(project, "agentpack.toml"), []byte(contents), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := lockfile.Init(project, "demo", "0.0.1"); err != nil {
+		t.Fatal(err)
+	}
+	_, err := NewService().Sync(context.Background(), project, SyncOptions{DryRun: true})
+	if err == nil || !strings.Contains(err.Error(), "unknown package selector target") {
+		t.Fatalf("Sync() error = %v", err)
 	}
 }

@@ -71,7 +71,7 @@ func underHome(parts ...string) (string, error) {
 }
 
 func CacheDir() (string, error)          { return underHome("cache") }
-func CacheDBPath() (string, error)       { return underHome("cache", "db.bbolt") }
+func CacheDBPath() (string, error)       { return underHome("cache", "db.reddb") }
 func LocalRegistryRoot() (string, error) { return underHome("local") }
 
 func LocalMirrorPathFromShorthand(spec string) (string, error) {
