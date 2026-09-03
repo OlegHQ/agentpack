@@ -1,60 +1,71 @@
-# Local build / install + version bump. Binaries, the Homebrew formula (-> OlegHQ/homebrew-tap), and
-# the GitHub release are built and published by cargo-dist on tag push — see dist-workspace.toml and
-# .github/workflows/release.yml.
-
-CARGO ?= cargo
+GO ?= go
+GOFMT ?= gofmt
+GORELEASER ?= goreleaser
 INSTALL_DIR ?= $(HOME)/.local/bin
 BINARY := agentpack
-RELEASE_BIN := target/release/$(BINARY)
+BUILD_DIR := bin
+RELEASE_BIN := $(BUILD_DIR)/$(BINARY)
 RELEASE_BRANCH ?= dev
+VERSION := $(shell sed -n 's/^var Version = "\([^"]*\)"/\1/p' internal/cli/run.go)
 
-.PHONY: help all build release install uninstall minor patch ship-minor ship-patch _ship check-clean fmt lint ci hooks
+.PHONY: help all build release install uninstall minor patch ship-minor ship-patch _ship check-clean fmt fmt-check lint test race ci hooks release-check
 
 .DEFAULT_GOAL := help
 
 help:
-	@echo "Local build / install (e.g. Linux without brew):"
-	@echo "  all, release    cargo build --release"
-	@echo "  build           cargo build (debug)"
+	@echo "Local build / install:"
+	@echo "  all, release    build an optimized agentpack binary"
+	@echo "  build           build agentpack"
 	@echo "  install         release, then copy binary to INSTALL_DIR ($(INSTALL_DIR))"
 	@echo "  uninstall       remove binary from INSTALL_DIR"
 	@echo ""
 	@echo "Quality gates (same checks CI runs):"
-	@echo "  fmt             cargo fmt --all (auto-format)"
-	@echo "  lint            cargo clippy --all-targets -- -D warnings"
-	@echo "  ci              run the full CI gate locally (fmt --check + clippy + test)"
-	@echo "  hooks           install git hooks (core.hooksPath -> .githooks) so the gate runs pre-commit/pre-push"
+	@echo "  fmt             format all Go files"
+	@echo "  lint            run go vet"
+	@echo "  test            run the full Go test suite"
+	@echo "  race            run tests with the race detector"
+	@echo "  ci              fmt-check + vet + test + race + build"
+	@echo "  release-check   validate and snapshot-build GoReleaser artifacts"
+	@echo "  hooks           install tracked git hooks"
 	@echo ""
-	@echo "Release — cargo-dist builds binaries + Homebrew formula + GitHub release on tag push:"
-	@echo "  minor / patch   bump Cargo.toml semver only"
-	@echo "  ship-minor      bump minor, commit, tag v\$$v, push $(RELEASE_BRANCH) + tag (triggers CI)"
-	@echo "  ship-patch      bump patch, commit, tag v\$$v, push $(RELEASE_BRANCH) + tag (triggers CI)"
-	@echo "Env: RELEASE_BRANCH=$(RELEASE_BRANCH) INSTALL_DIR=$(INSTALL_DIR) CARGO=$(CARGO)"
+	@echo "Release — GoReleaser publishes archives, checksums, GitHub release, and Homebrew cask:"
+	@echo "  minor / patch   bump the embedded semantic version"
+	@echo "  ship-minor      bump minor, commit, tag, push $(RELEASE_BRANCH) + tag"
+	@echo "  ship-patch      bump patch, commit, tag, push $(RELEASE_BRANCH) + tag"
+	@echo "Env: RELEASE_BRANCH=$(RELEASE_BRANCH) INSTALL_DIR=$(INSTALL_DIR) GO=$(GO) GORELEASER=$(GORELEASER)"
 
 all: release
 
 build:
-	$(CARGO) build
+	$(GO) build -o "$(RELEASE_BIN)" ./cmd/agentpack
+
+release:
+	CGO_ENABLED=0 $(GO) build -trimpath -ldflags "-s -w -X github.com/OlegHQ/agentpack/internal/cli.Version=$(VERSION)" -o "$(RELEASE_BIN)" ./cmd/agentpack
 
 fmt:
-	$(CARGO) fmt --all
+	$(GOFMT) -w $$(find . -name '*.go' -not -path './vendor/*')
+
+fmt-check:
+	@test -z "$$($(GOFMT) -l $$(find . -name '*.go' -not -path './vendor/*'))" || { $(GOFMT) -l $$(find . -name '*.go' -not -path './vendor/*'); exit 1; }
 
 lint:
-	$(CARGO) clippy --all-targets -- -D warnings
+	$(GO) vet ./...
 
-# Mirror .github/workflows/ci.yml so a green `make ci` means green CI.
-ci:
-	$(CARGO) fmt --all -- --check
-	$(CARGO) clippy --all-targets -- -D warnings
-	$(CARGO) test
+test:
+	$(GO) test ./...
 
-# Point git at the tracked hooks in .githooks/ (one-time, per clone).
+race:
+	$(GO) test -race ./...
+
+ci: fmt-check lint test race build
+
+release-check:
+	$(GORELEASER) check
+	$(GORELEASER) release --snapshot --clean --skip=publish
+
 hooks:
 	git config core.hooksPath .githooks
 	@echo "git hooks installed (core.hooksPath -> .githooks)"
-
-release:
-	$(CARGO) build --release
 
 install: release
 	mkdir -p "$(INSTALL_DIR)"
@@ -65,33 +76,35 @@ uninstall:
 	rm -f "$(INSTALL_DIR)/$(BINARY)"
 
 minor:
-	$(CARGO) xtask bump-version minor
-	@echo "Cargo.toml version -> $$($(CARGO) xtask read-version)"
+	@$(MAKE) _bump PART=minor
 
 patch:
-	$(CARGO) xtask bump-version patch
-	@echo "Cargo.toml version -> $$($(CARGO) xtask read-version)"
+	@$(MAKE) _bump PART=patch
+
+_bump:
+	@awk -v part="$(PART)" 'BEGIN { FS=OFS="." } /^var Version = "/ { match($$0, /[0-9]+\.[0-9]+\.[0-9]+/); v=substr($$0,RSTART,RLENGTH); split(v,a,"."); if (part=="minor") { a[2]++; a[3]=0 } else { a[3]++ } sub(v,a[1] "." a[2] "." a[3]) } { print }' internal/cli/run.go > internal/cli/run.go.tmp
+	@mv internal/cli/run.go.tmp internal/cli/run.go
+	@$(GOFMT) -w internal/cli/run.go
+	@echo "version -> $$(sed -n 's/^var Version = "\([^"]*\)"/\1/p' internal/cli/run.go)"
 
 check-clean:
 	@git diff-index --quiet HEAD -- || (echo "error: dirty working tree (commit or stash first)"; exit 1)
 
 ship-minor: check-clean
-	$(CARGO) xtask bump-version minor
+	@$(MAKE) _bump PART=minor
 	@$(MAKE) _ship
 
 ship-patch: check-clean
-	$(CARGO) xtask bump-version patch
+	@$(MAKE) _bump PART=patch
 	@$(MAKE) _ship
 
-# Refresh Cargo.lock, commit, tag, push branch + tag. The tag push triggers cargo-dist's release
-# workflow (per-platform binaries, the Homebrew formula, and the GitHub release).
 _ship:
 	@set -e; \
-	v=$$($(CARGO) xtask read-version); \
-	$(CARGO) build >/dev/null 2>&1; \
-	git add Cargo.toml Cargo.lock; \
+	v=$$(sed -n 's/^var Version = "\([^"]*\)"/\1/p' internal/cli/run.go); \
+	$(GO) test ./...; \
+	git add internal/cli/run.go; \
 	git commit -m "chore(release): v$$v"; \
 	git tag -a "v$$v" -m "v$$v"; \
 	git push origin "$(RELEASE_BRANCH)"; \
 	git push origin "v$$v"; \
-	echo "Pushed v$$v — cargo-dist CI will publish binaries, the Homebrew formula, and the GitHub release."
+	echo "Pushed v$$v — GoReleaser CI will publish binaries, checksums, the Homebrew cask, and the GitHub release."

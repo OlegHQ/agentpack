@@ -29,18 +29,6 @@ cache_key = "af38e50122e8da8dc3fd6fdc20ea217bf94361a17d8744573b727d7efe6cf12d"
 name = ""
 
 [[packages]]
-module = "github.com/oleghq/agent-configs/plugins/rust-dev"
-direct = true
-kind = "plugin"
-url = "https://github.com/oleghq/agent-configs/tree/281d30f17f215d5d6cdb55cbcb7456ae4ca952f1/plugins/rust-dev"
-owner = "oleghq"
-repo = "agent-configs"
-path = "plugins/rust-dev"
-commit = "281d30f17f215d5d6cdb55cbcb7456ae4ca952f1"
-cache_key = "89170b374d4289c4cf1f9a37f30ee9b32b676a0297b5eb234daeaa08fc9d840d"
-name = ""
-
-[[packages]]
 module = "github.com/oleghq/agent-configs/plugins/simplifier"
 direct = true
 kind = "plugin"

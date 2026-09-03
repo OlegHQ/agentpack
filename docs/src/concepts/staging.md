@@ -38,7 +38,7 @@ Each mode gets its own subtree under `modes/<mode>/`, and each harness gets a di
 
 A launcher points its harness at the right subtree by setting an environment variable or CLI flag before exec-ing the binary — `claude --plugin-dir …`, `OPENCODE_CONFIG_DIR`, `CODEX_HOME`, `GROK_HOME`, a fake `HOME` for Cursor, a workspace `--add-dir` for Antigravity. The [harness guides](../harnesses/claude.md) cover each one.
 
-Mutable resume state is kept outside disposable staging. Codex session directories, prompt history, and SQLite indexes resolve to `~/.codex`; Grok sessions resolve to `~/.grok/sessions`; Cursor state resolves through its real data directory. Claude, OpenCode, and Antigravity already keep session data in their native user locations because agentpack does not redirect those data roots.
+Mutable state is kept outside disposable staging. Codex session directories, prompt history, and SQLite indexes resolve to `~/.codex`, while project-scoped MCP OAuth credentials resolve under `$AGENTPACK_HOME/projects/<hash>/codex-mcp-oauth/`; Grok sessions resolve to `~/.grok/sessions`; Cursor state resolves through its real data directory. Claude, OpenCode, and Antigravity already keep session data in their native user locations because agentpack does not redirect those data roots.
 
 ## What a bundle contains
 

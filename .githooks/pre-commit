@@ -5,11 +5,9 @@
 # Installed via `make hooks` (sets core.hooksPath to .githooks). Bypass a single
 # commit with `git commit --no-verify` if you really need to.
 
-CARGO=${CARGO:-cargo}
-
-if ! "$CARGO" fmt --all -- --check; then
+if ! make fmt-check; then
     echo
-    echo "pre-commit: rustfmt found unformatted code (this is what fails CI)."
+    echo "pre-commit: gofmt found unformatted code (this is what fails CI)."
     echo "            run 'make fmt' to fix, then re-commit."
     exit 1
 fi

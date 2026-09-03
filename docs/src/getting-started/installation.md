@@ -1,48 +1,43 @@
 # Installation
 
-agentpack ships as a single binary. The recommended path is Homebrew; everything else builds from source with a Rust toolchain.
+agentpack ships as a single binary. The recommended path is Homebrew; source builds use the Go toolchain.
 
 ## Homebrew (macOS and Linux)
 
 ```sh
-brew install OlegHQ/tap/agentpack
+brew install --cask OlegHQ/tap/agentpack
 ```
 
-That one line taps `OlegHQ/homebrew-tap` and installs the formula. The two-step form works too:
+That one line taps `OlegHQ/homebrew-tap` and installs the cask. The two-step form works too:
 
 ```sh
 brew tap OlegHQ/tap
-brew install agentpack
+brew install --cask agentpack
 ```
 
 Upgrade later with:
 
 ```sh
-brew upgrade agentpack
+brew upgrade --cask agentpack
 ```
 
-## Prebuilt binaries and the shell installer
+## Prebuilt binaries
 
-Each release publishes prebuilt binaries for macOS (arm64, x86_64), Linux (x86_64, arm64), and Windows (x86_64), built by [cargo-dist](https://github.com/axodotdev/cargo-dist). The release page carries a `curl | sh` installer:
-
-```sh
-curl --proto '=https' --tlsv1.2 -LsSf \
-  https://github.com/OlegHQ/agentpack/releases/latest/download/agentpack-installer.sh | sh
-```
+Each release publishes GoReleaser archives for macOS (arm64, x86_64), Linux (x86_64, arm64), and Windows (x86_64), plus a SHA-256 `checksums.txt` file.
 
 Pick a specific version from the [releases page](https://github.com/OlegHQ/agentpack/releases) if you don't want `latest`.
 
 ## From source
 
-You need a Rust toolchain (edition 2021). Install [`rustup`](https://rustup.rs) if you don't have one, then:
+You need Go 1.24 or newer, then:
 
 ```sh
 git clone https://github.com/OlegHQ/agentpack.git
 cd agentpack
-cargo install --path .
+go install ./cmd/agentpack
 ```
 
-This drops the `agentpack` binary in `~/.cargo/bin/`; make sure that directory is on your `PATH`. The repo's `Makefile` also offers `make install`, which builds in release mode and copies the binary to `~/.local/bin` (override with `make install INSTALL_DIR=/usr/local/bin`).
+This installs `agentpack` under `GOBIN` (or the default Go bin directory); make sure that directory is on your `PATH`. The repo's `Makefile` also offers `make install`, which builds a stripped binary and copies it to `~/.local/bin` (override with `make install INSTALL_DIR=/usr/local/bin`).
 
 ## Verify
 

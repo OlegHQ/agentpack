@@ -26,6 +26,10 @@ Codex stores OAuth/API material in `auth.json` or in the OS keychain, keyed by t
 
 The staged `config.toml` is forced to `cli_auth_credentials_store = "file"`, so every project shares refresh-token updates through that one file.
 
+MCP server OAuth is separate from the main Codex login. agentpack stores those tokens per project under `$AGENTPACK_HOME/projects/<hash>/codex-mcp-oauth/.credentials.json`, links every mode's staged home to that file, and forces `mcp_oauth_credentials_store = "file"`. The accompanying `mcp-oauth-locks/` directory is shared too, so concurrent modes serialize token refreshes correctly. MCP login therefore survives `add`, `sync`, staging rebuilds, and temp-directory cleanup without leaking credentials into another project.
+
+After upgrading to this layout, an MCP credential that existed only in the OS keyring or Codex's encrypted secrets backend requires one final login. Legacy staged `.credentials.json` files are recovered automatically.
+
 ## Session history
 
 The staged home is disposable, but Codex resume state is not. agentpack links staged `sessions/`, `archived_sessions/`, and `history.jsonl` to their native locations under `~/.codex/`, and defaults `sqlite_home` to `~/.codex`. Sessions created through agentpack therefore appear in direct `codex resume` and survive staging cleanup, project/mode changes, and machine restarts.
@@ -37,6 +41,8 @@ On the first sync after upgrading, agentpack imports surviving history from ever
 ```text
 codex-home/
   auth.json -> ~/.codex/auth.json | $AGENTPACK_HOME/shared/codex/auth.json
+  .credentials.json -> $AGENTPACK_HOME/projects/<hash>/codex-mcp-oauth/.credentials.json
+  mcp-oauth-locks/ -> $AGENTPACK_HOME/projects/<hash>/codex-mcp-oauth/mcp-oauth-locks/
   sessions/ -> ~/.codex/sessions/
   archived_sessions/ -> ~/.codex/archived_sessions/
   history.jsonl -> ~/.codex/history.jsonl
@@ -64,7 +70,7 @@ Attribution is forced off via `commit_attribution = ""` in the staged `config.to
 | Variable | Effect |
 |---|---|
 | `CODEX_PATH` | Path to the `codex` binary |
-| `AGENTPACK_HOME` | Cache/state root; also holds the shared Codex auth file when keychain bridging is needed |
+| `AGENTPACK_HOME` | Cache/state root; also holds shared Codex login state and project-scoped MCP OAuth state |
 | `AGENTPACK_STAGING_ROOT` | Override the staging root |
 
 See [Environment Variables](../reference/env-vars.md) for the complete list.

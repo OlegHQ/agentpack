@@ -1,20 +1,12 @@
 #!/bin/sh
-# agentpack pre-push hook — run the full CI gate (format + clippy) before pushing,
-# so a push never lands a red build. Mirrors the `Format` and `Clippy` jobs in
+# agentpack pre-push hook — run the full CI gate before pushing,
+# so a push never lands a red build. Mirrors .github/workflows/ci.yml.
 # .github/workflows/ci.yml.
 #
 # Installed via `make hooks`. Bypass once with `git push --no-verify`.
 
-CARGO=${CARGO:-cargo}
-
-echo "pre-push: cargo fmt --all -- --check"
-if ! "$CARGO" fmt --all -- --check; then
-    echo "pre-push: unformatted code — run 'make fmt'." >&2
-    exit 1
-fi
-
-echo "pre-push: cargo clippy --all-targets -- -D warnings"
-if ! "$CARGO" clippy --all-targets -- -D warnings; then
-    echo "pre-push: clippy failed — fix the warnings above." >&2
+echo "pre-push: make ci"
+if ! make ci; then
+    echo "pre-push: Go CI gate failed — fix the errors above." >&2
     exit 1
 fi

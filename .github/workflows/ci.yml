@@ -6,48 +6,60 @@ on:
   pull_request:
     branches: [main, master, dev]
 
-env:
-  CARGO_TERM_COLOR: always
+permissions:
+  contents: read
 
 jobs:
-  check:
-    name: Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo check --all-targets
-
   test:
-    name: Test
+    name: Go (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo test
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Format check
+        shell: bash
+        run: |
+          start=$(date +%s)
+          files=$(gofmt -l $(find . -name '*.go' -not -path './vendor/*'))
+          test -z "$files" || { printf '%s\n' "$files"; exit 1; }
+          echo "format_seconds=$(($(date +%s)-start))"
+      - name: Vet
+        shell: bash
+        run: |
+          start=$(date +%s)
+          go vet ./...
+          echo "vet_seconds=$(($(date +%s)-start))"
+      - name: Test
+        shell: bash
+        run: |
+          start=$(date +%s)
+          go test ./...
+          echo "test_seconds=$(($(date +%s)-start))"
+      - name: Build
+        shell: bash
+        run: |
+          start=$(date +%s)
+          go build ./cmd/agentpack
+          echo "build_seconds=$(($(date +%s)-start))"
 
-  fmt:
-    name: Format
+  race:
+    name: Race detector
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-go@v5
         with:
-          components: rustfmt
-      - run: cargo fmt --all -- --check
-
-  clippy:
-    name: Clippy
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo clippy --all-targets -- -D warnings
+          go-version-file: go.mod
+          cache: true
+      - name: Race tests
+        run: |
+          start=$(date +%s)
+          go test -race ./...
+          echo "race_seconds=$(($(date +%s)-start))"

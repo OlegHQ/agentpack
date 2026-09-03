@@ -12,6 +12,7 @@
 | `-q`, `--quiet` | Only print warnings and errors |
 | `--no-progress` | Disable spinners and progress bars |
 | `--debug` | Print launcher diagnostics (workspace paths, env overrides, fast-sync skip reason) |
+| `--proxy` | Run `agentpack claude` through the supervised Anthropic-compatible Codex proxy |
 | `-h`, `--help` | Print help |
 | `-V`, `--version` | Print the agentpack version |
 
@@ -83,6 +84,7 @@ Each launcher runs a fast pre-sync, stages for its harness, and execs the binary
 
 ```sh
 agentpack claude --model opus
+agentpack --proxy claude
 agentpack --yolo codex
 agentpack --mode writing claude
 ```

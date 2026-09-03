@@ -12,8 +12,8 @@
   <a href="https://oleghq.github.io/agentpack"><img alt="Documentation" src="https://img.shields.io/badge/docs-oleghq.github.io-1f6feb.svg"></a>
   <a href="https://nexo.sh/posts/agentpack/"><img alt="Writeup" src="https://img.shields.io/badge/writeup-nexo.sh-ff6b6b.svg"></a>
   <a href="https://github.com/OlegHQ/agentpack/blob/dev/LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
-  <a href="https://github.com/OlegHQ/agentpack/releases"><img alt="Version" src="https://img.shields.io/badge/version-v0.3.12-blue.svg"></a>
-  <a href="https://github.com/OlegHQ/agentpack"><img alt="Built with Rust" src="https://img.shields.io/badge/built_with-Rust-dea584.svg"></a>
+  <a href="https://github.com/OlegHQ/agentpack/releases"><img alt="Version" src="https://img.shields.io/badge/version-v0.3.13-blue.svg"></a>
+  <a href="https://github.com/OlegHQ/agentpack"><img alt="Built with Go" src="https://img.shields.io/badge/built_with-Go-00ADD8.svg"></a>
 </p>
 
 <p align="center">
@@ -25,10 +25,10 @@
 </p>
 
 ```sh
-brew install OlegHQ/tap/agentpack
+brew install --cask OlegHQ/tap/agentpack
 ```
 
-<p align="center"><sub>Prefer a script, prebuilt binary, or Cargo? See <a href="#install">all install options</a>.</sub></p>
+<p align="center"><sub>Prefer a prebuilt binary or source build? See <a href="#install">all install options</a>.</sub></p>
 
 ---
 
@@ -52,23 +52,11 @@ Prebuilt binaries are published for every release. Pick whichever fits your plat
 ### Homebrew — macOS & Linux (recommended)
 
 ```bash
-brew install OlegHQ/tap/agentpack
+brew install --cask OlegHQ/tap/agentpack
 ```
 
-Upgrade with `brew upgrade agentpack`. Served from the shared tap
-[OlegHQ/homebrew-tap](https://github.com/OlegHQ/homebrew-tap) (`brew tap OlegHQ/tap && brew install agentpack` also works).
-
-### Install script — macOS & Linux
-
-```bash
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/OlegHQ/agentpack/releases/latest/download/agentpack-installer.sh | sh
-```
-
-### Install script — Windows (PowerShell)
-
-```powershell
-powershell -ExecutionPolicy Bypass -c "irm https://github.com/OlegHQ/agentpack/releases/latest/download/agentpack-installer.ps1 | iex"
-```
+Upgrade with `brew upgrade --cask agentpack`. Served from the shared tap
+[OlegHQ/homebrew-tap](https://github.com/OlegHQ/homebrew-tap) (`brew tap OlegHQ/tap && brew install --cask agentpack` also works).
 
 ### Prebuilt binaries
 
@@ -76,23 +64,23 @@ Download an archive for your platform from the [latest release](https://github.c
 
 | Platform | Target |
 | --- | --- |
-| macOS (Apple Silicon) | `aarch64-apple-darwin` |
-| macOS (Intel) | `x86_64-apple-darwin` |
-| Linux (x86-64) | `x86_64-unknown-linux-gnu` |
-| Linux (ARM64) | `aarch64-unknown-linux-gnu` |
-| Windows (x86-64) | `x86_64-pc-windows-msvc` |
+| macOS (Apple Silicon) | `darwin_arm64` |
+| macOS (Intel) | `darwin_amd64` |
+| Linux (x86-64) | `linux_amd64` |
+| Linux (ARM64) | `linux_arm64` |
+| Windows (x86-64) | `windows_amd64` |
 
-Each archive ships with a `.sha256` checksum; `sha256.sum` and a signed `dist-manifest.json` cover the whole release.
+Each release includes a SHA-256 `checksums.txt` covering every archive.
 
 ### From source
 
 ```bash
-cargo install --path .
+go install ./cmd/agentpack
 # or
 make install   # release build to ~/.local/bin (override: make install INSTALL_DIR=/usr/local/bin)
 ```
 
-**Prerequisites (source builds only):** Rust toolchain (edition 2021). Optional: [GitHub CLI](https://cli.github.com/) for release automation.
+**Prerequisites (source builds only):** Go 1.24 or newer.
 
 ## Quick Start
 
@@ -129,7 +117,7 @@ agentpack --proxy claude
 ```
 
 Authentication is resolved from `OPENAI_API_KEY` first, then from Codex auth (`~/.codex/auth.json`,
-the Codex keychain entry, or agentpack's shared Codex auth file). The Rust proxy core is ported from
+the Codex keychain entry, or agentpack's shared Codex auth file). The Go proxy core follows
 the Codex/OpenAI path in [raine/claude-code-proxy](https://github.com/raine/claude-code-proxy);
 thanks to [@raine](https://github.com/raine) for the original project and reference behavior.
 
@@ -235,10 +223,10 @@ For internals, [AGENTS.md](AGENTS.md) is the contributor-facing source of truth:
 
 ## Releasing (maintainers)
 
-Releases are automated by [cargo-dist](https://github.com/axodotdev/cargo-dist): pushing a `v*` tag
-triggers `.github/workflows/release.yml`, which builds per-platform binaries (macOS arm64/x86_64,
-Linux x86_64/arm64, Windows x86_64), creates the GitHub Release with those assets + a `curl | sh`
-installer, and pushes the generated Homebrew formula to [OlegHQ/homebrew-tap](https://github.com/OlegHQ/homebrew-tap).
+Releases are automated by [GoReleaser](https://goreleaser.com): pushing a `v*` tag triggers
+`.github/workflows/release.yml`, which builds per-platform binaries (macOS arm64/x86_64, Linux
+x86_64/arm64, Windows x86_64), creates archives and checksums, publishes the GitHub Release, and
+pushes the generated Homebrew cask to [OlegHQ/homebrew-tap](https://github.com/OlegHQ/homebrew-tap).
 
 | Goal | Command |
 |---|---|
@@ -247,7 +235,7 @@ installer, and pushes the generated Homebrew formula to [OlegHQ/homebrew-tap](ht
 | Bump version only (no release) | `make minor` / `make patch` |
 
 Requires a repo secret **`HOMEBREW_TAP_TOKEN`** (a PAT with write access to `OlegHQ/homebrew-tap`) so
-CI can push the formula across repos.
+CI can push the cask across repos.
 
 ## License
 

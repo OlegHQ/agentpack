@@ -1,0 +1,79 @@
+version: 2
+
+project_name: agentpack
+
+before:
+  hooks:
+    - go mod verify
+    - go test ./...
+
+builds:
+  - id: agentpack
+    main: ./cmd/agentpack
+    binary: agentpack
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X github.com/OlegHQ/agentpack/internal/cli.Version={{ .Version }}
+
+archives:
+  - id: agentpack
+    ids:
+      - agentpack
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+
+release:
+  github:
+    owner: OlegHQ
+    name: agentpack
+
+homebrew_casks:
+  - name: agentpack
+    ids:
+      - agentpack
+    binaries:
+      - agentpack
+    repository:
+      owner: OlegHQ
+      name: homebrew-tap
+      token: '{{ .Env.HOMEBREW_TAP_TOKEN }}'
+    directory: Casks
+    homepage: https://github.com/OlegHQ/agentpack
+    description: Pin and stage agent skills and plugins reproducibly
+    commit_author:
+      name: agentpack release bot
+      email: actions@github.com
