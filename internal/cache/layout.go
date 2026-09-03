@@ -104,6 +104,12 @@ func SourceFiles(root string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("resolve source root %s: %w", root, err)
 	}
+	// Canonicalize platform aliases before comparing this path with Git's
+	// worktree root. macOS commonly exposes /var through the /private/var
+	// symlink while `git rev-parse` reports the canonical spelling.
+	if canonical, evalErr := filepath.EvalSymlinks(root); evalErr == nil {
+		root = canonical
+	}
 	var files []string
 	err = filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
 		if walkErr != nil {
