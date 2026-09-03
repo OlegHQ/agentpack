@@ -15,4 +15,5 @@ require (
 	github.com/gofrs/flock v0.13.0 // indirect
 	github.com/zalando/go-keyring v0.2.8 // indirect
 	golang.org/x/sys v0.37.0 // indirect
+	golang.org/x/term v0.36.0 // indirect
 )

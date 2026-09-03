@@ -7,6 +7,7 @@ import (
 	"github.com/OlegHQ/agentpack/internal/manifest"
 	"github.com/OlegHQ/agentpack/internal/mode"
 	"github.com/OlegHQ/agentpack/internal/modecatalog"
+	"github.com/OlegHQ/agentpack/internal/modetui"
 )
 
 func (runner Runner) runMode(root string, arguments []string, quiet bool) error {
@@ -86,7 +87,10 @@ func (runner Runner) runMode(root string, arguments []string, quiet bool) error 
 		}
 		err = manifest.SetModeBase(root, args[0], base)
 	case "tui":
-		return fmt.Errorf("mode TUI is not ported yet")
+		if len(args) > 1 {
+			return fmt.Errorf("mode tui accepts at most one mode name")
+		}
+		return modetui.Run(root, project, catalog, first(args))
 	default:
 		return fmt.Errorf("unknown mode action %q", action)
 	}
