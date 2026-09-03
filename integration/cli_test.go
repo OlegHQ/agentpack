@@ -33,7 +33,7 @@ func TestMain(m *testing.M) {
 
 func TestCompiledCLIHelpAndVersion(t *testing.T) {
 	result := runCLI(t, t.TempDir(), "--version")
-	if result.err != nil || strings.TrimSpace(result.stdout) != "agentpack 0.3.12" {
+	if result.err != nil || strings.TrimSpace(result.stdout) != "agentpack 0.3.13" {
 		t.Fatalf("--version: stdout=%q stderr=%q err=%v", result.stdout, result.stderr, result.err)
 	}
 	result = runCLI(t, t.TempDir(), "mode", "--help")
