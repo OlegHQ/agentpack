@@ -233,6 +233,53 @@ func (service Service) Sync(ctx context.Context, projectRoot string, options Syn
 	result.IndexEntries = len(keys)
 	return result, err
 }
+
+func (service Service) SyncForLaunch(ctx context.Context, projectRoot, selectedMode string, target base.Target) (mode.Effective, bool, error) {
+	if _, err := paths.EnsureUserAgentpackLayout(); err != nil {
+		return mode.Effective{}, false, err
+	}
+	project, err := manifest.Load(projectRoot)
+	if err != nil {
+		return mode.Effective{}, false, err
+	}
+	lock, err := lockfile.Load(projectRoot)
+	if os.IsNotExist(rootCause(err)) {
+		lock = lockfile.EmptyForProject(projectRoot)
+		err = nil
+	}
+	if err != nil {
+		return mode.Effective{}, false, err
+	}
+	effective, err := resolveMode(project, selectedMode)
+	if err != nil {
+		return mode.Effective{}, false, err
+	}
+	current, err := ComputeLaunchDigest(projectRoot, effective, &target)
+	if err != nil {
+		return mode.Effective{}, false, err
+	}
+	if stored, found, err := ReadLaunchDigest(projectRoot, effective.Name()); err != nil {
+		return mode.Effective{}, false, err
+	} else if found && stored == current {
+		pipeline := staging.Pipeline{ProjectRoot: projectRoot, Lock: lock, Manifest: project, Mode: effective, Target: &target}
+		if cache.VerifyLockCacheIntegrity(lock) == nil && pipeline.Verify() == nil {
+			return effective, true, nil
+		}
+	}
+	result, err := service.Sync(ctx, projectRoot, SyncOptions{Mode: effective.Name(), Target: &target})
+	if err != nil {
+		return mode.Effective{}, false, err
+	}
+	effective = result.Mode
+	digest, err := ComputeLaunchDigest(projectRoot, effective, &target)
+	if err != nil {
+		return mode.Effective{}, false, err
+	}
+	if err := WriteLaunchDigest(projectRoot, effective.Name(), digest); err != nil {
+		return mode.Effective{}, false, err
+	}
+	return effective, false, nil
+}
 func resolveMode(project *manifest.Manifest, name string) (mode.Effective, error) {
 	if name == "" {
 		name = mode.DefaultName

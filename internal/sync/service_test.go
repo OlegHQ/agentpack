@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	base "github.com/OlegHQ/agentpack/internal/harness"
 	"github.com/OlegHQ/agentpack/internal/lockfile"
 	"github.com/OlegHQ/agentpack/internal/manifest"
 	"github.com/OlegHQ/agentpack/internal/paths"
@@ -48,6 +49,34 @@ func TestServiceAddsPathDependencyAndStagesIt(t *testing.T) {
 	plugins, _ := paths.StagingPluginsDirForMode(project, "default")
 	if _, err := os.Stat(filepath.Join(plugins, paths.StagedAgentpackBundleName, "skills", "demo", "SKILL.md")); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestSyncForLaunchUsesVerifiedFastPath(t *testing.T) {
+	project, home := t.TempDir(), t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("AGENTPACK_HOME", t.TempDir())
+	t.Setenv("AGENTPACK_STAGING_ROOT", t.TempDir())
+	if err := manifest.WriteStub(project, "demo", "0.0.1"); err != nil {
+		t.Fatal(err)
+	}
+	if err := lockfile.Init(project, "demo", "0.0.1"); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{filepath.Join(home, ".codex", "auth.json"), filepath.Join(home, ".grok", "auth.json")} {
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte("{}"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	service := NewService()
+	if _, skipped, err := service.SyncForLaunch(context.Background(), project, "", base.Claude); err != nil || skipped {
+		t.Fatalf("first skipped=%v err=%v", skipped, err)
+	}
+	if _, skipped, err := service.SyncForLaunch(context.Background(), project, "", base.Claude); err != nil || !skipped {
+		t.Fatalf("second skipped=%v err=%v", skipped, err)
 	}
 }
 
