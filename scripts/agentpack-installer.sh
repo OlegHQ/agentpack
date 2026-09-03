@@ -2,7 +2,7 @@
 set -eu
 
 APP_NAME=agentpack
-APP_VERSION=${AGENTPACK_VERSION:-0.3.14}
+APP_VERSION=${AGENTPACK_VERSION:-0.3.15}
 REPOSITORY=${AGENTPACK_REPOSITORY:-OlegHQ/agentpack}
 
 usage() {
@@ -11,24 +11,21 @@ agentpack-installer.sh
 
 Download, verify, and install agentpack ${APP_VERSION}.
 
-Usage: agentpack-installer.sh [--no-modify-path] [-q|--quiet] [-h|--help]
+Usage: agentpack-installer.sh [-q|--quiet] [-h|--help]
 
 Environment:
   AGENTPACK_VERSION          release version (default: ${APP_VERSION})
   AGENTPACK_DOWNLOAD_URL     release asset base URL
-  AGENTPACK_INSTALL_DIR      binary destination directory
-  AGENTPACK_NO_MODIFY_PATH   do not add the destination to PATH
+  AGENTPACK_INSTALL_DIR      binary destination (default: $HOME/.local/bin)
   AGENTPACK_GITHUB_TOKEN     token for private GitHub/GHE downloads
 EOF
 }
 
 quiet=${AGENTPACK_PRINT_QUIET:-${INSTALLER_PRINT_QUIET:-0}}
-no_modify_path=${AGENTPACK_NO_MODIFY_PATH:-${INSTALLER_NO_MODIFY_PATH:-0}}
 for argument in "$@"; do
     case "$argument" in
         -h|--help) usage; exit 0 ;;
         -q|--quiet) quiet=1 ;;
-        --no-modify-path) no_modify_path=1 ;;
         *) echo "agentpack installer: unknown option: $argument" >&2; exit 2 ;;
     esac
 done
@@ -83,14 +80,9 @@ fi
 
 if [ -n "${AGENTPACK_INSTALL_DIR:-}" ]; then
     install_dir=$AGENTPACK_INSTALL_DIR
-elif [ -n "${AGENTPACK_UNMANAGED_INSTALL:-}" ]; then
-    install_dir=$AGENTPACK_UNMANAGED_INSTALL
-    no_modify_path=1
-elif [ -n "${CARGO_HOME:-}" ]; then
-    install_dir="$CARGO_HOME/bin"
 else
     [ -n "${HOME:-}" ] || fail "HOME is unset; set AGENTPACK_INSTALL_DIR"
-    install_dir="$HOME/.cargo/bin"
+    install_dir="$HOME/.local/bin"
 fi
 
 temporary=$(mktemp -d "${TMPDIR:-/tmp}/agentpack-install.XXXXXX")
@@ -151,21 +143,5 @@ mkdir -p "$install_dir"
 chmod 755 "$temporary/unpacked/$binary_name"
 mv "$temporary/unpacked/$binary_name" "$install_dir/$binary_name.new"
 mv "$install_dir/$binary_name.new" "$install_dir/$binary_name"
-
-if [ "$no_modify_path" != "1" ] && [ "$os" != windows ]; then
-    profile=${AGENTPACK_SHELL_PROFILE:-}
-    if [ -z "$profile" ]; then
-        case "${SHELL:-}" in
-            */zsh) profile="$HOME/.zshrc" ;;
-            */bash) profile="$HOME/.bashrc" ;;
-            *) profile="$HOME/.profile" ;;
-        esac
-    fi
-    path_line="export PATH=\"$install_dir:\$PATH\" # agentpack"
-    if [ ! -f "$profile" ] || ! grep -F "$path_line" "$profile" >/dev/null 2>&1; then
-        printf '\n%s\n' "$path_line" >> "$profile"
-        say "Added $install_dir to PATH in $profile"
-    fi
-fi
 
 say "Installed agentpack ${APP_VERSION} to $install_dir/$binary_name"

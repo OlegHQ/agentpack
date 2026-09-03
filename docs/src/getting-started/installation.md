@@ -16,9 +16,10 @@ On Windows PowerShell:
 irm https://github.com/OlegHQ/agentpack/releases/latest/download/agentpack-installer.ps1 | iex
 ```
 
-Both installers default to the Cargo-style user bin directory and accept
-`AGENTPACK_INSTALL_DIR` to choose another destination. Downloads are verified
-against the release's `checksums.txt` before installation.
+Both installers write only the executable to `$HOME/.local/bin` by default and
+accept `AGENTPACK_INSTALL_DIR` to choose another userspace destination. They do
+not edit shell profiles or the user `PATH`. Downloads are verified against the
+release's `checksums.txt` before installation.
 
 ## Homebrew (macOS and Linux)
 

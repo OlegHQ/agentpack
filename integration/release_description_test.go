@@ -22,6 +22,8 @@ func TestReleaseDescriptionIncludesInstallCommandsAndAssets(t *testing.T) {
 		"glob: ./scripts/agentpack-installer.sh",
 		"glob: ./scripts/agentpack-installer.ps1",
 		"name_template: checksums.txt",
+		"write only to `$HOME/.local/bin`",
+		"do not modify shell profiles or `PATH`",
 	}
 	for _, expected := range required {
 		if !strings.Contains(configuration, expected) {

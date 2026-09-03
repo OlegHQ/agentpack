@@ -1,10 +1,7 @@
-param(
-    [switch]$NoModifyPath,
-    [switch]$Help
-)
+param([switch]$Help)
 
 $ErrorActionPreference = 'Stop'
-$Version = if ($env:AGENTPACK_VERSION) { $env:AGENTPACK_VERSION } else { '0.3.14' }
+$Version = if ($env:AGENTPACK_VERSION) { $env:AGENTPACK_VERSION } else { '0.3.15' }
 $Repository = if ($env:AGENTPACK_REPOSITORY) { $env:AGENTPACK_REPOSITORY } else { 'OlegHQ/agentpack' }
 
 if ($Help) {
@@ -14,12 +11,11 @@ agentpack-installer.ps1
 Download, verify, and install agentpack $Version.
 
 Options:
-  -NoModifyPath   Do not add the install directory to the user PATH.
-  -Help           Show this help.
+  -Help   Show this help.
 
 Environment:
   AGENTPACK_VERSION, AGENTPACK_DOWNLOAD_URL, AGENTPACK_INSTALL_DIR,
-  AGENTPACK_NO_MODIFY_PATH, AGENTPACK_GITHUB_TOKEN
+  AGENTPACK_GITHUB_TOKEN
 "@
     exit 0
 }
@@ -38,13 +34,8 @@ if ($env:AGENTPACK_DOWNLOAD_URL) {
 
 if ($env:AGENTPACK_INSTALL_DIR) {
     $InstallDir = $env:AGENTPACK_INSTALL_DIR
-} elseif ($env:AGENTPACK_UNMANAGED_INSTALL) {
-    $InstallDir = $env:AGENTPACK_UNMANAGED_INSTALL
-    $NoModifyPath = $true
-} elseif ($env:CARGO_HOME) {
-    $InstallDir = Join-Path $env:CARGO_HOME 'bin'
 } else {
-    $InstallDir = Join-Path $HOME '.cargo\bin'
+    $InstallDir = Join-Path $HOME '.local\bin'
 }
 
 $Archive = "agentpack_${Version}_windows_amd64.zip"
@@ -75,15 +66,6 @@ try {
     Copy-Item -Force $Binary $Pending
     Move-Item -Force $Pending $Destination
 
-    $DisablePath = $NoModifyPath -or $env:AGENTPACK_NO_MODIFY_PATH -eq '1' -or $env:INSTALLER_NO_MODIFY_PATH -eq '1'
-    if (-not $DisablePath) {
-        $Current = [Environment]::GetEnvironmentVariable('Path', 'User')
-        $Entries = @($Current -split ';' | Where-Object { $_ })
-        if ($InstallDir -notin $Entries) {
-            [Environment]::SetEnvironmentVariable('Path', (($InstallDir + ';' + $Current).TrimEnd(';')), 'User')
-            Write-Output "Added $InstallDir to the user PATH"
-        }
-    }
     Write-Output "Installed agentpack $Version to $Destination"
 } finally {
     if (Test-Path $Temporary) { Remove-Item -Recurse -Force $Temporary }
