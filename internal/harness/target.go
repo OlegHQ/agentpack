@@ -25,3 +25,16 @@ func ParseTarget(value string) (Target, error) {
 }
 
 func (target Target) UsesWorkspaceOverlay() bool { return target == Cursor || target == Agy }
+
+func (target Target) RawPluginSubdirs() []string {
+	switch target {
+	case Claude, Grok:
+		return []string{"hooks", "matchers", "core", "examples", "utils", "commands", "agents", "rules", "skills"}
+	case Cursor:
+		return []string{"hooks", "assets", "scripts", "commands", "agents", "rules", "skills"}
+	case Agy:
+		return []string{"hooks", "commands", "agents", "rules", "skills"}
+	default:
+		return nil
+	}
+}
