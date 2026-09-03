@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
@@ -77,7 +76,7 @@ func (resolver Resolver) Resolve(ctx context.Context, projectRoot string, projec
 		if err != nil {
 			return lockfile.PackLock{}, err
 		}
-		fileURL := (&url.URL{Scheme: "file", Path: filepath.ToSlash(canonical)}).String()
+		fileURL := cache.FileURL(canonical)
 		pkg, err := cache.ClassifyMaterialized(destination, fileURL, githubsource.Source{Owner: "path", Repo: key, GitRef: githubsource.DefaultGitRef}, commit, cacheKey)
 		if err != nil {
 			return lockfile.PackLock{}, err

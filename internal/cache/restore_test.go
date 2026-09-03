@@ -1,7 +1,6 @@
 package cache
 
 import (
-	"net/url"
 	"os"
 	"path/filepath"
 	"testing"
@@ -71,5 +70,5 @@ func TestVerifyLockCacheIntegrity(t *testing.T) {
 }
 
 func fileURL(path string) string {
-	return (&url.URL{Scheme: "file", Path: filepath.ToSlash(path)}).String()
+	return FileURL(path)
 }

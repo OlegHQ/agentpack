@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/OlegHQ/agentpack/internal/lockfile"
@@ -12,6 +13,16 @@ import (
 )
 
 type RemoteRestoreFunc func(pkg lockfile.Package, destination string) error
+
+// FileURL returns a portable absolute file URL. Windows drive paths need a
+// leading slash so net/url emits file:///C:/... instead of an opaque URL.
+func FileURL(filePath string) string {
+	slashPath := filepath.ToSlash(filePath)
+	if filepath.VolumeName(filePath) != "" && !strings.HasPrefix(slashPath, "/") {
+		slashPath = "/" + slashPath
+	}
+	return (&url.URL{Scheme: "file", Path: slashPath}).String()
+}
 
 func EnsureLockCached(pkg lockfile.Package, restoreRemote RemoteRestoreFunc) (bool, error) {
 	out, err := EntryDir(pkg.CacheKey)
@@ -123,6 +134,9 @@ func localSourceDir(rawURL string) (string, error) {
 	}
 	if parsed.Host != "" && parsed.Host != "localhost" {
 		path = "//" + parsed.Host + path
+	}
+	if runtime.GOOS == "windows" && len(path) >= 3 && path[0] == '/' && path[2] == ':' {
+		path = path[1:]
 	}
 	return filepath.FromSlash(path), nil
 }

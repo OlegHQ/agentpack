@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -153,7 +152,7 @@ func addFilesystem(directory string) (lockfile.Package, error) {
 	if err != nil {
 		return lockfile.Package{}, err
 	}
-	fileURL := (&url.URL{Scheme: "file", Path: filepath.ToSlash(directory)}).String()
+	fileURL := cache.FileURL(directory)
 	name := filepath.Base(directory)
 	return cache.ClassifyMaterialized(root, fileURL, githubsource.SourceFromSegments("path", name, ""), commit, cacheKey)
 }
