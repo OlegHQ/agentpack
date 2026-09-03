@@ -60,6 +60,9 @@ release:
   github:
     owner: OlegHQ
     name: agentpack
+  extra_files:
+    - glob: ./scripts/agentpack-installer.sh
+    - glob: ./scripts/agentpack-installer.ps1
 
 homebrew_casks:
   - name: agentpack

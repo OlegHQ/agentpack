@@ -2,6 +2,24 @@
 
 agentpack ships as a single binary. The recommended path is Homebrew; source builds use the Go toolchain.
 
+## Installer scripts
+
+On macOS or Linux, download, checksum-verify, and install the latest binary with:
+
+```sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/OlegHQ/agentpack/releases/latest/download/agentpack-installer.sh | sh
+```
+
+On Windows PowerShell:
+
+```powershell
+irm https://github.com/OlegHQ/agentpack/releases/latest/download/agentpack-installer.ps1 | iex
+```
+
+Both installers default to the Cargo-style user bin directory and accept
+`AGENTPACK_INSTALL_DIR` to choose another destination. Downloads are verified
+against the release's `checksums.txt` before installation.
+
 ## Homebrew (macOS and Linux)
 
 ```sh

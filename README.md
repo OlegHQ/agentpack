@@ -12,7 +12,7 @@
   <a href="https://oleghq.github.io/agentpack"><img alt="Documentation" src="https://img.shields.io/badge/docs-oleghq.github.io-1f6feb.svg"></a>
   <a href="https://nexo.sh/posts/agentpack/"><img alt="Writeup" src="https://img.shields.io/badge/writeup-nexo.sh-ff6b6b.svg"></a>
   <a href="https://github.com/OlegHQ/agentpack/blob/dev/LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
-  <a href="https://github.com/OlegHQ/agentpack/releases"><img alt="Version" src="https://img.shields.io/badge/version-v0.3.13-blue.svg"></a>
+  <a href="https://github.com/OlegHQ/agentpack/releases"><img alt="Version" src="https://img.shields.io/badge/version-v0.3.14-blue.svg"></a>
   <a href="https://github.com/OlegHQ/agentpack"><img alt="Built with Go" src="https://img.shields.io/badge/built_with-Go-00ADD8.svg"></a>
 </p>
 
@@ -48,6 +48,20 @@ agentpack.toml  ──>  pack.lock  ──>  staged bundles  ──>  launch
 ## Install
 
 Prebuilt binaries are published for every release. Pick whichever fits your platform.
+
+### Installer script
+
+macOS and Linux:
+
+```bash
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/OlegHQ/agentpack/releases/latest/download/agentpack-installer.sh | sh
+```
+
+Windows PowerShell:
+
+```powershell
+irm https://github.com/OlegHQ/agentpack/releases/latest/download/agentpack-installer.ps1 | iex
+```
 
 ### Homebrew — macOS & Linux (recommended)
 

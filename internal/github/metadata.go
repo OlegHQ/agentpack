@@ -4,12 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/OlegHQ/agentpack/internal/paths"
+	"github.com/OlegHQ/agentpack/internal/database"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -63,18 +61,12 @@ func isFresh(checkedAt int64, ttl time.Duration) bool {
 }
 
 func readMetadata(bucket, key []byte, destination any) (bool, error) {
-	databasePath, err := paths.CacheDBPath()
+	database, err := database.OpenCache(true)
 	if err != nil {
 		return false, err
 	}
-	if _, err := os.Stat(databasePath); errors.Is(err, os.ErrNotExist) {
+	if database == nil {
 		return false, nil
-	} else if err != nil {
-		return false, fmt.Errorf("inspect cache database %s: %w", databasePath, err)
-	}
-	database, err := bolt.Open(databasePath, 0o600, &bolt.Options{ReadOnly: true, Timeout: 2 * time.Second})
-	if err != nil {
-		return false, fmt.Errorf("open cache database %s: %w", databasePath, err)
 	}
 	found := false
 	viewErr := database.View(func(transaction *bolt.Tx) error {
@@ -97,23 +89,13 @@ func readMetadata(bucket, key []byte, destination any) (bool, error) {
 }
 
 func writeMetadata(bucket, key []byte, value any) error {
-	if _, err := paths.EnsureUserAgentpackLayout(); err != nil {
-		return err
-	}
-	databasePath, err := paths.CacheDBPath()
-	if err != nil {
-		return err
-	}
-	if err := os.MkdirAll(filepath.Dir(databasePath), 0o755); err != nil {
-		return err
-	}
 	encoded, err := json.Marshal(value)
 	if err != nil {
 		return fmt.Errorf("serialize GitHub metadata: %w", err)
 	}
-	database, err := bolt.Open(databasePath, 0o600, &bolt.Options{Timeout: 2 * time.Second})
+	database, err := database.OpenCache(false)
 	if err != nil {
-		return fmt.Errorf("open cache database %s: %w", databasePath, err)
+		return err
 	}
 	updateErr := database.Update(func(transaction *bolt.Tx) error {
 		table, err := transaction.CreateBucketIfNotExists(bucket)

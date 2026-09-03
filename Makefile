@@ -82,8 +82,13 @@ patch:
 	@$(MAKE) _bump PART=patch
 
 _bump:
-	@awk -v part="$(PART)" 'BEGIN { FS=OFS="." } /^var Version = "/ { match($$0, /[0-9]+\.[0-9]+\.[0-9]+/); v=substr($$0,RSTART,RLENGTH); split(v,a,"."); if (part=="minor") { a[2]++; a[3]=0 } else { a[3]++ } sub(v,a[1] "." a[2] "." a[3]) } { print }' internal/cli/run.go > internal/cli/run.go.tmp
-	@mv internal/cli/run.go.tmp internal/cli/run.go
+	@old=$$(sed -n 's/^var Version = "\([^"]*\)"/\1/p' internal/cli/run.go); \
+	new=$$(printf '%s\n' "$$old" | awk -v part="$(PART)" 'BEGIN { FS=OFS="." } { if (part=="minor") { $$2++; $$3=0 } else { $$3++ } print }'); \
+	for file in internal/cli/run.go integration/cli_test.go integration/installer_test.go README.md scripts/agentpack-installer.sh scripts/agentpack-installer.ps1; do \
+		sed "s/$$old/$$new/g" "$$file" > "$$file.tmp"; \
+		mv "$$file.tmp" "$$file"; \
+	done
+	@chmod +x scripts/agentpack-installer.sh
 	@$(GOFMT) -w internal/cli/run.go
 	@echo "version -> $$(sed -n 's/^var Version = "\([^"]*\)"/\1/p' internal/cli/run.go)"
 
