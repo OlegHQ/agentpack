@@ -1,0 +1,4 @@
+interface:
+  display_name: "Build Go Stack"
+  short_description: "Build a robust, fast Go backend foundation"
+  default_prompt: "Use $build-go-stack to structure and implement this Go backend."
