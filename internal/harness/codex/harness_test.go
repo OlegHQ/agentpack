@@ -61,6 +61,7 @@ func TestLegacyHistoryRecoveryRejectsActiveWriter(t *testing.T) {
 func TestPrepareMakesAuthOAuthAndHistoryDurable(t *testing.T) {
 	project, home := t.TempDir(), t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 	t.Setenv("AGENTPACK_HOME", t.TempDir())
 	t.Setenv("AGENTPACK_STAGING_ROOT", t.TempDir())
 	native := filepath.Join(home, ".codex")

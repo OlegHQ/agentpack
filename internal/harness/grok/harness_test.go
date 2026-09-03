@@ -11,6 +11,7 @@ import (
 func TestPreparePreservesNativeSessions(t *testing.T) {
 	project, home := t.TempDir(), t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 	t.Setenv("AGENTPACK_STAGING_ROOT", t.TempDir())
 	ctx := base.StageContext{ProjectRoot: project, Mode: mode.ImplicitEffective()}
 	h := New()

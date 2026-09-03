@@ -14,6 +14,7 @@ func TestPrepareSeedsConfigAndAttributionIdempotently(t *testing.T) {
 	project, stagingRoot, home := t.TempDir(), t.TempDir(), t.TempDir()
 	t.Setenv("AGENTPACK_STAGING_ROOT", stagingRoot)
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 	t.Setenv("AGENTPACK_KEEP_ATTRIBUTION", "")
 	userRoot := filepath.Join(home, ".config", "opencode")
 	if err := os.MkdirAll(userRoot, 0o755); err != nil {

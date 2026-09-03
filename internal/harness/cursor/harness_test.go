@@ -15,6 +15,7 @@ import (
 func TestPrepareFinalizeBuildsFakeHomeAndMergesUserMCP(t *testing.T) {
 	project, home := t.TempDir(), t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 	t.Setenv("AGENTPACK_HOME", t.TempDir())
 	t.Setenv("AGENTPACK_STAGING_ROOT", t.TempDir())
 	real := filepath.Join(home, ".cursor")
