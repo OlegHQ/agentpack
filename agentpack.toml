@@ -3,7 +3,6 @@ version = "0.0.1"
 
 [dependencies]
 "github.com/oleghq/agent-configs/mcps/linear" = {}
-"github.com/oleghq/agent-configs/plugins/rust-dev" = {}
 "github.com/oleghq/agent-configs/plugins/simplifier" = {}
 "github.com/mccteam/minecraft-console-client/.skills/humanizer" = {}
 "github.com/s1mplesonny/technical-writing-skill/technical-writing" = {}

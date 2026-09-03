@@ -72,6 +72,19 @@ WebSocket read/write idle timeout for proxy upstream connections.
 
 **Default:** `300`.
 
+### Proxy transport, endpoint, and model overrides
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `AGENTPACK_PROXY_TRANSPORT` | inferred from auth | `http`, `websocket`, or `auto` |
+| `AGENTPACK_PROXY_PORT` | `0` | Loopback listen port; `0` selects a free port |
+| `AGENTPACK_PROXY_REQUEST_TIMEOUT_SECS` | `300` | Complete upstream request timeout |
+| `AGENTPACK_PROXY_UPSTREAM_URL` | Codex auth endpoint | Override the OpenAI Responses endpoint |
+| `AGENTPACK_PROXY_AUTH_JSON` | Codex auth discovery | Explicit Codex-compatible auth JSON path |
+| `AGENTPACK_PROXY_BIG_MODEL` | `gpt-5.5` | Upstream model for Opus-class requests |
+| `AGENTPACK_PROXY_MIDDLE_MODEL` | `gpt-5.4` | Upstream model for Sonnet-class requests |
+| `AGENTPACK_PROXY_SMALL_MODEL` | `gpt-5.4-mini` | Upstream model for Haiku-class requests |
+
 ## GitHub access
 
 ### `GITHUB_TOKEN` / `GH_TOKEN`
@@ -103,5 +116,11 @@ Override the path to each harness's executable when it isn't on `PATH` or you ne
 | `AGENTPACK_PROXY_LOG_DIR` | project state dir | Claude proxy JSONL diagnostics |
 | `AGENTPACK_PROXY_LOG_PAYLOADS` | unset | Include truncated payload snippets in proxy logs |
 | `AGENTPACK_PROXY_LOG_MAX_BODY_BYTES` | `4096` | Payload snippet byte cap |
+| `AGENTPACK_PROXY_TRANSPORT` | inferred | Proxy upstream transport |
+| `AGENTPACK_PROXY_PORT` | `0` | Proxy loopback port |
+| `AGENTPACK_PROXY_REQUEST_TIMEOUT_SECS` | `300` | Proxy request timeout |
+| `AGENTPACK_PROXY_UPSTREAM_URL` | auth endpoint | Override proxy upstream URL |
+| `AGENTPACK_PROXY_AUTH_JSON` | auto | Override proxy auth JSON |
+| `AGENTPACK_PROXY_BIG_MODEL` / `MIDDLE_MODEL` / `SMALL_MODEL` | built in | Override proxy model mapping |
 | `GITHUB_TOKEN` / `GH_TOKEN` | unset | GitHub auth for private repos and rate limits |
 | `CLAUDE_CODE_PATH` … `AGY_PATH` | — | Override harness binary paths |

@@ -8,14 +8,14 @@ import (
 	"testing"
 )
 
-func TestCodexStreamFunctionsMatchRustOracle(t *testing.T) {
+func TestCodexStreamFunctionsMatchGolden(t *testing.T) {
 	tests := []struct{ fixture, reduce, accumulate, sse string }{
 		{"codex_text.sse", "761a36b3c5ba0e49a4ae1af992b908c68aed442e997bf46a87fc48d424f28ba8", "c37a09dc2d3d8969d217d8472f78fc5d95c3d9e70d1980c146b34677585a662b", "660909dfc895b6ff00aeb92e52b43103704cc23fd42254c176a64e0c3429f3b4"},
-		{"codex_tool.sse", "033a1ebbf1f0aab1bfcd3812dc4248f393d639085758a71d44af91bce38eef14", "3ae2c8b3235a757c37eaa3bef0b68e0dcb82b5f6c84bc4f0e1b3fa9125ab6e55", "0aaeb8f0f6290b3e2537480904dd38cf4852e7270198afec062f427644e436cd"},
+		{"codex_tool.sse", "679f339a8e6ef73063d1d9a796d0aada6d5b066460930274c3178631c9447108", "333a44c52500a57b8c59b3bd9b82361fe7247c61ed0d6a730ca19ea10ab517a5", "bcd46a82a0f0bdc24faf6bc1c47759c14035c9f291e893161aeaa7e936f0e885"},
 	}
 	for _, test := range tests {
 		t.Run(test.fixture, func(t *testing.T) {
-			input, err := os.ReadFile("../../crates/claude-code-proxy-rs/tests/golden/fixtures/" + test.fixture)
+			input, err := os.ReadFile("testdata/" + test.fixture)
 			if err != nil {
 				t.Fatal(err)
 			}

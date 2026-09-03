@@ -1,10 +1,10 @@
 # agentpack
 
-`agentpack` is a Rust CLI that pins **GitHub-hosted skills**, **plugin directories** (`.claude-plugin`, `.cursor-plugin`, and/or `.codex-plugin`), and single-plugin marketplace repositories for a project.
+`agentpack` is a Go CLI that pins **GitHub-hosted skills**, **plugin directories** (`.claude-plugin`, `.cursor-plugin`, and/or `.codex-plugin`), and single-plugin marketplace repositories for a project.
 
 **Source of truth for what to install** is **`agentpack.toml`** at the repo root (direct dependencies, project-local modes, and MCP settings). **`pack.lock`** (v2) lists every resolved **package** (direct and transitive from nested `agentpack.toml` files inside dependencies) with pinned commits and `cache_key`s. Both files live in the **project repo**.
 
-All downloaded trees, the RedDB index, and your **`local/`** mirror live under a **user-wide agentpack home** (see below)—not under a repo-local `.agentpack/` directory. Staging for harnesses still uses a **per-project temp** directory (or **`AGENTPACK_STAGING_ROOT`**).
+All downloaded trees, the metadata index, and your **`local/`** mirror live under a **user-wide agentpack home** (see below)—not under a repo-local `.agentpack/` directory. Staging for harnesses still uses a **per-project temp** directory (or **`AGENTPACK_STAGING_ROOT`**).
 
 ### Pre-release
 
@@ -12,14 +12,14 @@ All downloaded trees, the RedDB index, and your **`local/`** mirror live under a
 
 ### Code structure (contributor rule)
 
-**Per-harness code lives in `src/harness/<name>/`. Shared code lives in its subsystem. No re-export shims, no orphaned glue. No single-file folders except the uniform harness folders, no <40-line orphan modules.**
+**Per-harness code lives in `internal/harness/<name>/`. Shared code lives in its subsystem. No forwarding aliases, no orphaned glue, and no tiny single-purpose packages.**
 
-- **One folder per harness, uniformly.** Each coding agent is a folder **`src/harness/<name>/`** with `mod.rs` (+ submodules as needed) implementing the `Harness` trait — even small harnesses (`grok/`, `agy/`) are folders, so the layout is identical for all six. **Everything used by only that one harness lives there** — seed, attribution writer, MCP-config writer (including codex/grok's own copy of the `[mcp_servers]` TOML writer), hook renderer + support fn, credential bridging (`codex/auth.rs`), fake-home (`cursor/fake_home.rs`), workspace overlays, and `launch_command`. To understand or add a harness you read/create **one folder**, nothing else. The only files at `harness/` root are the shared harness *system*: `mod.rs` (trait + registry + contexts), `target.rs` (`HarnessTarget`), `launch.rs` (launch dispatch).
-- **Shared infrastructure stays in its subsystem and never holds per-harness logic:** `staging/` = cross-harness staging passes (`pack_overlay`, `collision`, `guidance` collection, `dot_agents`, `mcp` collect+merge, `pipeline`) plus the shared `keep_attribution`/`NO_ATTRIBUTION_BODY` primitives; `hooks/` = the hook engine (`ir`, `collect`, `parse`, `stage`, `render` trait + `SupportLevel`, `runtime/{bridge,dispatch,handlers,output}`); `artifacts/` = artifact rendering; `fs_util.rs` = generic file-tree helpers (`copy_selected_entries`, `copy_merge_tree`). A file named after a harness (`cursor.rs`, `parse/claude.rs`) sitting in a shared subsystem is a smell — colocate it or, if it's actually a shared format adapter, name it for the format not the harness.
-- **No single-file folders, no tiny orphans.** A module is a flat `foo.rs` unless it has real internal structure (the uniform harness folders are the one deliberate exception). A <40-line helper used by ≥2 modules lives *in* its natural home (its trait file, its caller, or `fs_util`), not in a file of its own. API-surface `pub use` in a subsystem `mod.rs` (e.g. `sync`, `github`) is a module boundary, not a shim — those stay.
-- **One canonical home per type; no re-export shims.** `HarnessTarget` is defined only in `src/harness/target.rs` and imported everywhere as **`crate::harness::HarnessTarget`** — there are no `pub use …::HarnessTarget` chains through `artifacts`/`staging`/`sync`/`hooks::ir`. Don't add a re-export to "keep an old path resolving"; repoint the callers.
-- **No orphaned glue modules.** Launch dispatch + shared launch helpers live in `harness/launch.rs` (called via `harness::launch`), not a separate top-level `launcher/`. If a module exists only to forward to another, delete it and inline the call.
-- The trait owns *per-harness divergence*; genuinely cross-harness passes that take "all roots at once" (`pack_overlay`, `guidance`, `collision`) stay shared loops. Adding a 7th harness should mean: one new `src/harness/<name>/` + one line in `harness::all()` + one `HarnessTarget` variant + one `cli` subcommand.
+- **One folder per harness, uniformly.** Each coding agent is a folder **`internal/harness/<name>/`** implementing `harness.Harness` — even small harnesses (`grok/`, `agy/`) use the same layout. **Everything used by only that one harness lives there**: seed and attribution logic, MCP writer, hook renderer, credential bridging (`codex/auth.go`, `codex/mcp_auth.go`), fake home (`cursor/fake_home.go`), workspace overlays, and launch command construction. To understand or add a harness, read or create one folder. Shared harness contracts, targets, durable-state helpers, and launch helpers stay at `internal/harness/`; registry construction stays in `internal/harness/registry/` to avoid Go import cycles.
+- **Shared infrastructure stays in its subsystem and never holds per-harness logic:** `internal/staging/` owns cross-harness staging passes; `internal/hooks/` owns the hook engine; `internal/artifacts/` owns artifact rendering; generic file-tree helpers live in `internal/harness/files.go` or their natural subsystem. A file named after a harness sitting in a shared subsystem is a smell — colocate it or name it for the shared format it adapts.
+- **No single-file folders, no tiny orphans.** Keep a helper in its natural package or caller unless it has enough internal structure to justify a package. The uniform harness folders are the deliberate exception.
+- **One canonical home per type; no forwarding aliases.** `Target` is defined only in `internal/harness/target.go` and imported as `harness.Target`. Don't add an alias merely to preserve an obsolete package path; repoint callers.
+- **No orphaned glue packages.** Shared launch helpers live in `internal/harness/launch.go`; CLI launch dispatch lives in `internal/cli`. If a package exists only to forward to another, remove it and call the owner directly.
+- The harness interface owns *per-harness divergence*; genuinely cross-harness passes that take all roots at once stay shared loops. Adding a seventh harness should mean one new `internal/harness/<name>/`, one registry entry, one `Target` value, and one CLI command.
 
 ### User data layout (`AGENTPACK_HOME`)
 
@@ -30,6 +30,7 @@ All downloaded trees, the RedDB index, and your **`local/`** mirror live under a
 | **`$AGENTPACK_HOME/local/<owner>/<repo>/…`** | Optional offline mirror; same slash layout as **`owner/repo/…`** specs. |
 | **`$AGENTPACK_HOME/projects/<hash>/cursor-overlay.manifest`** | Per-project Cursor overlay bookkeeping (not stored in the repo). |
 | **`$AGENTPACK_HOME/projects/<hash>/agy-overlay.manifest`** | Per-project Antigravity workspace plugin overlay bookkeeping (not stored in the repo). |
+| **`$AGENTPACK_HOME/projects/<hash>/codex-mcp-oauth/`** | Durable, project-scoped Codex MCP OAuth credentials and shared lock files. All modes for the project use this store. |
 | **`$AGENTPACK_HOME/shared/codex/auth.json`** | Shared Codex auth cache used by staged **`CODEX_HOME`** trees when the real user config stores credentials in the OS keychain instead of **`~/.codex/auth.json`**. |
 | **`$AGENTPACK_HOME/recovery/session-history/<harness>/<project-hash>/<mode>/conflicts/`** | Non-destructive recovery copies when legacy temp-staging session files collide with different native Codex/Grok history files. |
 | **`$AGENTPACK_HOME/claude-settings.json`** | Stable attribution-off overlay passed to Claude as **`--settings <path>`**. Project-independent so Claude Code's keychain credential namespace stays user-global (see "Claude attribution" below). |
@@ -62,9 +63,9 @@ Resolution order (network/local):
 1. **`https://github.com/…`** — tree or blob URL; the **directory** containing **`SKILL.md`**, a plugin manifest, or a marketplace manifest is fetched; the module id is derived from **owner / repo / in-repo path**.
 2. **`owner/repo`** — tries **`$AGENTPACK_HOME/local/<owner>/<repo>`** first (copy); else **GitHub** at **repo root**.
 3. **`owner/repo/p1/p2/...`** — tries **`local/…/full/slash/spec`** first; else **GitHub** with in-repo path **`p1/p2/...`**.
-4. **Single segment** **`name`** — **`local/<name>`** only, or **alias** in RedDB to reuse a **`cache_key`** without network.
+4. **Single segment** **`name`** — **`local/<name>`** only, or a cached **alias** to reuse a **`cache_key`** without network.
 
-Repeat **`owner/repo`** and **`owner/repo/path`** adds also consult the RedDB alias/index after checking **`local/`**, so previously fetched GitHub packages are reused before any new GitHub request is made.
+Repeat **`owner/repo`** and **`owner/repo/path`** adds also consult the metadata alias/index after checking **`local/`**, so previously fetched GitHub packages are reused before any new GitHub request is made.
 
 5. **Filesystem path** (`./rel/dir`, `/abs/dir`) — the directory is copied to cache; an entry like **`name = { path = "rel/path" }`** is written to **`agentpack.toml`** where **`name`** is the directory basename and the path is relative to the project root. On **`lock`** / **`sync`**, path deps are always re-copied from source (content hash detects changes). **`sync`** will error on other machines if the path is missing and the cache slot is empty.
 
@@ -79,7 +80,7 @@ A repository root with **`.claude-plugin/marketplace.json`**, **`.cursor-plugin/
 - Run **`agentpack lock`** to force a full resolve from the manifest (requires **`agentpack.toml`**).
 - Harness launchers (**`agentpack claude`**, **`opencode`**, **`codex`**, **`agent`**) run a **fast pre-sync** when **`agentpack.toml`**, **`pack.lock`**, and **`./.agents/`** are unchanged since the last successful launch sync: they verify cache + staging integrity and **skip** full lock resolve, re-download, and staging rebuild. Floating pins (branch / floating semver) therefore **do not advance** on launch alone — run **`agentpack sync`** or **`agentpack lock`** when you need **`pack.lock`** refreshed from the manifest.
 - GitHub **ref → commit** and **tag list** lookups are cached in **`db.reddb`** and reused across **`add`**, **`lock`**, and **`sync`**. Fresh cached metadata avoids repeat API calls; exact tag-name ref lookups also reuse the cached tag list directly.
-- When GitHub REST ref/tag lookups fail, agentpack falls back to the Git protocol via embedded **`gix`** `ls-refs` against **`https://github.com/<owner>/<repo>.git`** before using stale cached metadata. This removes the hard dependency on the throttled REST API for ref and tag resolution.
+- When GitHub REST ref/tag lookups fail, agentpack falls back to the Git protocol through an embedded Go Git client against **`https://github.com/<owner>/<repo>.git`** before using stale cached metadata. This removes dependencies on both the throttled REST API and an external `git` executable for ref and tag resolution.
 
 ## Harness launch research summary
 
@@ -137,6 +138,7 @@ Antigravity (`agy`) has no config-root override in the installed CLI and shares 
    - **MCP:** merged `mcp.json` written to config root (see MCP merge below).
 6. **Codex home** — **`sync`** rebuilds **`$STAGING/codex-home/`**:
    - **Optional:** seeds from **`~/.codex/`** (`config.toml`, `skills`, `themes`) so user config still works when **`CODEX_HOME`** is redirected. The Codex CLI stores OAuth/API material in **`auth.json`** or in the OS keychain keyed by the **canonical `CODEX_HOME` path**; a staged path would otherwise miss keychain entries. agentpack therefore links each staged **`$STAGING/codex-home/auth.json`** to a **shared source** instead of copying credentials per project: it uses **`~/.codex/auth.json`** when that file already exists, otherwise it materializes the real **`~/.codex`** keychain entry (service **`Codex Auth`**) into **`$AGENTPACK_HOME/shared/codex/auth.json`** and links staged homes there. The staged **`config.toml`** is forced to **`cli_auth_credentials_store = "file"`** so every project shares refresh-token updates through the same file.
+   - **MCP OAuth:** staged **`.credentials.json`** and **`mcp-oauth-locks/`** link to **`$AGENTPACK_HOME/projects/<hash>/codex-mcp-oauth/`**, shared by every mode for that project. Staged config forces **`mcp_oauth_credentials_store = "file"`** so authenticated MCP servers survive `add`, `sync`, staging rebuilds, and temp-directory cleanup without sharing credentials across projects.
    - **History:** staged **`sessions/`**, **`archived_sessions/`**, and **`history.jsonl`** link to the native **`~/.codex/`** paths; staged config defaults **`sqlite_home`** to **`~/.codex`** unless the user configured it explicitly. Before reset, surviving history from every legacy staging mode is imported without overwriting native files; differing collisions go under **`$AGENTPACK_HOME/recovery/session-history/codex/`**. Active writer locks abort recovery rather than copying a changing transcript.
    - **Overlay:** portable pack content is rendered into Codex **skills** under **`$STAGING/codex-home/skills/`**. Full Claude plugins are **not** translated into Codex plugin marketplaces.
    - **MCP:** merged `mcp.json` written to Codex home (see MCP merge below).
@@ -170,7 +172,7 @@ After staging, **`sync`** verifies that **skill directory names** under **`bundl
 
 Overlay order for staged roots: user config copies first, then **plugins** (by `cache_key`), then **bare skills**, then **project `./.agents/`** — **later layers win** on the same relative path inside `agents`, `commands`, `skills`, etc.
 
-**`~/.claude.json`**, **`~/.config/opencode/opencode.json`**, **`~/.codex/config.toml`**, **`~/.codex/auth.json`**, **`~/.grok/config.toml`**, **`~/.grok/auth.json`**, and files under **`~/.cursor`** may contain sensitive settings or session state. These are copied or linked into temp staging directories to preserve user config when harness roots are redirected; Codex keychain bridging can materialize a shared **`$AGENTPACK_HOME/shared/codex/auth.json`** file so staged homes share refresh-token updates.
+**`~/.claude.json`**, **`~/.config/opencode/opencode.json`**, **`~/.codex/config.toml`**, **`~/.codex/auth.json`**, **`~/.grok/config.toml`**, **`~/.grok/auth.json`**, and files under **`~/.cursor`** may contain sensitive settings or session state. These are copied or linked into temp staging directories to preserve user config when harness roots are redirected; Codex keychain bridging can materialize a shared **`$AGENTPACK_HOME/shared/codex/auth.json`** file, while project-scoped MCP OAuth tokens are stored under **`$AGENTPACK_HOME/projects/<hash>/codex-mcp-oauth/`**.
 
 ### Skill shadowing
 

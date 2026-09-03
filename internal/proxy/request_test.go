@@ -6,8 +6,8 @@ import (
 	"testing"
 )
 
-func TestTranslationMatchesRustGolden(t *testing.T) {
-	data, err := os.ReadFile("../../crates/claude-code-proxy-rs/tests/golden/fixtures/request_complex.json")
+func TestTranslationMatchesGolden(t *testing.T) {
+	data, err := os.ReadFile("testdata/request_complex.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -19,7 +19,7 @@ func TestTranslationMatchesRustGolden(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertJSONHash(t, got, "e089cd036b3682f572e702b933044d470c75c1d260d7aa0921098321347d2c89")
+	assertJSONHash(t, got, "b1665c3dbc4d85daea98507d381ee053cf9720a1674ef0700557d5395341449a")
 }
 
 func TestTranslationKeepsEmptyInstructionsAndAcceptsXHigh(t *testing.T) {

@@ -109,7 +109,7 @@ func ConstraintsFromRef(value string, present bool) (ModuleConstraints, error) {
 	if isCommitSHA(value) {
 		return ModuleConstraints{Exact: strings.ToLower(value)}, nil
 	}
-	if requirement, err := parseCargoRequirement(value); err == nil {
+	if requirement, err := parseVersionRequirement(value); err == nil {
 		return ModuleConstraints{Semver: []versionRequirement{requirement}}, nil
 	}
 	return ModuleConstraints{Tag: value}, nil
@@ -150,7 +150,7 @@ func ConstraintsFromTable(table manifest.DependencyTable, keyRef string, hasKeyR
 	case table.Branch != nil:
 		return ModuleConstraints{Branch: *table.Branch}, nil
 	case table.Version != nil:
-		requirement, err := parseCargoRequirement(*table.Version)
+		requirement, err := parseVersionRequirement(*table.Version)
 		if err != nil {
 			return ModuleConstraints{}, fmt.Errorf("semver: %w", err)
 		}
@@ -162,7 +162,7 @@ func ConstraintsFromTable(table manifest.DependencyTable, keyRef string, hasKeyR
 	}
 }
 
-func parseCargoRequirement(value string) (versionRequirement, error) {
+func parseVersionRequirement(value string) (versionRequirement, error) {
 	value = strings.TrimSpace(value)
 	if value == "" || strings.HasPrefix(value, "v") {
 		return versionRequirement{}, fmt.Errorf("invalid semantic version requirement %q", value)

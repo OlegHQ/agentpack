@@ -7,10 +7,13 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"sort"
 	"strings"
 	"time"
+
+	git "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
+	"github.com/go-git/go-git/v5/storage/memory"
 )
 
 var apiRoot = "https://api.github.com"
@@ -144,13 +147,33 @@ func listTagsWithGit(ctx context.Context, owner, repo string) ([]Tag, error) {
 	return tagPairsFromLSRemote(output), nil
 }
 
-func gitLSRemote(ctx context.Context, owner, repo, pattern string) (string, error) {
-	command := exec.CommandContext(ctx, "git", "ls-remote", "https://github.com/"+owner+"/"+repo+".git", pattern)
-	output, err := command.CombinedOutput()
+func gitLSRemote(ctx context.Context, owner, repo, _ string) (string, error) {
+	remote := git.NewRemote(memory.NewStorage(), &config.RemoteConfig{
+		Name: "origin",
+		URLs: []string{"https://github.com/" + owner + "/" + repo + ".git"},
+	})
+	references, err := remote.ListContext(ctx, &git.ListOptions{PeelingOption: git.AppendPeeled})
 	if err != nil {
-		return "", fmt.Errorf("git ls-remote: %w: %s", err, strings.TrimSpace(string(output)))
+		return "", fmt.Errorf("git protocol ls-refs: %w", err)
 	}
-	return string(output), nil
+	hashes := make(map[string]string, len(references))
+	for _, reference := range references {
+		if !reference.Hash().IsZero() {
+			hashes[reference.Name().String()] = reference.Hash().String()
+		}
+	}
+	var output strings.Builder
+	for _, reference := range references {
+		hash := reference.Hash().String()
+		if reference.Hash().IsZero() {
+			hash = hashes[reference.Target().String()]
+		}
+		if hash == "" {
+			continue
+		}
+		fmt.Fprintf(&output, "%s\t%s\n", hash, reference.Name())
+	}
+	return output.String(), nil
 }
 
 func resolveSHAFromLSRemote(output, gitRef string) (string, error) {

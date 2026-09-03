@@ -28,7 +28,7 @@ func TestConstraintsFromRefClassifiesCommitSemverAndTag(t *testing.T) {
 	}
 }
 
-func TestBareCargoVersionUsesCaretSemantics(t *testing.T) {
+func TestBareVersionUsesCaretSemantics(t *testing.T) {
 	t.Parallel()
 	constraints, err := ConstraintsFromRef("1.2.3", true)
 	if err != nil {

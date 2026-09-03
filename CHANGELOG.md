@@ -5,6 +5,24 @@ All notable changes to `agentpack` are documented here. The format is based on
 "Pre-release" note in `AGENTS.md` — breaking changes may land between versions without a migration
 window.
 
+## Unreleased
+
+### Changed
+
+- Reimplemented agentpack as a Go 1.24 CLI while preserving the manifest, v2 lockfile, cache paths,
+  six harnesses, modes/TUI, hooks, MCP merge, durable auth/history, fast launch sync, and supervised
+  Claude proxy behavior.
+- Replaced the legacy packaging pipeline with GoReleaser archives, SHA-256 checksums, GitHub Releases, and a
+  Homebrew cask for macOS and Linux.
+- GitHub ref/tag and tarball fallbacks now use an embedded Go Git client, so installed binaries do
+  not require an external `git` executable when the REST or codeload endpoints fail.
+
+### Added
+
+- Durable, project-scoped Codex MCP OAuth credentials shared across staging modes.
+- Linux, macOS, and Windows Go CI, race detection, compiled CLI integration coverage, and benchmark
+  baselines for cache hashing and mode filtering.
+
 ## [0.3.10]
 
 ### Fixed
@@ -45,7 +63,7 @@ window.
   `..`, an absolute root, or a drive prefix instead of joining it onto the destination, so a
   hand-crafted ("zip slip") archive can no longer write outside the content-addressed cache. GitHub
   git trees can't produce such entries, but agentpack extracts untrusted third-party archives, so
-  the check is enforced regardless (`src/github/extract.rs`).
+  the check is enforced regardless (`internal/github/archive.go`).
 
 ### Fixed
 - **`add` with the canonical module-id form.** `agentpack add github.com/<owner>/<repo>/<path>` (the

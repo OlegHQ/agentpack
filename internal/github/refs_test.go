@@ -1,11 +1,14 @@
 package github
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
+	"time"
 )
 
 func TestResolveRefUsesFullSHAAndFreshCache(t *testing.T) {
@@ -73,5 +76,32 @@ func TestFreshTagCacheResolvesExactTagWithoutNetwork(t *testing.T) {
 	got, err := ResolveRef(context.Background(), &http.Client{}, "owner", "repo", "v1.2.3", false)
 	if err != nil || got != sha {
 		t.Fatalf("ResolveRef() = %q, %v", got, err)
+	}
+}
+
+func TestEmbeddedGitProtocolFallback(t *testing.T) {
+	if os.Getenv("AGENTPACK_NETWORK_TESTS") != "1" {
+		t.Skip("set AGENTPACK_NETWORK_TESTS=1 to exercise GitHub's smart HTTP endpoint")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	output, err := gitLSRemote(ctx, "OlegHQ", "agentpack", "HEAD")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sha, err := resolveSHAFromLSRemote(output, "HEAD")
+	if err != nil {
+		t.Fatal(err)
+	}
+	archive, err := fetchTarballWithGit(ctx, "OlegHQ", "agentpack", sha)
+	if err != nil {
+		t.Fatal(err)
+	}
+	paths, err := CollectRepoRelativePaths(bytes.NewReader(archive))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := paths["README.md"]; !ok {
+		t.Fatalf("archive does not contain README.md: %v", paths)
 	}
 }

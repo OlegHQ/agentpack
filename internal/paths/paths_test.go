@@ -56,7 +56,7 @@ func TestResolveProjectRootOrCWDAcceptsExplicitEmptyProject(t *testing.T) {
 	}
 }
 
-func TestModePathComponentMatchesRustAlgorithm(t *testing.T) {
+func TestModePathComponentIsStable(t *testing.T) {
 	t.Parallel()
 	if got, want := ModePathComponent("default"), "default"; got != want {
 		t.Fatalf("ModePathComponent(default) = %q, want %q", got, want)

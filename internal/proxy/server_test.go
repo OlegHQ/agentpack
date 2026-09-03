@@ -29,7 +29,7 @@ func (auth *staticAuth) RefreshAfterUnauthorized() (bool, error) {
 
 func TestServerTranslatesAndReducesMessages(t *testing.T) {
 	var upstreamBody map[string]any
-	fixture, err := os.ReadFile("../../crates/claude-code-proxy-rs/tests/golden/fixtures/codex_text.sse")
+	fixture, err := os.ReadFile("testdata/codex_text.sse")
 	if err != nil {
 		t.Fatal(err)
 	}

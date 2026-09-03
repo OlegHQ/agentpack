@@ -80,8 +80,8 @@ type Handler struct {
 	Model   string
 }
 
-// MarshalJSON preserves the Rust serde externally-tagged representation used
-// by hook execution specs.
+// MarshalJSON preserves the externally tagged representation used by hook
+// execution specs.
 func (handler Handler) MarshalJSON() ([]byte, error) {
 	inner := make(map[string]any)
 	tag := ""

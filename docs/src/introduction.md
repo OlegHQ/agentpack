@@ -2,7 +2,7 @@
 
 **agentpack** pins the skills, plugins, commands, and rules your project feeds to AI coding agents. You declare them once in `agentpack.toml`, lock them to exact commits in `pack.lock`, and launch any supported agent with everything already staged in its native format.
 
-Think of it as `cargo` or `uv` for agent configuration: a manifest, a lockfile, a content-addressed cache, and reproducible builds — except the artifacts are skills and prompts instead of crates.
+Think of it as a package manager for agent configuration: a manifest, a lockfile, a content-addressed cache, and reproducible builds — except the artifacts are skills and prompts instead of libraries.
 
 ## The problem it solves
 

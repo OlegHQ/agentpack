@@ -1,9 +1,12 @@
 package github
 
 import (
+	"bytes"
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -50,5 +53,27 @@ func TestFetchCodeloadClassifiesStatuses(t *testing.T) {
 				t.Fatalf("status %d disposition = %d, want %d", status, result.disposition, disposition)
 			}
 		})
+	}
+}
+
+func TestArchiveCheckoutProducesExtractableGitHubShape(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "skill"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "skill", "SKILL.md"), []byte("# fixture\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	archive, err := archiveCheckout(root, "repo-deadbeef")
+	if err != nil {
+		t.Fatal(err)
+	}
+	destination := t.TempDir()
+	if _, err := ExtractTarballWithPrefix(bytes.NewReader(archive), "", destination); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(destination, "skill", "SKILL.md"))
+	if err != nil || string(data) != "# fixture\n" {
+		t.Fatalf("extracted=%q err=%v", data, err)
 	}
 }

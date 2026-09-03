@@ -65,7 +65,7 @@ type PackLock struct {
 }
 
 // diskLock uses a pointer so the empty config table is omitted exactly as it
-// is by the Rust writer. PackLock keeps the friendlier concrete value in code.
+// is by the canonical writer. PackLock keeps the friendlier concrete value in code.
 type diskLock struct {
 	LockfileVersion uint32    `toml:"lockfile-version"`
 	Meta            Meta      `toml:"meta"`

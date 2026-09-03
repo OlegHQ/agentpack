@@ -1,19 +1,20 @@
 package github
 
 import (
+	"archive/tar"
 	"bytes"
+	"compress/gzip"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/OlegHQ/agentpack/internal/paths"
+	git "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 )
 
 var (
@@ -39,7 +40,7 @@ type fetchResult struct {
 
 // DownloadTarball tries anonymous codeload first, authenticated codeload for
 // private repositories second, then the Git protocol. Transient HTTP failures
-// receive the same three-attempt exponential retry policy as the Rust client.
+// receive the same three-attempt exponential retry policy as other sources.
 func DownloadTarball(ctx context.Context, client *http.Client, owner, repo, sha string) ([]byte, error) {
 	if client == nil {
 		client = &http.Client{Timeout: 5 * time.Minute}
@@ -127,46 +128,84 @@ func fetchTarballWithGit(ctx context.Context, owner, repo, sha string) ([]byte, 
 	if !isFullCommit(sha) {
 		return nil, fmt.Errorf("invalid commit sha %q", sha)
 	}
-	home, err := paths.EnsureUserAgentpackLayout()
+	checkout, err := os.MkdirTemp("", "agentpack-git-archive-")
 	if err != nil {
 		return nil, err
 	}
-	clone := filepath.Join(home, "git-protocol", "clones", owner+"--"+repo+".git")
-	if err := os.MkdirAll(filepath.Dir(clone), 0o755); err != nil {
-		return nil, fmt.Errorf("create Git cache: %w", err)
-	}
+	defer os.RemoveAll(checkout)
 	remote := "https://github.com/" + owner + "/" + repo + ".git"
-	if _, err := os.Stat(filepath.Join(clone, "HEAD")); errors.Is(err, os.ErrNotExist) {
-		if err := runGit(ctx, "clone", "--bare", "--filter=blob:none", remote, clone); err != nil {
-			return nil, err
-		}
-	} else if err != nil {
-		return nil, err
-	} else if err := runGitIn(ctx, clone, "fetch", "--force", "--prune", remote, "+refs/heads/*:refs/heads/*", "+refs/tags/*:refs/tags/*"); err != nil {
-		return nil, err
-	}
-	command := exec.CommandContext(ctx, "git", "-C", clone, "archive", "--format=tar.gz", "--prefix="+repo+"-"+sha+"/", sha)
-	output, err := command.Output()
+	repository, err := git.PlainCloneContext(ctx, checkout, false, &git.CloneOptions{URL: remote, NoCheckout: true})
 	if err != nil {
-		var exit *exec.ExitError
-		if errors.As(err, &exit) {
-			return nil, fmt.Errorf("git archive: %w: %s", err, strings.TrimSpace(string(exit.Stderr)))
-		}
-		return nil, fmt.Errorf("git archive: %w", err)
+		return nil, fmt.Errorf("git clone: %w", err)
 	}
-	return bytes.Clone(output), nil
+	worktree, err := repository.Worktree()
+	if err != nil {
+		return nil, err
+	}
+	if err := worktree.Checkout(&git.CheckoutOptions{Hash: plumbing.NewHash(sha), Force: true}); err != nil {
+		return nil, fmt.Errorf("git checkout %s: %w", sha, err)
+	}
+	return archiveCheckout(checkout, repo+"-"+sha)
 }
 
-func runGit(ctx context.Context, arguments ...string) error {
-	command := exec.CommandContext(ctx, "git", arguments...)
-	output, err := command.CombinedOutput()
+func archiveCheckout(root, prefix string) ([]byte, error) {
+	var output bytes.Buffer
+	gzipWriter := gzip.NewWriter(&output)
+	tarWriter := tar.NewWriter(gzipWriter)
+	err := filepath.Walk(root, func(path string, info os.FileInfo, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if path == filepath.Join(root, ".git") {
+			return filepath.SkipDir
+		}
+		if path == root {
+			return nil
+		}
+		relative, err := filepath.Rel(root, path)
+		if err != nil {
+			return err
+		}
+		link := ""
+		if info.Mode()&os.ModeSymlink != 0 {
+			link, err = os.Readlink(path)
+			if err != nil {
+				return err
+			}
+		}
+		header, err := tar.FileInfoHeader(info, link)
+		if err != nil {
+			return err
+		}
+		header.Name = filepath.ToSlash(filepath.Join(prefix, relative))
+		if info.IsDir() {
+			header.Name += "/"
+		}
+		if err := tarWriter.WriteHeader(header); err != nil {
+			return err
+		}
+		if !info.Mode().IsRegular() {
+			return nil
+		}
+		file, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		_, copyErr := io.Copy(tarWriter, file)
+		closeErr := file.Close()
+		if copyErr != nil {
+			return copyErr
+		}
+		return closeErr
+	})
 	if err != nil {
-		return fmt.Errorf("git %s: %w: %s", arguments[0], err, strings.TrimSpace(string(output)))
+		return nil, err
 	}
-	return nil
-}
-
-func runGitIn(ctx context.Context, directory string, arguments ...string) error {
-	all := append([]string{"-C", directory}, arguments...)
-	return runGit(ctx, all...)
+	if err := tarWriter.Close(); err != nil {
+		return nil, err
+	}
+	if err := gzipWriter.Close(); err != nil {
+		return nil, err
+	}
+	return bytes.Clone(output.Bytes()), nil
 }
