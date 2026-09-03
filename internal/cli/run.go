@@ -15,6 +15,7 @@ import (
 	"github.com/OlegHQ/agentpack/internal/lockfile"
 	"github.com/OlegHQ/agentpack/internal/manifest"
 	"github.com/OlegHQ/agentpack/internal/paths"
+	"github.com/OlegHQ/agentpack/internal/proxy"
 	packSync "github.com/OlegHQ/agentpack/internal/sync"
 )
 
@@ -140,9 +141,6 @@ func (runner Runner) runInit(invocation Invocation) error {
 }
 
 func (runner Runner) launch(ctx context.Context, root string, invocation Invocation) (int, error) {
-	if invocation.Global.Proxy {
-		return 1, errors.New("Claude proxy is not ported yet")
-	}
 	targetName := invocation.Command
 	if targetName == "agent" {
 		targetName = "cursor"
@@ -171,6 +169,19 @@ func (runner Runner) launch(ctx context.Context, root string, invocation Invocat
 		return 1, err
 	}
 	command.Stdin, command.Stdout, command.Stderr = runner.Stdin, runner.Stdout, runner.Stderr
+	if invocation.Global.Proxy {
+		running, err := proxy.Start(root)
+		if err != nil {
+			return 1, err
+		}
+		if invocation.Global.Debug {
+			fmt.Fprintf(runner.Stderr, "agentpack: Claude proxy listening on %s\n", running.Server.BaseURL())
+		}
+		running.Apply(command)
+		code, runErr := runProcess(command)
+		running.Shutdown()
+		return code, runErr
+	}
 	return runProcess(command)
 }
 
