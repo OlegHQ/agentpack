@@ -60,7 +60,10 @@ func (runner Runner) Run(ctx context.Context, arguments []string) (int, error) {
 		return runner.runHook(ctx, invocation.Args)
 	}
 	if invocation.Command == "init" {
-		return 0, runner.runInit(invocation)
+		if err := runner.runInit(invocation); err != nil {
+			return 1, err
+		}
+		return 0, nil
 	}
 	allowsMissing := map[string]bool{"add": true, "claude": true, "opencode": true, "codex": true, "grok": true, "agy": true, "agent": true}
 	var root string

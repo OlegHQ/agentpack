@@ -18,6 +18,9 @@ func TestInitMCPAndModeCommands(t *testing.T) {
 	if code, err := runner.Run(context.Background(), []string{"--project-root", root, "init", "--name", "demo", "--version", "1.2.3"}); err != nil || code != 0 {
 		t.Fatalf("init code=%d err=%v", code, err)
 	}
+	if code, err := runner.Run(context.Background(), []string{"--project-root", root, "init"}); err == nil || code != 1 {
+		t.Fatalf("second init code=%d err=%v", code, err)
+	}
 	manifest, err := os.ReadFile(filepath.Join(root, "agentpack.toml"))
 	if err != nil || !strings.Contains(string(manifest), `name = "demo"`) {
 		t.Fatalf("manifest=%s err=%v", manifest, err)
