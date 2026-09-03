@@ -75,7 +75,7 @@ release:
     powershell -ExecutionPolicy ByPass -c "irm https://github.com/OlegHQ/agentpack/releases/download/{{ .Tag }}/agentpack-installer.ps1 | iex"
     ```
 
-    The installers detect the host architecture and verify the downloaded archive against `checksums.txt`.
+    The installers detect the host architecture, verify the archive against `checksums.txt`, and write only to `$HOME/.local/bin`. They do not modify shell profiles or `PATH`.
   extra_files:
     - glob: ./scripts/agentpack-installer.sh
     - glob: ./scripts/agentpack-installer.ps1

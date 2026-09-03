@@ -14,6 +14,8 @@ All downloaded trees, the metadata index, and your **`local/`** mirror live unde
 
 Every GitHub release description must begin with copyable, version-pinned install commands for every supported operating-system family: the shell installer for macOS/Linux and the PowerShell installer for Windows. Keep these commands in GoReleaser's `release.header`; do not publish a changelog-only release. The URLs must use `{{ .Tag }}` so each release installs itself rather than whatever `latest` points to. Both installer scripts and `checksums.txt` must be attached to the same release, and release validation must fail if any command or asset declaration is removed.
 
+Installer scripts must default to the user-owned `$HOME/.local/bin` directory on every platform. They may create that directory and replace the `agentpack` executable inside it, but must never edit shell startup files, change the current process environment, or persistently modify the user's `PATH`. `AGENTPACK_INSTALL_DIR` is the only supported destination override.
+
 ### Code structure (contributor rule)
 
 **Per-harness code lives in `internal/harness/<name>/`. Shared code lives in its subsystem. No forwarding aliases, no orphaned glue, and no tiny single-purpose packages.**
