@@ -8,7 +8,6 @@ import (
 	"sort"
 	"strings"
 
-	legacytoml "github.com/pelletier/go-toml"
 	"github.com/pelletier/go-toml/v2"
 
 	"github.com/OlegHQ/agentpack/internal/mcp"
@@ -125,33 +124,19 @@ func AppendDependencyKey(projectRoot, moduleKey string) error {
 }
 
 func AppendDependencyPin(projectRoot, moduleKey, gitRef string) error {
-	return mutateTree(projectRoot, func(tree *legacytoml.Tree) error {
-		path := []string{"dependencies", moduleKey}
-		if tree.HasPath(path) {
-			return nil
-		}
+	return mutateDocument(projectRoot, func(data []byte) ([]byte, error) {
 		gitRef = strings.TrimSpace(gitRef)
+		value := "{}"
 		if gitRef != "" && gitRef != DefaultGitRef {
-			tree.SetPath(path, gitRef)
-		} else {
-			value, err := legacytoml.TreeFromMap(map[string]any{})
-			if err != nil {
-				return fmt.Errorf("create dependency table: %w", err)
-			}
-			tree.SetPath(path, value)
+			value = quoteString(gitRef)
 		}
-		return nil
+		return insertAssignment(data, []string{"dependencies"}, moduleKey, value, true)
 	})
 }
 
 func AppendPathDependency(projectRoot, name, relativePath string) error {
-	return mutateTree(projectRoot, func(tree *legacytoml.Tree) error {
-		value, err := legacytoml.TreeFromMap(map[string]any{"path": relativePath})
-		if err != nil {
-			return fmt.Errorf("create path dependency table: %w", err)
-		}
-		tree.SetPath([]string{"dependencies", name}, value)
-		return nil
+	return mutateDocument(projectRoot, func(data []byte) ([]byte, error) {
+		return insertAssignment(data, []string{"dependencies"}, name, "{ path = "+quoteString(relativePath)+" }", false)
 	})
 }
 
@@ -165,53 +150,39 @@ func RemoveDependencyEntry(projectRoot, moduleKey string) error {
 		definition.Disable = filterSelectorsForModule(definition.Disable, moduleKey)
 		manifest.Modes[name] = definition
 	}
-	return mutateTree(projectRoot, func(tree *legacytoml.Tree) error {
-		if err := tree.DeletePath([]string{"dependencies", moduleKey}); err != nil {
-			return fmt.Errorf("remove dependency %q: %w", moduleKey, err)
+	return mutateDocument(projectRoot, func(data []byte) ([]byte, error) {
+		data, _, err := deleteAssignmentOrSection(data, []string{"dependencies", moduleKey})
+		if err != nil {
+			return nil, err
 		}
-		return replaceModesInTree(tree, manifest.Modes)
+		return replaceSections(data, []string{"modes"}, renderModes(manifest.Modes))
 	})
 }
 
 func AddMCPServer(projectRoot, name string, server mcp.Server) error {
-	value := make(map[string]any, 6)
-	if server.Type != nil {
-		value["type"] = *server.Type
-	}
-	if server.Command != nil {
-		value["command"] = *server.Command
-	}
-	if len(server.Args) != 0 {
-		value["args"] = server.Args
-	}
-	if len(server.Env) != 0 {
-		value["env"] = server.Env
-	}
-	if server.URL != nil {
-		value["url"] = *server.URL
-	}
-	if server.Disabled != nil {
-		value["disabled"] = *server.Disabled
-	}
-	return mutateTree(projectRoot, func(tree *legacytoml.Tree) error {
-		serverTree, err := legacytoml.TreeFromMap(value)
+	return mutateDocument(projectRoot, func(data []byte) ([]byte, error) {
+		path := []string{"mcp", "servers", name}
+		exists, err := assignmentExists(data, path)
 		if err != nil {
-			return fmt.Errorf("create MCP server table: %w", err)
+			return nil, err
 		}
-		tree.SetPath([]string{"mcp", "servers", name}, serverTree)
-		return nil
+		if exists {
+			return insertAssignment(data, []string{"mcp", "servers"}, name, renderMCPServer(server), false)
+		}
+		data, _, err = deleteAssignmentOrSection(data, path)
+		if err != nil {
+			return nil, err
+		}
+		return insertAssignment(data, []string{"mcp", "servers"}, name, renderMCPServer(server), false)
 	})
 }
 
 func RemoveMCPServer(projectRoot, name string) (bool, error) {
 	removed := false
-	err := mutateTree(projectRoot, func(tree *legacytoml.Tree) error {
-		path := []string{"mcp", "servers", name}
-		removed = tree.HasPath(path)
-		if removed {
-			return tree.DeletePath(path)
-		}
-		return nil
+	err := mutateDocument(projectRoot, func(data []byte) ([]byte, error) {
+		updated, found, err := deleteAssignmentOrSection(data, []string{"mcp", "servers", name})
+		removed = found
+		return updated, err
 	})
 	return removed, err
 }
@@ -339,7 +310,9 @@ func RemoveModeSelectors(projectRoot, name string, selectors []string) error {
 }
 
 func ReplaceModes(projectRoot string, modes map[string]mode.Definition) error {
-	return mutateTree(projectRoot, func(tree *legacytoml.Tree) error { return replaceModesInTree(tree, modes) })
+	return mutateDocument(projectRoot, func(data []byte) ([]byte, error) {
+		return replaceSections(data, []string{"modes"}, renderModes(modes))
+	})
 }
 
 func WriteStub(projectRoot, name, version string) error {
@@ -359,36 +332,17 @@ func WriteStub(projectRoot, name, version string) error {
 	return nil
 }
 
-func mutateTree(projectRoot string, mutate func(*legacytoml.Tree) error) error {
+func mutateDocument(projectRoot string, mutate func([]byte) ([]byte, error)) error {
 	path := paths.ManifestPath(projectRoot)
 	original, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("read manifest %s: %w", path, err)
 	}
-	tree, err := legacytoml.LoadFile(path)
+	output, err := mutate(original)
 	if err != nil {
-		return fmt.Errorf("parse agentpack.toml: %w", err)
-	}
-	if err := mutate(tree); err != nil {
 		return err
 	}
-	output, err := tree.ToTomlString()
-	if err != nil {
-		return fmt.Errorf("encode agentpack.toml: %w", err)
-	}
-	// go-toml retains comments attached to values, but drops otherwise orphaned
-	// comment lines when it rebuilds the tree. Preserve those lines verbatim so
-	// a semantic edit never discards user guidance. A lossless targeted editor
-	// remains a cutover requirement in the parity ledger.
-	for _, line := range strings.Split(string(original), "\n") {
-		if strings.HasPrefix(strings.TrimSpace(line), "#") && !strings.Contains(output, line) {
-			if !strings.HasSuffix(output, "\n") {
-				output += "\n"
-			}
-			output += line + "\n"
-		}
-	}
-	if err := os.WriteFile(path, []byte(output), 0o644); err != nil {
+	if err := os.WriteFile(path, output, 0o644); err != nil {
 		return fmt.Errorf("write manifest %s: %w", path, err)
 	}
 	return nil
@@ -403,25 +357,6 @@ func withModes(projectRoot string, change func(map[string]mode.Definition) error
 		return err
 	}
 	return ReplaceModes(projectRoot, manifest.Modes)
-}
-
-func replaceModesInTree(tree *legacytoml.Tree, modes map[string]mode.Definition) error {
-	if tree.Has("modes") {
-		if err := tree.Delete("modes"); err != nil {
-			return err
-		}
-	}
-	for name, definition := range modes {
-		definition.ApplyDefaults()
-		tree.SetPath([]string{"modes", name, "base"}, string(definition.Base))
-		if len(definition.Enable) != 0 {
-			tree.SetPath([]string{"modes", name, "enable"}, definition.Enable)
-		}
-		if len(definition.Disable) != 0 {
-			tree.SetPath([]string{"modes", name, "disable"}, definition.Disable)
-		}
-	}
-	return nil
 }
 
 func requireManifest(projectRoot string) (*Manifest, error) {

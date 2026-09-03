@@ -129,3 +129,57 @@ func TestMCPMutationRoundTrips(t *testing.T) {
 		t.Fatalf("comment lost:\n%s", raw)
 	}
 }
+
+func TestDependencyAppendPreservesEveryUnrelatedByte(t *testing.T) {
+	root := t.TempDir()
+	original := "# top comment\nname  =  \"proj\" # spacing stays\n\n[dependencies] # dependency note\n# insertion anchor\n\n[custom]\nvalue = \"untouched\"\n"
+	if err := os.WriteFile(filepath.Join(root, "agentpack.toml"), []byte(original), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := AppendDependencyPin(root, "github.com/Acme/repo/Skill", "v1.2.3"); err != nil {
+		t.Fatal(err)
+	}
+	want := "# top comment\nname  =  \"proj\" # spacing stays\n\n[dependencies] # dependency note\n\"github.com/Acme/repo/Skill\" = \"v1.2.3\"\n# insertion anchor\n\n[custom]\nvalue = \"untouched\"\n"
+	raw, err := os.ReadFile(filepath.Join(root, "agentpack.toml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(raw) != want {
+		t.Fatalf("manifest bytes changed outside insertion\n--- got ---\n%s--- want ---\n%s", raw, want)
+	}
+}
+
+func TestMCPReplacementPreservesEveryUnrelatedByte(t *testing.T) {
+	root := t.TempDir()
+	original := "name = \"proj\"\n\n[mcp.servers]\n# keep before\nserver = { command = \"old\" } # replaced\n# keep after\n\n[other]\nodd   =   true # exact\n"
+	if err := os.WriteFile(filepath.Join(root, "agentpack.toml"), []byte(original), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	command := "new"
+	if err := AddMCPServer(root, "server", mcp.Server{Command: &command}); err != nil {
+		t.Fatal(err)
+	}
+	want := "name = \"proj\"\n\n[mcp.servers]\n# keep before\nserver = { command = \"new\" }\n# keep after\n\n[other]\nodd   =   true # exact\n"
+	raw, _ := os.ReadFile(filepath.Join(root, "agentpack.toml"))
+	if string(raw) != want {
+		t.Fatalf("manifest bytes changed outside replacement\n--- got ---\n%s--- want ---\n%s", raw, want)
+	}
+}
+
+func TestModeReplacementLeavesNonModeSectionsByteExact(t *testing.T) {
+	root := t.TempDir()
+	original := "# top\nname  =  \"proj\"\n\n[modes.old]\nbase = \"all\"\n\n[unrelated]\nvalue   =   \"exact\" # keep\n"
+	if err := os.WriteFile(filepath.Join(root, "agentpack.toml"), []byte(original), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := ReplaceModes(root, map[string]mode.Definition{"review": {Base: mode.BaseNone}}); err != nil {
+		t.Fatal(err)
+	}
+	raw, _ := os.ReadFile(filepath.Join(root, "agentpack.toml"))
+	if !strings.HasPrefix(string(raw), "# top\nname  =  \"proj\"\n\n[unrelated]\nvalue   =   \"exact\" # keep") {
+		t.Fatalf("non-mode content changed:\n%s", raw)
+	}
+	if !strings.Contains(string(raw), "[modes.review]\nbase = \"none\"") || strings.Contains(string(raw), "modes.old") {
+		t.Fatalf("mode replacement failed:\n%s", raw)
+	}
+}
