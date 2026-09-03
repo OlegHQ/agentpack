@@ -3,6 +3,7 @@ package grok
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -13,7 +14,28 @@ import (
 )
 
 func New() base.Harness {
-	return base.Definition{Target: base.Grok, Root: stagedRoot, Reset: resetPaths, BeforeReset: preReset, Setup: prepare, MCP: writeMCP, Guidance: injectGuidance, Check: verify}
+	return base.Definition{Target: base.Grok, Root: stagedRoot, Reset: resetPaths, BeforeReset: preReset, Setup: prepare, MCP: writeMCP, Guidance: injectGuidance, Check: verify, Launch: launch}
+}
+
+func launch(ctx base.LaunchContext) (*exec.Cmd, error) {
+	arguments := append([]string(nil), ctx.Arguments...)
+	if !base.HasFlagValue(arguments, "--cwd") {
+		arguments = append([]string{"--cwd", ctx.ProjectRoot}, arguments...)
+	}
+	if ctx.Yolo {
+		arguments = base.PrependOnce(arguments, "--always-approve")
+	}
+	binary, err := base.ResolveBinary("GROK_PATH", "grok")
+	if err != nil {
+		return nil, err
+	}
+	home, err := paths.StagingGrokHomeDirForMode(ctx.ProjectRoot, ctx.Mode.Name())
+	if err != nil {
+		return nil, err
+	}
+	command := exec.Command(binary, arguments...)
+	command.Env = append(os.Environ(), "GROK_HOME="+home)
+	return command, nil
 }
 func stagedRoot(ctx base.StageContext) (string, error) {
 	return paths.StagingGrokBundleDirForMode(ctx.ProjectRoot, ctx.Mode.Name())

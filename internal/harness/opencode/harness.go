@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	base "github.com/OlegHQ/agentpack/internal/harness"
@@ -14,7 +15,34 @@ import (
 const instructionsFile = "agentpack-no-attribution.md"
 
 func New() base.Harness {
-	return base.Definition{Target: base.OpenCode, Root: stagedRoot, Setup: prepare, MCP: writeMCP, Guidance: injectGuidance, Check: verify}
+	return base.Definition{Target: base.OpenCode, Root: stagedRoot, Setup: prepare, MCP: writeMCP, Guidance: injectGuidance, Check: verify, Launch: launch}
+}
+
+func launch(ctx base.LaunchContext) (*exec.Cmd, error) {
+	root, err := paths.StagingOpenCodeDirForMode(ctx.ProjectRoot, ctx.Mode.Name())
+	if err != nil {
+		return nil, err
+	}
+	if ctx.Yolo {
+		path := filepath.Join(root, "opencode.json")
+		value := make(map[string]any)
+		if data, readErr := os.ReadFile(path); readErr == nil {
+			if err := json.Unmarshal(stripComments(data), &value); err != nil {
+				return nil, err
+			}
+		}
+		value["permission"] = "allow"
+		if err := writeConfig(path, value); err != nil {
+			return nil, err
+		}
+	}
+	binary, err := base.ResolveBinary("OPENCODE_PATH", "opencode")
+	if err != nil {
+		return nil, err
+	}
+	command := exec.Command(binary, ctx.Arguments...)
+	command.Env = append(os.Environ(), "OPENCODE_CONFIG_DIR="+root)
+	return command, nil
 }
 
 func stagedRoot(ctx base.StageContext) (string, error) {

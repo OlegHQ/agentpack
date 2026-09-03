@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
+	"strings"
 
 	base "github.com/OlegHQ/agentpack/internal/harness"
 	"github.com/OlegHQ/agentpack/internal/mcp"
@@ -12,7 +15,52 @@ import (
 )
 
 func New() base.Harness {
-	return base.Definition{Target: base.Cursor, Root: stagedRoot, Reset: resetPaths, Setup: prepare, MCP: writeMCP, AfterStage: finalize, WorkspaceOverlay: materializeAgentsOverlay, Check: verify}
+	return base.Definition{Target: base.Cursor, Root: stagedRoot, Reset: resetPaths, Setup: prepare, MCP: writeMCP, AfterStage: finalize, WorkspaceOverlay: materializeAgentsOverlay, Check: verify, Launch: launch}
+}
+
+func launch(ctx base.LaunchContext) (*exec.Cmd, error) {
+	arguments := append([]string(nil), ctx.Arguments...)
+	if !base.HasFlagValue(arguments, "--workspace") {
+		arguments = append([]string{"--workspace", base.WorkspaceRoot(ctx.ProjectRoot)}, arguments...)
+	}
+	if ctx.Yolo {
+		arguments = base.PrependOnce(arguments, "--force", "--yolo")
+	}
+	if allowsTrust(arguments) && !base.HasAny(arguments, "--trust") {
+		arguments = append([]string{"--trust"}, arguments...)
+	}
+	binary, err := base.ResolveBinary("CURSOR_AGENT_PATH", "cursor-agent")
+	if err != nil {
+		return nil, err
+	}
+	home, err := paths.StagingCursorHomeDirForMode(ctx.ProjectRoot, ctx.Mode.Name())
+	if err != nil {
+		return nil, err
+	}
+	command := exec.Command(binary, arguments...)
+	environment := append(os.Environ(), "HOME="+home, "CURSOR_CONFIG_DIR="+filepath.Join(home, ".cursor"))
+	if runtime.GOOS == "windows" {
+		environment = append(environment, "USERPROFILE="+home, "APPDATA="+filepath.Join(home, "AppData", "Roaming"), "LOCALAPPDATA="+filepath.Join(home, "AppData", "Local"))
+	} else if runtime.GOOS == "linux" {
+		environment = append(environment, "XDG_CONFIG_HOME="+filepath.Join(home, ".config"), "XDG_DATA_HOME="+filepath.Join(home, ".local", "share"))
+	}
+	if realHome, err := os.UserHomeDir(); err == nil {
+		for key, value := range map[string]string{"CARGO_HOME": filepath.Join(realHome, ".cargo"), "RUSTUP_HOME": filepath.Join(realHome, ".rustup"), "DOCKER_CONFIG": filepath.Join(realHome, ".docker"), "CURSOR_DATA_DIR": filepath.Join(realHome, ".cursor")} {
+			if os.Getenv(key) == "" {
+				environment = append(environment, key+"="+value)
+			}
+		}
+	}
+	command.Env = environment
+	return command, nil
+}
+func allowsTrust(arguments []string) bool {
+	for index, argument := range arguments {
+		if argument == "-p" || argument == "--print" || strings.HasPrefix(argument, "--output-format=") || (argument == "--output-format" && index+1 < len(arguments)) {
+			return true
+		}
+	}
+	return false
 }
 func stagedRoot(ctx base.StageContext) (string, error) {
 	return paths.StagingCursorPackPluginDirForMode(ctx.ProjectRoot, ctx.Mode.Name())

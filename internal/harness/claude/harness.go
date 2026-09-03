@@ -3,6 +3,7 @@ package claude
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	base "github.com/OlegHQ/agentpack/internal/harness"
@@ -11,7 +12,39 @@ import (
 )
 
 func New() base.Harness {
-	return base.Definition{Target: base.Claude, Root: stagedRoot, Reset: resetPaths, Setup: prepare, MCP: writeMCP, Guidance: injectGuidance, AfterStage: finalize, Check: verify}
+	return base.Definition{Target: base.Claude, Root: stagedRoot, Reset: resetPaths, Setup: prepare, MCP: writeMCP, Guidance: injectGuidance, AfterStage: finalize, Check: verify, Launch: launch}
+}
+
+func launch(ctx base.LaunchContext) (*exec.Cmd, error) {
+	binary, err := base.ResolveBinary("CLAUDE_CODE_PATH", "claude")
+	if err != nil {
+		return nil, err
+	}
+	arguments := append([]string(nil), ctx.Arguments...)
+	if ctx.Yolo {
+		arguments = base.PrependOnce(arguments, "--dangerously-skip-permissions")
+	}
+	command := exec.Command(binary)
+	settings, err := paths.AgentpackClaudeSettingsPath()
+	if err != nil {
+		return nil, err
+	}
+	if _, err := os.Stat(settings); err == nil {
+		command.Args = append(command.Args, "--settings", settings)
+	}
+	plugins, err := paths.StagingPluginsDirForMode(ctx.ProjectRoot, ctx.Mode.Name())
+	if err != nil {
+		return nil, err
+	}
+	entries, _ := os.ReadDir(plugins)
+	for _, entry := range entries {
+		path := filepath.Join(plugins, entry.Name())
+		if _, err := os.Stat(filepath.Join(path, ".claude-plugin", "plugin.json")); err == nil {
+			command.Args = append(command.Args, "--plugin-dir", path)
+		}
+	}
+	command.Args = append(command.Args, arguments...)
+	return command, nil
 }
 
 func stagedRoot(ctx base.StageContext) (string, error) {

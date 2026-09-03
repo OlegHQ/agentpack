@@ -2,6 +2,7 @@ package harness
 
 import (
 	"fmt"
+	"os/exec"
 
 	"github.com/OlegHQ/agentpack/internal/mcp"
 	"github.com/OlegHQ/agentpack/internal/mode"
@@ -11,6 +12,13 @@ type StageContext struct {
 	ProjectRoot  string
 	Mode         mode.Effective
 	LaunchTarget *Target
+}
+
+type LaunchContext struct {
+	ProjectRoot string
+	Arguments   []string
+	Mode        mode.Effective
+	Yolo        bool
 }
 
 type Harness interface {
@@ -24,6 +32,7 @@ type Harness interface {
 	Finalize(mcp.Entries, StageContext) error
 	FinalizeWorkspaceOverlay(StageContext) error
 	Verify(StageContext) error
+	LaunchCommand(LaunchContext) (*exec.Cmd, error)
 }
 
 type Definition struct {
@@ -37,6 +46,7 @@ type Definition struct {
 	AfterStage       func(mcp.Entries, StageContext) error
 	WorkspaceOverlay func(StageContext) error
 	Check            func(StageContext) error
+	Launch           func(LaunchContext) (*exec.Cmd, error)
 }
 
 func (definition Definition) ID() Target { return definition.Target }
@@ -94,4 +104,10 @@ func (definition Definition) Verify(ctx StageContext) error {
 		return fmt.Errorf("%s harness has no verifier", definition.Target)
 	}
 	return definition.Check(ctx)
+}
+func (definition Definition) LaunchCommand(ctx LaunchContext) (*exec.Cmd, error) {
+	if definition.Launch == nil {
+		return nil, fmt.Errorf("%s harness has no launcher", definition.Target)
+	}
+	return definition.Launch(ctx)
 }

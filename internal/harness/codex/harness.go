@@ -3,7 +3,9 @@ package codex
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 
 	base "github.com/OlegHQ/agentpack/internal/harness"
 	"github.com/OlegHQ/agentpack/internal/mcp"
@@ -11,7 +13,30 @@ import (
 )
 
 func New() base.Harness {
-	return base.Definition{Target: base.Codex, Root: stagedRoot, BeforeReset: preReset, Setup: prepare, MCP: writeMCP, Guidance: injectGuidance, Check: verify}
+	return base.Definition{Target: base.Codex, Root: stagedRoot, BeforeReset: preReset, Setup: prepare, MCP: writeMCP, Guidance: injectGuidance, Check: verify, Launch: launch}
+}
+
+func launch(ctx base.LaunchContext) (*exec.Cmd, error) {
+	arguments := append([]string(nil), ctx.Arguments...)
+	if ctx.Yolo && !base.HasAny(arguments, "--dangerously-bypass-approvals-and-sandbox", "--yolo") {
+		flag := "--dangerously-bypass-approvals-and-sandbox"
+		if len(arguments) == 0 || strings.HasPrefix(arguments[0], "-") {
+			arguments = append([]string{flag}, arguments...)
+		} else {
+			arguments = append(arguments[:1], append([]string{flag}, arguments[1:]...)...)
+		}
+	}
+	binary, err := base.ResolveBinary("CODEX_PATH", "codex")
+	if err != nil {
+		return nil, err
+	}
+	home, err := paths.StagingCodexHomeDirForMode(ctx.ProjectRoot, ctx.Mode.Name())
+	if err != nil {
+		return nil, err
+	}
+	command := exec.Command(binary, arguments...)
+	command.Env = append(os.Environ(), "CODEX_HOME="+home)
+	return command, nil
 }
 func stagedRoot(ctx base.StageContext) (string, error) {
 	return paths.StagingCodexHomeDirForMode(ctx.ProjectRoot, ctx.Mode.Name())

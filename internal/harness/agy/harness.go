@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -16,7 +17,22 @@ import (
 const workspaceOverlay = ".agents/plugins/agentpack-bundle"
 
 func New() base.Harness {
-	return base.Definition{Target: base.Agy, Root: stagedRoot, Reset: resetPaths, Setup: prepare, MCP: writeMCP, WorkspaceOverlay: finalizeWorkspace, Check: verify}
+	return base.Definition{Target: base.Agy, Root: stagedRoot, Reset: resetPaths, Setup: prepare, MCP: writeMCP, WorkspaceOverlay: finalizeWorkspace, Check: verify, Launch: launch}
+}
+
+func launch(ctx base.LaunchContext) (*exec.Cmd, error) {
+	arguments := append([]string(nil), ctx.Arguments...)
+	if !base.HasFlagValue(arguments, "--add-dir") {
+		arguments = append([]string{"--add-dir", base.WorkspaceRoot(ctx.ProjectRoot)}, arguments...)
+	}
+	if ctx.Yolo {
+		arguments = base.PrependOnce(arguments, "--dangerously-skip-permissions")
+	}
+	binary, err := base.ResolveBinary("AGY_PATH", "agy")
+	if err != nil {
+		return nil, err
+	}
+	return exec.Command(binary, arguments...), nil
 }
 func stagedRoot(ctx base.StageContext) (string, error) {
 	return paths.StagingAgyBundleDirForMode(ctx.ProjectRoot, ctx.Mode.Name())
