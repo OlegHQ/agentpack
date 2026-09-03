@@ -45,9 +45,14 @@ func launch(ctx base.LaunchContext) (*exec.Cmd, error) {
 		environment = append(environment, "XDG_CONFIG_HOME="+filepath.Join(home, ".config"), "XDG_DATA_HOME="+filepath.Join(home, ".local", "share"))
 	}
 	if realHome, err := os.UserHomeDir(); err == nil {
-		for key, value := range map[string]string{"CARGO_HOME": filepath.Join(realHome, ".cargo"), "RUSTUP_HOME": filepath.Join(realHome, ".rustup"), "DOCKER_CONFIG": filepath.Join(realHome, ".docker"), "CURSOR_DATA_DIR": filepath.Join(realHome, ".cursor")} {
-			if os.Getenv(key) == "" {
-				environment = append(environment, key+"="+value)
+		for _, entry := range []struct{ key, value string }{
+			{"CARGO_HOME", filepath.Join(realHome, ".cargo")},
+			{"RUSTUP_HOME", filepath.Join(realHome, ".rustup")},
+			{"DOCKER_CONFIG", filepath.Join(realHome, ".docker")},
+			{"CURSOR_DATA_DIR", filepath.Join(realHome, ".cursor")},
+		} {
+			if _, exists := os.LookupEnv(entry.key); !exists {
+				environment = append(environment, entry.key+"="+entry.value)
 			}
 		}
 	}

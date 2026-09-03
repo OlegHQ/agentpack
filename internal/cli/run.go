@@ -45,6 +45,14 @@ func (runner Runner) Run(ctx context.Context, arguments []string) (int, error) {
 	if err != nil {
 		return 2, err
 	}
+	if invocation.Command != "init" && hasBeforeDoubleDash(invocation.Args, "--version", "-V") {
+		fmt.Fprintln(runner.Stdout, "agentpack "+Version)
+		return 0, nil
+	}
+	if hasBeforeDoubleDash(invocation.Args, "--help", "-h") {
+		fmt.Fprint(runner.Stdout, helpFor(invocation.Command, invocation.Args))
+		return 0, nil
+	}
 	if invocation.Global.Proxy && invocation.Command != "claude" {
 		return 2, errors.New("--proxy is only supported with `agentpack claude`")
 	}
@@ -70,16 +78,34 @@ func (runner Runner) Run(ctx context.Context, arguments []string) (int, error) {
 		if err := noArgs(args); err != nil {
 			return 2, err
 		}
-		_, err = runner.Service.Lock(ctx, root, update)
+		var locked lockfile.PackLock
+		locked, err = runner.Service.Lock(ctx, root, update)
+		if err == nil && !invocation.Global.Quiet {
+			fmt.Fprintf(runner.Stdout, "Wrote %s (%d package(s)).\n", paths.LockPath(root), len(locked.Packages))
+		}
 	case "add", "remove":
 		args, noSync := takeBool(invocation.Args, "--no-sync")
 		if len(args) != 1 {
 			return 2, fmt.Errorf("%s requires exactly one package spec", invocation.Command)
 		}
 		if invocation.Command == "add" {
-			_, err = runner.Service.Add(ctx, root, args[0], noSync)
+			if !invocation.Global.Quiet {
+				fmt.Fprintf(runner.Stdout, "Adding: %s\n", args[0])
+			}
+			var pkg lockfile.Package
+			pkg, err = runner.Service.Add(ctx, root, args[0], noSync)
+			if err == nil && !invocation.Global.Quiet {
+				fmt.Fprintf(runner.Stdout, "Recorded %s in agentpack.toml and refreshed pack.lock.\n", pkg.Module)
+			}
 		} else {
-			_, err = runner.Service.Remove(ctx, root, args[0], noSync)
+			var key string
+			key, err = runner.Service.Remove(ctx, root, args[0], noSync)
+			if err == nil && !invocation.Global.Quiet {
+				fmt.Fprintf(runner.Stdout, "Removed %s from %s and refreshed %s.\n", key, paths.ManifestPath(root), paths.LockPath(root))
+			}
+		}
+		if err == nil && noSync && !invocation.Global.Quiet {
+			fmt.Fprintln(runner.Stdout, "Skipping sync (--no-sync).")
 		}
 	case "sync":
 		args, dry := takeBool(invocation.Args, "--dry-run")
@@ -91,7 +117,13 @@ func (runner Runner) Run(ctx context.Context, arguments []string) (int, error) {
 		var result packSync.SyncResult
 		result, err = runner.Service.Sync(ctx, root, packSync.SyncOptions{DryRun: dry, VerifyOnly: verify, UpdateLock: update, Mode: invocation.Global.Mode})
 		if err == nil && !invocation.Global.Quiet {
-			fmt.Fprintf(runner.Stdout, "Synced %d skills and %d plugins (%d shadowed).\n", result.Skills, result.Plugins, result.Shadowed)
+			if dry {
+				fmt.Fprintf(runner.Stdout, "Dry-run: would sync %d skill(s), %d plugin(s); %d skill(s) shadowed by plugins (omitted from staging); no changes made.\n", result.Skills, result.Plugins, result.Shadowed)
+			} else if verify {
+				fmt.Fprintln(runner.Stdout, "Staging checks passed")
+			} else {
+				fmt.Fprintf(runner.Stdout, "Sync finished — %d skill(s), %d plugin(s), %d cache index entr(ies). One merged bundle: agentpack-bundle.\n", result.Skills, result.Plugins, result.IndexEntries)
+			}
 		}
 	case "claude", "opencode", "codex", "grok", "agy", "agent":
 		return runner.launch(ctx, root, invocation)
@@ -134,10 +166,19 @@ func (runner Runner) runInit(invocation Invocation) error {
 	if version == "" {
 		version = "0.0.1"
 	}
+	if !invocation.Global.Quiet {
+		fmt.Fprintln(runner.Stdout, "Initializing agentpack…")
+	}
 	if err := manifest.WriteStub(root, name, version); err != nil {
 		return err
 	}
-	return lockfile.Init(root, name, version)
+	if err := lockfile.Init(root, name, version); err != nil {
+		return err
+	}
+	if !invocation.Global.Quiet {
+		fmt.Fprintf(runner.Stdout, "Created %s and %s\n", paths.ManifestPath(root), paths.LockPath(root))
+	}
+	return nil
 }
 
 func (runner Runner) launch(ctx context.Context, root string, invocation Invocation) (int, error) {
@@ -190,6 +231,20 @@ func noArgs(arguments []string) error {
 		return fmt.Errorf("unexpected arguments: %s", strings.Join(arguments, " "))
 	}
 	return nil
+}
+
+func hasBeforeDoubleDash(arguments []string, values ...string) bool {
+	for _, argument := range arguments {
+		if argument == "--" {
+			return false
+		}
+		for _, value := range values {
+			if argument == value {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func writeJSON(output io.Writer, value any) error {
