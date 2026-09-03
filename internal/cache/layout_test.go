@@ -72,6 +72,40 @@ func TestSourceFilesRespectsGitignoreForTrackedAndUntrackedFiles(t *testing.T) {
 	}
 }
 
+func TestNativeIgnoreFallbackSupportsNestedNegationAndDoubleStar(t *testing.T) {
+	root := t.TempDir()
+	for name, body := range map[string]string{
+		".gitignore":              "build/\n**/*.tmp\n!keep.tmp\n",
+		"keep.tmp":                "keep",
+		"drop.tmp":                "drop",
+		"nested/.gitignore":       "*.log\n!important.log\n",
+		"nested/drop.log":         "drop",
+		"nested/important.log":    "keep",
+		"nested/deeper/value.tmp": "drop",
+		"build/output.txt":        "drop",
+		"visible.txt":             "keep",
+	} {
+		filePath := filepath.Join(root, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(filePath), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filePath, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	all := []string{".gitignore", "keep.tmp", "drop.tmp", "nested/.gitignore", "nested/drop.log", "nested/important.log", "nested/deeper/value.tmp", "build/output.txt", "visible.txt"}
+	ignored, err := nativeIgnoredFiles(root, all)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := filterIgnored(append([]string(nil), all...), ignored)
+	slices.Sort(got)
+	want := []string{".gitignore", "keep.tmp", "nested/.gitignore", "nested/important.log", "visible.txt"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("native ignore kept %v, want %v", got, want)
+	}
+}
+
 func TestHashAndCopySourceTreeReadsFilesOnceAndMatchesHash(t *testing.T) {
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, "SKILL.md"), []byte("hello"), 0o644); err != nil {

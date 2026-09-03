@@ -137,16 +137,26 @@ func SourceFiles(root string) ([]string, error) {
 		return nil, err
 	}
 	if available {
-		kept := files[:0]
-		for _, file := range files {
-			if _, excluded := ignored[filepath.Clean(file)]; !excluded {
-				kept = append(kept, file)
-			}
+		files = filterIgnored(files, ignored)
+	} else {
+		ignored, err := nativeIgnoredFiles(root, files)
+		if err != nil {
+			return nil, err
 		}
-		files = kept
+		files = filterIgnored(files, ignored)
 	}
 	sort.Strings(files)
 	return files, nil
+}
+
+func filterIgnored(files []string, ignored map[string]struct{}) []string {
+	kept := files[:0]
+	for _, file := range files {
+		if _, excluded := ignored[filepath.Clean(file)]; !excluded {
+			kept = append(kept, file)
+		}
+	}
+	return kept
 }
 
 func HashDirectory(root string) (string, error) {
