@@ -3,6 +3,7 @@ package cache
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -131,5 +132,27 @@ func TestHashAndCopySourceTreeReadsFilesOnceAndMatchesHash(t *testing.T) {
 	}
 	if body, err := os.ReadFile(filepath.Join(destination, "nested", "file.txt")); err != nil || string(body) != "world" {
 		t.Fatalf("copied file = %q, %v", body, err)
+	}
+}
+
+func BenchmarkHashDirectory(b *testing.B) {
+	root := b.TempDir()
+	payload := make([]byte, 4096)
+	for index := range 128 {
+		path := filepath.Join(root, "skills", fmt.Sprintf("skill-%03d", index), "SKILL.md")
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			b.Fatal(err)
+		}
+		if err := os.WriteFile(path, payload, 0o644); err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.ReportAllocs()
+	b.SetBytes(128 * int64(len(payload)))
+	b.ResetTimer()
+	for range b.N {
+		if _, err := HashDirectory(root); err != nil {
+			b.Fatal(err)
+		}
 	}
 }

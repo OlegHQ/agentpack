@@ -29,3 +29,21 @@ func TestEffectiveBaseNoneAndDisableTie(t *testing.T) {
 		t.Fatal("disable must win equal-specificity tie")
 	}
 }
+
+func BenchmarkEffectivePackagePath(b *testing.B) {
+	effective, err := NewEffective("bench", Definition{
+		Base:    BaseAll,
+		Enable:  []string{"package-path:github.com/acme/repo:hooks/hooks.json", "mcp:filesystem"},
+		Disable: []string{"package:github.com/acme/repo", ".agents:rules/private"},
+	}, nil)
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.ReportAllocs()
+	for range b.N {
+		allowed, matchErr := effective.AllowsPackagePath("github.com/acme/repo", "hooks/hooks.json")
+		if matchErr != nil || !allowed {
+			b.Fatalf("allowed=%v err=%v", allowed, matchErr)
+		}
+	}
+}
