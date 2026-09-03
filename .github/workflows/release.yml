@@ -36,7 +36,7 @@ jobs:
           version: "~> v2"
           args: check
       - name: Test release installers
-        run: go test ./integration -run 'TestReleaseInstaller' -count=1
+        run: go test ./integration -run 'TestRelease(Installer|Description)' -count=1
       - name: Snapshot release
         if: github.event_name == 'pull_request'
         uses: goreleaser/goreleaser-action@v7
