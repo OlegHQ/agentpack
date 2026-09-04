@@ -33,7 +33,7 @@ func TestMain(m *testing.M) {
 
 func TestCompiledCLIHelpAndVersion(t *testing.T) {
 	result := runCLI(t, t.TempDir(), "--version")
-	if result.err != nil || strings.TrimSpace(result.stdout) != "agentpack 0.3.16" {
+	if result.err != nil || strings.TrimSpace(result.stdout) != "agentpack 0.3.17" {
 		t.Fatalf("--version: stdout=%q stderr=%q err=%v", result.stdout, result.stderr, result.err)
 	}
 	result = runCLI(t, t.TempDir(), "mode", "--help")
@@ -104,6 +104,11 @@ func TestCompiledCLISyncStagesLocalSkillForEveryHarness(t *testing.T) {
 		t.Fatal(err)
 	}
 	writeFile(t, filepath.Join(skill, "SKILL.md"), "---\nname: portable-skill\ndescription: portable fixture\n---\n\n# Portable\n")
+	projectSkill := filepath.Join(project, ".agents", "skills", "project-local", "SKILL.md")
+	if err := os.MkdirAll(filepath.Dir(projectSkill), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, projectSkill, "---\nname: project-local\ndescription: native project fixture\n---\n\n# Project local\n")
 	if result := runCLI(t, project, "init"); result.err != nil {
 		t.Fatalf("init: stderr=%q err=%v", result.stderr, result.err)
 	}
@@ -128,6 +133,12 @@ func TestCompiledCLISyncStagesLocalSkillForEveryHarness(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(project, "_agentpack", "cache", "db.reddb")); err != nil {
 		t.Errorf("documented cache index path: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(root, "plugins", "agentpack-bundle", "skills", "project-local", "SKILL.md")); err != nil {
+		t.Errorf("Claude project skill: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(root, "codex-home", "skills", "project-local", "SKILL.md")); !os.IsNotExist(err) {
+		t.Errorf("project skill duplicated into Codex home: %v", err)
 	}
 }
 
