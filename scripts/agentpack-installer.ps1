@@ -1,7 +1,7 @@
 param([switch]$Help)
 
 $ErrorActionPreference = 'Stop'
-$Version = if ($env:AGENTPACK_VERSION) { $env:AGENTPACK_VERSION } else { '0.3.18' }
+$Version = if ($env:AGENTPACK_VERSION) { $env:AGENTPACK_VERSION } else { '0.3.19' }
 $Repository = if ($env:AGENTPACK_REPOSITORY) { $env:AGENTPACK_REPOSITORY } else { 'OlegHQ/agentpack' }
 
 if ($Help) {

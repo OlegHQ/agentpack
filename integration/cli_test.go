@@ -33,12 +33,16 @@ func TestMain(m *testing.M) {
 
 func TestCompiledCLIHelpAndVersion(t *testing.T) {
 	result := runCLI(t, t.TempDir(), "--version")
-	if result.err != nil || strings.TrimSpace(result.stdout) != "agentpack 0.3.18" {
+	if result.err != nil || strings.TrimSpace(result.stdout) != "agentpack 0.3.19" {
 		t.Fatalf("--version: stdout=%q stderr=%q err=%v", result.stdout, result.stderr, result.err)
 	}
 	result = runCLI(t, t.TempDir(), "mode", "--help")
 	if result.err != nil || !strings.Contains(result.stdout, "create") || !strings.Contains(result.stdout, "tui") {
 		t.Fatalf("mode --help: stdout=%q stderr=%q err=%v", result.stdout, result.stderr, result.err)
+	}
+	result = runCLI(t, t.TempDir(), "--help")
+	if result.err != nil || !strings.Contains(result.stdout, "COMMANDS") || !strings.Contains(result.stdout, "completion") {
+		t.Fatalf("rendered help: stdout=%q stderr=%q err=%v", result.stdout, result.stderr, result.err)
 	}
 }
 
@@ -159,7 +163,7 @@ func TestCompiledCLILaunchesFromNestedRustV2Project(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result := runCLIWithEnv(t, nested, []string{"--yolo", "codex"}, "CODEX_PATH="+fakeCodex)
+	result := runCLIWithEnv(t, nested, []string{"codex", "--mode", "default", "--yolo", "--", "--debug", "passthrough"}, "CODEX_PATH="+fakeCodex)
 	if result.err != nil {
 		t.Fatalf("nested Rust-v2 launch: stdout=%q stderr=%q err=%v", result.stdout, result.stderr, result.err)
 	}

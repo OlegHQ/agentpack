@@ -1,6 +1,6 @@
 # CLI Commands
 
-`agentpack <command> [args]`. Global flags go **before** the subcommand; everything after a launcher subcommand is forwarded to the underlying agent binary.
+`agentpack <command> [args]`. Global flags may appear before or after the subcommand. Launcher arguments are forwarded unchanged; use `--` when an underlying agent flag overlaps an agentpack flag.
 
 ## Global flags
 
@@ -15,6 +15,21 @@
 | `--proxy` | Run `agentpack claude` through the supervised Anthropic-compatible Codex proxy |
 | `-h`, `--help` | Print help |
 | `-V`, `--version` | Print the agentpack version |
+
+Help and errors use the terminal's color profile when interactive and automatically fall back to plain text when redirected. Contextual help is available at every level, for example `agentpack mcp add --help`.
+
+## Shell completion
+
+Generate a completion script using the built-in `completion` command:
+
+```sh
+agentpack completion bash
+agentpack completion zsh
+agentpack completion fish
+agentpack completion powershell
+```
+
+The command prints the script to stdout so you can source it directly or save it in your shell's completion directory.
 
 ## Lifecycle commands
 

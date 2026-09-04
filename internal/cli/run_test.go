@@ -48,11 +48,23 @@ func TestNestedHelpAndGlobalVersionDoNotRequireProject(t *testing.T) {
 	var output bytes.Buffer
 	runner := NewRunner()
 	runner.Stdout = &output
-	if code, err := runner.Run(context.Background(), []string{"mcp", "add", "--help"}); err != nil || code != 0 || !strings.Contains(output.String(), "--command") {
+	if code, err := runner.Execute(context.Background(), []string{"mcp", "add", "--help"}); err != nil || code != 0 || !strings.Contains(output.String(), "--command") {
 		t.Fatalf("code=%d err=%v output=%q", code, err, output.String())
 	}
 	output.Reset()
-	if code, err := runner.Run(context.Background(), []string{"sync", "--version"}); err != nil || code != 0 || output.String() != "agentpack "+Version+"\n" {
+	if code, err := runner.Execute(context.Background(), []string{"sync", "--version"}); err != nil || code != 0 || output.String() != "agentpack "+Version+"\n" {
 		t.Fatalf("code=%d err=%v output=%q", code, err, output.String())
+	}
+	output.Reset()
+	if code, err := runner.Execute(context.Background(), []string{"-V"}); err != nil || code != 0 || output.String() != "agentpack "+Version+"\n" {
+		t.Fatalf("-V code=%d err=%v output=%q", code, err, output.String())
+	}
+}
+
+func TestRenderedCommandTreePreservesCursorAgentAlias(t *testing.T) {
+	runner := NewRunner()
+	command, _, err := runner.rootCommand(nil, new(int)).Find([]string{"cursor-agent"})
+	if err != nil || command.Name() != "agent" {
+		t.Fatalf("cursor-agent resolved to %q: %v", command.Name(), err)
 	}
 }

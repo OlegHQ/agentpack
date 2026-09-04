@@ -12,7 +12,7 @@
   <a href="https://oleghq.github.io/agentpack"><img alt="Documentation" src="https://img.shields.io/badge/docs-oleghq.github.io-1f6feb.svg"></a>
   <a href="https://nexo.sh/posts/agentpack/"><img alt="Writeup" src="https://img.shields.io/badge/writeup-nexo.sh-ff6b6b.svg"></a>
   <a href="https://github.com/OlegHQ/agentpack/blob/dev/LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
-  <a href="https://github.com/OlegHQ/agentpack/releases"><img alt="Version" src="https://img.shields.io/badge/version-v0.3.18-blue.svg"></a>
+  <a href="https://github.com/OlegHQ/agentpack/releases"><img alt="Version" src="https://img.shields.io/badge/version-v0.3.19-blue.svg"></a>
   <a href="https://github.com/OlegHQ/agentpack"><img alt="Built with Go" src="https://img.shields.io/badge/built_with-Go-00ADD8.svg"></a>
 </p>
 
@@ -222,6 +222,7 @@ disable = ["mcp:filesystem"]
 | `codex` | Sync + launch Codex with `CODEX_HOME` |
 | `grok` | Sync + launch Grok with `GROK_HOME` |
 | `agy` | Sync + launch Antigravity with the project as a workspace dir |
+| `completion <shell>` | Generate Bash, Zsh, Fish, or PowerShell completions |
 
 Redirected harness homes do not make resume history temporary: Codex history is shared with `~/.codex`, Grok sessions with `~/.grok/sessions`, and legacy temp-staging history is imported on upgrade without overwriting native files.
 
