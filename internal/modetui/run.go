@@ -59,29 +59,19 @@ type application struct {
 }
 
 type palette struct {
-	accent, dim, warn, enabled, disabled, neutral lipgloss.AdaptiveColor
-	success, failure, focused, unfocused          lipgloss.AdaptiveColor
+	accent, dim, warn, enabled, disabled, neutral lipgloss.TerminalColor
+	success, failure, focused, unfocused          lipgloss.TerminalColor
 }
 
 var colors = newPalette()
 
 func newPalette() palette {
-	color := func(light, dark string) lipgloss.AdaptiveColor {
-		switch strings.ToLower(strings.TrimSpace(os.Getenv("AGENTPACK_TUI_THEME"))) {
-		case "light":
-			return lipgloss.AdaptiveColor{Light: light, Dark: light}
-		case "dark":
-			return lipgloss.AdaptiveColor{Light: dark, Dark: dark}
-		default:
-			return lipgloss.AdaptiveColor{Light: light, Dark: dark}
-		}
-	}
+	monochrome := lipgloss.NoColor{}
 	return palette{
-		accent: color("#005FAF", "#5FD7FF"), dim: color("#666666", "#767676"),
-		warn: color("#9A5D00", "#FFD75F"), enabled: color("#007A00", "#5FD75F"),
-		disabled: color("#AF0000", "#FF5F5F"), neutral: color("#777777", "#808080"),
-		success: color("#007A00", "#87FF87"), failure: color("#AF0000", "#FF8787"),
-		focused: color("#005FAF", "#5FD7FF"), unfocused: color("#AAAAAA", "#4A4A4A"),
+		accent: monochrome, dim: monochrome, warn: monochrome,
+		enabled: monochrome, disabled: monochrome, neutral: monochrome,
+		success: monochrome, failure: monochrome,
+		focused: monochrome, unfocused: monochrome,
 	}
 }
 

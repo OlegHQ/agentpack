@@ -2,8 +2,10 @@ package cli
 
 import (
 	"context"
+	"image/color"
 	"slices"
 
+	lipgloss "charm.land/lipgloss/v2"
 	"github.com/charmbracelet/fang"
 	"github.com/spf13/cobra"
 )
@@ -22,11 +24,24 @@ func (runner Runner) Execute(ctx context.Context, arguments []string) (int, erro
 	root.SetIn(runner.Stdin)
 	root.SetOut(runner.Stdout)
 	root.SetErr(runner.Stderr)
-	err := fang.Execute(ctx, root, fang.WithVersion(Version), fang.WithoutManpage())
+	err := fang.Execute(ctx, root, fang.WithVersion(Version), fang.WithoutManpage(), fang.WithColorSchemeFunc(monochromeColorScheme))
 	if err != nil && exitCode == 0 {
 		exitCode = 2
 	}
 	return exitCode, err
+}
+
+func monochromeColorScheme(_ lipgloss.LightDarkFunc) fang.ColorScheme {
+	foreground := lipgloss.NoColor{}
+	return fang.ColorScheme{
+		Base: foreground, Title: foreground, Description: foreground,
+		Codeblock: foreground, Program: foreground, DimmedArgument: foreground,
+		Comment: foreground, Flag: foreground, FlagDefault: foreground,
+		Command: foreground, QuotedString: foreground, Argument: foreground,
+		Help: foreground, Dash: foreground,
+		ErrorHeader:  [2]color.Color{foreground, foreground},
+		ErrorDetails: foreground,
+	}
 }
 
 func (runner Runner) rootCommand(original []string, exitCode *int) *cobra.Command {

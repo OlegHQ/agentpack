@@ -8,6 +8,7 @@ import (
 	"github.com/OlegHQ/agentpack/internal/mode"
 	"github.com/OlegHQ/agentpack/internal/modecatalog"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -74,15 +75,16 @@ func TestModeEditorKeyboardWorkflowMatchesRustTUI(t *testing.T) {
 	}
 }
 
-func TestThemeOverrideProducesFixedPalette(t *testing.T) {
-	t.Setenv("AGENTPACK_TUI_THEME", "light")
-	light := newPalette()
-	if light.accent.Light != light.accent.Dark {
-		t.Fatalf("light override remains adaptive: %#v", light.accent)
-	}
-	t.Setenv("AGENTPACK_TUI_THEME", "dark")
-	dark := newPalette()
-	if dark.accent.Light != dark.accent.Dark || dark.accent == light.accent {
-		t.Fatalf("dark override not applied: %#v", dark.accent)
+func TestModeEditorUsesTerminalDefaultColors(t *testing.T) {
+	palette := newPalette()
+	for name, color := range map[string]lipgloss.TerminalColor{
+		"accent": palette.accent, "dim": palette.dim, "warn": palette.warn,
+		"enabled": palette.enabled, "disabled": palette.disabled, "neutral": palette.neutral,
+		"success": palette.success, "failure": palette.failure,
+		"focused": palette.focused, "unfocused": palette.unfocused,
+	} {
+		if _, ok := color.(lipgloss.NoColor); !ok {
+			t.Errorf("%s overrides the terminal color: %#v", name, color)
+		}
 	}
 }

@@ -16,7 +16,7 @@
 | `-h`, `--help` | Print help |
 | `-V`, `--version` | Print the agentpack version |
 
-Help and errors use the terminal's color profile when interactive and automatically fall back to plain text when redirected. Contextual help is available at every level, for example `agentpack mcp add --help`.
+Help and errors use the terminal's native foreground and transparent background, with no semantic colors or theme detection. Contextual help is available at every level, for example `agentpack mcp add --help`.
 
 ## Shell completion
 
