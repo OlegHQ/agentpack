@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -141,7 +142,7 @@ func RecordFetched(pkg lockfile.Package, shorthand string) error {
 	}
 	aliases := cache.AliasesForGitHubEntry(pkg.Owner, pkg.Repo, pkg.Path, name)
 	shorthand = strings.ToLower(strings.TrimSpace(shorthand))
-	if shorthand != "" && !contains(aliases, shorthand) {
+	if shorthand != "" && !slices.Contains(aliases, shorthand) {
 		aliases = append(aliases, shorthand)
 	}
 	return cache.UpsertEntry(pkg.CacheKey, record, aliases)
@@ -218,13 +219,4 @@ func nonemptyParts(value string) []string {
 		}
 	}
 	return result
-}
-
-func contains(values []string, wanted string) bool {
-	for _, value := range values {
-		if value == wanted {
-			return true
-		}
-	}
-	return false
 }

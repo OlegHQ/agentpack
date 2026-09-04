@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -39,16 +40,23 @@ func TestDiagnosticsWritesJSONLAndLatest(t *testing.T) {
 		t.Fatal(err)
 	}
 	diagnostics.Event("test", map[string]any{"request_id": 1})
-	path := diagnostics.Path()
 	diagnostics.Close()
+	latest, err := os.ReadFile(filepath.Join(root, "latest.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var metadata struct {
+		Path string `json:"path"`
+	}
+	if err := json.Unmarshal(latest, &metadata); err != nil {
+		t.Fatal(err)
+	}
+	path := metadata.Path
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(string(data), `"kind":"test"`) {
 		t.Fatalf("log=%s", data)
-	}
-	if _, err := os.Stat(filepath.Join(root, "latest.json")); err != nil {
-		t.Fatal(err)
 	}
 }

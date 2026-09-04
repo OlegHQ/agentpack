@@ -2,6 +2,7 @@ package modetui
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 
 	"github.com/OlegHQ/agentpack/internal/manifest"
@@ -148,26 +149,15 @@ func (state State) SelectorState(canonical string) SelectorState {
 }
 
 func cloneDefinition(value mode.Definition) mode.Definition {
-	value.Enable = append([]string(nil), value.Enable...)
-	value.Disable = append([]string(nil), value.Disable...)
+	value.Enable = slices.Clone(value.Enable)
+	value.Disable = slices.Clone(value.Disable)
 	return value
 }
 func contains(values []string, target string) bool {
-	for _, value := range values {
-		if value == target {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(values, target)
 }
 func remove(values []string, target string) []string {
-	result := values[:0]
-	for _, value := range values {
-		if value != target {
-			result = append(result, value)
-		}
-	}
-	return result
+	return slices.DeleteFunc(values, func(value string) bool { return value == target })
 }
 func add(values []string, value string) []string {
 	if contains(values, value) {

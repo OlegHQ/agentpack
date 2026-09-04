@@ -43,7 +43,7 @@ func prepareHistory(staged, native string) error {
 func verifyHistory(staged, native string) error {
 	for _, name := range append(append([]string{}, durableDirectories...), promptHistory) {
 		if !base.DurablePathMatches(filepath.Join(staged, name), filepath.Join(native, name)) {
-			return fmt.Errorf("Codex durable history link %s does not resolve to native state", name)
+			return fmt.Errorf("codex durable history link %s does not resolve to native state", name)
 		}
 	}
 	root := make(map[string]any)
@@ -55,7 +55,7 @@ func verifyHistory(staged, native string) error {
 		return err
 	}
 	if _, exists := root["sqlite_home"]; !exists {
-		return fmt.Errorf("Codex staged config is missing durable sqlite_home")
+		return fmt.Errorf("codex staged config is missing durable sqlite_home")
 	}
 	return nil
 }

@@ -1,7 +1,6 @@
 package hooks
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -103,12 +102,4 @@ func copyRegularFile(source, destination string) error {
 		return closeErr
 	}
 	return nil
-}
-
-func RequireStagedPackage(staged map[string]string, origin Origin) (string, error) {
-	root, found := staged[origin.PackageKey]
-	if !found {
-		return "", fmt.Errorf("missing staged hook package root for %s (%s)", origin.Module, origin.PackageKey)
-	}
-	return root, nil
 }

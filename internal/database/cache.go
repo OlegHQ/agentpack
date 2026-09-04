@@ -9,6 +9,7 @@ import (
 
 	"github.com/OlegHQ/agentpack/internal/paths"
 	bolt "go.etcd.io/bbolt"
+	berrors "go.etcd.io/bbolt/errors"
 )
 
 const openTimeout = 2 * time.Second
@@ -37,7 +38,7 @@ func OpenCache(readOnly bool) (*bolt.DB, error) {
 	if err == nil {
 		return database, nil
 	}
-	if !errors.Is(err, bolt.ErrInvalid) {
+	if !errors.Is(err, berrors.ErrInvalid) {
 		return nil, fmt.Errorf("open cache database %s: %w", databasePath, err)
 	}
 	backup := databasePath + ".legacy-redb-" + time.Now().UTC().Format("20060102T150405.000000000Z")

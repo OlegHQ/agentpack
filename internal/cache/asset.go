@@ -45,10 +45,3 @@ func ClassifyMaterialized(root, displayURL string, source githubsource.Source, c
 		Repo: source.Repo, Path: source.Path, Commit: commit, CacheKey: cacheKey,
 	}, nil
 }
-
-func RequireSkill(pkg lockfile.Package) (lockfile.Package, error) {
-	if pkg.Kind == lockfile.PackagePlugin {
-		return lockfile.Package{}, fmt.Errorf("this path is a full plugin directory (native plugin manifest present); add it as a plugin entry instead of a bare skill")
-	}
-	return pkg, nil
-}

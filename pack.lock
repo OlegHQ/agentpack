@@ -14,7 +14,6 @@ repo = "minecraft-console-client"
 path = ".skills/humanizer"
 commit = "f39fe2d067844a21b2efc20976831f265c1f5f5c"
 cache_key = "ed850325c375ee6a8556209f42e05faaa0c5e064683a50a44c5807172885fbca"
-name = ""
 
 [[packages]]
 module = "github.com/oleghq/agent-configs/mcps/linear"
@@ -26,7 +25,6 @@ repo = "agent-configs"
 path = "mcps/linear"
 commit = "281d30f17f215d5d6cdb55cbcb7456ae4ca952f1"
 cache_key = "af38e50122e8da8dc3fd6fdc20ea217bf94361a17d8744573b727d7efe6cf12d"
-name = ""
 
 [[packages]]
 module = "github.com/oleghq/agent-configs/plugins/simplifier"
@@ -38,7 +36,6 @@ repo = "agent-configs"
 path = "plugins/simplifier"
 commit = "281d30f17f215d5d6cdb55cbcb7456ae4ca952f1"
 cache_key = "407ba1a3066c7d262edd9276e2c8ff991e47ae1a3e6f1b666cc1621ff85c742e"
-name = ""
 
 [[packages]]
 module = "github.com/s1mplesonny/technical-writing-skill/technical-writing"
@@ -50,4 +47,3 @@ repo = "technical-writing-skill"
 path = "technical-writing"
 commit = "7b6fea6dd290676bdafc442c324fec813a6de50e"
 cache_key = "9cbdec767473b02a0b89ebe184548ac8b36b43a7f4cc640c1f4f14ee0eb5ae84"
-name = ""

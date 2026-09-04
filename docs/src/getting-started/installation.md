@@ -48,7 +48,7 @@ Pick a specific version from the [releases page](https://github.com/OlegHQ/agent
 
 ## From source
 
-You need Go 1.24 or newer, then:
+You need Go 1.26 or newer, then:
 
 ```sh
 git clone https://github.com/OlegHQ/agentpack.git

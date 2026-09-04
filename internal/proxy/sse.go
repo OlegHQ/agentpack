@@ -1,40 +1,26 @@
 package proxy
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
 	"strings"
 	"unicode"
+
+	sse "github.com/tmaxmax/go-sse"
 )
 
 type SSEEvent struct{ Event, Data string }
 
 func ParseSSE(input []byte) ([]SSEEvent, error) {
-	if !json.Valid([]byte("null")) {
-		return nil, nil
-	}
-	normalized := strings.ReplaceAll(string(input), "\r\n", "\n")
 	var result []SSEEvent
-	for _, raw := range strings.Split(normalized, "\n\n") {
-		if strings.TrimSpace(raw) == "" {
-			continue
+	for event, err := range sse.Read(bytes.NewReader(input), &sse.ReadConfig{MaxEventSize: len(input) + 64*1024}) {
+		if err != nil {
+			return nil, fmt.Errorf("parse server-sent events: %w", err)
 		}
-		event := SSEEvent{}
-		var data []string
-		for _, line := range strings.Split(raw, "\n") {
-			if strings.HasPrefix(line, ":") {
-				continue
-			}
-			if value, ok := strings.CutPrefix(line, "event:"); ok {
-				event.Event = strings.TrimLeft(value, " ")
-			} else if value, ok := strings.CutPrefix(line, "data:"); ok {
-				data = append(data, strings.TrimLeft(value, " "))
-			}
-		}
-		event.Data = strings.Join(data, "\n")
-		result = append(result, event)
+		result = append(result, SSEEvent{Event: event.Type, Data: event.Data})
 	}
 	return result, nil
 }

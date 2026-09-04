@@ -5,11 +5,11 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 
 	base "github.com/OlegHQ/agentpack/internal/harness"
 	"github.com/OlegHQ/agentpack/internal/mcp"
 	"github.com/OlegHQ/agentpack/internal/paths"
+	"github.com/tailscale/hujson"
 )
 
 var packSubdirectories = []string{"commands", "agents", "skills", "rules", "hooks", "assets", "scripts"}
@@ -120,8 +120,12 @@ func readMCP(path string) (mcp.Config, error) {
 	if err != nil {
 		return mcp.Config{}, err
 	}
+	data, err = hujson.Standardize(append(data, '\n'))
+	if err != nil {
+		return mcp.Config{}, err
+	}
 	var config mcp.Config
-	err = json.Unmarshal(stripJSONComments(data), &config)
+	err = json.Unmarshal(data, &config)
 	return config, err
 }
 func mergeMCPFiles(pack, user, destination string) error {
@@ -164,7 +168,11 @@ func mergeHookFiles(pack, user, destination string) error {
 		var root struct {
 			Hooks map[string][]any `json:"hooks"`
 		}
-		if err := json.Unmarshal(stripJSONComments(data), &root); err != nil {
+		data, err = hujson.Standardize(append(data, '\n'))
+		if err != nil {
+			return err
+		}
+		if err := json.Unmarshal(data, &root); err != nil {
 			return err
 		}
 		for event, entries := range root.Hooks {
@@ -259,48 +267,4 @@ func materializePlatformData(fake, home string) error {
 		}
 	}
 	return nil
-}
-func stripJSONComments(input []byte) []byte {
-	var output strings.Builder
-	inString, escaped := false, false
-	for i := 0; i < len(input); {
-		if inString {
-			output.WriteByte(input[i])
-			if escaped {
-				escaped = false
-			} else if input[i] == '\\' {
-				escaped = true
-			} else if input[i] == '"' {
-				inString = false
-			}
-			i++
-			continue
-		}
-		if input[i] == '"' {
-			inString = true
-			output.WriteByte(input[i])
-			i++
-			continue
-		}
-		if i+1 < len(input) && input[i] == '/' && input[i+1] == '/' {
-			i += 2
-			for i < len(input) && input[i] != '\n' {
-				i++
-			}
-			continue
-		}
-		if i+1 < len(input) && input[i] == '/' && input[i+1] == '*' {
-			i += 2
-			for i+1 < len(input) && !(input[i] == '*' && input[i+1] == '/') {
-				i++
-			}
-			if i+1 < len(input) {
-				i += 2
-			}
-			continue
-		}
-		output.WriteByte(input[i])
-		i++
-	}
-	return []byte(output.String())
 }

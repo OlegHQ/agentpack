@@ -82,13 +82,6 @@ func RepoDirIsPackageRoot(relativePaths map[string]struct{}, directory string) b
 	return false
 }
 
-func EnsureSkill(root string) error {
-	if !regularFile(filepath.Join(root, "SKILL.md")) {
-		return fmt.Errorf("missing SKILL.md in %s", root)
-	}
-	return nil
-}
-
 func EnsurePlugin(root string) error {
 	if !HasPluginManifest(root) {
 		return fmt.Errorf("missing plugin manifest in %s", root)
@@ -163,22 +156,6 @@ func filterIgnored(files []string, ignored map[string]struct{}) []string {
 		}
 	}
 	return kept
-}
-
-func HashDirectory(root string) (string, error) {
-	files, err := SourceFiles(root)
-	if err != nil {
-		return "", err
-	}
-	hasher := sha256.New()
-	for _, relative := range files {
-		hasher.Write([]byte(relative))
-		hasher.Write([]byte{0})
-		if err := hashFile(filepath.Join(root, relative), hasher); err != nil {
-			return "", err
-		}
-	}
-	return hex.EncodeToString(hasher.Sum(nil))[:40], nil
 }
 
 func hashAndCopySourceTree(source, destination string) (string, error) {
@@ -289,22 +266,6 @@ func isExitError(err error) bool {
 func isExitCode(err error, code int) bool {
 	var exitErr *exec.ExitError
 	return errors.As(err, &exitErr) && exitErr.ExitCode() == code
-}
-
-func hashFile(path string, writer io.Writer) error {
-	file, err := os.Open(path)
-	if err != nil {
-		return fmt.Errorf("open %s: %w", path, err)
-	}
-	_, copyErr := io.CopyBuffer(writer, file, make([]byte, 32*1024))
-	closeErr := file.Close()
-	if copyErr != nil {
-		return fmt.Errorf("hash %s: %w", path, copyErr)
-	}
-	if closeErr != nil {
-		return fmt.Errorf("close %s: %w", path, closeErr)
-	}
-	return nil
 }
 
 func hasMarketplaceManifest(root string) bool {

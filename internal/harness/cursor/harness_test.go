@@ -68,7 +68,7 @@ func TestPrepareFinalizeBuildsFakeHomeAndMergesUserMCP(t *testing.T) {
 func TestMergeHooksUserBeforePack(t *testing.T) {
 	root := t.TempDir()
 	user, pack, dest := filepath.Join(root, "user.json"), filepath.Join(root, "pack.json"), filepath.Join(root, "dest.json")
-	if err := os.WriteFile(user, []byte(`{"hooks":{"beforeSubmitPrompt":[{"command":"user"}]}}`), 0o644); err != nil {
+	if err := os.WriteFile(user, []byte("{/* user hooks */\"hooks\":{\"beforeSubmitPrompt\":[{\"command\":\"user\"},],},}"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(pack, []byte(`{"hooks":{"beforeSubmitPrompt":[{"command":"pack"}]}}`), 0o644); err != nil {

@@ -17,7 +17,6 @@ type DiagnosticsConfig struct {
 type Diagnostics struct {
 	mu       sync.Mutex
 	file     *os.File
-	path     string
 	started  time.Time
 	payloads bool
 	max      int
@@ -40,13 +39,12 @@ func NewDiagnostics(config DiagnosticsConfig) (*Diagnostics, error) {
 	if err != nil {
 		return nil, err
 	}
-	diagnostics.file, diagnostics.path = file, path
+	diagnostics.file = file
 	latest := map[string]any{"path": path, "started_at": time.Now().UTC().Format(time.RFC3339Nano), "pid": os.Getpid()}
 	data, _ := json.MarshalIndent(latest, "", "  ")
 	_ = os.WriteFile(filepath.Join(config.LogDirectory, "latest.json"), data, 0o644)
 	return diagnostics, nil
 }
-func (diagnostics *Diagnostics) Path() string { return diagnostics.path }
 func (diagnostics *Diagnostics) Event(kind string, fields map[string]any) {
 	if diagnostics == nil || diagnostics.file == nil {
 		return

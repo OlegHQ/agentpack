@@ -128,7 +128,7 @@ func loadAuthState() (authState, error) {
 	if key := stringValue(value["OPENAI_API_KEY"]); strings.TrimSpace(key) != "" {
 		return authState{Token: key, URL: openAIEndpoint, AuthFile: path, Source: apiKeySource}, nil
 	}
-	return authState{}, fmt.Errorf("Codex auth file did not contain an API key, ChatGPT access token, or personal access token")
+	return authState{}, fmt.Errorf("codex auth file did not contain an API key, ChatGPT access token, or personal access token")
 }
 func resolveAuthJSON() (string, error) {
 	if path := os.Getenv("AGENTPACK_PROXY_AUTH_JSON"); regular(path) {

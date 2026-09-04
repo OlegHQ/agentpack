@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
@@ -94,8 +95,6 @@ func LoadNestedDependencies(cacheRoot string) (map[string]Dependency, error) {
 	return manifest.Dependencies, nil
 }
 
-func (manifest *Manifest) ExplicitModes() map[string]mode.Definition { return manifest.Modes }
-
 func (manifest *Manifest) ModeDefinition(name string) (mode.Definition, bool) {
 	definition, ok := manifest.Modes[name]
 	if ok {
@@ -117,10 +116,6 @@ func (manifest *Manifest) ListModeNames() []string {
 	}
 	sort.Strings(names)
 	return names
-}
-
-func AppendDependencyKey(projectRoot, moduleKey string) error {
-	return AppendDependencyPin(projectRoot, moduleKey, "")
 }
 
 func AppendDependencyPin(projectRoot, moduleKey, gitRef string) error {
@@ -214,28 +209,6 @@ func DeleteMode(projectRoot, name string) error {
 	})
 }
 
-func RenameMode(projectRoot, oldName, newName string) error {
-	if mode.IsReserved(oldName) {
-		return fmt.Errorf("%s is reserved and cannot be renamed", mode.DefaultName)
-	}
-	newName, err := mode.ValidateName(newName)
-	if err != nil {
-		return err
-	}
-	return withModes(projectRoot, func(modes map[string]mode.Definition) error {
-		if _, exists := modes[newName]; exists {
-			return fmt.Errorf("mode already exists: %s", newName)
-		}
-		definition, exists := modes[oldName]
-		if !exists {
-			return fmt.Errorf("unknown mode: %s", oldName)
-		}
-		delete(modes, oldName)
-		modes[newName] = definition
-		return nil
-	})
-}
-
 func SetModeBase(projectRoot, name string, base mode.Base) error {
 	name, err := mode.ValidateName(name)
 	if err != nil {
@@ -282,28 +255,6 @@ func AddModeSelectors(projectRoot, name string, enabled bool, selectors []string
 			}
 		}
 		definition.SortAndDeduplicate()
-		modes[name] = definition
-		return nil
-	})
-}
-
-func RemoveModeSelectors(projectRoot, name string, selectors []string) error {
-	if err := ensureModeEditable(name); err != nil {
-		return err
-	}
-	canonical, err := canonicalizeSelectors(selectors)
-	if err != nil {
-		return err
-	}
-	return withModes(projectRoot, func(modes map[string]mode.Definition) error {
-		definition, exists := modes[name]
-		if !exists {
-			return fmt.Errorf("unknown mode: %s", name)
-		}
-		for _, selector := range canonical {
-			definition.Enable = removeString(definition.Enable, selector)
-			definition.Disable = removeString(definition.Disable, selector)
-		}
 		modes[name] = definition
 		return nil
 	})
@@ -459,11 +410,5 @@ func filterSelectorsForModule(values []string, module string) []string {
 }
 
 func removeString(values []string, target string) []string {
-	result := values[:0]
-	for _, value := range values {
-		if value != target {
-			result = append(result, value)
-		}
-	}
-	return result
+	return slices.DeleteFunc(values, func(value string) bool { return value == target })
 }
