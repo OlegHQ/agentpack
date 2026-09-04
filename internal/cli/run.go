@@ -19,7 +19,7 @@ import (
 	packSync "github.com/OlegHQ/agentpack/internal/sync"
 )
 
-var Version = "0.3.18"
+var Version = "0.3.19"
 
 type Runner struct {
 	Stdout, Stderr io.Writer
@@ -37,20 +37,12 @@ func (runner Runner) Run(ctx context.Context, arguments []string) (int, error) {
 		fmt.Fprintln(runner.Stdout, "agentpack "+Version)
 		return 0, nil
 	}
-	if len(arguments) == 0 || arguments[0] == "--help" || arguments[0] == "-h" {
-		fmt.Fprint(runner.Stdout, usage)
-		return 0, nil
-	}
 	invocation, err := Parse(arguments)
 	if err != nil {
 		return 2, err
 	}
 	if invocation.Command != "init" && hasBeforeDoubleDash(invocation.Args, "--version", "-V") {
 		fmt.Fprintln(runner.Stdout, "agentpack "+Version)
-		return 0, nil
-	}
-	if hasBeforeDoubleDash(invocation.Args, "--help", "-h") {
-		fmt.Fprint(runner.Stdout, helpFor(invocation.Command, invocation.Args))
 		return 0, nil
 	}
 	if invocation.Global.Proxy && invocation.Command != "claude" {
@@ -255,13 +247,3 @@ func writeJSON(output io.Writer, value any) error {
 	encoder.SetEscapeHTML(false)
 	return encoder.Encode(value)
 }
-
-const usage = `Pin skills/plugins via agentpack.toml and pack.lock
-
-Usage: agentpack [GLOBAL OPTIONS] <COMMAND> [ARGS]
-
-Commands: init, lock, add, remove, sync, claude, opencode, codex, grok, agy,
-          agent, mcp, mode, hook-exec
-Global:   --project-root PATH, -q/--quiet, --no-progress, --yolo, --mode NAME,
-          --debug, --proxy
-`
