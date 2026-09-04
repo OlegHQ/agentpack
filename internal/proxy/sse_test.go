@@ -8,6 +8,16 @@ import (
 	"testing"
 )
 
+func TestParseSSEUsesStandardFraming(t *testing.T) {
+	events, err := ParseSSE([]byte(": keepalive\r\ndata: first\r\ndata: second\r\nevent: update\r\n\r\ndata: final\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(events) != 2 || events[0].Event != "update" || events[0].Data != "first\nsecond" || events[1].Data != "final" {
+		t.Fatalf("events = %#v", events)
+	}
+}
+
 func TestCodexStreamFunctionsMatchGolden(t *testing.T) {
 	tests := []struct{ fixture, reduce, accumulate, sse string }{
 		{"codex_text.sse", "761a36b3c5ba0e49a4ae1af992b908c68aed442e997bf46a87fc48d424f28ba8", "c37a09dc2d3d8969d217d8472f78fc5d95c3d9e70d1980c146b34677585a662b", "660909dfc895b6ff00aeb92e52b43103704cc23fd42254c176a64e0c3429f3b4"},

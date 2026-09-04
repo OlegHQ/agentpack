@@ -10,6 +10,7 @@ import (
 	base "github.com/OlegHQ/agentpack/internal/harness"
 	"github.com/OlegHQ/agentpack/internal/mcp"
 	"github.com/OlegHQ/agentpack/internal/paths"
+	"github.com/tailscale/hujson"
 )
 
 const instructionsFile = "agentpack-no-attribution.md"
@@ -27,7 +28,11 @@ func launch(ctx base.LaunchContext) (*exec.Cmd, error) {
 		path := filepath.Join(root, "opencode.json")
 		value := make(map[string]any)
 		if data, readErr := os.ReadFile(path); readErr == nil {
-			if err := json.Unmarshal(stripComments(data), &value); err != nil {
+			standard, err := hujson.Standardize(append(data, '\n'))
+			if err != nil {
+				return nil, err
+			}
+			if err := json.Unmarshal(standard, &value); err != nil {
 				return nil, err
 			}
 		}
@@ -82,7 +87,8 @@ func forceAttributionOff(root string) error {
 	path := filepath.Join(root, "opencode.json")
 	value := make(map[string]any)
 	if data, err := os.ReadFile(path); err == nil {
-		if err := json.Unmarshal(stripComments(data), &value); err != nil {
+		standard, standardErr := hujson.Standardize(append(data, '\n'))
+		if standardErr != nil || json.Unmarshal(standard, &value) != nil {
 			value = make(map[string]any)
 		}
 	}

@@ -11,7 +11,7 @@ import (
 
 func TestMergeMCPPreservesUserAndConvertsStdio(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "opencode.json")
-	if err := os.WriteFile(path, []byte(`{"mcp":{"user":{"type":"local","command":["user"]}}}`), 0o644); err != nil {
+	if err := os.WriteFile(path, []byte("{\n  // user configuration\n  \"homepage\": \"https://example.test/a//b\",\n  \"mcp\": {\"user\": {\"type\": \"local\", \"command\": [\"user\"],},},\n}"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	command := "pack"

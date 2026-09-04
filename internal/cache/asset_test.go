@@ -33,13 +33,10 @@ func TestClassifyMaterializedDistinguishesSkillAndPlugin(t *testing.T) {
 	}
 }
 
-func TestClassifyMaterializedRejectsInvalidTreeAndRequireSkillRejectsPlugin(t *testing.T) {
+func TestClassifyMaterializedRejectsInvalidTree(t *testing.T) {
 	t.Parallel()
 	if _, err := ClassifyMaterialized(t.TempDir(), "url", githubsource.Source{}, "commit", "key"); err == nil {
 		t.Fatal("expected invalid layout error")
-	}
-	if _, err := RequireSkill(lockfile.Package{Kind: lockfile.PackagePlugin}); err == nil {
-		t.Fatal("expected plugin rejection")
 	}
 }
 

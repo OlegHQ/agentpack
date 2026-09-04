@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -80,10 +81,10 @@ func takeFlag(arguments []string, name string) (string, []string, bool, error) {
 			if index+1 == len(arguments) {
 				return "", nil, false, fmt.Errorf("%s requires a value", name)
 			}
-			return arguments[index+1], appendCopy(arguments[:index], arguments[index+2:]), true, nil
+			return arguments[index+1], slices.Concat(arguments[:index], arguments[index+2:]), true, nil
 		}
 		if value, found := strings.CutPrefix(argument, name+"="); found {
-			return value, appendCopy(arguments[:index], arguments[index+1:]), true, nil
+			return value, slices.Concat(arguments[:index], arguments[index+1:]), true, nil
 		}
 	}
 	return "", arguments, false, nil
@@ -92,14 +93,8 @@ func takeFlag(arguments []string, name string) (string, []string, bool, error) {
 func takeBool(arguments []string, name string) ([]string, bool) {
 	for index, argument := range arguments {
 		if argument == name {
-			return appendCopy(arguments[:index], arguments[index+1:]), true
+			return slices.Concat(arguments[:index], arguments[index+1:]), true
 		}
 	}
 	return arguments, false
-}
-
-func appendCopy(left, right []string) []string {
-	result := make([]string, 0, len(left)+len(right))
-	result = append(result, left...)
-	return append(result, right...)
 }

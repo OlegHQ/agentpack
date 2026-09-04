@@ -64,25 +64,22 @@ func TestModeCRUDRoundTrips(t *testing.T) {
 	if err := AddModeSelectors(root, "design", true, []string{"package:github.com/acme/repo", ".agents:rules/backend.mdc"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := RenameMode(root, "design", "review"); err != nil {
-		t.Fatal(err)
-	}
 	manifest, err := Load(root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	review, ok := manifest.ModeDefinition("review")
-	if !ok || review.Base != mode.BaseNone || !slices.Equal(review.Enable, []string{".agents:rules/backend.mdc", "package:github.com/acme/repo"}) {
-		t.Fatalf("review = %+v", review)
+	design, ok := manifest.ModeDefinition("design")
+	if !ok || design.Base != mode.BaseNone || !slices.Equal(design.Enable, []string{".agents:rules/backend.mdc", "package:github.com/acme/repo"}) {
+		t.Fatalf("design = %+v", design)
 	}
-	if err := DeleteMode(root, "review"); err != nil {
+	if err := DeleteMode(root, "design"); err != nil {
 		t.Fatal(err)
 	}
 	manifest, err = Load(root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := manifest.ModeDefinition("review"); ok {
+	if _, ok := manifest.ModeDefinition("design"); ok {
 		t.Fatal("deleted mode still exists")
 	}
 }

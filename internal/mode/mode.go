@@ -2,7 +2,7 @@ package mode
 
 import (
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 )
 
@@ -57,17 +57,8 @@ func (definition *Definition) SortAndDeduplicate() {
 }
 
 func sortedUnique(values []string) []string {
-	if len(values) == 0 {
-		return values
-	}
-	sort.Strings(values)
-	result := values[:1]
-	for _, value := range values[1:] {
-		if value != result[len(result)-1] {
-			result = append(result, value)
-		}
-	}
-	return result
+	slices.Sort(values)
+	return slices.Compact(values)
 }
 
 func errorsf(format string, args ...any) error { return fmt.Errorf("mode: "+format, args...) }

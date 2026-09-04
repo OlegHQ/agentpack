@@ -112,6 +112,13 @@ func TestSaveSortsPackagesWithoutMutatingCaller(t *testing.T) {
 	if lock.Packages[0].Module != "z" {
 		t.Fatal("Save() mutated package order")
 	}
+	raw, err := os.ReadFile(filepath.Join(root, "pack.lock"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Count(string(raw), "name =") != 1 {
+		t.Fatalf("empty optional package name was serialized:\n%s", raw)
+	}
 	loaded, err := Load(root)
 	if err != nil {
 		t.Fatal(err)

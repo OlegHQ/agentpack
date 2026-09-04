@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
@@ -42,7 +43,7 @@ func (pipeline Pipeline) Rebuild() ([]string, error) {
 		reset = append(reset, paths...)
 	}
 	sort.Strings(reset)
-	reset = deduplicate(reset)
+	reset = slices.Compact(reset)
 	for _, path := range reset {
 		if err := removeRebuildPath(path); err != nil {
 			return nil, err
@@ -230,18 +231,6 @@ func (pipeline Pipeline) stageHooks(ctx base.StageContext, harnesses []base.Harn
 		}
 	}
 	return nil
-}
-func deduplicate(values []string) []string {
-	if len(values) == 0 {
-		return values
-	}
-	result := values[:1]
-	for _, value := range values[1:] {
-		if value != result[len(result)-1] {
-			result = append(result, value)
-		}
-	}
-	return result
 }
 func removeRebuildPath(path string) error {
 	info, err := os.Lstat(path)

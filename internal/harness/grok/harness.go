@@ -193,7 +193,7 @@ func verify(ctx base.StageContext) error {
 	}
 	if native, ok := nativeHome(); ok {
 		if err := verifyHistory(home, native); err != nil {
-			return fmt.Errorf("Grok durable session link does not resolve to native sessions")
+			return fmt.Errorf("grok durable session link does not resolve to native sessions")
 		}
 	}
 	return nil

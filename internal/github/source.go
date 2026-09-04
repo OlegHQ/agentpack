@@ -55,7 +55,7 @@ func ParseURL(raw string) (Source, error) {
 		}
 	}
 	if len(segments) < 2 {
-		return Source{}, fmt.Errorf("expected /owner/repo/...")
+		return Source{}, fmt.Errorf("expected /owner/repo path")
 	}
 	source := Source{Owner: segments[0], Repo: strings.TrimSuffix(segments[1], ".git"), GitRef: DefaultGitRef}
 	if len(segments) == 2 {

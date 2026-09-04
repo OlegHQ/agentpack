@@ -214,10 +214,6 @@ func StagingRootForMode(projectRoot, modeName string) (string, error) {
 	return filepath.Join(root, "modes", ModePathComponent(modeName)), nil
 }
 
-func StagingRoot(projectRoot string) (string, error) {
-	return StagingRootForMode(projectRoot, "default")
-}
-
 func stagingSubdir(projectRoot, modeName, segment string) (string, error) {
 	root, err := StagingRootForMode(projectRoot, modeName)
 	if err != nil {
@@ -229,42 +225,26 @@ func stagingSubdir(projectRoot, modeName, segment string) (string, error) {
 func StagingPluginsDirForMode(root, mode string) (string, error) {
 	return stagingSubdir(root, mode, "plugins")
 }
-func StagingPluginsDir(root string) (string, error) { return StagingPluginsDirForMode(root, "default") }
 func StagingOpenCodeDirForMode(root, mode string) (string, error) {
 	return stagingSubdir(root, mode, "opencode")
-}
-func StagingOpenCodeDir(root string) (string, error) {
-	return StagingOpenCodeDirForMode(root, "default")
 }
 func StagingCodexHomeDirForMode(root, mode string) (string, error) {
 	return stagingSubdir(root, mode, "codex-home")
 }
-func StagingCodexHomeDir(root string) (string, error) {
-	return StagingCodexHomeDirForMode(root, "default")
-}
 func StagingGrokHomeDirForMode(root, mode string) (string, error) {
 	return stagingSubdir(root, mode, "grok-home")
-}
-func StagingGrokHomeDir(root string) (string, error) {
-	return StagingGrokHomeDirForMode(root, "default")
 }
 func StagingGrokDirForMode(root, mode string) (string, error) {
 	return stagingSubdir(root, mode, "grok")
 }
-func StagingGrokDir(root string) (string, error)             { return StagingGrokDirForMode(root, "default") }
-func StagingAgyDirForMode(root, mode string) (string, error) { return stagingSubdir(root, mode, "agy") }
-func StagingAgyDir(root string) (string, error)              { return StagingAgyDirForMode(root, "default") }
+func StagingAgyDirForMode(root, mode string) (string, error) {
+	return stagingSubdir(root, mode, "agy")
+}
 func StagingCursorBundleDirForMode(root, mode string) (string, error) {
 	return stagingSubdir(root, mode, "cursor")
 }
-func StagingCursorBundleDir(root string) (string, error) {
-	return StagingCursorBundleDirForMode(root, "default")
-}
 func StagingCursorHomeDirForMode(root, mode string) (string, error) {
 	return stagingSubdir(root, mode, "cursor-home")
-}
-func StagingCursorHomeDir(root string) (string, error) {
-	return StagingCursorHomeDirForMode(root, "default")
 }
 
 func bundleDirForMode(projectRoot, modeName, segment string) (string, error) {
@@ -278,25 +258,15 @@ func bundleDirForMode(projectRoot, modeName, segment string) (string, error) {
 func StagingGrokBundleDirForMode(root, mode string) (string, error) {
 	return bundleDirForMode(root, mode, "grok")
 }
-func StagingGrokBundleDir(root string) (string, error) {
-	return StagingGrokBundleDirForMode(root, "default")
-}
 func StagingAgyBundleDirForMode(root, mode string) (string, error) {
 	return bundleDirForMode(root, mode, "agy")
-}
-func StagingAgyBundleDir(root string) (string, error) {
-	return StagingAgyBundleDirForMode(root, "default")
 }
 func StagingCursorPackPluginDirForMode(root, mode string) (string, error) {
 	return bundleDirForMode(root, mode, "cursor")
 }
-func StagingCursorPackPluginDir(root string) (string, error) {
-	return StagingCursorPackPluginDirForMode(root, "default")
-}
 
 func SharedCodexAuthPath() (string, error)         { return underHome("shared", "codex", "auth.json") }
 func AgentpackClaudeSettingsPath() (string, error) { return underHome("claude-settings.json") }
-func CursorWorkspaceDir(projectRoot string) string { return filepath.Join(projectRoot, ".cursor") }
 
 func canonical(path string) (string, error) {
 	abs, err := filepath.Abs(path)

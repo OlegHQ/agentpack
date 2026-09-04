@@ -1,7 +1,6 @@
 package artifacts
 
 import (
-	"fmt"
 	"path/filepath"
 	"strings"
 )
@@ -175,19 +174,4 @@ func truncate(value string, length int) string {
 		return value
 	}
 	return string(runes[:length])
-}
-
-func (kind Kind) String() string {
-	switch kind {
-	case Skill:
-		return "skill"
-	case Command:
-		return "command"
-	case Agent:
-		return "agent"
-	case Rule:
-		return "rule"
-	default:
-		return fmt.Sprintf("kind(%d)", kind)
-	}
 }

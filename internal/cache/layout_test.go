@@ -107,6 +107,36 @@ func TestNativeIgnoreFallbackSupportsNestedNegationAndDoubleStar(t *testing.T) {
 	}
 }
 
+func TestNativeIgnoreFallbackHonorsParentRulesForSubdirectorySource(t *testing.T) {
+	repository := t.TempDir()
+	if err := os.Mkdir(filepath.Join(repository, ".git"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	write := func(relative, body string) {
+		filePath := filepath.Join(repository, filepath.FromSlash(relative))
+		if err := os.MkdirAll(filepath.Dir(filePath), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filePath, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write(".gitignore", "*.tmp\n/packages/skill/root-only.txt\n")
+	write("packages/skill/.gitignore", "!keep.tmp\n")
+	root := filepath.Join(repository, "packages", "skill")
+	files := []string{"drop.tmp", "keep.tmp", "root-only.txt", "visible.txt"}
+	ignored, err := nativeIgnoredFiles(root, files)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := filterIgnored(append([]string(nil), files...), ignored)
+	slices.Sort(got)
+	want := []string{"keep.tmp", "visible.txt"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("native ignore kept %v, want %v", got, want)
+	}
+}
+
 func TestHashAndCopySourceTreeReadsFilesOnceAndMatchesHash(t *testing.T) {
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, "SKILL.md"), []byte("hello"), 0o644); err != nil {
@@ -118,12 +148,12 @@ func TestHashAndCopySourceTreeReadsFilesOnceAndMatchesHash(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "nested", "file.txt"), []byte("world"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	want, err := HashDirectory(root)
+	destination := t.TempDir()
+	got, err := hashAndCopySourceTree(root, destination)
 	if err != nil {
 		t.Fatal(err)
 	}
-	destination := t.TempDir()
-	got, err := hashAndCopySourceTree(root, destination)
+	want, err := hashAndCopySourceTree(root, t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,7 +165,7 @@ func TestHashAndCopySourceTreeReadsFilesOnceAndMatchesHash(t *testing.T) {
 	}
 }
 
-func BenchmarkHashDirectory(b *testing.B) {
+func BenchmarkHashAndCopySourceTree(b *testing.B) {
 	root := b.TempDir()
 	payload := make([]byte, 4096)
 	for index := range 128 {
@@ -149,9 +179,10 @@ func BenchmarkHashDirectory(b *testing.B) {
 	}
 	b.ReportAllocs()
 	b.SetBytes(128 * int64(len(payload)))
+	destination := b.TempDir()
 	b.ResetTimer()
 	for range b.N {
-		if _, err := HashDirectory(root); err != nil {
+		if _, err := hashAndCopySourceTree(root, destination); err != nil {
 			b.Fatal(err)
 		}
 	}

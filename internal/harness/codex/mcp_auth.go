@@ -70,14 +70,14 @@ func verifyMCPAuth(projectRoot, staged string) error {
 		return err
 	}
 	if !base.DurablePathMatches(filepath.Join(staged, credentialsFile), credentials) {
-		return fmt.Errorf("Codex MCP credential link does not resolve to %s", credentials)
+		return fmt.Errorf("codex MCP credential link does not resolve to %s", credentials)
 	}
 	locks, err := oauthLocks(projectRoot)
 	if err != nil {
 		return err
 	}
 	if !base.DurablePathMatches(filepath.Join(staged, oauthLocksDirectory), locks) {
-		return fmt.Errorf("Codex MCP OAuth lock directory does not resolve to %s", locks)
+		return fmt.Errorf("codex MCP OAuth lock directory does not resolve to %s", locks)
 	}
 	root := make(map[string]any)
 	data, err := os.ReadFile(filepath.Join(staged, "config.toml"))
@@ -88,7 +88,7 @@ func verifyMCPAuth(projectRoot, staged string) error {
 		return err
 	}
 	if root["mcp_oauth_credentials_store"] != "file" {
-		return fmt.Errorf("Codex staged config is not using the durable MCP OAuth file store")
+		return fmt.Errorf("codex staged config is not using the durable MCP OAuth file store")
 	}
 	return nil
 }
