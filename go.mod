@@ -3,6 +3,7 @@ module github.com/OlegHQ/agentpack
 go 1.26.0
 
 require (
+	charm.land/lipgloss/v2 v2.0.0-beta.3.0.20251106193318-19329a3e8410
 	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/fang v1.0.0
@@ -22,7 +23,6 @@ require (
 )
 
 require (
-	charm.land/lipgloss/v2 v2.0.0-beta.3.0.20251106193318-19329a3e8410 // indirect
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProtonMail/go-crypto v1.1.6 // indirect

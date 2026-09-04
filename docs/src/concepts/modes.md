@@ -69,4 +69,4 @@ agentpack mode delete review        # `default` is reserved and cannot be delete
 agentpack mode tui                  # interactive editor
 ```
 
-`agentpack mode tui` opens a terminal UI for toggling selectors visually; its palette follows `AGENTPACK_TUI_THEME` (`light`/`dark`, auto-detected when unset).
+`agentpack mode tui` opens a terminal UI for toggling selectors visually. It uses the terminal's native foreground and background, so it stays monochrome and readable with light, dark, and custom terminal themes.

@@ -18,7 +18,7 @@ Installer scripts must default to the user-owned `$HOME/.local/bin` directory on
 
 Before tagging a release, run launch E2E from a nested directory in representative real sibling projects whose `agentpack.toml` and `pack.lock` live in an ancestor. Exercise all six harness launchers with their real binaries; for authenticated harnesses, complete a headless prompt and verify its exact response. A version-only subprocess or fixture-only test is not sufficient evidence for launch compatibility.
 
-The mode editor is a responsive Bubble Tea/Lip Gloss TUI, with the Rust `v0.3.12` Ratatui editor as its behavioral baseline: modes, capability tree, details, effective-state glyphs, tri-state and subtree edits, prompts, help, scrolling, light/dark palettes, dirty confirmation, and atomic save must remain covered. At narrow terminal widths, prioritize readable panes over preserving three crushed columns.
+The mode editor is a responsive Bubble Tea/Lip Gloss TUI, with the Rust `v0.3.12` Ratatui editor as its behavioral baseline: modes, capability tree, details, effective-state glyphs, tri-state and subtree edits, prompts, help, scrolling, terminal-native monochrome rendering, dirty confirmation, and atomic save must remain covered. At narrow terminal widths, prioritize readable panes over preserving three crushed columns.
 
 ### Code structure (contributor rule)
 
@@ -27,6 +27,8 @@ The mode editor is a responsive Bubble Tea/Lip Gloss TUI, with the Rust `v0.3.12
 ### Ecosystem-first implementation rule
 
 Before adding or retaining custom parsing, matching, terminal, archive, retry, serialization, filesystem, or protocol machinery, check the Go standard library and the project's existing dependencies, then mature focused Go packages. Prefer a maintained library when it removes meaningful code and matches the required semantics; add behavior-locking tests before replacing an implementation. Do not add a dependency for a trivial helper, hide a library behind a forwarding wrapper, or trade explicit product behavior for a framework default. JSON-with-comments uses **`tailscale/hujson`**, Git ignore fallback matching uses **`go-git/plumbing/format/gitignore`**, SSE framing uses **`tmaxmax/go-sse`**, collection helpers use **`slices`**, and the public command/help/error/completion surface uses **Cobra + Fang** rather than handwritten usage rendering. Agentpack's small global-option extractor remains product-owned because harness arguments must pass through unchanged, including global options placed after the harness command and arguments protected by **`--`**.
+
+All agentpack-owned terminal rendering is monochrome and terminal-agnostic: use the terminal's native foreground and transparent background instead of detecting or prescribing black/white. Do not add semantic ANSI colors, fixed foreground colors, or palettes that depend on a particular terminal theme; distinguish state with text, glyphs, borders, and emphasis.
 
 - **One folder per harness, uniformly.** Each coding agent is a folder **`internal/harness/<name>/`** implementing `harness.Harness` — even small harnesses (`grok/`, `agy/`) use the same layout. **Everything used by only that one harness lives there**: seed and attribution logic, MCP writer, hook renderer, credential bridging (`codex/auth.go`, `codex/mcp_auth.go`), fake home (`cursor/fake_home.go`), workspace overlays, and launch command construction. To understand or add a harness, read or create one folder. Shared harness contracts, targets, durable-state helpers, and launch helpers stay at `internal/harness/`; registry construction stays in `internal/harness/registry/` to avoid Go import cycles.
 - **Shared infrastructure stays in its subsystem and never holds per-harness logic:** `internal/staging/` owns cross-harness staging passes; `internal/hooks/` owns the hook engine; `internal/artifacts/` owns artifact rendering; generic file-tree helpers live in `internal/harness/files.go` or their natural subsystem. A file named after a harness sitting in a shared subsystem is a smell — colocate it or name it for the shared format it adapts.
@@ -216,7 +218,6 @@ For Cursor specifically, **`$STAGING/cursor-home/.cursor/cli-config.json`** is m
 | **`AGENTPACK_HOME`** | User agentpack root (`cache/`, `local/`, `projects/`, `db.reddb`). Overrides XDG / OS defaults. |
 | **`AGENTPACK_STAGING_ROOT`** | Staging root override (default: `temp_dir()/agentpack-<hash>`). |
 | **`AGENTPACK_KEEP_ATTRIBUTION`** | Set to **`1`** / **`true`** / **`yes`** to keep AI attribution settings (Co-Authored-By trailers, "Generated with X" footers) in staged harness configs. Default: drop attribution (see below). |
-| **`AGENTPACK_TUI_THEME`** | Force the mode TUI palette: **`light`** or **`dark`**. Unset = auto-detect from the terminal background (OSC 11 luma / `COLORFGBG`), falling back to **`dark`**. |
 | **`CLAUDE_CODE_PATH`** | Path to the **`claude`** binary. |
 | **`OPENCODE_PATH`** | Path to the **`opencode`** binary. |
 | **`CODEX_PATH`** | Path to the **`codex`** binary. |

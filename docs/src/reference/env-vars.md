@@ -38,10 +38,6 @@ Set this for a stable path when your OS rotates temp directories, or to put stag
 
 **Default:** enabled. Set to `0` to skip merging the project's `./.agents/` overlay into harness staging.
 
-### `AGENTPACK_TUI_THEME`
-
-**Default:** auto-detected from the terminal background (OSC 11 luma / `COLORFGBG`), falling back to `dark`. Set to `light` or `dark` to force the `agentpack mode tui` palette.
-
 ## Claude proxy diagnostics
 
 ### `AGENTPACK_PROXY_LOG_DIR`
@@ -112,7 +108,6 @@ Override the path to each harness's executable when it isn't on `PATH` or you ne
 | `AGENTPACK_STAGING_ROOT` | `<temp>/agentpack-<hash>` | Staging root |
 | `AGENTPACK_KEEP_ATTRIBUTION` | unset | Keep AI attribution in staging |
 | `AGENTPACK_DOT_AGENTS` | enabled | Merge `./.agents/` overlay |
-| `AGENTPACK_TUI_THEME` | auto | Force `mode tui` palette |
 | `AGENTPACK_PROXY_LOG_DIR` | project state dir | Claude proxy JSONL diagnostics |
 | `AGENTPACK_PROXY_LOG_PAYLOADS` | unset | Include truncated payload snippets in proxy logs |
 | `AGENTPACK_PROXY_LOG_MAX_BODY_BYTES` | `4096` | Payload snippet byte cap |

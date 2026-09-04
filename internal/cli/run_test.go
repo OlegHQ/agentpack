@@ -3,10 +3,13 @@ package cli
 import (
 	"bytes"
 	"context"
+	"image/color"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	lipgloss "charm.land/lipgloss/v2"
 )
 
 func TestInitMCPAndModeCommands(t *testing.T) {
@@ -66,5 +69,30 @@ func TestRenderedCommandTreePreservesCursorAgentAlias(t *testing.T) {
 	command, _, err := runner.rootCommand(nil, new(int)).Find([]string{"cursor-agent"})
 	if err != nil || command.Name() != "agent" {
 		t.Fatalf("cursor-agent resolved to %q: %v", command.Name(), err)
+	}
+}
+
+func TestRenderedCLIUsesTerminalDefaultColors(t *testing.T) {
+	for _, dark := range []bool{false, true} {
+		scheme := monochromeColorScheme(lipgloss.LightDark(dark))
+		for name, got := range map[string]color.Color{
+			"base": scheme.Base, "title": scheme.Title, "description": scheme.Description,
+			"program": scheme.Program, "argument": scheme.Argument, "dimmed argument": scheme.DimmedArgument, "command": scheme.Command,
+			"flag": scheme.Flag, "flag default": scheme.FlagDefault, "comment": scheme.Comment,
+			"quoted string": scheme.QuotedString, "help": scheme.Help, "dash": scheme.Dash,
+			"error details": scheme.ErrorDetails,
+		} {
+			if _, ok := got.(lipgloss.NoColor); !ok {
+				t.Errorf("dark=%t %s overrides the terminal color: %#v", dark, name, got)
+			}
+		}
+		if _, ok := scheme.Codeblock.(lipgloss.NoColor); !ok {
+			t.Errorf("dark=%t code block overrides the terminal background: %#v", dark, scheme.Codeblock)
+		}
+		for _, got := range scheme.ErrorHeader {
+			if _, ok := got.(lipgloss.NoColor); !ok {
+				t.Errorf("dark=%t error header overrides the terminal color: %#v", dark, scheme.ErrorHeader)
+			}
+		}
 	}
 }
