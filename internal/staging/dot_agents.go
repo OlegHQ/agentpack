@@ -34,10 +34,11 @@ func StageDotAgents(projectRoot, modeName string, effective mode.Effective) erro
 	if err := mergeDotRules(dotRoot, filepath.Join(bundle, "rules"), effective); err != nil {
 		return err
 	}
-	for _, destination := range []string{bundle, codex} {
-		if err := copyDotTree(dotRoot, "skills", destination, false, effective); err != nil {
-			return err
-		}
+	// Codex discovers project skills directly from .agents/skills, walking from
+	// the launch directory to the repository root. Copying them into the staged
+	// CODEX_HOME would make Codex index the same skill twice.
+	if err := copyDotTree(dotRoot, "skills", bundle, false, effective); err != nil {
+		return err
 	}
 	for _, source := range []string{"agents", "commands"} {
 		if err := copyDotTree(dotRoot, source, bundle, false, effective); err != nil {
