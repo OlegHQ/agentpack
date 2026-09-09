@@ -152,10 +152,35 @@ func (lock PackLock) Save(projectRoot string) error {
 		return fmt.Errorf("encode lockfile: %w", err)
 	}
 	path := paths.LockPath(projectRoot)
-	if err := os.WriteFile(path, output.Bytes(), 0o644); err != nil {
+	if err := writeAtomic(path, output.Bytes(), 0o644); err != nil {
 		return fmt.Errorf("write lockfile %s: %w", path, err)
 	}
 	return nil
+}
+
+func writeAtomic(path string, data []byte, mode os.FileMode) (err error) {
+	temporary, err := os.CreateTemp(filepath.Dir(path), ".pack.lock-*")
+	if err != nil {
+		return err
+	}
+	temporaryPath := temporary.Name()
+	defer func() {
+		_ = temporary.Close()
+		_ = os.Remove(temporaryPath)
+	}()
+	if err := temporary.Chmod(mode); err != nil {
+		return err
+	}
+	if _, err := temporary.Write(data); err != nil {
+		return err
+	}
+	if err := temporary.Sync(); err != nil {
+		return err
+	}
+	if err := temporary.Close(); err != nil {
+		return err
+	}
+	return os.Rename(temporaryPath, path)
 }
 
 func Init(projectRoot, name, version string) error {

@@ -1,9 +1,11 @@
 package lockfile
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -26,6 +28,41 @@ func TestFreshLockOmitsEmptySections(t *testing.T) {
 	}
 	if loaded.SkillCount() != 0 || loaded.PluginCount() != 0 {
 		t.Fatalf("fresh lock has packages: %+v", loaded.Packages)
+	}
+}
+
+func TestConcurrentSavesNeverExposePartialLockfile(t *testing.T) {
+	root := t.TempDir()
+	initial := EmptyForProject(root)
+	if err := initial.Save(root); err != nil {
+		t.Fatal(err)
+	}
+	var writers sync.WaitGroup
+	errors := make(chan error, 5)
+	for writer := 0; writer < 4; writer++ {
+		writers.Add(1)
+		go func(writer int) {
+			defer writers.Done()
+			for iteration := 0; iteration < 50; iteration++ {
+				lock := EmptyForProject(root)
+				lock.Meta.Version = fmt.Sprintf("%d.%d.0", writer, iteration)
+				if err := lock.Save(root); err != nil {
+					errors <- err
+					return
+				}
+			}
+		}(writer)
+	}
+	for iteration := 0; iteration < 200; iteration++ {
+		if _, err := Load(root); err != nil {
+			errors <- err
+			break
+		}
+	}
+	writers.Wait()
+	close(errors)
+	for err := range errors {
+		t.Fatal(err)
 	}
 }
 
