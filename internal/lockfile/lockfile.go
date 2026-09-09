@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/OlegHQ/agentpack/internal/paths"
+	"github.com/gofrs/flock"
 	"github.com/pelletier/go-toml/v2"
 )
 
@@ -88,6 +89,16 @@ func Load(projectRoot string) (PackLock, error) {
 }
 
 func LoadFromPath(path string) (PackLock, error) {
+	var result PackLock
+	err := withOperationLock(path, func() error {
+		var err error
+		result, err = loadFromPath(path)
+		return err
+	})
+	return result, err
+}
+
+func loadFromPath(path string) (PackLock, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return PackLock{}, fmt.Errorf("read lockfile %s: %w", path, err)
@@ -152,10 +163,31 @@ func (lock PackLock) Save(projectRoot string) error {
 		return fmt.Errorf("encode lockfile: %w", err)
 	}
 	path := paths.LockPath(projectRoot)
-	if err := writeAtomic(path, output.Bytes(), 0o644); err != nil {
+	if err := withOperationLock(path, func() error { return writeAtomic(path, output.Bytes(), 0o644) }); err != nil {
 		return fmt.Errorf("write lockfile %s: %w", path, err)
 	}
 	return nil
+}
+
+func withOperationLock(path string, operation func() error) (err error) {
+	hash, err := paths.ProjectPathHash(filepath.Dir(path))
+	if err != nil {
+		return err
+	}
+	directory := filepath.Join(os.TempDir(), "agentpack-"+hash)
+	if err := os.MkdirAll(directory, 0o755); err != nil {
+		return err
+	}
+	guard := flock.New(filepath.Join(directory, "pack.lock.lock"))
+	if err := guard.Lock(); err != nil {
+		return err
+	}
+	defer func() {
+		if unlockErr := guard.Unlock(); unlockErr != nil {
+			err = errors.Join(err, unlockErr)
+		}
+	}()
+	return operation()
 }
 
 func writeAtomic(path string, data []byte, mode os.FileMode) (err error) {
