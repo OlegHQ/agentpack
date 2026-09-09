@@ -55,6 +55,35 @@ func TestResolverReusesPreviousFloatingCommit(t *testing.T) {
 	}
 }
 
+func TestResolverRefreshesOnlyRequestedFloatingModule(t *testing.T) {
+	t.Setenv("AGENTPACK_HOME", t.TempDir())
+	first, second := "github.com/acme/first", "github.com/acme/second"
+	previous := &lockfile.PackLock{Packages: []lockfile.Package{
+		{Module: first, Commit: strings.Repeat("a", 40)},
+		{Module: second, Commit: strings.Repeat("b", 40)},
+	}}
+	var refreshed = map[string]bool{}
+	fake := fakeMaterializer{}
+	materialize := func(ctx context.Context, client *http.Client, source githubsource.Source, url string, forceRefresh bool) (lockfile.Package, error) {
+		module := string(ModuleIDFromOwnerRepoPath(source.Owner, source.Repo, source.Path))
+		refreshed[module] = forceRefresh
+		return fake.materialize(ctx, client, source, url, forceRefresh)
+	}
+	project := &manifest.Manifest{Dependencies: map[string]manifest.Dependency{first: shortDependency(""), second: shortDependency("")}}
+	lock, err := (Resolver{Materialize: materialize}).Resolve(context.Background(), t.TempDir(), project, ResolveOptions{Previous: previous, RefreshModules: map[string]bool{first: true}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !refreshed[first] || refreshed[second] {
+		t.Fatalf("refresh flags = %#v", refreshed)
+	}
+	for _, pkg := range lock.Packages {
+		if pkg.Module == second && pkg.Commit != strings.Repeat("b", 40) {
+			t.Fatalf("unselected package was refreshed: %#v", pkg)
+		}
+	}
+}
+
 func TestResolverRejectsExactConstraintDiscoveredAfterPin(t *testing.T) {
 	t.Setenv("AGENTPACK_HOME", t.TempDir())
 	shaA, shaB, shaOld, shaNew := strings.Repeat("a", 40), strings.Repeat("b", 40), strings.Repeat("c", 40), strings.Repeat("d", 40)

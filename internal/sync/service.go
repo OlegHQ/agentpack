@@ -39,6 +39,9 @@ func (service Service) client() *http.Client {
 	return http.DefaultClient
 }
 func (service Service) resolveAndSave(ctx context.Context, projectRoot string, project *manifest.Manifest, refresh bool, primed []lockfile.Package) (lockfile.PackLock, error) {
+	return service.resolveAndSaveWithOptions(ctx, projectRoot, project, resolve.ResolveOptions{RefreshFloating: refresh}, primed)
+}
+func (service Service) resolveAndSaveWithOptions(ctx context.Context, projectRoot string, project *manifest.Manifest, options resolve.ResolveOptions, primed []lockfile.Package) (lockfile.PackLock, error) {
 	previous, _ := lockfile.Load(projectRoot)
 	if len(primed) != 0 {
 		for _, pkg := range primed {
@@ -51,7 +54,8 @@ func (service Service) resolveAndSave(ctx context.Context, projectRoot string, p
 			previous.Packages = append(kept, pkg)
 		}
 	}
-	resolved, err := resolve.NewResolver(ctx, service.client()).Resolve(ctx, projectRoot, project, resolve.ResolveOptions{Previous: &previous, RefreshFloating: refresh})
+	options.Previous = &previous
+	resolved, err := resolve.NewResolver(ctx, service.client()).Resolve(ctx, projectRoot, project, options)
 	if err != nil {
 		return lockfile.PackLock{}, err
 	}
@@ -72,6 +76,38 @@ func (service Service) Lock(ctx context.Context, projectRoot string, refresh boo
 		return lockfile.PackLock{}, fmt.Errorf("agentpack.toml required")
 	}
 	return service.resolveAndSave(ctx, projectRoot, project, refresh, nil)
+}
+
+// Update refreshes every floating dependency when specs is empty. Otherwise it
+// refreshes only the requested direct dependencies, using their manifest pins.
+func (service Service) Update(ctx context.Context, projectRoot string, specs []string, noSync bool) (lockfile.PackLock, error) {
+	if _, err := paths.EnsureUserAgentpackLayout(); err != nil {
+		return lockfile.PackLock{}, err
+	}
+	project, err := manifest.Load(projectRoot)
+	if err != nil {
+		return lockfile.PackLock{}, err
+	}
+	if project == nil {
+		return lockfile.PackLock{}, fmt.Errorf("agentpack.toml required")
+	}
+	refresh := len(specs) == 0
+	modules := make(map[string]bool, len(specs))
+	for _, spec := range specs {
+		module, err := ResolveRemoveSpec(projectRoot, spec, project)
+		if err != nil {
+			return lockfile.PackLock{}, err
+		}
+		modules[module] = true
+	}
+	lock, err := service.resolveAndSaveWithOptions(ctx, projectRoot, project, resolve.ResolveOptions{RefreshFloating: refresh, RefreshModules: modules}, nil)
+	if err != nil {
+		return lockfile.PackLock{}, err
+	}
+	if !noSync {
+		_, err = service.Sync(ctx, projectRoot, SyncOptions{})
+	}
+	return lock, err
 }
 func (service Service) Add(ctx context.Context, projectRoot, spec string, noSync bool) (lockfile.Package, error) {
 	if _, err := paths.EnsureUserAgentpackLayout(); err != nil {

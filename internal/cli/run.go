@@ -102,6 +102,46 @@ func (runner Runner) Run(ctx context.Context, arguments []string) (int, error) {
 		if err == nil && noSync && !invocation.Global.Quiet {
 			fmt.Fprintln(runner.Stdout, "Skipping sync (--no-sync).")
 		}
+	case "update":
+		args, noSync := takeBool(invocation.Args, "--no-sync")
+		var updated lockfile.PackLock
+		updated, err = runner.Service.Update(ctx, root, args, noSync)
+		if err == nil && !invocation.Global.Quiet {
+			if len(args) == 0 {
+				fmt.Fprintf(runner.Stdout, "Updated floating dependencies and refreshed %s (%d package(s)).\n", paths.LockPath(root), len(updated.Packages))
+			} else {
+				fmt.Fprintf(runner.Stdout, "Updated %s and refreshed %s.\n", strings.Join(args, ", "), paths.LockPath(root))
+			}
+			if noSync {
+				fmt.Fprintln(runner.Stdout, "Skipping sync (--no-sync).")
+			}
+		}
+	case "list":
+		if err := noArgs(invocation.Args); err != nil {
+			return 2, err
+		}
+		var listed lockfile.PackLock
+		listed, err = lockfile.Load(root)
+		if err == nil && !invocation.Global.Quiet {
+			project, loadErr := manifest.Load(root)
+			if loadErr != nil {
+				return 1, loadErr
+			}
+			fmt.Fprintln(runner.Stdout, "MODULE\tKIND\tSCOPE\tSELECTOR\tCOMMIT")
+			for _, pkg := range listed.Packages {
+				scope := "transitive"
+				selector := ""
+				if pkg.Direct {
+					scope = "direct"
+					selector = dependencySelector(project, pkg.Module)
+				}
+				commit := pkg.Commit
+				if len(commit) > 12 {
+					commit = commit[:12]
+				}
+				fmt.Fprintf(runner.Stdout, "%s\t%s\t%s\t%s\t%s\n", pkg.Module, pkg.Kind, scope, selector, commit)
+			}
+		}
 	case "sync":
 		args, dry := takeBool(invocation.Args, "--dry-run")
 		args, verify := takeBool(args, "--verify-only")
@@ -133,6 +173,39 @@ func (runner Runner) Run(ctx context.Context, arguments []string) (int, error) {
 		return 1, err
 	}
 	return 0, nil
+}
+
+func dependencySelector(project *manifest.Manifest, module string) string {
+	if project == nil {
+		return ""
+	}
+	dependency, found := project.Dependencies[module]
+	if !found {
+		return ""
+	}
+	if dependency.Short != nil {
+		if *dependency.Short == "" {
+			return "HEAD"
+		}
+		return *dependency.Short
+	}
+	if dependency.Table == nil {
+		return ""
+	}
+	switch {
+	case dependency.Table.Path != nil:
+		return "path:" + *dependency.Table.Path
+	case dependency.Table.Commit != nil:
+		return "commit:" + *dependency.Table.Commit
+	case dependency.Table.Branch != nil:
+		return "branch:" + *dependency.Table.Branch
+	case dependency.Table.Tag != nil:
+		return "tag:" + *dependency.Table.Tag
+	case dependency.Table.Version != nil:
+		return "version:" + *dependency.Table.Version
+	default:
+		return "HEAD"
+	}
 }
 
 func (runner Runner) runInit(invocation Invocation) error {

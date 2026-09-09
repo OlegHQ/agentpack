@@ -10,6 +10,8 @@ import (
 	"testing"
 
 	lipgloss "charm.land/lipgloss/v2"
+	"github.com/OlegHQ/agentpack/internal/lockfile"
+	"github.com/OlegHQ/agentpack/internal/manifest"
 )
 
 func TestInitMCPAndModeCommands(t *testing.T) {
@@ -36,6 +38,30 @@ func TestInitMCPAndModeCommands(t *testing.T) {
 	}
 	if code, err := runner.Run(context.Background(), []string{"--project-root", root, "mode", "base", "review", "none"}); err != nil || code != 0 {
 		t.Fatalf("mode base code=%d err=%v", code, err)
+	}
+}
+
+func TestListShowsSelectorAndResolvedCommit(t *testing.T) {
+	root := t.TempDir()
+	if err := manifest.WriteStub(root, "demo", "0.0.1"); err != nil {
+		t.Fatal(err)
+	}
+	if err := manifest.AppendDependencyPin(root, "github.com/acme/nudge-cli", "dev"); err != nil {
+		t.Fatal(err)
+	}
+	lock := lockfile.EmptyForProject(root)
+	lock.Packages = []lockfile.Package{{Module: "github.com/acme/nudge-cli", Kind: lockfile.PackageSkill, Direct: true, Commit: "1234567890abcdef"}}
+	if err := lock.Save(root); err != nil {
+		t.Fatal(err)
+	}
+	var output bytes.Buffer
+	runner := NewRunner()
+	runner.Stdout = &output
+	if code, err := runner.Run(context.Background(), []string{"--project-root", root, "list"}); err != nil || code != 0 {
+		t.Fatalf("list code=%d err=%v", code, err)
+	}
+	if got := output.String(); !strings.Contains(got, "SELECTOR") || !strings.Contains(got, "github.com/acme/nudge-cli\tskill\tdirect\tdev\t1234567890ab") {
+		t.Fatalf("list output=%q", got)
 	}
 }
 

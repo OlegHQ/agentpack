@@ -17,6 +17,9 @@ import (
 type ResolveOptions struct {
 	Previous        *lockfile.PackLock
 	RefreshFloating bool
+	// RefreshModules refreshes only the named modules. It is used by
+	// `agentpack update SPEC`; exact commit pins remain immutable.
+	RefreshModules map[string]bool
 }
 
 type MaterializeFunc func(ctx context.Context, client *http.Client, source githubsource.Source, displayURL string, forceRefresh bool) (lockfile.Package, error)
@@ -117,12 +120,13 @@ func (resolver Resolver) Resolve(ctx context.Context, projectRoot string, projec
 		}
 		constraints := merged[module]
 		owner, repo, _ := module.OwnerRepoPath()
-		gitRef, err := effectiveGitRef(constraints, resolver.Tags, owner, repo, module, options)
+		refresh := (options.RefreshFloating || options.RefreshModules[string(module)]) && constraints.Exact == ""
+		gitRef, err := effectiveGitRef(constraints, resolver.Tags, owner, repo, module, refresh, options.Previous)
 		if err != nil {
 			return lockfile.PackLock{}, err
 		}
 		source := module.GitHubSource(gitRef)
-		pkg, err := resolver.Materialize(ctx, resolver.Client, source, githubsource.CanonicalTreeURL(source), options.RefreshFloating)
+		pkg, err := resolver.Materialize(ctx, resolver.Client, source, githubsource.CanonicalTreeURL(source), refresh)
 		if err != nil {
 			return lockfile.PackLock{}, err
 		}
@@ -205,18 +209,18 @@ func dependencyConstraint(key string, dependency manifest.Dependency) (ModuleID,
 	return module, constraints, err
 }
 
-func effectiveGitRef(constraints ModuleConstraints, tags TagLister, owner, repo string, module ModuleID, options ResolveOptions) (string, error) {
+func effectiveGitRef(constraints ModuleConstraints, tags TagLister, owner, repo string, module ModuleID, refresh bool, previous *lockfile.PackLock) (string, error) {
 	if constraints.Exact != "" {
 		return constraints.Exact, nil
 	}
-	if !options.RefreshFloating && options.Previous != nil {
-		for _, pkg := range options.Previous.Packages {
+	if !refresh && previous != nil {
+		for _, pkg := range previous.Packages {
 			if pkg.Module == string(module) {
 				return pkg.Commit, nil
 			}
 		}
 	}
-	return constraints.PickGitRef(tags, owner, repo, options.RefreshFloating)
+	return constraints.PickGitRef(tags, owner, repo, refresh)
 }
 
 func sortedDependencyKeys(dependencies map[string]manifest.Dependency) []string {

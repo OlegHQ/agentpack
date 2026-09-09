@@ -99,12 +99,15 @@ func (runner Runner) rootCommand(original []string, exitCode *int) *cobra.Comman
 	flag(add, "no-sync", "", "record the change without staging")
 	remove := leaf("remove SPEC", "Remove a direct package dependency")
 	flag(remove, "no-sync", "", "record the change without staging")
+	update := leaf("update [SPEC...]", "Refresh one dependency, or every floating dependency")
+	flag(update, "no-sync", "", "refresh pack.lock without staging")
+	list := leaf("list", "List resolved package dependencies")
 	syncCommand := leaf("sync", "Ensure cache and staging match pack.lock")
 	flag(syncCommand, "dry-run", "", "show what would change")
 	flag(syncCommand, "verify-only", "", "verify existing cache and staging")
 	flag(syncCommand, "update-lock", "", "refresh the lock before staging")
 
-	root.AddCommand(init, lock, add, remove, syncCommand)
+	root.AddCommand(init, lock, add, remove, update, list, syncCommand)
 	agent := leaf("agent [ARGS...]", "Launch Cursor Agent with a staged HOME")
 	agent.Aliases = []string{"cursor-agent"}
 	root.AddCommand(
