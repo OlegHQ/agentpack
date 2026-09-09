@@ -49,7 +49,7 @@ func (resolver AddResolver) Resolve(ctx context.Context, cwd, rawSpec string) (R
 			return ResolvedAdd{}, fmt.Errorf("only https://github.com/… URLs are supported: %w", err)
 		}
 		pkg, err := resolver.Materialize(ctx, resolver.Client, source, spec, false)
-		return ResolvedAdd{Package: pkg}, err
+		return ResolvedAdd{Package: pkg, GitRef: source.GitRef}, err
 	}
 	if local, ok := existingDirectory(cwd, spec); ok {
 		pkg, err := addFilesystem(local)
