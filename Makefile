@@ -107,7 +107,7 @@ _ship:
 	@set -e; \
 	v=$$(sed -n 's/^var Version = "\([^"]*\)"/\1/p' internal/cli/run.go); \
 	$(GO) test ./...; \
-	git add internal/cli/run.go; \
+	git add internal/cli/run.go integration/cli_test.go integration/installer_test.go README.md scripts/agentpack-installer.sh scripts/agentpack-installer.ps1; \
 	git commit -m "chore(release): v$$v"; \
 	git tag -a "v$$v" -m "v$$v"; \
 	git push origin "$(RELEASE_BRANCH)"; \
