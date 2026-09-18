@@ -18,11 +18,13 @@ const (
 	ManifestName              = "agentpack.toml"
 	StagedAgentpackBundleName = "agentpack-bundle"
 	DotAgentsDir              = ".agents"
+	DotClaudeDir              = ".claude"
 )
 
 var ErrProjectNotFound = errors.New("no agentpack.toml or pack.lock found")
 
 func ProjectDotAgentsDir(projectRoot string) string { return filepath.Join(projectRoot, DotAgentsDir) }
+func ProjectDotClaudeDir(projectRoot string) string { return filepath.Join(projectRoot, DotClaudeDir) }
 func ManifestPath(projectRoot string) string        { return filepath.Join(projectRoot, ManifestName) }
 func LockPath(projectRoot string) string            { return filepath.Join(projectRoot, LockfileName) }
 

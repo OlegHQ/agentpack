@@ -143,6 +143,12 @@ func (runner Runner) rootCommand(original []string, exitCode *int) *cobra.Comman
 	)
 	root.AddCommand(mode)
 
+	extra := &cobra.Command{Use: "extra", Short: "Optional, non-core commands"}
+	syncClaude := leaf("sync-claude", "Reconcile .claude/skills and .agents/skills")
+	flag(syncClaude, "dry-run", "", "show what would change")
+	extra.AddCommand(syncClaude)
+	root.AddCommand(extra)
+
 	hook := leaf("hook-exec", "Internal hook execution bridge")
 	hook.Hidden = true
 	root.AddCommand(hook)

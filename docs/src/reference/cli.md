@@ -132,3 +132,19 @@ agentpack mode tui                  # interactive editor
 ```
 
 See [Modes](../concepts/modes.md) for selector syntax.
+
+## `agentpack extra sync-claude`
+
+Reconciles a project's `.claude/skills` and `.agents/skills` directories so a *local* skill
+authored under either one reaches both. Claude Code only discovers project-local skills under
+`.claude/skills`, while the dot-agents convention shares project-local content across every
+harness under `.agents/skills`. This is unrelated to fetched pack content or `$STAGING` — it only
+touches the two real directories in your project.
+
+A skill present on only one side is copied to the other. A skill present on both sides with
+differing content is reconciled toward whichever copy has the newer file modification time.
+
+```sh
+agentpack extra sync-claude             # reconcile in place
+agentpack extra sync-claude --dry-run   # show what would change
+```

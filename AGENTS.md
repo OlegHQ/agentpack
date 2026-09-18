@@ -239,6 +239,7 @@ For Cursor specifically, **`$STAGING/cursor-home/.cursor/cli-config.json`** is m
 - **`mcp add <name> --command <cmd> [--args ...] [--env K=V ...]`** — add an MCP server to **`[mcp.servers]`** in **`agentpack.toml`**, then **`sync`** unless **`--no-sync`**.
 - **`mcp remove <name>`** — remove an MCP server from **`[mcp.servers]`**, then **`sync`** unless **`--no-sync`**.
 - **`mcp list`** — show all MCP servers (from manifest, plugins, and **`.agents/mcp.json`**) with provenance.
+- **`extra sync-claude [--dry-run]`** — reconcile a project's **`.claude/skills`** and **`.agents/skills`** directories so a *local* skill authored under either one reaches both. Claude Code only discovers project-local skills under **`.claude/skills`**, while the dot-agents convention shares project-local content across every harness under **`.agents/skills`**; this command is unrelated to fetched pack content or **`$STAGING`**. A skill present on only one side is copied to the other; a skill present on both sides with differing content is reconciled toward whichever copy has the newer file modification time. **`--dry-run`** reports what would change without touching the filesystem.
 - **`claude`**, **`opencode`**, **`codex`**, **`grok`**, **`agent`**, **`agy`** — refresh staging via **`sync`** (fast path when nothing changed) then exec with the staged harness roots (see Launchers).
 
 ### `agentpack.toml` sketch

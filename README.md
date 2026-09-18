@@ -216,6 +216,7 @@ disable = ["mcp:filesystem"]
 | `sync` | Download, cache, and rebuild staging for all harnesses |
 | `mode ...` | Create, inspect, edit, and manage project-local modes |
 | `mcp ...` | Add, remove, and list MCP servers |
+| `extra sync-claude` | Reconcile local skills between `.claude/skills` and `.agents/skills` |
 | `claude` | Sync + launch Claude Code with `--plugin-dir` |
 | `agent` | Sync + launch Cursor Agent with staged `HOME` (alias: `cursor-agent`) |
 | `opencode` | Sync + launch OpenCode with `OPENCODE_CONFIG_DIR` |

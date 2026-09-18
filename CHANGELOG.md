@@ -19,6 +19,10 @@ window.
 
 ### Added
 
+- `agentpack extra sync-claude` reconciles a project's `.claude/skills` and `.agents/skills`
+  directories so a local skill authored under either one reaches both, since Claude Code only
+  discovers project-local skills under `.claude/skills` while dot-agents shares them under
+  `.agents/skills`.
 - Durable, project-scoped Codex MCP OAuth credentials shared across staging modes.
 - Linux, macOS, and Windows Go CI, race detection, compiled CLI integration coverage, and benchmark
   baselines for cache hashing and mode filtering.

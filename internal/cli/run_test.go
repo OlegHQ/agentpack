@@ -65,6 +65,37 @@ func TestListShowsSelectorAndResolvedCommit(t *testing.T) {
 	}
 }
 
+func TestExtraSyncClaudeReconcilesSkillDirectories(t *testing.T) {
+	root := t.TempDir()
+	if err := manifest.WriteStub(root, "demo", "0.0.1"); err != nil {
+		t.Fatal(err)
+	}
+	agentsSkill := filepath.Join(root, ".agents", "skills", "local", "SKILL.md")
+	if err := os.MkdirAll(filepath.Dir(agentsSkill), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(agentsSkill, []byte("---\nname: local\ndescription: Local skill\n---\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var output bytes.Buffer
+	runner := NewRunner()
+	runner.Stdout = &output
+	if code, err := runner.Run(context.Background(), []string{"--project-root", root, "extra", "sync-claude"}); err != nil || code != 0 {
+		t.Fatalf("extra sync-claude code=%d err=%v output=%s", code, err, output.String())
+	}
+	claudeSkill := filepath.Join(root, ".claude", "skills", "local", "SKILL.md")
+	if _, err := os.Stat(claudeSkill); err != nil {
+		t.Fatalf("missing reconciled skill at %s: %v", claudeSkill, err)
+	}
+	output.Reset()
+	if code, err := runner.Run(context.Background(), []string{"--project-root", root, "extra", "sync-claude"}); err != nil || code != 0 {
+		t.Fatalf("second extra sync-claude code=%d err=%v", code, err)
+	}
+	if !strings.Contains(output.String(), "already match") {
+		t.Fatalf("expected already-matched output, got %q", output.String())
+	}
+}
+
 func TestProxyIsRejectedOutsideClaude(t *testing.T) {
 	runner := NewRunner()
 	code, err := runner.Run(context.Background(), []string{"--proxy", "sync"})

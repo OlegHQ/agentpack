@@ -166,6 +166,8 @@ func (runner Runner) Run(ctx context.Context, arguments []string) (int, error) {
 		err = runner.runMCP(ctx, root, invocation.Args, invocation.Global.Quiet)
 	case "mode":
 		err = runner.runMode(root, invocation.Args, invocation.Global.Quiet)
+	case "extra":
+		err = runner.runExtra(root, invocation.Args, invocation.Global.Quiet)
 	default:
 		return 2, fmt.Errorf("unknown command %q", invocation.Command)
 	}
