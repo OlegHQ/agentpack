@@ -272,6 +272,7 @@ func StagingCursorPackPluginDirForMode(root, mode string) (string, error) {
 }
 
 func SharedCodexAuthPath() (string, error)         { return underHome("shared", "codex", "auth.json") }
+func SharedGrokCredentialsDir() (string, error)    { return underHome("shared", "grok") }
 func AgentpackClaudeSettingsPath() (string, error) { return underHome("claude-settings.json") }
 
 func canonical(path string) (string, error) {

@@ -33,6 +33,7 @@ type Harness interface {
 	FinalizeWorkspaceOverlay(StageContext) error
 	Verify(StageContext) error
 	LaunchCommand(LaunchContext) (*exec.Cmd, error)
+	AfterLaunch(LaunchContext) error
 }
 
 type Definition struct {
@@ -47,6 +48,7 @@ type Definition struct {
 	WorkspaceOverlay func(StageContext) error
 	Check            func(StageContext) error
 	Launch           func(LaunchContext) (*exec.Cmd, error)
+	LaunchFinished   func(LaunchContext) error
 }
 
 func (definition Definition) ID() Target { return definition.Target }
@@ -110,4 +112,10 @@ func (definition Definition) LaunchCommand(ctx LaunchContext) (*exec.Cmd, error)
 		return nil, fmt.Errorf("%s harness has no launcher", definition.Target)
 	}
 	return definition.Launch(ctx)
+}
+func (definition Definition) AfterLaunch(ctx LaunchContext) error {
+	if definition.LaunchFinished != nil {
+		return definition.LaunchFinished(ctx)
+	}
+	return nil
 }

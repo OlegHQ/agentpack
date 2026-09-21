@@ -5,7 +5,7 @@
 ## What the launcher does
 
 ```sh
-GROK_HOME="<staging>/modes/<mode>/grok-home" grok --cwd <project-root>
+GROK_HOME="$AGENTPACK_HOME/projects/<project-hash>/grok-home" grok --cwd <project-root>
 ```
 
 agentpack injects `--cwd` when you don't supply it. Extra arguments are forwarded:
@@ -15,18 +15,18 @@ agentpack grok
 agentpack --yolo grok       # adds --always-approve
 ```
 
-The staged home is **seeded** from your real `~/.grok/` (`config.toml`, `skills`, `agents`, `commands`, `plugins`) so user config keeps working. Auth survives staging rebuilds: agentpack links your real `~/.grok/auth.json` and `mcp_credentials.json` when present.
+The project home is **seeded** from your real `~/.grok/` (`config.toml`, `skills`, `agents`, `commands`, `plugins`) so user config keeps working. Grok credentials are copied into `$AGENTPACK_HOME/shared/grok/` after each launch and loaded into every project home before the next launch. Existing `~/.grok` credentials and credentials from older agentpack project homes are imported on first use. Grok can replace credential files while refreshing tokens, so a file link alone would not keep them shared.
 
 Grok session transcripts are durable too: staged `sessions/` links to `~/.grok/sessions/`. This makes agentpack and direct Grok launches share the same resume history across staging rebuilds and machine restarts. On upgrade, surviving session files from old staging modes are imported without overwriting native files; collisions are saved under `$AGENTPACK_HOME/recovery/session-history/grok/`.
 
-## Staged layout
+## Layout
 
 ```text
-grok-home/
+projects/<project-hash>/grok-home/
   config.toml          # seeded + [plugins].paths + [mcp_servers] + attribution guidance
-  auth.json            # linked to real ~/.grok/auth.json
+  auth.json            # synchronized with shared/grok/auth.json
   sessions/ -> ~/.grok/sessions/
-grok/
+<staging>/modes/<mode>/grok/
   agentpack-bundle/
     plugin.json
     commands/ agents/ skills/ rules/

@@ -275,7 +275,8 @@ func (runner Runner) launch(ctx context.Context, root string, invocation Invocat
 	if len(args) > 0 && args[0] == "--" {
 		args = args[1:]
 	}
-	command, err := harness.LaunchCommand(base.LaunchContext{ProjectRoot: root, Arguments: args, Mode: effective, Yolo: invocation.Global.Yolo})
+	launch := base.LaunchContext{ProjectRoot: root, Arguments: args, Mode: effective, Yolo: invocation.Global.Yolo}
+	command, err := harness.LaunchCommand(launch)
 	if err != nil {
 		return 1, err
 	}
@@ -291,9 +292,10 @@ func (runner Runner) launch(ctx context.Context, root string, invocation Invocat
 		running.Apply(command)
 		code, runErr := runProcess(command)
 		running.Shutdown()
-		return code, runErr
+		return code, errors.Join(runErr, harness.AfterLaunch(launch))
 	}
-	return runProcess(command)
+	code, runErr := runProcess(command)
+	return code, errors.Join(runErr, harness.AfterLaunch(launch))
 }
 
 func noArgs(arguments []string) error {
