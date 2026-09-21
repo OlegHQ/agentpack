@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	base "github.com/OlegHQ/agentpack/internal/harness"
@@ -41,17 +42,18 @@ func stagedRoot(ctx base.StageContext) (string, error) {
 	return paths.StagingGrokBundleDirForMode(ctx.ProjectRoot, ctx.Mode.Name())
 }
 func resetPaths(ctx base.StageContext) ([]string, error) {
-	home, err := paths.StagingGrokHomeDirForMode(ctx.ProjectRoot, ctx.Mode.Name())
-	if err != nil {
-		return nil, err
-	}
 	root, err := paths.StagingGrokDirForMode(ctx.ProjectRoot, ctx.Mode.Name())
 	if err != nil {
 		return nil, err
 	}
-	return []string{home, root}, nil
+	return []string{root}, nil
 }
-func preReset(ctx base.StageContext) error { return recoverHistory(ctx.ProjectRoot, ctx.Mode.Name()) }
+func preReset(ctx base.StageContext) error {
+	if err := recoverCredentials(ctx.ProjectRoot, ctx.Mode.Name()); err != nil {
+		return err
+	}
+	return recoverHistory(ctx.ProjectRoot, ctx.Mode.Name())
+}
 func prepare(ctx base.StageContext) error {
 	bundle, err := stagedRoot(ctx)
 	if err != nil {
@@ -84,6 +86,11 @@ func prepare(ctx base.StageContext) error {
 	return writeAttribution(home)
 }
 func seedHome(staged, bundle string) error {
+	for _, name := range []string{"config.toml", "skills", "agents", "commands", "plugins", "AGENTS.md"} {
+		if err := os.RemoveAll(filepath.Join(staged, name)); err != nil {
+			return err
+		}
+	}
 	if home, err := os.UserHomeDir(); err == nil {
 		native := filepath.Join(home, ".grok")
 		if err := base.CopySelectedEntries(native, staged, []string{"config.toml", "skills", "agents", "commands", "plugins"}); err != nil {
@@ -91,12 +98,11 @@ func seedHome(staged, bundle string) error {
 		}
 		for _, name := range []string{"auth.json", "mcp_credentials.json"} {
 			source, dest := filepath.Join(native, name), filepath.Join(staged, name)
-			if info, err := os.Stat(source); err == nil && info.Mode().IsRegular() {
-				_ = os.Remove(dest)
-				if err := os.Symlink(source, dest); err != nil {
-					data, readErr := os.ReadFile(source)
-					if readErr != nil {
-						return readErr
+			if _, err := os.Lstat(dest); os.IsNotExist(err) {
+				if info, err := os.Stat(source); err == nil && info.Mode().IsRegular() {
+					data, err := os.ReadFile(source)
+					if err != nil {
+						return err
 					}
 					if err := os.WriteFile(dest, data, 0o600); err != nil {
 						return err
@@ -190,6 +196,21 @@ func verify(ctx base.StageContext) error {
 		if _, err := os.Stat(path); err != nil {
 			return fmt.Errorf("grok staging missing %s: %w", path, err)
 		}
+	}
+	config, err := os.ReadFile(filepath.Join(home, "config.toml"))
+	if err != nil {
+		return err
+	}
+	var settings struct {
+		Plugins struct {
+			Paths []string `toml:"paths"`
+		} `toml:"plugins"`
+	}
+	if err := toml.Unmarshal(config, &settings); err != nil {
+		return err
+	}
+	if !slices.Contains(settings.Plugins.Paths, bundle) {
+		return fmt.Errorf("grok staging config does not include current mode bundle")
 	}
 	if native, ok := nativeHome(); ok {
 		if err := verifyHistory(home, native); err != nil {

@@ -234,7 +234,11 @@ func StagingCodexHomeDirForMode(root, mode string) (string, error) {
 	return stagingSubdir(root, mode, "codex-home")
 }
 func StagingGrokHomeDirForMode(root, mode string) (string, error) {
-	return stagingSubdir(root, mode, "grok-home")
+	state, err := ProjectStateDir(root)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(state, "grok-home"), nil
 }
 func StagingGrokDirForMode(root, mode string) (string, error) {
 	return stagingSubdir(root, mode, "grok")
