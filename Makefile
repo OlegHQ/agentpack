@@ -69,7 +69,12 @@ hooks:
 
 install: release
 	mkdir -p "$(INSTALL_DIR)"
-	cp "$(RELEASE_BIN)" "$(INSTALL_DIR)/$(BINARY)"
+	@set -e; \
+	 tmp=$$(mktemp "$(INSTALL_DIR)/.$(BINARY).XXXXXX"); \
+	 trap 'rm -f "$$tmp"' EXIT; \
+	 cp "$(RELEASE_BIN)" "$$tmp"; \
+	 chmod 755 "$$tmp"; \
+	 mv -f "$$tmp" "$(INSTALL_DIR)/$(BINARY)"
 	@echo "Installed $(INSTALL_DIR)/$(BINARY) — ensure INSTALL_DIR is on PATH"
 
 uninstall:
