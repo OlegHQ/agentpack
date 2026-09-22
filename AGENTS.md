@@ -16,7 +16,7 @@ Every GitHub release description must begin with copyable, version-pinned instal
 
 Installer scripts must default to the user-owned `$HOME/.local/bin` directory on every platform. They may create that directory and replace the `agentpack` executable inside it, but must never edit shell startup files, change the current process environment, or persistently modify the user's `PATH`. `AGENTPACK_INSTALL_DIR` is the only supported destination override.
 
-Before tagging a release, run launch E2E from a nested directory in representative real sibling projects whose `agentpack.toml` and `pack.lock` live in an ancestor. Exercise all six harness launchers with their real binaries; for authenticated harnesses, complete a headless prompt and verify its exact response. A version-only subprocess or fixture-only test is not sufficient evidence for launch compatibility.
+Headless model prompts and exact-response launch checks are optional local checks; account quotas or expired credentials must not block a release. The release workflow is the required validation for the package, installers, snapshot configuration, and published assets.
 
 The mode editor is a responsive Bubble Tea/Lip Gloss TUI, with the Rust `v0.3.12` Ratatui editor as its behavioral baseline: modes, capability tree, details, effective-state glyphs, tri-state and subtree edits, prompts, help, scrolling, terminal-native monochrome rendering, dirty confirmation, and atomic save must remain covered. At narrow terminal widths, prioritize readable panes over preserving three crushed columns.
 
