@@ -114,14 +114,22 @@ func seedHome(staged, bundle string) error {
 			}
 		}
 	}
-	return ensurePluginPath(filepath.Join(staged, "config.toml"), bundle)
+	if err := enableBundle(filepath.Join(staged, "config.toml")); err != nil {
+		return err
+	}
+	// Grok trusts plugins under GROK_HOME/plugins. A [plugins].paths entry stays
+	// disabled, and a trusted plugin still omits its skills until it is named in
+	// [plugins].enabled.
+	return linkTrustedPlugin(staged, bundle)
 }
-func ensurePluginPath(path, bundle string) error {
+func enableBundle(path string) error {
 	root := make(map[string]any)
 	if data, err := os.ReadFile(path); err == nil {
 		if err := toml.Unmarshal(data, &root); err != nil {
 			return err
 		}
+	} else if !os.IsNotExist(err) {
+		return err
 	}
 	plugins, ok := root["plugins"].(map[string]any)
 	if root["plugins"] != nil && !ok {
@@ -131,33 +139,49 @@ func ensurePluginPath(path, bundle string) error {
 		plugins = make(map[string]any)
 		root["plugins"] = plugins
 	}
-	var values []string
-	if raw, ok := plugins["paths"].([]any); ok {
-		for _, v := range raw {
-			if text, ok := v.(string); ok {
-				values = append(values, text)
+	var enabled []string
+	switch raw := plugins["enabled"].(type) {
+	case nil:
+	case []any:
+		for _, value := range raw {
+			text, ok := value.(string)
+			if !ok {
+				return fmt.Errorf("%s: plugins.enabled must be an array of strings", path)
 			}
+			enabled = append(enabled, text)
 		}
-	} else if raw, ok := plugins["paths"].([]string); ok {
-		values = append(values, raw...)
-	} else if plugins["paths"] != nil {
-		return fmt.Errorf("%s: plugins.paths must be an array", path)
+	case []string:
+		enabled = append(enabled, raw...)
+	default:
+		return fmt.Errorf("%s: plugins.enabled must be an array of strings", path)
 	}
-	found := false
-	for _, v := range values {
-		if v == bundle {
-			found = true
-		}
+	if !slices.Contains(enabled, "agentpack-bundle") {
+		enabled = append(enabled, "agentpack-bundle")
 	}
-	if !found {
-		values = append(values, bundle)
-	}
-	plugins["paths"] = values
+	plugins["enabled"] = enabled
 	data, err := toml.Marshal(root)
 	if err != nil {
 		return err
 	}
 	return os.WriteFile(path, data, 0o644)
+}
+func linkTrustedPlugin(home, bundle string) error {
+	dir := filepath.Join(home, "plugins")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	dest := filepath.Join(dir, "agentpack-bundle")
+	if info, err := os.Lstat(dest); err == nil {
+		if info.Mode()&os.ModeSymlink == 0 {
+			return fmt.Errorf("%s exists and is not an agentpack symlink", dest)
+		}
+		if err := os.Remove(dest); err != nil {
+			return err
+		}
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+	return os.Symlink(bundle, dest)
 }
 func writeAttribution(home string) error {
 	path := filepath.Join(home, "AGENTS.md")
@@ -200,20 +224,24 @@ func verify(ctx base.StageContext) error {
 			return fmt.Errorf("grok staging missing %s: %w", path, err)
 		}
 	}
+	target, err := os.Readlink(filepath.Join(home, "plugins", "agentpack-bundle"))
+	if err != nil || target != bundle {
+		return fmt.Errorf("grok staging plugin is not the current mode bundle")
+	}
 	config, err := os.ReadFile(filepath.Join(home, "config.toml"))
 	if err != nil {
 		return err
 	}
 	var settings struct {
 		Plugins struct {
-			Paths []string `toml:"paths"`
+			Enabled []string `toml:"enabled"`
 		} `toml:"plugins"`
 	}
 	if err := toml.Unmarshal(config, &settings); err != nil {
 		return err
 	}
-	if !slices.Contains(settings.Plugins.Paths, bundle) {
-		return fmt.Errorf("grok staging config does not include current mode bundle")
+	if !slices.Contains(settings.Plugins.Enabled, "agentpack-bundle") {
+		return fmt.Errorf("grok staging config does not enable agentpack-bundle")
 	}
 	if native, ok := nativeHome(); ok {
 		if err := verifyHistory(home, native); err != nil {

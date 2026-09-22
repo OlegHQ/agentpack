@@ -32,7 +32,7 @@ projects/<project-hash>/grok-home/
     commands/ agents/ skills/ rules/
 ```
 
-Pack content is rendered into `grok/agentpack-bundle/` with a root `plugin.json`, and the staged `config.toml` gets a `[plugins].paths` entry pointing at that bundle. MCP servers are written as Grok-native `[mcp_servers]` TOML in `config.toml`.
+Pack content is rendered into `grok/agentpack-bundle/` with a root `plugin.json`. The staged home links that bundle at `plugins/agentpack-bundle` and lists `agentpack-bundle` in `[plugins].enabled`. Grok trusts plugins in its home `plugins/` directory, but it only registers their skills when the plugin is named in `[plugins].enabled`. A `[plugins].paths` entry stays disabled and does not register skills. MCP servers are written as Grok-native `[mcp_servers]` TOML in `config.toml`.
 
 ## Hooks are not staged
 

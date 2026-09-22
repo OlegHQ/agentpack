@@ -3,6 +3,7 @@ package grok
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -47,8 +48,11 @@ func TestCredentialsFollowProjectsRefreshAndLogout(t *testing.T) {
 	}
 	for _, name := range credentialFiles {
 		info, err := os.Stat(filepath.Join(shared, name))
-		if err != nil || info.Mode().Perm() != 0o600 {
+		if err != nil {
 			t.Fatalf("shared %s permissions: %v, %v", name, info, err)
+		}
+		if runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
+			t.Fatalf("shared %s permissions: %v", name, info)
 		}
 	}
 	if err := loadSharedCredentials(secondHome); err != nil {
