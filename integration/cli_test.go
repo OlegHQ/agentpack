@@ -1,6 +1,7 @@
 package integration_test
 
 import (
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -143,6 +144,73 @@ func TestCompiledCLISyncStagesLocalSkillForEveryHarness(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(root, "codex-home", "skills", "project-local", "SKILL.md")); !os.IsNotExist(err) {
 		t.Errorf("project skill duplicated into Codex home: %v", err)
+	}
+}
+
+func TestCompiledCLIGrokInspectRegistersBundleSkill(t *testing.T) {
+	if _, err := exec.LookPath("grok"); err != nil {
+		t.Skip("grok is not installed")
+	}
+	project := t.TempDir()
+	skill := filepath.Join(project, "portable-skill")
+	if err := os.Mkdir(skill, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, filepath.Join(skill, "SKILL.md"), "---\nname: portable-skill\ndescription: portable fixture\n---\n\n# Portable\n")
+	if result := runCLI(t, project, "init"); result.err != nil {
+		t.Fatalf("init: stderr=%q err=%v", result.stderr, result.err)
+	}
+	if result := runCLI(t, project, "add", "portable-skill", "--no-sync"); result.err != nil {
+		t.Fatalf("add: stdout=%q stderr=%q err=%v", result.stdout, result.stderr, result.err)
+	}
+	if result := runCLI(t, project, "sync"); result.err != nil {
+		t.Fatalf("sync: stdout=%q stderr=%q err=%v", result.stdout, result.stderr, result.err)
+	}
+	home, err := filepath.Glob(filepath.Join(project, "_agentpack", "projects", "*", "grok-home"))
+	if err != nil || len(home) != 1 {
+		t.Fatalf("grok home: %v %v", home, err)
+	}
+	bundle := filepath.Join(project, "_staging", "modes", "default", "grok", "agentpack-bundle")
+	target, err := os.Readlink(filepath.Join(home[0], "plugins", "agentpack-bundle"))
+	if err != nil || target != bundle {
+		t.Fatalf("plugin link target=%q err=%v", target, err)
+	}
+	command := exec.Command("grok", "inspect", "--json")
+	command.Dir = project
+	command.Env = append(os.Environ(), "GROK_HOME="+home[0])
+	output, err := command.Output()
+	if err != nil {
+		t.Fatalf("grok inspect: %v", err)
+	}
+	var discovered struct {
+		Skills []struct {
+			Name   string `json:"name"`
+			Source struct {
+				Type string `json:"type"`
+			} `json:"source"`
+		} `json:"skills"`
+		Plugins []struct {
+			Name    string `json:"name"`
+			Enabled bool   `json:"enabled"`
+		} `json:"plugins"`
+	}
+	if err := json.Unmarshal(output, &discovered); err != nil {
+		t.Fatal(err)
+	}
+	registered := false
+	for _, skill := range discovered.Skills {
+		if skill.Name == "portable-skill" && skill.Source.Type == "plugin" {
+			registered = true
+		}
+	}
+	enabled := false
+	for _, plugin := range discovered.Plugins {
+		if plugin.Name == "agentpack-bundle" && plugin.Enabled {
+			enabled = true
+		}
+	}
+	if !registered || !enabled {
+		t.Fatalf("registered=%v enabled=%v", registered, enabled)
 	}
 }
 
