@@ -32,8 +32,8 @@ func TestReleaseInstallerVersionsMatchCLI(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !strings.Contains(string(contents), "0.3.24") {
-			t.Errorf("%s does not contain release version 0.3.24", relative)
+		if !strings.Contains(string(contents), "0.3.25") {
+			t.Errorf("%s does not contain release version 0.3.25", relative)
 		}
 	}
 }

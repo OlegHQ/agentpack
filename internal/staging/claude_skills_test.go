@@ -110,3 +110,41 @@ func TestReconcileClaudeSkillsDryRunMakesNoChanges(t *testing.T) {
 		t.Fatalf("dry-run should not write files, err=%v", err)
 	}
 }
+
+func TestOmitProjectClaudeSkillDuplicatesByNameAndHashWholeTree(t *testing.T) {
+	project := t.TempDir()
+	localRoot := filepath.Join(project, ".claude", "skills")
+	bundle := filepath.Join(t.TempDir(), "bundle")
+	bundleSkills := filepath.Join(bundle, "skills")
+	writeSkill(t, localRoot, "Mirror", "same skill")
+	writeSkill(t, bundleSkills, "mirror", "same skill")
+	writeSkill(t, localRoot, "override", "project version")
+	writeSkill(t, bundleSkills, "override", "plugin version")
+	writeSkill(t, bundleSkills, "other-name", "same skill")
+	if err := os.MkdirAll(filepath.Join(localRoot, "Mirror", "references"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(bundleSkills, "mirror", "references"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{
+		filepath.Join(localRoot, "Mirror", "references", "guide.md"),
+		filepath.Join(bundleSkills, "mirror", "references", "guide.md"),
+	} {
+		if err := os.WriteFile(path, []byte("same support file"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err := OmitProjectClaudeSkillDuplicates(project, bundle); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"mirror", "override"} {
+		if _, err := os.Stat(filepath.Join(bundleSkills, name)); !os.IsNotExist(err) {
+			t.Fatalf("duplicate %q still staged, err=%v", name, err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(bundleSkills, "other-name", "SKILL.md")); err != nil {
+		t.Fatalf("different invocation name was removed: %v", err)
+	}
+}

@@ -71,6 +71,14 @@ func (pipeline Pipeline) Rebuild() ([]string, error) {
 	if err := StageDotAgents(pipeline.ProjectRoot, pipeline.Mode.Name(), pipeline.Mode); err != nil {
 		return nil, err
 	}
+	plugins, err := paths.StagingPluginsDirForMode(pipeline.ProjectRoot, pipeline.Mode.Name())
+	if err != nil {
+		return nil, err
+	}
+	bundle := filepath.Join(plugins, paths.StagedAgentpackBundleName)
+	if err := OmitProjectClaudeSkillDuplicates(pipeline.ProjectRoot, bundle); err != nil {
+		return nil, err
+	}
 	merged, err := CollectMCP(pipeline.ProjectRoot, pipeline.Lock, pipeline.Manifest, &pipeline.Mode)
 	if err != nil {
 		return nil, err
@@ -106,10 +114,6 @@ func (pipeline Pipeline) Rebuild() ([]string, error) {
 		if err := candidate.FinalizeWorkspaceOverlay(ctx); err != nil {
 			return nil, err
 		}
-	}
-	plugins, err := paths.StagingPluginsDirForMode(pipeline.ProjectRoot, pipeline.Mode.Name())
-	if err != nil {
-		return nil, err
 	}
 	return []string{filepath.Join(plugins, paths.StagedAgentpackBundleName)}, nil
 }
@@ -158,6 +162,10 @@ func (pipeline Pipeline) Verify() error {
 	if err != nil {
 		return err
 	}
+	projectClaudeSkills, err := ProjectClaudeSkillNames(pipeline.ProjectRoot)
+	if err != nil {
+		return err
+	}
 	pluginPackages := pipeline.Lock.Plugins()
 	for _, skill := range pipeline.Lock.Skills() {
 		if disabledPlugin(pipeline.Lock, skill.CacheKey) || SkillIsShadowed(skill, pluginPackages) {
@@ -182,6 +190,11 @@ func (pipeline Pipeline) Verify() error {
 			continue
 		}
 		for index, root := range skillRoots {
+			if harnesses[index].ID() == base.Claude {
+				if _, omitted := projectClaudeSkills[strings.ToLower(name)]; omitted {
+					continue
+				}
+			}
 			path := filepath.Join(root, "skills", name, "SKILL.md")
 			if _, err := os.Stat(path); err != nil {
 				return fmt.Errorf("%s staging missing skill SKILL.md %s", harnesses[index].ID(), path)
@@ -190,6 +203,7 @@ func (pipeline Pipeline) Verify() error {
 	}
 	return nil
 }
+
 func (pipeline Pipeline) context() base.StageContext {
 	return base.StageContext{ProjectRoot: pipeline.ProjectRoot, Mode: pipeline.Mode, LaunchTarget: pipeline.Target}
 }
