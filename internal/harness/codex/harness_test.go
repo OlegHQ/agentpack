@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -132,7 +133,7 @@ func TestMCPRecoveryMergesNewerKeys(t *testing.T) {
 	}
 }
 
-func TestPrepareDisablesDaemonAutoStartAndStripsLegacyAttribution(t *testing.T) {
+func TestPrepareStripsLegacyAttributionWithoutDisablingDaemon(t *testing.T) {
 	project, home := t.TempDir(), t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
@@ -177,8 +178,8 @@ fast_mode = true
 	if !ok {
 		t.Fatalf("expected features table, got %#v", cfg["features"])
 	}
-	if features["daemon_auto_start"] != false {
-		t.Fatalf("expected daemon_auto_start = false, got %v", features["daemon_auto_start"])
+	if features["daemon_auto_start"] == false {
+		t.Fatalf("expected daemon_auto_start NOT to be disabled, got %v", features["daemon_auto_start"])
 	}
 	if features["fast_mode"] != true {
 		t.Fatalf("expected fast_mode = true to be preserved, got %v", features["fast_mode"])
@@ -222,29 +223,13 @@ func TestPreparePreservesLegacyAttributionWhenRequested(t *testing.T) {
 	}
 }
 
-func TestLaunchPrependsNoDaemonWhenSupported(t *testing.T) {
+func TestLaunchDoesNotInjectNoDaemon(t *testing.T) {
 	binDir := t.TempDir()
 	stubName := "codex"
-	script := `#!/bin/sh
-if [ "$1" = "-h" ]; then
-    echo "Usage: codex [OPTIONS]"
-    echo "      --no-daemon"
-    echo "          Run without the shared background server"
-    exit 0
-fi
-exit 0
-`
+	script := "#!/bin/sh\nexit 0\n"
 	if runtime.GOOS == "windows" {
 		stubName = "codex.cmd"
-		script = `@echo off
-if "%~1"=="-h" (
-    echo Usage: codex [OPTIONS]
-    echo       --no-daemon
-    echo           Run without the shared background server
-    exit /b 0
-)
-exit /b 0
-`
+		script = "@echo off\nexit /b 0\n"
 	}
 	stub := filepath.Join(binDir, stubName)
 	if err := os.WriteFile(stub, []byte(script), 0o755); err != nil {
@@ -263,19 +248,67 @@ exit /b 0
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"--no-daemon", "exec", "--dangerously-bypass-approvals-and-sandbox", "hello"}
+	want := []string{"exec", "--dangerously-bypass-approvals-and-sandbox", "hello"}
 	if !reflect.DeepEqual(cmd.Args[1:], want) {
 		t.Fatalf("got %v, want %v", cmd.Args[1:], want)
 	}
 
-	// When --no-daemon is already provided, do not duplicate
+	// When --no-daemon is explicitly provided by the user, preserve it
 	ctx.Arguments = []string{"--no-daemon", "exec", "hello"}
 	cmd, err = launch(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	wantAlready := []string{"--dangerously-bypass-approvals-and-sandbox", "--no-daemon", "exec", "hello"}
-	if !reflect.DeepEqual(cmd.Args[1:], wantAlready) {
-		t.Fatalf("got %v, want %v", cmd.Args[1:], wantAlready)
+	wantExplicit := []string{"--dangerously-bypass-approvals-and-sandbox", "--no-daemon", "exec", "hello"}
+	if !reflect.DeepEqual(cmd.Args[1:], wantExplicit) {
+		t.Fatalf("got %v, want %v", cmd.Args[1:], wantExplicit)
+	}
+}
+
+func TestPrepareShortensHomeWhenSocketExceedsSunLen(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("SUN_LEN does not apply on Windows")
+	}
+	// Create an artificially long staging root to trigger needsShortHome
+	longStaging := filepath.Join(t.TempDir(), "very-long-staging-path-to-exceed-sun-len-"+strings.Repeat("a", 60))
+	t.Setenv("AGENTPACK_STAGING_ROOT", longStaging)
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("AGENTPACK_HOME", t.TempDir())
+
+	project := t.TempDir()
+	ctx := base.StageContext{ProjectRoot: project, Mode: mode.ImplicitEffective()}
+	h := New()
+	if err := h.Prepare(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := h.Verify(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	root, _ := h.StagedRoot(ctx)
+	info, err := os.Lstat(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode()&os.ModeSymlink == 0 {
+		t.Fatalf("expected staged root %s to be a symlink to short directory, got regular file/dir", root)
+	}
+	target, err := os.Readlink(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The short directory target + socket suffix must fit within maxSunLen
+	limit := maxSunLen()
+	if len(target)+len(controlSocketSuffix) >= limit {
+		t.Fatalf("short target %s with socket suffix %d exceeds limit %d", target, len(target)+len(controlSocketSuffix), limit)
+	}
+
+	// Verify reset paths cleans up both symlink and target
+	reset, err := h.ResetPaths(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(reset) < 2 {
+		t.Fatalf("expected reset paths to include root and short dir, got %v", reset)
 	}
 }

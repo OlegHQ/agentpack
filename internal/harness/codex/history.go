@@ -77,12 +77,14 @@ func recoverHistory(projectRoot, currentMode string) error {
 		return err
 	}
 	for _, entry := range entries {
-		if !entry.IsDir() {
+		modeDir := filepath.Join(modes, entry.Name())
+		modeInfo, err := os.Stat(modeDir)
+		if err != nil || !modeInfo.IsDir() {
 			continue
 		}
-		staged := filepath.Join(modes, entry.Name(), "codex-home")
-		info, err := os.Lstat(staged)
-		if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		staged := filepath.Join(modeDir, "codex-home")
+		info, err := os.Stat(staged)
+		if err != nil || !info.IsDir() {
 			continue
 		}
 		needed, err := needsHistoryRecovery(staged, native)

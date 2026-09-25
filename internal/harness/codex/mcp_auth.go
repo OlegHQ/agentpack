@@ -153,10 +153,12 @@ func credentialCandidates(modes, durable string) ([]credentialCandidate, error) 
 		return nil, err
 	}
 	for _, entry := range entries {
-		if !entry.IsDir() {
+		modeDir := filepath.Join(modes, entry.Name())
+		modeInfo, err := os.Stat(modeDir)
+		if err != nil || !modeInfo.IsDir() {
 			continue
 		}
-		if err := appendCredentialCandidate(&candidates, filepath.Join(modes, entry.Name(), "codex-home", credentialsFile), durable); err != nil {
+		if err := appendCredentialCandidate(&candidates, filepath.Join(modeDir, "codex-home", credentialsFile), durable); err != nil {
 			return nil, err
 		}
 	}

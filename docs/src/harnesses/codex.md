@@ -63,7 +63,7 @@ Codex gets the **portable skill subset** of pack content. agentpack does not syn
 | Rules | Skill fallback |
 | MCP | Merged into `[mcp_servers]` in `config.toml` |
 
-Legacy `commit_attribution` is stripped from the staged `config.toml` (removed in modern Codex versions; avoids unrecognized setting warnings/errors). `daemon_auto_start = false` is configured under `[features]` and `--no-daemon` is passed on launch to prevent daemon socket creation failures in deep staging paths. Set `AGENTPACK_KEEP_ATTRIBUTION=1` to preserve any existing `commit_attribution`.
+Legacy `commit_attribution` is stripped from the staged `config.toml` (removed in modern Codex versions; avoids unrecognized setting warnings/errors). Codex background daemon auto-start is supported by default; when staging directories produce UNIX domain socket paths that would exceed operating system limits (`SUN_LEN`: 104 on macOS, 108 on Linux), agentpack automatically anchors the staged home to a compact path in `/var/tmp` so the control socket binds and connects cleanly. Set `AGENTPACK_KEEP_ATTRIBUTION=1` to preserve any existing `commit_attribution`.
 
 ## Environment
 
