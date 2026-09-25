@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"testing"
 	"time"
 
@@ -223,7 +224,7 @@ func TestPreparePreservesLegacyAttributionWhenRequested(t *testing.T) {
 
 func TestLaunchPrependsNoDaemonWhenSupported(t *testing.T) {
 	binDir := t.TempDir()
-	stub := filepath.Join(binDir, "codex")
+	stubName := "codex"
 	script := `#!/bin/sh
 if [ "$1" = "-h" ]; then
     echo "Usage: codex [OPTIONS]"
@@ -233,6 +234,19 @@ if [ "$1" = "-h" ]; then
 fi
 exit 0
 `
+	if runtime.GOOS == "windows" {
+		stubName = "codex.cmd"
+		script = `@echo off
+if "%~1"=="-h" (
+    echo Usage: codex [OPTIONS]
+    echo       --no-daemon
+    echo           Run without the shared background server
+    exit /b 0
+)
+exit /b 0
+`
+	}
+	stub := filepath.Join(binDir, stubName)
 	if err := os.WriteFile(stub, []byte(script), 0o755); err != nil {
 		t.Fatal(err)
 	}
