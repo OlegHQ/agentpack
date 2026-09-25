@@ -48,10 +48,10 @@ How each harness is handled:
 | Harness | Mechanism |
 |---|---|
 | Claude Code | `$AGENTPACK_HOME/claude-settings.json` via `--settings`: `includeCoAuthoredBy = false`, empty commit/PR attribution (loads at `flagSettings` scope) |
-| Codex | `commit_attribution = ""` in the staged `config.toml` |
+| Codex | Legacy `commit_attribution` stripped from staged `config.toml` |
 | Cursor | `attributeCommitsToAgent = false`, `attributePRsToAgent = false` in the staged `cli-config.json` (a real file, never your real one) |
 | OpenCode | No first-class setting; a system-prompt file is added to `instructions[]` |
 | Grok | No verified setting; prompt-level guidance only |
 | Antigravity | No verified setting; an always-apply plugin rule |
 
-Claude, Codex, and Cursor have real attribution settings, so those are exact. OpenCode, Grok, and Antigravity expose no such setting, so agentpack falls back to prompt-level guidance — best-effort, not guaranteed.
+Claude and Cursor have real attribution settings, so those are exact. Modern Codex removed `commit_attribution`, so agentpack strips any legacy setting to avoid unrecognized configuration errors. OpenCode, Grok, and Antigravity expose no such setting, so agentpack falls back to prompt-level guidance — best-effort, not guaranteed.

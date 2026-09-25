@@ -46,7 +46,7 @@ codex-home/
   sessions/ -> ~/.codex/sessions/
   archived_sessions/ -> ~/.codex/archived_sessions/
   history.jsonl -> ~/.codex/history.jsonl
-  config.toml          # seeded + attribution off + merged [mcp_servers]
+  config.toml          # seeded + daemon auto-start off + stripped legacy attribution + merged [mcp_servers]
   skills/
     <name>/SKILL.md
 ```
@@ -63,7 +63,7 @@ Codex gets the **portable skill subset** of pack content. agentpack does not syn
 | Rules | Skill fallback |
 | MCP | Merged into `[mcp_servers]` in `config.toml` |
 
-Attribution is forced off via `commit_attribution = ""` in the staged `config.toml`. Set `AGENTPACK_KEEP_ATTRIBUTION=1` to keep your value.
+Legacy `commit_attribution` is stripped from the staged `config.toml` (removed in modern Codex versions; avoids unrecognized setting warnings/errors). `daemon_auto_start = false` is configured under `[features]` and `--no-daemon` is passed on launch to prevent daemon socket creation failures in deep staging paths. Set `AGENTPACK_KEEP_ATTRIBUTION=1` to preserve any existing `commit_attribution`.
 
 ## Environment
 

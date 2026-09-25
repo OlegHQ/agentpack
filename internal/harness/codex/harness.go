@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/pelletier/go-toml/v2"
+
 	base "github.com/OlegHQ/agentpack/internal/harness"
 	"github.com/OlegHQ/agentpack/internal/mcp"
 	"github.com/OlegHQ/agentpack/internal/paths"
@@ -30,6 +32,9 @@ func launch(ctx base.LaunchContext) (*exec.Cmd, error) {
 	if err != nil {
 		return nil, err
 	}
+	if !base.HasAny(arguments, "--no-daemon") && supportsNoDaemon(binary) {
+		arguments = append([]string{"--no-daemon"}, arguments...)
+	}
 	home, err := paths.StagingCodexHomeDirForMode(ctx.ProjectRoot, ctx.Mode.Name())
 	if err != nil {
 		return nil, err
@@ -38,6 +43,15 @@ func launch(ctx base.LaunchContext) (*exec.Cmd, error) {
 	command.Env = append(os.Environ(), "CODEX_HOME="+home)
 	return command, nil
 }
+
+func supportsNoDaemon(binary string) bool {
+	output, err := exec.Command(binary, "-h").CombinedOutput()
+	if err != nil {
+		return false
+	}
+	return strings.Contains(string(output), "--no-daemon")
+}
+
 func stagedRoot(ctx base.StageContext) (string, error) {
 	return paths.StagingCodexHomeDirForMode(ctx.ProjectRoot, ctx.Mode.Name())
 }
@@ -82,12 +96,25 @@ func prepare(ctx base.StageContext) error {
 			return err
 		}
 	}
+	if err := disableDaemonAutoStart(root); err != nil {
+		return err
+	}
 	if !keepAttribution() {
-		if err := updateConfig(filepath.Join(root, "config.toml"), func(config map[string]any) { config["commit_attribution"] = "" }); err != nil {
+		if err := updateConfig(filepath.Join(root, "config.toml"), func(config map[string]any) { delete(config, "commit_attribution") }); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+func disableDaemonAutoStart(root string) error {
+	return updateConfig(filepath.Join(root, "config.toml"), func(config map[string]any) {
+		features, ok := config["features"].(map[string]any)
+		if !ok {
+			features = make(map[string]any)
+			config["features"] = features
+		}
+		features["daemon_auto_start"] = false
+	})
 }
 func writeMCP(entries mcp.Entries, ctx base.StageContext) error {
 	root, err := stagedRoot(ctx)
@@ -117,7 +144,26 @@ func verify(ctx base.StageContext) error {
 			return err
 		}
 	}
+	if err := verifyDaemonAutoStart(root); err != nil {
+		return err
+	}
 	return verifyMCPAuth(ctx.ProjectRoot, root)
+}
+func verifyDaemonAutoStart(root string) error {
+	path := filepath.Join(root, "config.toml")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	cfg := make(map[string]any)
+	if err := toml.Unmarshal(data, &cfg); err != nil {
+		return err
+	}
+	features, ok := cfg["features"].(map[string]any)
+	if !ok || features["daemon_auto_start"] != false {
+		return fmt.Errorf("codex staging daemon_auto_start is not disabled in %s", path)
+	}
+	return nil
 }
 func keepAttribution() bool {
 	switch os.Getenv("AGENTPACK_KEEP_ATTRIBUTION") {
@@ -127,3 +173,4 @@ func keepAttribution() bool {
 		return false
 	}
 }
+
