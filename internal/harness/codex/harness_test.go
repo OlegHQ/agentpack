@@ -265,4 +265,3 @@ exit 0
 		t.Fatalf("got %v, want %v", cmd.Args[1:], wantAlready)
 	}
 }
-

@@ -173,4 +173,3 @@ func keepAttribution() bool {
 		return false
 	}
 }
-
