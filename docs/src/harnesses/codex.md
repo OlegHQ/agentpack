@@ -5,7 +5,7 @@
 ## What the launcher does
 
 ```sh
-CODEX_HOME="<staging>/modes/<mode>/codex-home" codex
+CODEX_HOME="<staging>/modes/<mode>/codex-home" codex --no-daemon
 ```
 
 Extra arguments are forwarded:
@@ -63,7 +63,7 @@ Codex gets the **portable skill subset** of pack content. agentpack does not syn
 | Rules | Skill fallback |
 | MCP | Merged into `[mcp_servers]` in `config.toml` |
 
-Legacy `commit_attribution` is stripped from the staged `config.toml` (removed in modern Codex versions; avoids unrecognized setting warnings/errors). Codex background daemon auto-start is supported by default; when staging directories produce UNIX domain socket paths that would exceed operating system limits (`SUN_LEN`: 104 on macOS, 108 on Linux), agentpack automatically anchors the staged home to a compact path in `/var/tmp` so the control socket binds and connects cleanly. Set `AGENTPACK_KEEP_ATTRIBUTION=1` to preserve any existing `commit_attribution`.
+Legacy `commit_attribution` is stripped from the staged `config.toml` (removed in modern Codex versions; avoids unrecognized setting warnings/errors). Agentpack uses `--no-daemon` when the installed CLI advertises it, and disables `features.daemon_auto_start` in staged config for older versions. Codex 0.157.0 otherwise installs a separate package under `CODEX_HOME/packages/app-server-daemon` and starts a process that retains its startup configuration and environment. Rebuilding staging can delete that running process's socket and state. Sharing the native daemon would also bypass the selected mode's skills, MCP settings, and environment. Embedded sessions avoid those problems and preserve normal interactive, resume, and fork behavior. Explicit `--remote` connections remain user-controlled. The daemon-dependent `codex agents` overview requires a direct Codex launch. Existing background daemons are not stopped automatically; stop a legacy staged daemon using its original `CODEX_HOME` and `codex app-server daemon stop` before removing its home. Set `AGENTPACK_KEEP_ATTRIBUTION=1` to preserve any existing `commit_attribution`.
 
 ## Environment
 

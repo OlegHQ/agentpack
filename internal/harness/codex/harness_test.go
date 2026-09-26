@@ -133,7 +133,7 @@ func TestMCPRecoveryMergesNewerKeys(t *testing.T) {
 	}
 }
 
-func TestPrepareStripsLegacyAttributionWithoutDisablingDaemon(t *testing.T) {
+func TestPrepareStripsLegacyAttributionAndDisablesDaemon(t *testing.T) {
 	project, home := t.TempDir(), t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
@@ -147,6 +147,7 @@ func TestPrepareStripsLegacyAttributionWithoutDisablingDaemon(t *testing.T) {
 	}
 	nativeConfig := `commit_attribution = "Someone <someone@example.com>"
 [features]
+daemon_auto_start = true
 fast_mode = true
 `
 	if err := os.WriteFile(filepath.Join(native, "config.toml"), []byte(nativeConfig), 0o644); err != nil {
@@ -178,8 +179,8 @@ fast_mode = true
 	if !ok {
 		t.Fatalf("expected features table, got %#v", cfg["features"])
 	}
-	if features["daemon_auto_start"] == false {
-		t.Fatalf("expected daemon_auto_start NOT to be disabled, got %v", features["daemon_auto_start"])
+	if features["daemon_auto_start"] != false {
+		t.Fatalf("expected daemon_auto_start to be disabled, got %v", features["daemon_auto_start"])
 	}
 	if features["fast_mode"] != true {
 		t.Fatalf("expected fast_mode = true to be preserved, got %v", features["fast_mode"])
@@ -310,5 +311,41 @@ func TestPrepareShortensHomeWhenSocketExceedsSunLen(t *testing.T) {
 	}
 	if len(reset) < 2 {
 		t.Fatalf("expected reset paths to include root and short dir, got %v", reset)
+	}
+}
+
+func TestLaunchUsesEmbeddedServerWithModernCodex(t *testing.T) {
+	stub := filepath.Join(t.TempDir(), "codex")
+	script := "#!/bin/sh\nprintf '%s\\n' '--no-daemon'\n"
+	if runtime.GOOS == "windows" {
+		stub += ".cmd"
+		script = "@echo off\necho --no-daemon\n"
+	}
+	if err := os.WriteFile(stub, []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("CODEX_PATH", stub)
+	t.Setenv("AGENTPACK_STAGING_ROOT", t.TempDir())
+	for _, tc := range []struct {
+		name       string
+		args, want []string
+	}{
+		{"interactive", nil, []string{"--no-daemon"}},
+		{"resume", []string{"resume", "--last"}, []string{"--no-daemon", "resume", "--last"}},
+		{"fork", []string{"fork", "--last"}, []string{"--no-daemon", "fork", "--last"}},
+		{"explicit", []string{"--no-daemon", "resume"}, []string{"--no-daemon", "resume"}},
+		{"remote", []string{"--remote", "ws://localhost:1234"}, []string{"--remote", "ws://localhost:1234"}},
+		{"remote equals", []string{"--remote=ws://localhost:1234"}, []string{"--remote=ws://localhost:1234"}},
+		{"prompt delimiter", []string{"--", "--no-daemon"}, []string{"--no-daemon", "--", "--no-daemon"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cmd, err := launch(base.LaunchContext{ProjectRoot: t.TempDir(), Mode: mode.ImplicitEffective(), Arguments: tc.args})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(cmd.Args[1:], tc.want) {
+				t.Fatalf("got %v, want %v", cmd.Args[1:], tc.want)
+			}
+		})
 	}
 }

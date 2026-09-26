@@ -1,6 +1,7 @@
 package codex
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"time"
 
 	base "github.com/OlegHQ/agentpack/internal/harness"
 	"github.com/OlegHQ/agentpack/internal/mcp"
@@ -45,6 +47,22 @@ func launch(ctx base.LaunchContext) (*exec.Cmd, error) {
 	if err != nil {
 		return nil, err
 	}
+	// A daemon captures this disposable home's configuration and environment.
+	// Sync may rebuild that home while the daemon is still running. Embedded
+	// sessions load the selected mode afresh and do not install a daemon package.
+	options := arguments
+	if delimiter := slices.Index(options, "--"); delimiter >= 0 {
+		options = options[:delimiter]
+	}
+	if !base.HasAny(options, "--no-daemon") && !base.HasFlagValue(options, "--remote") {
+		supported, err := supportsNoDaemon(binary)
+		if err != nil {
+			return nil, err
+		}
+		if supported {
+			arguments = append([]string{"--no-daemon"}, arguments...)
+		}
+	}
 	home, err := paths.StagingCodexHomeDirForMode(ctx.ProjectRoot, ctx.Mode.Name())
 	if err != nil {
 		return nil, err
@@ -57,6 +75,16 @@ func launch(ctx base.LaunchContext) (*exec.Cmd, error) {
 	command := exec.Command(binary, arguments...)
 	command.Env = append(os.Environ(), "CODEX_HOME="+home)
 	return command, nil
+}
+
+func supportsNoDaemon(binary string) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	output, err := exec.CommandContext(ctx, binary, "--help").Output()
+	if err != nil {
+		return false, fmt.Errorf("check Codex embedded-server support: %w", err)
+	}
+	return strings.Contains(string(output), "--no-daemon"), nil
 }
 
 func stagedRoot(ctx base.StageContext) (string, error) {
@@ -218,6 +246,17 @@ func prepare(ctx base.StageContext) error {
 		if err := prepareHistory(targetDir, native); err != nil {
 			return err
 		}
+	}
+	// Older CLIs lack --no-daemon. Disable automatic startup in their config too.
+	if err := updateConfig(filepath.Join(targetDir, "config.toml"), func(config map[string]any) {
+		features, _ := config["features"].(map[string]any)
+		if features == nil {
+			features = make(map[string]any)
+			config["features"] = features
+		}
+		features["daemon_auto_start"] = false
+	}); err != nil {
+		return err
 	}
 	if !keepAttribution() {
 		if err := updateConfig(filepath.Join(targetDir, "config.toml"), func(config map[string]any) { delete(config, "commit_attribution") }); err != nil {
