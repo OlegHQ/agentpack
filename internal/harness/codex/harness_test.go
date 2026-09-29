@@ -109,7 +109,7 @@ func TestLogoutRemovesNativeAndSharedAuth(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(staged, "config.toml"), []byte(""), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := finishAuthLaunch(staged, []string{"logout"}); err != nil {
+	if err := finishAuthLaunch(staged, []string{"-c", "model=example", "logout"}); err != nil {
 		t.Fatal(err)
 	}
 	for _, path := range []string{native, shared} {
@@ -158,6 +158,41 @@ func TestFailedLoginRestoresStagedLinkWithoutDeletingDurableAuth(t *testing.T) {
 	data, err := os.ReadFile(auth)
 	if err != nil || string(data) != `{"OPENAI_API_KEY":"old"}` {
 		t.Fatalf("durable login changed after failed login: %q, %v", data, err)
+	}
+}
+
+func TestInteractiveLogoutRemovesDurableAuth(t *testing.T) {
+	for _, arguments := range [][]string{nil, {"resume", "--last"}} {
+		t.Run(strings.Join(arguments, " "), func(t *testing.T) {
+			home := t.TempDir()
+			t.Setenv("HOME", home)
+			t.Setenv("USERPROFILE", home)
+			t.Setenv("AGENTPACK_HOME", t.TempDir())
+			native := filepath.Join(home, ".codex")
+			if err := os.MkdirAll(native, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			credential := filepath.Join(native, "auth.json")
+			if err := os.WriteFile(credential, []byte(`{"OPENAI_API_KEY":"old"}`), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			staged := t.TempDir()
+			if err := os.WriteFile(filepath.Join(staged, "config.toml"), nil, 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if err := prepareAuth(native, staged); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Remove(filepath.Join(staged, "auth.json")); err != nil {
+				t.Fatal(err)
+			}
+			if err := finishAuthLaunch(staged, arguments); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := os.Stat(credential); !os.IsNotExist(err) {
+				t.Fatalf("interactive logout retained durable auth: %v", err)
+			}
+		})
 	}
 }
 

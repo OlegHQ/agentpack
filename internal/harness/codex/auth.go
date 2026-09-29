@@ -294,10 +294,9 @@ func finishAuthLaunch(ctxHome string, arguments []string) error {
 	} else if !os.IsNotExist(err) {
 		return err
 	}
-	if len(arguments) == 0 || arguments[0] != "logout" {
-		// A failed login can remove the staged link before obtaining replacement
-		// credentials. Keep the durable login; an explicit CLI logout below is
-		// the only signal that authorizes removing it.
+	if !usesInteractiveCodex(arguments) && !isCodexLogout(arguments) {
+		// CLI login runs in an isolated home, so a missing link in the main
+		// staging home is not a completed logout for these commands.
 		if native, ok := nativeHome(); ok {
 			return prepareAuth(native, ctxHome)
 		}

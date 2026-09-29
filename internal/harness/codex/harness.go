@@ -109,6 +109,18 @@ func isCodexLogin(arguments []string) bool {
 	return false
 }
 
+func isCodexLogout(arguments []string) bool {
+	for _, argument := range arguments {
+		if argument == "--" {
+			break
+		}
+		if argument == "logout" {
+			return true
+		}
+	}
+	return false
+}
+
 func loginKey(ctx base.LaunchContext) string {
 	return ctx.ProjectRoot + "\x00" + ctx.Mode.Name()
 }
