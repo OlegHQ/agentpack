@@ -367,6 +367,7 @@ func TestLoginCommandUsesIsolatedHome(t *testing.T) {
 	if _, err := os.Lstat(filepath.Join(childHome, "auth.json")); !os.IsNotExist(err) {
 		t.Fatalf("isolated login home inherited auth: %v", err)
 	}
+	ctx.Command = command
 	if err := afterLaunch(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -527,7 +528,7 @@ func TestMCPRecoveryMergesNewerKeys(t *testing.T) {
 	}
 }
 
-func TestPrepareStripsLegacyAttributionAndDisablesDaemon(t *testing.T) {
+func TestPrepareStripsLegacyAttributionAndPreservesDaemonSetting(t *testing.T) {
 	project, home := t.TempDir(), t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
@@ -573,8 +574,8 @@ fast_mode = true
 	if !ok {
 		t.Fatalf("expected features table, got %#v", cfg["features"])
 	}
-	if features["daemon_auto_start"] != false {
-		t.Fatalf("expected daemon_auto_start to be disabled, got %v", features["daemon_auto_start"])
+	if features["daemon_auto_start"] != true {
+		t.Fatalf("expected daemon_auto_start to be preserved, got %v", features["daemon_auto_start"])
 	}
 	if features["fast_mode"] != true {
 		t.Fatalf("expected fast_mode = true to be preserved, got %v", features["fast_mode"])
@@ -643,6 +644,8 @@ func TestLaunchDoesNotInjectNoDaemon(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	firstCommand := cmd
+	t.Cleanup(func() { finished := ctx; finished.Command = firstCommand; _ = afterLaunch(finished) })
 	want := []string{"exec", "--dangerously-bypass-approvals-and-sandbox", "hello"}
 	if !reflect.DeepEqual(cmd.Args[1:], want) {
 		t.Fatalf("got %v, want %v", cmd.Args[1:], want)
@@ -654,6 +657,8 @@ func TestLaunchDoesNotInjectNoDaemon(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	secondCommand := cmd
+	t.Cleanup(func() { finished := ctx; finished.Command = secondCommand; _ = afterLaunch(finished) })
 	wantExplicit := []string{"--dangerously-bypass-approvals-and-sandbox", "--no-daemon", "exec", "hello"}
 	if !reflect.DeepEqual(cmd.Args[1:], wantExplicit) {
 		t.Fatalf("got %v, want %v", cmd.Args[1:], wantExplicit)
@@ -708,7 +713,7 @@ func TestPrepareShortensHomeWhenSocketExceedsSunLen(t *testing.T) {
 	}
 }
 
-func TestLaunchUsesEmbeddedServerWithModernCodex(t *testing.T) {
+func TestLaunchDoesNotForceEmbeddedServer(t *testing.T) {
 	stub := filepath.Join(t.TempDir(), "codex")
 	script := "#!/bin/sh\nprintf '%s\\n' '--no-daemon'\n"
 	if runtime.GOOS == "windows" {
@@ -724,25 +729,114 @@ func TestLaunchUsesEmbeddedServerWithModernCodex(t *testing.T) {
 		name       string
 		args, want []string
 	}{
-		{"interactive", nil, []string{"--no-daemon"}},
-		{"resume", []string{"resume", "--last"}, []string{"--no-daemon", "resume", "--last"}},
-		{"fork", []string{"fork", "--last"}, []string{"--no-daemon", "fork", "--last"}},
+		{"interactive", nil, []string{}},
+		{"resume", []string{"resume", "--last"}, []string{"resume", "--last"}},
+		{"fork", []string{"fork", "--last"}, []string{"fork", "--last"}},
 		{"agents", []string{"agents"}, []string{"agents"}},
 		{"queue", []string{"queue", "--thread", "id", "--message", "hello"}, []string{"queue", "--thread", "id", "--message", "hello"}},
 		{"exec", []string{"exec", "hello"}, []string{"exec", "hello"}},
 		{"explicit", []string{"--no-daemon", "resume"}, []string{"--no-daemon", "resume"}},
 		{"remote", []string{"--remote", "ws://localhost:1234"}, []string{"--remote", "ws://localhost:1234"}},
 		{"remote equals", []string{"--remote=ws://localhost:1234"}, []string{"--remote=ws://localhost:1234"}},
-		{"prompt delimiter", []string{"--", "--no-daemon"}, []string{"--no-daemon", "--", "--no-daemon"}},
+		{"prompt delimiter", []string{"--", "--no-daemon"}, []string{"--", "--no-daemon"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			cmd, err := launch(base.LaunchContext{ProjectRoot: t.TempDir(), Mode: mode.ImplicitEffective(), Arguments: tc.args})
+			project := t.TempDir()
+			cmd, err := launch(base.LaunchContext{ProjectRoot: project, Mode: mode.ImplicitEffective(), Arguments: tc.args})
 			if err != nil {
 				t.Fatal(err)
 			}
+			ctx := base.LaunchContext{ProjectRoot: project, Mode: mode.ImplicitEffective(), Arguments: tc.args, Command: cmd}
+			t.Cleanup(func() { _ = afterLaunch(ctx) })
 			if !reflect.DeepEqual(cmd.Args[1:], tc.want) {
 				t.Fatalf("got %v, want %v", cmd.Args[1:], tc.want)
 			}
 		})
+	}
+}
+
+func TestLaunchFinishesAgainstOriginalGenerationAfterSwitch(t *testing.T) {
+	project, userHome := t.TempDir(), t.TempDir()
+	t.Setenv("HOME", userHome)
+	t.Setenv("USERPROFILE", userHome)
+	t.Setenv("AGENTPACK_HOME", t.TempDir())
+	t.Setenv("AGENTPACK_STAGING_ROOT", t.TempDir())
+	stub := filepath.Join(t.TempDir(), "codex")
+	if runtime.GOOS == "windows" {
+		stub += ".cmd"
+	}
+	if err := os.WriteFile(stub, []byte(""), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("CODEX_PATH", stub)
+	native := filepath.Join(userHome, ".codex")
+	if err := os.MkdirAll(native, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(native, "auth.json"), []byte(`{"OPENAI_API_KEY":"fixture"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	stage := base.StageContext{ProjectRoot: project, Mode: mode.ImplicitEffective()}
+	harness := New()
+	build := func() string {
+		t.Helper()
+		transaction, err := beginGeneration(stage)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer transaction.Abort()
+		stage.StagedRoots = map[base.Target]string{base.Codex: transaction.Root()}
+		if err := harness.Prepare(stage); err != nil {
+			t.Fatal(err)
+		}
+		if err := harness.Verify(stage); err != nil {
+			t.Fatal(err)
+		}
+		if err := transaction.Commit(); err != nil {
+			t.Fatal(err)
+		}
+		return transaction.Root()
+	}
+	first := build()
+	t.Cleanup(func() { _ = os.RemoveAll(filepath.Dir(first)) })
+	launchCtx := base.LaunchContext{ProjectRoot: project, Mode: mode.ImplicitEffective()}
+	command, err := harness.LaunchCommand(launchCtx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	launchCtx.Command = command
+	second := build()
+	if first == second {
+		t.Fatal("generation did not rotate")
+	}
+	if err := os.Remove(filepath.Join(first, "auth.json")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(filepath.Join(first, credentialsFile)); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(first, credentialsFile), []byte(`{"fixture":{"access_token":"old-generation"}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := harness.AfterLaunch(launchCtx); err != nil {
+		t.Fatal(err)
+	}
+	shared, err := paths.SharedCodexAuthPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(filepath.Dir(shared), authLogoutMarker)); err != nil {
+		t.Fatalf("old generation logout was not persisted: %v", err)
+	}
+	durable, err := oauthCredentials(project)
+	if err != nil {
+		t.Fatal(err)
+	}
+	store, err := readCredentialStore(durable)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := store["fixture"]; !ok {
+		t.Fatalf("old generation MCP OAuth change was lost: %#v", store)
 	}
 }

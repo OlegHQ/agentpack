@@ -5,7 +5,7 @@
 ## What the launcher does
 
 ```sh
-CODEX_HOME="<staging>/modes/<mode>/codex-home" codex --no-daemon
+CODEX_HOME="<generation-home>" codex
 ```
 
 Extra arguments are forwarded:
@@ -15,7 +15,7 @@ agentpack codex --model gpt-5-codex
 agentpack --yolo codex      # adds --dangerously-bypass-approvals-and-sandbox
 ```
 
-The staged home is **seeded** from your real `~/.codex/` (`config.toml`, `skills`, `themes`) so user config keeps working under the redirect.
+Each project mode gets a complete generation home. Agentpack builds and verifies a replacement before switching new launches to it. Running sessions keep their original home and daemon. The home is **seeded** from your real `~/.codex/` (`config.toml`, `skills`, `themes`) so user config keeps working under the redirect.
 
 ## Credential bridging
 
@@ -32,7 +32,7 @@ After upgrading to this layout, an MCP credential that existed only in the OS ke
 
 ## Session history
 
-The staged home is disposable, but Codex resume state is not. agentpack links staged `sessions/`, `archived_sessions/`, and `history.jsonl` to their native locations under `~/.codex/`, and defaults `sqlite_home` to `~/.codex`. Sessions created through agentpack therefore appear in direct `codex resume` and survive staging cleanup, project/mode changes, and machine restarts.
+The generated home is replaceable, but Codex resume state is not. agentpack links staged `sessions/`, `archived_sessions/`, and `history.jsonl` to their native locations under `~/.codex/`, and defaults `sqlite_home` to `~/.codex`. Sessions created through agentpack therefore appear in direct `codex resume` and survive staging cleanup, project/mode changes, and machine restarts.
 
 On the first sync after upgrading, agentpack imports surviving history from every old staging mode before rebuilding it. Existing native files always win; differing collisions are retained under `$AGENTPACK_HOME/recovery/session-history/codex/` for manual inspection. An explicitly configured `sqlite_home` is preserved.
 
@@ -46,7 +46,7 @@ codex-home/
   sessions/ -> ~/.codex/sessions/
   archived_sessions/ -> ~/.codex/archived_sessions/
   history.jsonl -> ~/.codex/history.jsonl
-  config.toml          # seeded + daemon auto-start off + stripped legacy attribution + merged [mcp_servers]
+  config.toml          # seeded + stripped legacy attribution + merged [mcp_servers]
   skills/
     <name>/SKILL.md
 ```
@@ -63,7 +63,9 @@ Codex gets the **portable skill subset** of pack content. agentpack does not syn
 | Rules | Skill fallback |
 | MCP | Merged into `[mcp_servers]` in `config.toml` |
 
-Legacy `commit_attribution` is stripped from the staged `config.toml` (removed in modern Codex versions; avoids unrecognized setting warnings/errors). Agentpack uses `--no-daemon` when the installed CLI advertises it, and disables `features.daemon_auto_start` in staged config for older versions. Codex 0.157.0 otherwise installs a separate package under `CODEX_HOME/packages/app-server-daemon` and starts a process that retains its startup configuration and environment. Rebuilding staging can delete that running process's socket and state. Sharing the native daemon would also bypass the selected mode's skills, MCP settings, and environment. Embedded sessions avoid those problems and preserve normal interactive, resume, and fork behavior. Explicit `--remote` connections remain user-controlled. The daemon-dependent `codex agents` overview requires a direct Codex launch. Existing background daemons are not stopped automatically; stop a legacy staged daemon using its original `CODEX_HOME` and `codex app-server daemon stop` before removing its home. Set `AGENTPACK_KEEP_ATTRIBUTION=1` to preserve any existing `commit_attribution`.
+Legacy `commit_attribution` is stripped from the generated `config.toml` (removed in modern Codex versions). Agentpack no longer injects `--no-daemon` or disables daemon auto-start. A Codex daemon is tied to one canonical `CODEX_HOME` and process environment, so each generation has its own daemon. When a generation is replaced, agentpack retains it while a wrapped Codex process is running or its daemon has loaded threads. Once unused, agentpack stops the retired daemon and removes its home during a later sync or launch. Explicit `--remote` connections remain user-controlled. Set `AGENTPACK_KEEP_ATTRIBUTION=1` to preserve any existing `commit_attribution`.
+
+Codex caches login state inside each daemon. A login or logout made in one generation updates the shared credential file, while an already running daemon in another generation may keep its prior account view until that session ends. New generations read the current credential file.
 
 ## Environment
 

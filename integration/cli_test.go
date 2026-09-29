@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/OlegHQ/agentpack/internal/paths"
 )
 
 var agentpackBinary string
@@ -124,10 +126,10 @@ func TestCompiledCLISyncStagesLocalSkillForEveryHarness(t *testing.T) {
 		t.Fatalf("sync: stdout=%q stderr=%q err=%v", result.stdout, result.stderr, result.err)
 	}
 	root := filepath.Join(project, "_staging", "modes", "default")
+	codexHome := stagedCodexHome(t, project, project)
 	for _, relative := range []string{
 		"plugins/agentpack-bundle/skills/portable-skill/SKILL.md",
 		"opencode/skills/portable-skill/SKILL.md",
-		"codex-home/skills/portable-skill/SKILL.md",
 		"cursor/agentpack-bundle/skills/portable-skill/SKILL.md",
 		"grok/agentpack-bundle/skills/portable-skill/SKILL.md",
 		"agy/agentpack-bundle/skills/portable-skill/SKILL.md",
@@ -136,13 +138,16 @@ func TestCompiledCLISyncStagesLocalSkillForEveryHarness(t *testing.T) {
 			t.Errorf("%s: %v", relative, err)
 		}
 	}
+	if _, err := os.Stat(filepath.Join(codexHome, "skills", "portable-skill", "SKILL.md")); err != nil {
+		t.Errorf("Codex portable skill: %v", err)
+	}
 	if _, err := os.Stat(filepath.Join(project, "_agentpack", "cache", "db.reddb")); err != nil {
 		t.Errorf("documented cache index path: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(root, "plugins", "agentpack-bundle", "skills", "project-local", "SKILL.md")); err != nil {
 		t.Errorf("Claude project skill: %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(root, "codex-home", "skills", "project-local", "SKILL.md")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(codexHome, "skills", "project-local", "SKILL.md")); !os.IsNotExist(err) {
 		t.Errorf("project skill duplicated into Codex home: %v", err)
 	}
 }
@@ -235,9 +240,19 @@ func TestCompiledCLILaunchesFromNestedRustV2Project(t *testing.T) {
 	if result.err != nil {
 		t.Fatalf("nested Rust-v2 launch: stdout=%q stderr=%q err=%v", result.stdout, result.stderr, result.err)
 	}
-	if _, err := os.Stat(filepath.Join(nested, "_staging", "modes", "default", "codex-home", "config.toml")); err != nil {
+	if _, err := os.Stat(filepath.Join(stagedCodexHome(t, project, nested), "config.toml")); err != nil {
 		t.Fatalf("staging was not rooted at ancestor project: %v", err)
 	}
+}
+
+func stagedCodexHome(t *testing.T, projectRoot, workingDirectory string) string {
+	t.Helper()
+	hash, err := paths.ProjectPathHash(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pointer := filepath.Join(workingDirectory, "_agentpack", "projects", hash, "codex-generations", "default.current")
+	return strings.TrimSpace(readFile(t, pointer))
 }
 
 type commandResult struct {

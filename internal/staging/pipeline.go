@@ -1,6 +1,7 @@
 package staging
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -26,12 +27,31 @@ type Pipeline struct {
 	Target      *base.Target
 }
 
-func (pipeline Pipeline) Rebuild() ([]string, error) {
+func (pipeline Pipeline) Rebuild() (_ []string, rebuildErr error) {
 	ctx := pipeline.context()
 	harnesses := registry.All()
 	for _, candidate := range harnesses {
 		if err := candidate.PreReset(ctx); err != nil {
 			return nil, fmt.Errorf("pre-reset %s: %w", candidate.ID(), err)
+		}
+	}
+	var transactions []base.RebuildTransaction
+	defer func() {
+		for index := len(transactions) - 1; index >= 0; index-- {
+			if err := transactions[index].Abort(); err != nil {
+				rebuildErr = errors.Join(rebuildErr, err)
+			}
+		}
+	}()
+	ctx.StagedRoots = make(map[base.Target]string)
+	for _, candidate := range harnesses {
+		transaction, err := candidate.BeginRebuild(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("begin rebuild %s: %w", candidate.ID(), err)
+		}
+		if transaction != nil {
+			transactions = append(transactions, transaction)
+			ctx.StagedRoots[candidate.ID()] = transaction.Root()
 		}
 	}
 	var reset []string
@@ -68,7 +88,11 @@ func (pipeline Pipeline) Rebuild() ([]string, error) {
 	if err := pipeline.stageHooks(ctx, harnesses); err != nil {
 		return nil, err
 	}
-	if err := StageDotAgents(pipeline.ProjectRoot, pipeline.Mode.Name(), pipeline.Mode); err != nil {
+	codexRoot, err := registryRoot(harnesses, base.Codex, ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := StageDotAgents(pipeline.ProjectRoot, pipeline.Mode.Name(), pipeline.Mode, codexRoot); err != nil {
 		return nil, err
 	}
 	plugins, err := paths.StagingPluginsDirForMode(pipeline.ProjectRoot, pipeline.Mode.Name())
@@ -115,11 +139,22 @@ func (pipeline Pipeline) Rebuild() ([]string, error) {
 			return nil, err
 		}
 	}
+	if err := pipeline.verify(ctx); err != nil {
+		return nil, err
+	}
+	for _, transaction := range transactions {
+		if err := transaction.Commit(); err != nil {
+			return nil, fmt.Errorf("publish staged home: %w", err)
+		}
+	}
 	return []string{filepath.Join(plugins, paths.StagedAgentpackBundleName)}, nil
 }
 
 func (pipeline Pipeline) Verify() error {
-	ctx := pipeline.context()
+	return pipeline.verify(pipeline.context())
+}
+
+func (pipeline Pipeline) verify(ctx base.StageContext) error {
 	harnesses := registry.All()
 	for _, candidate := range harnesses {
 		if err := candidate.Verify(ctx); err != nil {
@@ -202,6 +237,15 @@ func (pipeline Pipeline) Verify() error {
 		}
 	}
 	return nil
+}
+
+func registryRoot(harnesses []base.Harness, target base.Target, ctx base.StageContext) (string, error) {
+	for _, candidate := range harnesses {
+		if candidate.ID() == target {
+			return candidate.StagedRoot(ctx)
+		}
+	}
+	return "", fmt.Errorf("harness %s is not registered", target)
 }
 
 func (pipeline Pipeline) context() base.StageContext {

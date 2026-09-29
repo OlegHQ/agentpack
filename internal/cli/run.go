@@ -280,6 +280,7 @@ func (runner Runner) launch(ctx context.Context, root string, invocation Invocat
 	if err != nil {
 		return 1, err
 	}
+	launch.Command = command
 	command.Stdin, command.Stdout, command.Stderr = runner.Stdin, runner.Stdout, runner.Stderr
 	if invocation.Global.Proxy {
 		running, err := proxy.Start(root)

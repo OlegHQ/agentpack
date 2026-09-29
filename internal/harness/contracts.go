@@ -12,6 +12,7 @@ type StageContext struct {
 	ProjectRoot  string
 	Mode         mode.Effective
 	LaunchTarget *Target
+	StagedRoots  map[Target]string
 }
 
 type LaunchContext struct {
@@ -19,6 +20,15 @@ type LaunchContext struct {
 	Arguments   []string
 	Mode        mode.Effective
 	Yolo        bool
+	Command     *exec.Cmd
+}
+
+// RebuildTransaction keeps a newly staged root private until all staging and
+// verification succeeds. Abort must leave the previously published root intact.
+type RebuildTransaction interface {
+	Root() string
+	Commit() error
+	Abort() error
 }
 
 type Harness interface {
@@ -26,6 +36,7 @@ type Harness interface {
 	StagedRoot(StageContext) (string, error)
 	ResetPaths(StageContext) ([]string, error)
 	PreReset(StageContext) error
+	BeginRebuild(StageContext) (RebuildTransaction, error)
 	Prepare(StageContext) error
 	WriteMCP(mcp.Entries, StageContext) error
 	InjectGuidance(string, StageContext) error
@@ -41,6 +52,7 @@ type Definition struct {
 	Root             func(StageContext) (string, error)
 	Reset            func(StageContext) ([]string, error)
 	BeforeReset      func(StageContext) error
+	Begin            func(StageContext) (RebuildTransaction, error)
 	Setup            func(StageContext) error
 	MCP              func(mcp.Entries, StageContext) error
 	Guidance         func(string, StageContext) error
@@ -70,6 +82,12 @@ func (definition Definition) PreReset(ctx StageContext) error {
 		return definition.BeforeReset(ctx)
 	}
 	return nil
+}
+func (definition Definition) BeginRebuild(ctx StageContext) (RebuildTransaction, error) {
+	if definition.Begin != nil {
+		return definition.Begin(ctx)
+	}
+	return nil, nil
 }
 func (definition Definition) Prepare(ctx StageContext) error {
 	if definition.Setup == nil {

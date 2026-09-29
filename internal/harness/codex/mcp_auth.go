@@ -163,12 +163,16 @@ func verifyMCPAuth(projectRoot, staged string) error {
 func jsonOrToml(data []byte, target *map[string]any) error { return toml.Unmarshal(data, target) }
 
 func reconcileMCPAuthMode(projectRoot, modeName string) error {
+	staged, err := CurrentHome(projectRoot, modeName)
+	if err != nil {
+		return err
+	}
+	return reconcileMCPAuthHome(projectRoot, staged)
+}
+
+func reconcileMCPAuthHome(projectRoot, staged string) error {
 	return withMCPOAuthLock(projectRoot, func() error {
 		durable, err := oauthCredentials(projectRoot)
-		if err != nil {
-			return err
-		}
-		staged, err := paths.StagingCodexHomeDirForMode(projectRoot, modeName)
 		if err != nil {
 			return err
 		}
@@ -277,11 +281,11 @@ func recoverMCPAuth(projectRoot, currentMode string) error {
 }
 
 func recoverMCPAuthLocked(projectRoot, currentMode string) error {
-	current, err := paths.StagingCodexHomeDirForMode(projectRoot, currentMode)
+	modeRoot, err := paths.StagingRootForMode(projectRoot, currentMode)
 	if err != nil {
 		return err
 	}
-	modes := filepath.Dir(filepath.Dir(current))
+	modes := filepath.Dir(modeRoot)
 	durable, err := oauthCredentials(projectRoot)
 	if err != nil {
 		return err
@@ -297,6 +301,15 @@ func recoverMCPAuthLocked(projectRoot, currentMode string) error {
 		staged := filepath.Join(modes, entry.Name(), "codex-home")
 		if err := reconcileMCPAuthModeLocked(staged, durable); err != nil {
 			return fmt.Errorf("reconcile Codex MCP credentials for mode %s: %w", entry.Name(), err)
+		}
+	}
+	generations, err := publishedGenerationHomes(projectRoot)
+	if err != nil {
+		return err
+	}
+	for _, staged := range generations {
+		if err := reconcileMCPAuthModeLocked(staged, durable); err != nil {
+			return fmt.Errorf("reconcile Codex MCP credentials for generation %s: %w", staged, err)
 		}
 	}
 	candidates, err := credentialCandidates(modes, durable)

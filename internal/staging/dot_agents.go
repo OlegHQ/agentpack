@@ -12,7 +12,7 @@ import (
 	"github.com/OlegHQ/agentpack/internal/paths"
 )
 
-func StageDotAgents(projectRoot, modeName string, effective mode.Effective) error {
+func StageDotAgents(projectRoot, modeName string, effective mode.Effective, codex string) error {
 	dotRoot := paths.ProjectDotAgentsDir(projectRoot)
 	if info, err := os.Stat(dotRoot); err != nil || !info.IsDir() {
 		return nil
@@ -22,10 +22,6 @@ func StageDotAgents(projectRoot, modeName string, effective mode.Effective) erro
 		return err
 	}
 	bundle := filepath.Join(plugins, paths.StagedAgentpackBundleName)
-	codex, err := paths.StagingCodexHomeDirForMode(projectRoot, modeName)
-	if err != nil {
-		return err
-	}
 	for _, overlay := range []struct{ source, destination string }{{"claude", bundle}, {"codex", codex}} {
 		if err := copyDotTree(dotRoot, overlay.source, overlay.destination, true, effective); err != nil {
 			return err
