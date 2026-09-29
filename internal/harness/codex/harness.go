@@ -98,25 +98,41 @@ func launch(ctx base.LaunchContext) (*exec.Cmd, error) {
 }
 
 func isCodexLogin(arguments []string) bool {
-	for index, argument := range arguments {
-		if argument == "--" {
-			break
-		}
-		if argument == "login" {
-			return index+1 == len(arguments) || arguments[index+1] != "status"
-		}
+	command, tail := codexCommand(arguments)
+	if command != "login" {
+		return false
 	}
-	return false
+	subcommand, _ := codexCommand(tail)
+	return subcommand != "status"
 }
 
 func isCodexLogout(arguments []string) bool {
-	for _, argument := range arguments {
+	command, _ := codexCommand(arguments)
+	return command == "logout"
+}
+
+func codexCommand(arguments []string) (string, []string) {
+	for index := 0; index < len(arguments); index++ {
+		argument := arguments[index]
 		if argument == "--" {
-			break
+			return "", nil
 		}
-		if argument == "logout" {
-			return true
+		if codexOptionTakesValue(argument) {
+			index++
+			continue
 		}
+		if strings.HasPrefix(argument, "-") {
+			continue
+		}
+		return argument, arguments[index+1:]
+	}
+	return "", nil
+}
+
+func codexOptionTakesValue(argument string) bool {
+	switch argument {
+	case "-c", "--config", "--enable", "--disable", "--remote", "--remote-auth-token-env", "-i", "--image", "-m", "--model", "--local-provider", "-p", "--profile", "-s", "--sandbox", "-C", "--cd", "--add-dir", "-a", "--ask-for-approval":
+		return true
 	}
 	return false
 }
@@ -126,11 +142,10 @@ func loginKey(ctx base.LaunchContext) string {
 }
 
 func usesInteractiveCodex(arguments []string) bool {
-	for _, argument := range arguments {
-		switch argument {
-		case "agents", "exec", "e", "review", "login", "logout", "mcp", "plugin", "app-server", "remote-control", "completion", "update", "doctor", "sandbox", "debug", "apply", "a", "queue", "cloud", "exec-server", "features", "help", "migrate-rollouts", "tcp-tunnel":
-			return false
-		}
+	command, _ := codexCommand(arguments)
+	switch command {
+	case "agents", "exec", "e", "review", "login", "logout", "mcp", "plugin", "app-server", "remote-control", "completion", "update", "doctor", "sandbox", "debug", "apply", "a", "queue", "archive", "delete", "migrate-rollouts", "unarchive", "cloud", "exec-server", "features", "help", "tcp-tunnel":
+		return false
 	}
 	return true
 }

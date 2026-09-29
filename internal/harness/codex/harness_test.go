@@ -301,6 +301,30 @@ func TestLoginCommandUsesIsolatedHome(t *testing.T) {
 	}
 }
 
+func TestOnlyTopLevelAccountLoginUsesIsolatedHome(t *testing.T) {
+	cases := []struct {
+		arguments []string
+		login     bool
+		logout    bool
+	}{
+		{[]string{"login", "--with-api-key"}, true, false},
+		{[]string{"-c", "model=example", "login", "--device-auth"}, true, false},
+		{[]string{"login", "-c", "model=example", "status"}, false, false},
+		{[]string{"mcp", "login", "manual", "--no-browser"}, false, false},
+		{[]string{"mcp", "logout", "manual"}, false, false},
+		{[]string{"-c", "model=example", "logout"}, false, true},
+		{[]string{"--", "login"}, false, false},
+	}
+	for _, test := range cases {
+		if actual := isCodexLogin(test.arguments); actual != test.login {
+			t.Errorf("isCodexLogin(%q) = %t, want %t", test.arguments, actual, test.login)
+		}
+		if actual := isCodexLogout(test.arguments); actual != test.logout {
+			t.Errorf("isCodexLogout(%q) = %t, want %t", test.arguments, actual, test.logout)
+		}
+	}
+}
+
 func TestInteractiveReloginPersistsBeforeNextSync(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
