@@ -644,6 +644,8 @@ func TestLaunchDoesNotInjectNoDaemon(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	firstCommand := cmd
+	t.Cleanup(func() { finished := ctx; finished.Command = firstCommand; _ = afterLaunch(finished) })
 	want := []string{"exec", "--dangerously-bypass-approvals-and-sandbox", "hello"}
 	if !reflect.DeepEqual(cmd.Args[1:], want) {
 		t.Fatalf("got %v, want %v", cmd.Args[1:], want)
@@ -655,6 +657,8 @@ func TestLaunchDoesNotInjectNoDaemon(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	secondCommand := cmd
+	t.Cleanup(func() { finished := ctx; finished.Command = secondCommand; _ = afterLaunch(finished) })
 	wantExplicit := []string{"--dangerously-bypass-approvals-and-sandbox", "--no-daemon", "exec", "hello"}
 	if !reflect.DeepEqual(cmd.Args[1:], wantExplicit) {
 		t.Fatalf("got %v, want %v", cmd.Args[1:], wantExplicit)
@@ -737,10 +741,13 @@ func TestLaunchDoesNotForceEmbeddedServer(t *testing.T) {
 		{"prompt delimiter", []string{"--", "--no-daemon"}, []string{"--", "--no-daemon"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			cmd, err := launch(base.LaunchContext{ProjectRoot: t.TempDir(), Mode: mode.ImplicitEffective(), Arguments: tc.args})
+			project := t.TempDir()
+			cmd, err := launch(base.LaunchContext{ProjectRoot: project, Mode: mode.ImplicitEffective(), Arguments: tc.args})
 			if err != nil {
 				t.Fatal(err)
 			}
+			ctx := base.LaunchContext{ProjectRoot: project, Mode: mode.ImplicitEffective(), Arguments: tc.args, Command: cmd}
+			t.Cleanup(func() { _ = afterLaunch(ctx) })
 			if !reflect.DeepEqual(cmd.Args[1:], tc.want) {
 				t.Fatalf("got %v, want %v", cmd.Args[1:], tc.want)
 			}

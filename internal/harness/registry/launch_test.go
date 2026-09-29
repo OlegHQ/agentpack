@@ -34,10 +34,13 @@ func TestHarnessLaunchCommandsOwnArgumentsAndEnvironment(t *testing.T) {
 	}{{base.Claude, []string{"hi"}, []string{"--dangerously-skip-permissions", "hi"}, ""}, {base.Codex, []string{"exec", "hi"}, []string{"exec", "--dangerously-bypass-approvals-and-sandbox", "hi"}, "CODEX_HOME="}, {base.Grok, []string{"inspect"}, []string{"--always-approve", "--cwd", project, "inspect"}, "GROK_HOME="}, {base.Agy, []string{"--print", "ok"}, []string{"--dangerously-skip-permissions", "--add-dir"}, ""}, {base.Cursor, []string{"--print", "ok"}, []string{"--trust", "--force", "--workspace"}, "CURSOR_CONFIG_DIR="}}
 	for _, test := range tests {
 		candidate, _ := ByTarget(test.target)
-		command, err := candidate.LaunchCommand(base.LaunchContext{ProjectRoot: project, Arguments: test.arguments, Mode: effective, Yolo: true})
+		ctx := base.LaunchContext{ProjectRoot: project, Arguments: test.arguments, Mode: effective, Yolo: true}
+		command, err := candidate.LaunchCommand(ctx)
 		if err != nil {
 			t.Fatalf("%s: %v", test.target, err)
 		}
+		ctx.Command = command
+		t.Cleanup(func() { _ = candidate.AfterLaunch(ctx) })
 		got := command.Args[1:]
 		if len(got) < len(test.wantPrefix) || !reflect.DeepEqual(got[:len(test.wantPrefix)], test.wantPrefix) {
 			t.Fatalf("%s args=%q want prefix=%q", test.target, got, test.wantPrefix)
