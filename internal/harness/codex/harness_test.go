@@ -80,6 +80,25 @@ func TestEncryptedCodexAuthBridgesIntoSharedFile(t *testing.T) {
 	}
 }
 
+func TestVerifyDanglingAuthThroughSymlinkedHome(t *testing.T) {
+	user := t.TempDir()
+	t.Setenv("HOME", user)
+	t.Setenv("USERPROFILE", user)
+	realHome := t.TempDir()
+	alias := filepath.Join(t.TempDir(), "home-link")
+	if err := os.Symlink(realHome, alias); err != nil {
+		t.Skipf("directory symlinks unavailable: %v", err)
+	}
+	t.Setenv("AGENTPACK_HOME", alias)
+	staged := t.TempDir()
+	if err := prepareAuth(filepath.Join(user, ".codex"), staged); err != nil {
+		t.Fatal(err)
+	}
+	if err := verifyAuth(staged); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestPreserveLegacyRegularAuth(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)

@@ -170,10 +170,7 @@ func prepareAuth(userHome, staged string) error {
 	if err := os.Remove(destination); err != nil && !os.IsNotExist(err) {
 		return err
 	}
-	target := source
-	if parent, err := filepath.EvalSymlinks(filepath.Dir(source)); err == nil {
-		target = filepath.Join(parent, filepath.Base(source))
-	}
+	target := canonicalAuthTarget(source)
 	if err := os.Symlink(target, destination); err != nil {
 		if _, statErr := os.Stat(target); statErr == nil {
 			if linkErr := os.Link(target, destination); linkErr == nil {
@@ -183,6 +180,13 @@ func prepareAuth(userHome, staged string) error {
 		return fmt.Errorf("link staged Codex auth to %s: %w", target, err)
 	}
 	return nil
+}
+
+func canonicalAuthTarget(path string) string {
+	if parent, err := filepath.EvalSymlinks(filepath.Dir(path)); err == nil {
+		return filepath.Join(parent, filepath.Base(path))
+	}
+	return path
 }
 
 func prepareIsolatedLoginHome(staged string) (string, error) {
@@ -337,9 +341,20 @@ func verifyAuth(staged string) error {
 		if !filepath.IsAbs(target) {
 			target = filepath.Join(staged, target)
 		}
-		if filepath.Clean(target) == filepath.Clean(shared) {
-			return nil // shared store has not been created by a first login yet
+		for _, accepted := range []string{shared, canonicalAuthTarget(shared)} {
+			if filepath.Clean(target) == filepath.Clean(accepted) {
+				return nil // shared store has not been created by a first login yet
+			}
 		}
+		if native, ok := nativeHome(); ok {
+			path := filepath.Join(native, "auth.json")
+			for _, accepted := range []string{path, canonicalAuthTarget(path)} {
+				if filepath.Clean(target) == filepath.Clean(accepted) {
+					return nil // native store has not been created by a first login yet
+				}
+			}
+		}
+		return fmt.Errorf("codex staged auth link target %q does not match durable credentials", target)
 	}
 	return fmt.Errorf("codex staged auth is no longer linked to durable credentials")
 }
