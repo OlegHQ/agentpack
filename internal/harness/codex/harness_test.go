@@ -1,6 +1,7 @@
 package codex
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -10,11 +11,13 @@ import (
 	"testing"
 	"time"
 
+	"filippo.io/age"
 	base "github.com/OlegHQ/agentpack/internal/harness"
 	"github.com/OlegHQ/agentpack/internal/mode"
 	"github.com/OlegHQ/agentpack/internal/paths"
 	"github.com/gofrs/flock"
 	"github.com/pelletier/go-toml/v2"
+	keyring "github.com/zalando/go-keyring"
 )
 
 func TestKeyringAccountUsesCanonicalSHA256Prefix(t *testing.T) {
@@ -22,6 +25,77 @@ func TestKeyringAccountUsesCanonicalSHA256Prefix(t *testing.T) {
 	first := keyringAccount(home)
 	if len(first) != 20 || first[:4] != "cli|" {
 		t.Fatalf("account=%q", first)
+	}
+	if got := codexKeyringTarget(authKeyringService, first); got != first+".Codex Auth" {
+		t.Fatalf("Windows Codex keyring target = %q", got)
+	}
+	if got, err := decodeCodexWindowsPassword([]byte{'k', 0, 'e', 0, 'y', 0}); err != nil || got != "key" {
+		t.Fatalf("Windows Codex keyring password = %q, %v", got, err)
+	}
+}
+
+func TestEncryptedCodexAuthBridgesIntoSharedFile(t *testing.T) {
+	keyring.MockInit()
+	home := t.TempDir()
+	native := filepath.Join(home, ".codex")
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("AGENTPACK_HOME", t.TempDir())
+	if err := os.MkdirAll(filepath.Join(native, "secrets"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	passphrase := "test-passphrase-for-codex-auth"
+	account := "secrets|" + strings.TrimPrefix(keyringAccount(native), "cli|")
+	if err := keyring.Set(encryptedAuthKeyringService, account, passphrase); err != nil {
+		t.Fatal(err)
+	}
+	if err := keyring.Set(authKeyringService, keyringAccount(native), `{"OPENAI_API_KEY":"stale-direct"}`); err != nil {
+		t.Fatal(err)
+	}
+	recipient, err := age.NewScryptRecipient(passphrase)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var ciphertext bytes.Buffer
+	writer, err := age.Encrypt(&ciphertext, recipient)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := writer.Write([]byte(`{"version":1,"secrets":{"global/CODEX_AUTH":"{\"OPENAI_API_KEY\":\"encrypted\"}"}}`)); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(native, "secrets", "codex_auth.age"), ciphertext.Bytes(), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	shared, err := sharedAuthSource(native)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(shared)
+	if err != nil || string(data) != `{"OPENAI_API_KEY":"encrypted"}` {
+		t.Fatalf("bridged encrypted auth = %q, %v", data, err)
+	}
+}
+
+func TestVerifyDanglingAuthThroughSymlinkedHome(t *testing.T) {
+	user := t.TempDir()
+	t.Setenv("HOME", user)
+	t.Setenv("USERPROFILE", user)
+	realHome := t.TempDir()
+	alias := filepath.Join(t.TempDir(), "home-link")
+	if err := os.Symlink(realHome, alias); err != nil {
+		t.Skipf("directory symlinks unavailable: %v", err)
+	}
+	t.Setenv("AGENTPACK_HOME", alias)
+	staged := t.TempDir()
+	if err := prepareAuth(filepath.Join(user, ".codex"), staged); err != nil {
+		t.Fatal(err)
+	}
+	if err := verifyAuth(staged); err != nil {
+		t.Fatal(err)
 	}
 }
 

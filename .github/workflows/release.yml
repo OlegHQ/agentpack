@@ -19,7 +19,18 @@ permissions:
   contents: write
 
 jobs:
+  codex-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Test Codex Windows credentials
+        run: go test ./internal/harness/codex -count=1
   goreleaser:
+    needs: codex-windows
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
