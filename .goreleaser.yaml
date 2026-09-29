@@ -6,6 +6,7 @@ before:
   hooks:
     - go mod verify
     - go test ./...
+    - ./scripts/render-installers.sh {{ .Version }} ./.release-assets/installers
 
 builds:
   - id: agentpack
@@ -77,8 +78,8 @@ release:
 
     The installers detect the host architecture, verify the archive against `checksums.txt`, and write only to `$HOME/.local/bin`. They do not modify shell profiles or `PATH`.
   extra_files:
-    - glob: ./scripts/agentpack-installer.sh
-    - glob: ./scripts/agentpack-installer.ps1
+    - glob: ./.release-assets/installers/agentpack-installer.sh
+    - glob: ./.release-assets/installers/agentpack-installer.ps1
 
 homebrew_casks:
   - name: agentpack

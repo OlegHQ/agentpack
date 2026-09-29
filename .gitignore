@@ -1,5 +1,6 @@
 /bin
 /dist
+/.release-assets
 /docs/book
 .agents/*
 !.agents/skills/

@@ -19,22 +19,47 @@ import (
 
 const installerFixtureVersion = "9.8.7"
 
-func TestReleaseInstallerVersionsMatchCLI(t *testing.T) {
+func TestReleaseInstallerDefaultsToRenderedVersion(t *testing.T) {
 	_, source, _, _ := runtime.Caller(0)
 	repositoryRoot := filepath.Dir(filepath.Dir(source))
-	for _, relative := range []string{
-		"scripts/agentpack-installer.sh",
-		"scripts/agentpack-installer.ps1",
-		"integration/cli_test.go",
-		"README.md",
-	} {
-		contents, err := os.ReadFile(filepath.Join(repositoryRoot, filepath.FromSlash(relative)))
+	if runtime.GOOS == "windows" {
+		t.Skip("release installer renderer runs on the Linux release runner")
+	}
+	outputDir := t.TempDir()
+	render := exec.Command("sh", filepath.Join(repositoryRoot, "scripts", "render-installers.sh"), installerFixtureVersion, outputDir)
+	if output, err := render.CombinedOutput(); err != nil {
+		t.Fatalf("render installers: %v\n%s", err, output)
+	}
+	for _, name := range []string{"agentpack-installer.sh", "agentpack-installer.ps1"} {
+		contents, err := os.ReadFile(filepath.Join(outputDir, name))
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !strings.Contains(string(contents), "0.3.27") {
-			t.Errorf("%s does not contain release version 0.3.27", relative)
+		if strings.Contains(string(contents), "@AGENTPACK_VERSION@") || !strings.Contains(string(contents), installerFixtureVersion) {
+			t.Errorf("%s does not contain the rendered release version", name)
 		}
+	}
+
+	releaseRoot := t.TempDir()
+	writeInstallerFixture(t, releaseRoot)
+	server := httptest.NewServer(http.FileServer(http.Dir(releaseRoot)))
+	defer server.Close()
+	installDir := filepath.Join(t.TempDir(), "bin")
+	command := exec.Command("sh", filepath.Join(outputDir, "agentpack-installer.sh"))
+	command.Env = installerEnvironment(
+		"AGENTPACK_VERSION=",
+		"AGENTPACK_DOWNLOAD_URL="+server.URL,
+		"AGENTPACK_INSTALL_DIR="+installDir,
+	)
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("rendered installer failed without a version override: %v\n%s", err, output)
+	}
+	contents, err := os.ReadFile(filepath.Join(installDir, "agentpack"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(contents) != installerFixtureBinary() {
+		t.Fatalf("installed contents = %q", contents)
 	}
 }
 
