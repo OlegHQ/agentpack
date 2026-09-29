@@ -64,11 +64,11 @@ func recoverHistory(projectRoot, currentMode string) error {
 	if !ok {
 		return nil
 	}
-	current, err := paths.StagingCodexHomeDirForMode(projectRoot, currentMode)
+	modeRoot, err := paths.StagingRootForMode(projectRoot, currentMode)
 	if err != nil {
 		return err
 	}
-	modes := filepath.Dir(filepath.Dir(current))
+	modes := filepath.Dir(modeRoot)
 	entries, err := os.ReadDir(modes)
 	if os.IsNotExist(err) {
 		return nil

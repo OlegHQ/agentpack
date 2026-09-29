@@ -1,7 +1,6 @@
 package codex
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -14,14 +13,15 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"time"
 
 	base "github.com/OlegHQ/agentpack/internal/harness"
 	"github.com/OlegHQ/agentpack/internal/mcp"
 	"github.com/OlegHQ/agentpack/internal/paths"
+	"github.com/gofrs/flock"
 )
 
 var pendingLoginHomes sync.Map
+var pendingGenerationLeases sync.Map // *exec.Cmd -> *flock.Flock
 
 func New() base.Harness {
 	return base.Definition{
@@ -29,6 +29,7 @@ func New() base.Harness {
 		Root:           stagedRoot,
 		Reset:          resetPaths,
 		BeforeReset:    preReset,
+		Begin:          beginGeneration,
 		Setup:          prepare,
 		MCP:            writeMCP,
 		Guidance:       injectGuidance,
@@ -52,26 +53,16 @@ func launch(ctx base.LaunchContext) (*exec.Cmd, error) {
 	if err != nil {
 		return nil, err
 	}
-	// A daemon captures this disposable home's configuration and environment.
-	// Sync may rebuild that home while the daemon is still running. Embedded
-	// sessions load the selected mode afresh and do not install a daemon package.
-	options := arguments
-	if delimiter := slices.Index(options, "--"); delimiter >= 0 {
-		options = options[:delimiter]
-	}
-	if usesInteractiveCodex(options) && !base.HasAny(options, "--no-daemon") && !base.HasFlagValue(options, "--remote") {
-		supported, err := supportsNoDaemon(binary)
-		if err != nil {
-			return nil, err
-		}
-		if supported {
-			arguments = append([]string{"--no-daemon"}, arguments...)
-		}
-	}
-	home, err := paths.StagingCodexHomeDirForMode(ctx.ProjectRoot, ctx.Mode.Name())
+	home, lease, err := acquireGenerationLease(ctx.ProjectRoot, ctx.Mode.Name())
 	if err != nil {
 		return nil, err
 	}
+	keepLease := false
+	defer func() {
+		if !keepLease {
+			_ = lease.Unlock()
+		}
+	}()
 	if needsShortHome(home) {
 		if shortDir, err := shortStagingCodexHome(ctx.ProjectRoot, ctx.Mode.Name()); err == nil {
 			home = shortDir
@@ -89,11 +80,13 @@ func launch(ctx base.LaunchContext) (*exec.Cmd, error) {
 		if err != nil {
 			return nil, err
 		}
-		pendingLoginHomes.Store(loginKey(ctx), loginHome)
+		pendingLoginHomes.Store(loginHome, home)
 		home = loginHome
 	}
 	command := exec.Command(binary, arguments...)
 	command.Env = append(os.Environ(), "CODEX_HOME="+home)
+	pendingGenerationLeases.Store(command, lease)
+	keepLease = true
 	return command, nil
 }
 
@@ -137,10 +130,6 @@ func codexOptionTakesValue(argument string) bool {
 	return false
 }
 
-func loginKey(ctx base.LaunchContext) string {
-	return ctx.ProjectRoot + "\x00" + ctx.Mode.Name()
-}
-
 func usesInteractiveCodex(arguments []string) bool {
 	command, _ := codexCommand(arguments)
 	switch command {
@@ -151,29 +140,56 @@ func usesInteractiveCodex(arguments []string) bool {
 }
 
 func afterLaunch(ctx base.LaunchContext) error {
-	home, err := paths.StagingCodexHomeDirForMode(ctx.ProjectRoot, ctx.Mode.Name())
-	if err != nil {
-		return err
+	var lease *flock.Flock
+	if ctx.Command != nil {
+		if value, ok := pendingGenerationLeases.LoadAndDelete(ctx.Command); ok {
+			lease = value.(*flock.Flock)
+			defer func() {
+				if lease != nil {
+					_ = lease.Unlock()
+				}
+			}()
+		}
+	}
+	var home string
+	if ctx.Command != nil {
+		for _, entry := range ctx.Command.Env {
+			if value, ok := strings.CutPrefix(entry, "CODEX_HOME="); ok {
+				home = value
+			}
+		}
+	}
+	if home == "" {
+		var err error
+		home, err = CurrentHome(ctx.ProjectRoot, ctx.Mode.Name())
+		if err != nil {
+			return err
+		}
 	}
 	var loginErr error
-	if value, ok := pendingLoginHomes.LoadAndDelete(loginKey(ctx)); ok {
-		loginErr = finishIsolatedLoginHome(value.(string), home)
+	if value, ok := pendingLoginHomes.LoadAndDelete(home); ok {
+		loginHome := home
+		home = value.(string)
+		loginErr = finishIsolatedLoginHome(loginHome, home)
 	}
-	return errors.Join(loginErr, finishAuthLaunch(home, ctx.Arguments), reconcileMCPAuthMode(ctx.ProjectRoot, ctx.Mode.Name()))
-}
-
-func supportsNoDaemon(binary string) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	output, err := exec.CommandContext(ctx, binary, "--help").Output()
-	if err != nil {
-		return false, fmt.Errorf("check Codex embedded-server support: %w", err)
+	result := errors.Join(loginErr, finishAuthLaunch(home, ctx.Arguments), reconcileMCPAuthHome(ctx.ProjectRoot, home))
+	if ctx.Command != nil {
+		if lease != nil {
+			result = errors.Join(result, lease.Unlock())
+			lease = nil
+		}
+		// Run after the child exits. Busy generations retain their leases and
+		// loaded threads, so retirement can make progress on later launches.
+		_ = retireGenerations(ctx.ProjectRoot, ctx.Mode.Name())
 	}
-	return strings.Contains(string(output), "--no-daemon"), nil
+	return result
 }
 
 func stagedRoot(ctx base.StageContext) (string, error) {
-	return paths.StagingCodexHomeDirForMode(ctx.ProjectRoot, ctx.Mode.Name())
+	if home := ctx.StagedRoots[base.Codex]; home != "" {
+		return home, nil
+	}
+	return CurrentHome(ctx.ProjectRoot, ctx.Mode.Name())
 }
 
 const controlSocketSuffix = "/app-server-control/app-server-control.sock"
@@ -183,7 +199,7 @@ func maxSunLen() int {
 	case "linux":
 		return 108
 	case "windows":
-		return 0
+		return 0 // legacy staged homes are not shortened with symlinks on Windows
 	default:
 		return 104
 	}
@@ -242,6 +258,10 @@ func shortStagingCodexHome(projectRoot, modeName string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if runtime.GOOS == "windows" {
+		modeHash := sha256.Sum256([]byte(hash + "\x00" + modeName))
+		return filepath.Join(os.TempDir(), "a", hex.EncodeToString(modeHash[:4])), nil
+	}
 	baseDir := "/var/tmp"
 	if fi, err := os.Stat(baseDir); err != nil || !fi.IsDir() {
 		baseDir = os.TempDir()
@@ -258,6 +278,9 @@ func shortStagingCodexHome(projectRoot, modeName string) (string, error) {
 }
 
 func resetPaths(ctx base.StageContext) ([]string, error) {
+	if ctx.StagedRoots[base.Codex] != "" {
+		return nil, nil // the new generation is private and already empty
+	}
 	root, err := stagedRoot(ctx)
 	if err != nil {
 		return nil, err
@@ -295,7 +318,11 @@ func prepare(ctx base.StageContext) error {
 		return err
 	}
 	targetDir := root
-	if needsShortHome(root) {
+	if ctx.StagedRoots[base.Codex] != "" {
+		if err := os.MkdirAll(root, 0o700); err != nil {
+			return err
+		}
+	} else if needsShortHome(root) {
 		shortDir, err := shortStagingCodexHome(ctx.ProjectRoot, ctx.Mode.Name())
 		if err != nil {
 			return err
@@ -331,17 +358,6 @@ func prepare(ctx base.StageContext) error {
 		if err := prepareHistory(targetDir, native); err != nil {
 			return err
 		}
-	}
-	// Older CLIs lack --no-daemon. Disable automatic startup in their config too.
-	if err := updateConfig(filepath.Join(targetDir, "config.toml"), func(config map[string]any) {
-		features, _ := config["features"].(map[string]any)
-		if features == nil {
-			features = make(map[string]any)
-			config["features"] = features
-		}
-		features["daemon_auto_start"] = false
-	}); err != nil {
-		return err
 	}
 	if !keepAttribution() {
 		if err := updateConfig(filepath.Join(targetDir, "config.toml"), func(config map[string]any) { delete(config, "commit_attribution") }); err != nil {
