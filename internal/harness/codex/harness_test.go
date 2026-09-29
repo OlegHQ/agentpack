@@ -26,9 +26,12 @@ func TestKeyringAccountUsesCanonicalSHA256Prefix(t *testing.T) {
 }
 
 func TestPreserveLegacyRegularAuth(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 	t.Setenv("AGENTPACK_HOME", t.TempDir())
 	staged := t.TempDir()
-	if err := os.WriteFile(filepath.Join(staged, "auth.json"), []byte(`{"refresh":"old"}`), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(staged, "auth.json"), []byte(`{"OPENAI_API_KEY":"test-key"}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if err := preserveAuth(staged); err != nil {
@@ -38,6 +41,264 @@ func TestPreserveLegacyRegularAuth(t *testing.T) {
 	data, err := os.ReadFile(shared)
 	if err != nil || !json.Valid(data) {
 		t.Fatalf("shared=%q err=%v", data, err)
+	}
+}
+
+func TestPreserveReloginOverExistingSharedAuth(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("AGENTPACK_HOME", t.TempDir())
+	shared, err := paths.SharedCodexAuthPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Dir(shared), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(shared, []byte(`{"OPENAI_API_KEY":"old"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	staged := t.TempDir()
+	if err := os.WriteFile(filepath.Join(staged, "auth.json"), []byte(`{"OPENAI_API_KEY":"new"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	old := time.Now().Add(-time.Hour)
+	if err := os.Chtimes(shared, old, old); err != nil {
+		t.Fatal(err)
+	}
+	if err := verifyAuth(staged); err == nil {
+		t.Fatal("accepted detached staged auth")
+	}
+	if err := preserveAuth(staged); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(shared)
+	if err != nil || string(data) != `{"OPENAI_API_KEY":"new"}` {
+		t.Fatalf("shared auth was not updated: %q, %v", data, err)
+	}
+	previous, err := os.ReadFile(filepath.Join(filepath.Dir(shared), "auth.json.previous"))
+	if err != nil || string(previous) != `{"OPENAI_API_KEY":"old"}` {
+		t.Fatalf("previous auth was not preserved: %q, %v", previous, err)
+	}
+}
+
+func TestLogoutRemovesNativeAndSharedAuth(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("AGENTPACK_HOME", t.TempDir())
+	native := filepath.Join(home, ".codex", "auth.json")
+	if err := os.MkdirAll(filepath.Dir(native), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(native, []byte(`{"token":"old"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	shared, err := paths.SharedCodexAuthPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Dir(shared), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(shared, []byte(`{"token":"old"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	staged := t.TempDir()
+	if err := os.WriteFile(filepath.Join(staged, "config.toml"), []byte(""), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := finishAuthLaunch(staged, []string{"logout"}); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{native, shared} {
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			t.Fatalf("credential still exists at %s: %v", path, err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(filepath.Dir(shared), authLogoutMarker)); err != nil {
+		t.Fatalf("logout marker missing: %v", err)
+	}
+	source, err := sharedAuthSource(filepath.Dir(native))
+	if err != nil || source != shared {
+		t.Fatalf("logout credential source = %q, %v", source, err)
+	}
+}
+
+func TestFailedLoginRestoresStagedLinkWithoutDeletingDurableAuth(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("AGENTPACK_HOME", t.TempDir())
+	native := filepath.Join(home, ".codex")
+	if err := os.MkdirAll(native, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	auth := filepath.Join(native, "auth.json")
+	if err := os.WriteFile(auth, []byte(`{"OPENAI_API_KEY":"old"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	staged := t.TempDir()
+	if err := os.WriteFile(filepath.Join(staged, "config.toml"), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := prepareAuth(native, staged); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(filepath.Join(staged, "auth.json")); err != nil {
+		t.Fatal(err)
+	}
+	if err := finishAuthLaunch(staged, []string{"login", "--device-auth"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := verifyAuth(staged); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(auth)
+	if err != nil || string(data) != `{"OPENAI_API_KEY":"old"}` {
+		t.Fatalf("durable login changed after failed login: %q, %v", data, err)
+	}
+}
+
+func TestIsolatedLoginKeepsOldAuthOnFailureAndInstallsSuccess(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("AGENTPACK_HOME", t.TempDir())
+	native := filepath.Join(home, ".codex")
+	if err := os.MkdirAll(native, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	oldAuth := filepath.Join(native, "auth.json")
+	if err := os.WriteFile(oldAuth, []byte(`{"OPENAI_API_KEY":"old"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	staged := t.TempDir()
+	if err := os.WriteFile(filepath.Join(staged, "config.toml"), []byte("cli_auth_credentials_store = 'file'\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := prepareAuth(native, staged); err != nil {
+		t.Fatal(err)
+	}
+	failedHome, err := prepareIsolatedLoginHome(staged)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(failedHome, "auth.json")); !os.IsNotExist(err) {
+		t.Fatalf("isolated login inherited existing auth: %v", err)
+	}
+	if err := finishIsolatedLoginHome(failedHome, staged); err != nil {
+		t.Fatal(err)
+	}
+	if data, err := os.ReadFile(oldAuth); err != nil || string(data) != `{"OPENAI_API_KEY":"old"}` {
+		t.Fatalf("failed login changed existing auth: %q, %v", data, err)
+	}
+	successHome, err := prepareIsolatedLoginHome(staged)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(successHome, "auth.json"), []byte(`{"OPENAI_API_KEY":"new"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := finishIsolatedLoginHome(successHome, staged); err != nil {
+		t.Fatal(err)
+	}
+	if data, err := os.ReadFile(oldAuth); err != nil || string(data) != `{"OPENAI_API_KEY":"new"}` {
+		t.Fatalf("successful login was not installed: %q, %v", data, err)
+	}
+	if err := verifyAuth(staged); err != nil {
+		t.Fatal(err)
+	}
+	shared, err := paths.SharedCodexAuthPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if data, err := os.ReadFile(filepath.Join(filepath.Dir(shared), "auth.json.previous")); err != nil || string(data) != `{"OPENAI_API_KEY":"old"}` {
+		t.Fatalf("previous login was not backed up: %q, %v", data, err)
+	}
+}
+
+func TestLoginCommandUsesIsolatedHome(t *testing.T) {
+	project, home := t.TempDir(), t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("AGENTPACK_HOME", t.TempDir())
+	t.Setenv("AGENTPACK_STAGING_ROOT", t.TempDir())
+	stub := filepath.Join(t.TempDir(), "codex")
+	if runtime.GOOS == "windows" {
+		stub += ".cmd"
+	}
+	if err := os.WriteFile(stub, []byte(""), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("CODEX_PATH", stub)
+	stage := base.StageContext{ProjectRoot: project, Mode: mode.ImplicitEffective()}
+	if err := New().Prepare(stage); err != nil {
+		t.Fatal(err)
+	}
+	ctx := base.LaunchContext{ProjectRoot: project, Mode: mode.ImplicitEffective(), Arguments: []string{"login", "--device-auth"}}
+	command, err := launch(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	staged, err := paths.StagingCodexHomeDirForMode(project, ctx.Mode.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var childHome string
+	for _, item := range command.Env {
+		if strings.HasPrefix(item, "CODEX_HOME=") {
+			childHome = strings.TrimPrefix(item, "CODEX_HOME=")
+		}
+	}
+	if childHome == "" || childHome == staged {
+		t.Fatalf("login was not isolated: %q", childHome)
+	}
+	if _, err := os.Lstat(filepath.Join(childHome, "auth.json")); !os.IsNotExist(err) {
+		t.Fatalf("isolated login home inherited auth: %v", err)
+	}
+	if err := afterLaunch(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(childHome); !os.IsNotExist(err) {
+		t.Fatalf("temporary login home was not removed: %v", err)
+	}
+}
+
+func TestInteractiveReloginPersistsBeforeNextSync(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("AGENTPACK_HOME", t.TempDir())
+	native := filepath.Join(home, ".codex")
+	if err := os.MkdirAll(native, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	oldAuth := filepath.Join(native, "auth.json")
+	if err := os.WriteFile(oldAuth, []byte(`{"OPENAI_API_KEY":"old"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	old := time.Now().Add(-time.Hour)
+	if err := os.Chtimes(oldAuth, old, old); err != nil {
+		t.Fatal(err)
+	}
+	staged := t.TempDir()
+	if err := os.WriteFile(filepath.Join(staged, "config.toml"), []byte(""), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(staged, "auth.json"), []byte(`{"OPENAI_API_KEY":"new"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := finishAuthLaunch(staged, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := verifyAuth(staged); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(oldAuth)
+	if err != nil || string(data) != `{"OPENAI_API_KEY":"new"}` {
+		t.Fatalf("new login not durable: %q, %v", data, err)
 	}
 }
 
@@ -333,6 +594,9 @@ func TestLaunchUsesEmbeddedServerWithModernCodex(t *testing.T) {
 		{"interactive", nil, []string{"--no-daemon"}},
 		{"resume", []string{"resume", "--last"}, []string{"--no-daemon", "resume", "--last"}},
 		{"fork", []string{"fork", "--last"}, []string{"--no-daemon", "fork", "--last"}},
+		{"agents", []string{"agents"}, []string{"agents"}},
+		{"queue", []string{"queue", "--thread", "id", "--message", "hello"}, []string{"queue", "--thread", "id", "--message", "hello"}},
+		{"exec", []string{"exec", "hello"}, []string{"exec", "hello"}},
 		{"explicit", []string{"--no-daemon", "resume"}, []string{"--no-daemon", "resume"}},
 		{"remote", []string{"--remote", "ws://localhost:1234"}, []string{"--remote", "ws://localhost:1234"}},
 		{"remote equals", []string{"--remote=ws://localhost:1234"}, []string{"--remote=ws://localhost:1234"}},

@@ -8,12 +8,14 @@ import (
 	"os"
 	"path/filepath"
 
+	base "github.com/OlegHQ/agentpack/internal/harness"
 	"github.com/OlegHQ/agentpack/internal/paths"
 	"github.com/pelletier/go-toml/v2"
 	keyring "github.com/zalando/go-keyring"
 )
 
 const authKeyringService = "Codex Auth"
+const authLogoutMarker = "logged-out"
 
 func keyringAccount(codexHome string) string {
 	canonical, err := filepath.EvalSymlinks(codexHome)
@@ -55,6 +57,13 @@ func atomicWriteAuth(path string, data []byte) error {
 func sharedAuthSource(userHome string) (string, error) {
 	user := filepath.Join(userHome, "auth.json")
 	if info, err := os.Stat(user); err == nil && info.Mode().IsRegular() {
+		shared, err := paths.SharedCodexAuthPath()
+		if err != nil {
+			return "", err
+		}
+		if err := os.Remove(filepath.Join(filepath.Dir(shared), authLogoutMarker)); err != nil && !os.IsNotExist(err) {
+			return "", err
+		}
 		return user, nil
 	}
 	shared, err := paths.SharedCodexAuthPath()
@@ -65,7 +74,15 @@ func sharedAuthSource(userHome string) (string, error) {
 		return "", err
 	}
 	if info, err := os.Stat(shared); err == nil && info.Mode().IsRegular() {
+		if err := os.Remove(filepath.Join(filepath.Dir(shared), authLogoutMarker)); err != nil && !os.IsNotExist(err) {
+			return "", err
+		}
 		return shared, nil
+	}
+	if _, err := os.Stat(filepath.Join(filepath.Dir(shared), authLogoutMarker)); err == nil {
+		return shared, nil
+	} else if !os.IsNotExist(err) {
+		return "", err
 	}
 	_, err = materializeAuthFromKeyring(userHome, shared)
 	return shared, err
@@ -76,26 +93,103 @@ func prepareAuth(userHome, staged string) error {
 		return err
 	}
 	destination := filepath.Join(staged, "auth.json")
-	_ = os.Remove(destination)
+	if err := os.Remove(destination); err != nil && !os.IsNotExist(err) {
+		return err
+	}
 	target := source
 	if parent, err := filepath.EvalSymlinks(filepath.Dir(source)); err == nil {
 		target = filepath.Join(parent, filepath.Base(source))
 	}
 	if err := os.Symlink(target, destination); err != nil {
 		if _, statErr := os.Stat(target); statErr == nil {
-			return os.Link(target, destination)
+			if linkErr := os.Link(target, destination); linkErr == nil {
+				return nil
+			}
 		}
-		return nil
+		return fmt.Errorf("link staged Codex auth to %s: %w", target, err)
 	}
 	return nil
 }
-func preserveAuth(staged string) error {
+
+func prepareIsolatedLoginHome(staged string) (string, error) {
+	loginHome, err := os.MkdirTemp(filepath.Dir(staged), ".codex-login-")
+	if err != nil {
+		return "", err
+	}
+	config, err := os.ReadFile(filepath.Join(staged, "config.toml"))
+	if err == nil {
+		err = os.WriteFile(filepath.Join(loginHome, "config.toml"), config, 0o600)
+	}
+	if err != nil {
+		_ = os.RemoveAll(loginHome)
+		return "", err
+	}
+	return loginHome, nil
+}
+
+func finishIsolatedLoginHome(loginHome, staged string) error {
+	loginAuth := filepath.Join(loginHome, "auth.json")
+	data, err := os.ReadFile(loginAuth)
+	fromKeyring := false
+	if os.IsNotExist(err) {
+		if fromKeyring, err = materializeAuthFromKeyring(loginHome, loginAuth); err != nil {
+			return err
+		}
+		data, err = os.ReadFile(loginAuth)
+	}
+	if os.IsNotExist(err) {
+		return os.RemoveAll(loginHome) // failed login leaves the old credential untouched
+	}
+	if err != nil {
+		return err
+	}
+	if !validAuthData(data) {
+		return fmt.Errorf("Codex login wrote invalid auth in %s; left it for recovery", loginHome)
+	}
+	native, ok := nativeHome()
+	if !ok {
+		return fmt.Errorf("cannot find native Codex home to persist login from %s", loginHome)
+	}
+	destination, err := sharedAuthSource(native)
+	if err != nil {
+		return err
+	}
 	shared, err := paths.SharedCodexAuthPath()
 	if err != nil {
 		return err
 	}
-	if _, err := os.Stat(shared); err == nil {
-		return nil
+	if err := installAuthData(destination, shared, data); err != nil {
+		return fmt.Errorf("persist Codex login from %s: %w", loginHome, err)
+	}
+	if err := prepareAuth(native, staged); err != nil {
+		return err
+	}
+	if fromKeyring {
+		if err := keyring.Delete(authKeyringService, keyringAccount(loginHome)); err != nil && err != keyring.ErrNotFound {
+			return fmt.Errorf("remove isolated Codex keyring login: %w", err)
+		}
+	}
+	return os.RemoveAll(loginHome)
+}
+
+func installAuthData(destination, shared string, data []byte) error {
+	if existing, err := os.ReadFile(destination); err == nil {
+		if string(existing) != string(data) {
+			backup := filepath.Join(filepath.Dir(shared), "auth.json.previous")
+			if err := atomicWriteAuth(backup, existing); err != nil {
+				return fmt.Errorf("back up previous Codex auth: %w", err)
+			}
+		}
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+	return atomicWriteAuth(destination, data)
+}
+
+func preserveAuth(staged string) error {
+	shared, err := paths.SharedCodexAuthPath()
+	if err != nil {
+		return err
 	}
 	path := filepath.Join(staged, "auth.json")
 	info, err := os.Lstat(path)
@@ -112,11 +206,124 @@ func preserveAuth(staged string) error {
 	if err != nil {
 		return err
 	}
-	var value any
-	if json.Unmarshal(data, &value) != nil {
+	if !validAuthData(data) {
 		return nil
 	}
-	return atomicWriteAuth(shared, data)
+	destination := shared
+	if native, ok := nativeHome(); ok {
+		userAuth := filepath.Join(native, "auth.json")
+		if userInfo, err := os.Stat(userAuth); err == nil && userInfo.Mode().IsRegular() {
+			destination = userAuth
+		}
+	}
+	if existing, err := os.Stat(destination); err == nil {
+		if !info.ModTime().After(existing.ModTime()) {
+			return nil
+		}
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+	return installAuthData(destination, shared, data)
+}
+
+func validAuthData(data []byte) bool {
+	var value map[string]json.RawMessage
+	if json.Unmarshal(data, &value) != nil || len(value) == 0 {
+		return false
+	}
+	for _, field := range []string{"OPENAI_API_KEY", "tokens", "agent_identity", "personal_access_token", "bedrock_api_key", "bedrock_access_keys"} {
+		if raw, ok := value[field]; ok && string(raw) != "null" {
+			return true
+		}
+	}
+	return false
+}
+
+func verifyAuth(staged string) error {
+	path := filepath.Join(staged, "auth.json")
+	info, err := os.Lstat(path)
+	if err != nil {
+		return fmt.Errorf("codex staged auth link is missing: %w", err)
+	}
+	shared, err := paths.SharedCodexAuthPath()
+	if err != nil {
+		return err
+	}
+	if base.DurablePathMatches(path, shared) {
+		return nil
+	}
+	if native, ok := nativeHome(); ok && base.DurablePathMatches(path, filepath.Join(native, "auth.json")) {
+		return nil
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		target, err := os.Readlink(path)
+		if err != nil {
+			return err
+		}
+		if !filepath.IsAbs(target) {
+			target = filepath.Join(staged, target)
+		}
+		if filepath.Clean(target) == filepath.Clean(shared) {
+			return nil // shared store has not been created by a first login yet
+		}
+	}
+	return fmt.Errorf("codex staged auth is no longer linked to durable credentials")
+}
+
+func finishAuthLaunch(ctxHome string, arguments []string) error {
+	if _, err := os.Stat(filepath.Join(ctxHome, "config.toml")); os.IsNotExist(err) {
+		return nil
+	} else if err != nil {
+		return err
+	}
+	authPath := filepath.Join(ctxHome, "auth.json")
+	if info, err := os.Lstat(authPath); err == nil {
+		if info.Mode()&os.ModeSymlink != 0 {
+			return nil
+		}
+		if !info.Mode().IsRegular() {
+			return fmt.Errorf("codex staged auth is not a regular file or link")
+		}
+		if err := preserveAuth(ctxHome); err != nil {
+			return err
+		}
+		if native, ok := nativeHome(); ok {
+			return prepareAuth(native, ctxHome)
+		}
+		return nil
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+	if len(arguments) == 0 || arguments[0] != "logout" {
+		// A failed login can remove the staged link before obtaining replacement
+		// credentials. Keep the durable login; an explicit CLI logout below is
+		// the only signal that authorizes removing it.
+		if native, ok := nativeHome(); ok {
+			return prepareAuth(native, ctxHome)
+		}
+		return nil
+	}
+	if native, ok := nativeHome(); ok {
+		nativeAuth := filepath.Join(native, "auth.json")
+		if _, err := os.Stat(nativeAuth); os.IsNotExist(err) {
+			// The logout marker below prevents importing a stale keyring value
+			// when the platform keyring is unavailable.
+			_ = keyring.Delete(authKeyringService, keyringAccount(native))
+		} else if err != nil {
+			return err
+		}
+		if err := os.Remove(nativeAuth); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+	}
+	shared, err := paths.SharedCodexAuthPath()
+	if err != nil {
+		return err
+	}
+	if err := os.Remove(shared); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return atomicWriteAuth(filepath.Join(filepath.Dir(shared), authLogoutMarker), []byte("logout\n"))
 }
 func forceAuthFileStore(staged string) error {
 	return updateConfig(filepath.Join(staged, "config.toml"), func(root map[string]any) { root["cli_auth_credentials_store"] = "file" })

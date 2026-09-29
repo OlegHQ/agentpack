@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -12,6 +13,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	base "github.com/OlegHQ/agentpack/internal/harness"
@@ -19,17 +21,20 @@ import (
 	"github.com/OlegHQ/agentpack/internal/paths"
 )
 
+var pendingLoginHomes sync.Map
+
 func New() base.Harness {
 	return base.Definition{
-		Target:      base.Codex,
-		Root:        stagedRoot,
-		Reset:       resetPaths,
-		BeforeReset: preReset,
-		Setup:       prepare,
-		MCP:         writeMCP,
-		Guidance:    injectGuidance,
-		Check:       verify,
-		Launch:      launch,
+		Target:         base.Codex,
+		Root:           stagedRoot,
+		Reset:          resetPaths,
+		BeforeReset:    preReset,
+		Setup:          prepare,
+		MCP:            writeMCP,
+		Guidance:       injectGuidance,
+		Check:          verify,
+		Launch:         launch,
+		LaunchFinished: afterLaunch,
 	}
 }
 
@@ -54,7 +59,7 @@ func launch(ctx base.LaunchContext) (*exec.Cmd, error) {
 	if delimiter := slices.Index(options, "--"); delimiter >= 0 {
 		options = options[:delimiter]
 	}
-	if !base.HasAny(options, "--no-daemon") && !base.HasFlagValue(options, "--remote") {
+	if usesInteractiveCodex(options) && !base.HasAny(options, "--no-daemon") && !base.HasFlagValue(options, "--remote") {
 		supported, err := supportsNoDaemon(binary)
 		if err != nil {
 			return nil, err
@@ -72,9 +77,62 @@ func launch(ctx base.LaunchContext) (*exec.Cmd, error) {
 			home = shortDir
 		}
 	}
+	if _, err := os.Lstat(filepath.Join(home, credentialsBaselineFile)); err == nil {
+		if err := reconcileMCPAuthMode(ctx.ProjectRoot, ctx.Mode.Name()); err != nil {
+			return nil, err
+		}
+	} else if !os.IsNotExist(err) {
+		return nil, err
+	}
+	if isCodexLogin(arguments) {
+		loginHome, err := prepareIsolatedLoginHome(home)
+		if err != nil {
+			return nil, err
+		}
+		pendingLoginHomes.Store(loginKey(ctx), loginHome)
+		home = loginHome
+	}
 	command := exec.Command(binary, arguments...)
 	command.Env = append(os.Environ(), "CODEX_HOME="+home)
 	return command, nil
+}
+
+func isCodexLogin(arguments []string) bool {
+	for index, argument := range arguments {
+		if argument == "--" {
+			break
+		}
+		if argument == "login" {
+			return index+1 == len(arguments) || arguments[index+1] != "status"
+		}
+	}
+	return false
+}
+
+func loginKey(ctx base.LaunchContext) string {
+	return ctx.ProjectRoot + "\x00" + ctx.Mode.Name()
+}
+
+func usesInteractiveCodex(arguments []string) bool {
+	for _, argument := range arguments {
+		switch argument {
+		case "agents", "exec", "e", "review", "login", "logout", "mcp", "plugin", "app-server", "remote-control", "completion", "update", "doctor", "sandbox", "debug", "apply", "a", "queue", "cloud", "exec-server", "features", "help", "migrate-rollouts", "tcp-tunnel":
+			return false
+		}
+	}
+	return true
+}
+
+func afterLaunch(ctx base.LaunchContext) error {
+	home, err := paths.StagingCodexHomeDirForMode(ctx.ProjectRoot, ctx.Mode.Name())
+	if err != nil {
+		return err
+	}
+	var loginErr error
+	if value, ok := pendingLoginHomes.LoadAndDelete(loginKey(ctx)); ok {
+		loginErr = finishIsolatedLoginHome(value.(string), home)
+	}
+	return errors.Join(loginErr, finishAuthLaunch(home, ctx.Arguments), reconcileMCPAuthMode(ctx.ProjectRoot, ctx.Mode.Name()))
 }
 
 func supportsNoDaemon(binary string) (bool, error) {
@@ -313,6 +371,9 @@ func verify(ctx base.StageContext) error {
 		if err := verifyHistory(root, native); err != nil {
 			return err
 		}
+	}
+	if err := verifyAuth(root); err != nil {
+		return err
 	}
 	return verifyMCPAuth(ctx.ProjectRoot, root)
 }
