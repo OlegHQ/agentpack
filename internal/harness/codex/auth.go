@@ -1,13 +1,19 @@
 package codex
 
 import (
+	"bytes"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
+	"unicode/utf16"
 
+	"filippo.io/age"
 	base "github.com/OlegHQ/agentpack/internal/harness"
 	"github.com/OlegHQ/agentpack/internal/paths"
 	"github.com/pelletier/go-toml/v2"
@@ -16,6 +22,22 @@ import (
 
 const authKeyringService = "Codex Auth"
 const authLogoutMarker = "logged-out"
+const encryptedAuthKeyringService = "codex"
+
+func codexKeyringTarget(service, account string) string {
+	return account + "." + service
+}
+
+func decodeCodexWindowsPassword(blob []byte) (string, error) {
+	if len(blob)%2 != 0 {
+		return "", fmt.Errorf("invalid Codex Windows keyring password length")
+	}
+	units := make([]uint16, len(blob)/2)
+	for index := range units {
+		units[index] = binary.LittleEndian.Uint16(blob[index*2:])
+	}
+	return string(utf16.Decode(units)), nil
+}
 
 func keyringAccount(codexHome string) string {
 	canonical, err := filepath.EvalSymlinks(codexHome)
@@ -27,7 +49,7 @@ func keyringAccount(codexHome string) string {
 }
 
 func materializeAuthFromKeyring(userHome, destination string) (bool, error) {
-	value, err := keyring.Get(authKeyringService, keyringAccount(userHome))
+	value, err := readCodexKeyring(authKeyringService, keyringAccount(userHome))
 	if err == keyring.ErrNotFound {
 		return false, nil
 	}
@@ -39,6 +61,55 @@ func materializeAuthFromKeyring(userHome, destination string) (bool, error) {
 		return false, nil
 	}
 	return true, atomicWriteAuth(destination, []byte(value))
+}
+
+func materializeEncryptedAuth(userHome, destination string) (bool, error) {
+	path := filepath.Join(userHome, "secrets", "codex_auth.age")
+	ciphertext, err := os.ReadFile(path)
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	account := "secrets|" + strings.TrimPrefix(keyringAccount(userHome), "cli|")
+	passphrase, err := readCodexKeyring(encryptedAuthKeyringService, account)
+	if err == keyring.ErrNotFound {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("read Codex encrypted auth key: %w", err)
+	}
+	identity, err := age.NewScryptIdentity(passphrase)
+	if err != nil {
+		return false, fmt.Errorf("create Codex auth decryptor: %w", err)
+	}
+	plaintext, err := age.Decrypt(bytes.NewReader(ciphertext), identity)
+	if err != nil {
+		return false, fmt.Errorf("decrypt Codex auth store: %w", err)
+	}
+	data, err := io.ReadAll(io.LimitReader(plaintext, 8<<20))
+	if err != nil {
+		return false, fmt.Errorf("read Codex auth store: %w", err)
+	}
+	var store struct {
+		Version int               `json:"version"`
+		Secrets map[string]string `json:"secrets"`
+	}
+	if err := json.Unmarshal(data, &store); err != nil {
+		return false, fmt.Errorf("decode Codex auth store: %w", err)
+	}
+	if store.Version > 1 {
+		return false, fmt.Errorf("unsupported Codex auth store version %d", store.Version)
+	}
+	auth := []byte(store.Secrets["global/CODEX_AUTH"])
+	if len(auth) == 0 {
+		return false, nil
+	}
+	if !validAuthData(auth) {
+		return false, fmt.Errorf("invalid Codex auth in encrypted store")
+	}
+	return true, atomicWriteAuth(destination, auth)
 }
 func atomicWriteAuth(path string, data []byte) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -83,6 +154,9 @@ func sharedAuthSource(userHome string) (string, error) {
 		return shared, nil
 	} else if !os.IsNotExist(err) {
 		return "", err
+	}
+	if imported, err := materializeEncryptedAuth(userHome, shared); imported || err != nil {
+		return shared, err
 	}
 	_, err = materializeAuthFromKeyring(userHome, shared)
 	return shared, err
@@ -165,7 +239,7 @@ func finishIsolatedLoginHome(loginHome, staged string) error {
 		return err
 	}
 	if fromKeyring {
-		if err := keyring.Delete(authKeyringService, keyringAccount(loginHome)); err != nil && err != keyring.ErrNotFound {
+		if err := deleteCodexKeyring(authKeyringService, keyringAccount(loginHome)); err != nil && err != keyring.ErrNotFound {
 			return fmt.Errorf("remove isolated Codex keyring login: %w", err)
 		}
 	}
@@ -307,7 +381,7 @@ func finishAuthLaunch(ctxHome string, arguments []string) error {
 		if _, err := os.Stat(nativeAuth); os.IsNotExist(err) {
 			// The logout marker below prevents importing a stale keyring value
 			// when the platform keyring is unavailable.
-			_ = keyring.Delete(authKeyringService, keyringAccount(native))
+			_ = deleteCodexKeyring(authKeyringService, keyringAccount(native))
 		} else if err != nil {
 			return err
 		}
