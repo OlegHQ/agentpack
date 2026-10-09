@@ -220,10 +220,22 @@ func (pipeline Pipeline) snapshotStaged(ctx base.StageContext, hash bool) (stage
 		}
 		entry := entries[index]
 		if file.info.Mode().IsRegular() {
-			for _, candidate := range project[file.info.Size()] {
-				if os.SameFile(file.info, candidate) {
-					entry.Project = true
-					break
+			// Rules are staged under a flattened name that ends in the
+			// original file name; everything else keeps its name.
+			name := filepath.Base(file.path)
+			if index := strings.LastIndex(name, "--"); index >= 0 {
+				name = name[index+2:]
+			}
+			if candidates := project[name]; len(candidates) != 0 {
+				// Stat again by path: identity taken from a directory listing
+				// is not dependable for hard links on every platform.
+				if fresh, err := os.Lstat(file.path); err == nil {
+					for _, candidate := range candidates {
+						if os.SameFile(fresh, candidate) {
+							entry.Project = true
+							break
+						}
+					}
 				}
 			}
 		}
@@ -261,20 +273,21 @@ func stagedFile(path string, info fs.FileInfo, hash bool) (stagedEntry, error) {
 	return entry, nil
 }
 
-// projectFiles indexes the regular files under ./.agents/ by size, to find
-// the staged files that are hard links to them.
-func projectFiles(root string) (map[int64][]fs.FileInfo, error) {
-	files := make(map[int64][]fs.FileInfo)
+// projectFiles indexes the regular files under ./.agents/ by name, to find
+// the staged files that are hard links to them. Size is not used as the key:
+// NTFS reports a stale size for the other names of a hard-linked file.
+func projectFiles(root string) (map[string][]fs.FileInfo, error) {
+	files := make(map[string][]fs.FileInfo)
 	if info, err := os.Stat(root); err != nil || !info.IsDir() {
 		return files, nil
 	}
-	err := filepath.WalkDir(root, func(_ string, entry fs.DirEntry, walkErr error) error {
+	err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil || entry.IsDir() {
 			return walkErr
 		}
-		info, err := entry.Info()
+		info, err := os.Lstat(path)
 		if err == nil && info.Mode().IsRegular() {
-			files[info.Size()] = append(files[info.Size()], info)
+			files[entry.Name()] = append(files[entry.Name()], info)
 		}
 		return err
 	})
