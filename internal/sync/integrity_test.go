@@ -16,9 +16,11 @@ import (
 	"testing"
 
 	"github.com/OlegHQ/agentpack/internal/cache"
+	githubsource "github.com/OlegHQ/agentpack/internal/github"
 	base "github.com/OlegHQ/agentpack/internal/harness"
 	"github.com/OlegHQ/agentpack/internal/lockfile"
 	"github.com/OlegHQ/agentpack/internal/paths"
+	"github.com/OlegHQ/agentpack/internal/staging"
 )
 
 const (
@@ -480,6 +482,316 @@ func TestUnreachableRegistryFailsTheLockUnlessUnpinnedIsAllowed(t *testing.T) {
 	}
 }
 
+func TestInvalidOrWrongContentHashIsAHardErrorAndTheLockIsLeftAlone(t *testing.T) {
+	zeros := strings.Repeat("0", 64)
+	for name, test := range map[string]struct {
+		value   string
+		invalid bool
+	}{
+		"no algorithm prefix":      {"sha256-" + zeros, true},
+		"unknown algorithm":        {"sha256-tree-v9:" + zeros, true},
+		"empty value":              {"", true},
+		"right prefix wrong value": {lockfile.ContentHashPrefix + zeros, false},
+	} {
+		for _, cleanCache := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/clean cache %v", name, cleanCache), func(t *testing.T) {
+				fixture := newIntegrityFixture(t)
+				fixture.manifest(demoKey, commitOne)
+				good := fixture.lock().Packages[0].ContentHash
+				fixture.sync(SyncOptions{})
+				fixture.editLock(good, test.value)
+				before := fixture.lockText()
+				if cleanCache {
+					fixture.wipeCache()
+				}
+				fixture.requests, fixture.notices = nil, nil
+				attempts := map[string]func() error{
+					"sync": func() error {
+						_, err := fixture.service.Sync(context.Background(), fixture.project, SyncOptions{})
+						return err
+					},
+					"sync --verify-only": func() error {
+						_, err := fixture.service.Sync(context.Background(), fixture.project, SyncOptions{VerifyOnly: true})
+						return err
+					},
+					"launch": func() error {
+						_, _, err := fixture.service.SyncForLaunch(context.Background(), fixture.project, "", base.Claude)
+						return err
+					},
+					"lock": func() error {
+						_, err := fixture.service.Lock(context.Background(), fixture.project, false)
+						return err
+					},
+				}
+				for command, run := range attempts {
+					err := run()
+					var mismatch *cache.IntegrityError
+					switch {
+					case test.invalid && !errors.Is(err, lockfile.ErrContentHash):
+						t.Fatalf("%s error = %v", command, err)
+					case !test.invalid && (!errors.As(err, &mismatch) || mismatch.Fetched != cleanCache || mismatch.Expected != test.value || mismatch.Actual != good):
+						t.Fatalf("%s error = %v", command, err)
+					}
+					if fixture.lockText() != before {
+						t.Fatalf("%s rewrote pack.lock:\n%s", command, fixture.lockText())
+					}
+					if fixture.staged() != skillOne {
+						t.Fatalf("%s changed staging: %q", command, fixture.staged())
+					}
+					if cleanCache {
+						if _, statErr := os.Stat(fixture.cacheEntry(fixture.loadLockLoosely(before))); !os.IsNotExist(statErr) {
+							t.Fatalf("%s left content in the cache: %v", command, statErr)
+						}
+					}
+				}
+				if test.invalid && fixture.tarballRequests() != 0 {
+					t.Fatalf("fetched for a lock that cannot be read: %v", fixture.requests)
+				}
+				if len(fixture.notices) != 0 {
+					t.Fatalf("a refused lock produced notices instead of only an error: %v", fixture.notices)
+				}
+			})
+		}
+	}
+}
+
+func TestSyncNeverRewritesALockItOnlyVerified(t *testing.T) {
+	fixture := newIntegrityFixture(t)
+	fixture.upstream.refs["main"] = commitOne
+	fixture.manifest(demoKey, "main")
+	fixture.lock()
+	before := fixture.lockText()
+	if !strings.HasPrefix(before, "lockfile_version = 3\n") {
+		t.Fatalf("lock:\n%s", before)
+	}
+	for _, prepare := range []func(){func() {}, fixture.wipeCache, func() {}} {
+		prepare()
+		fixture.sync(SyncOptions{})
+		fixture.sync(SyncOptions{VerifyOnly: true})
+		if _, _, err := fixture.service.SyncForLaunch(context.Background(), fixture.project, "", base.Claude); err != nil {
+			t.Fatal(err)
+		}
+		if after := fixture.lockText(); after != before {
+			t.Fatalf("sync rewrote an unchanged lock:\n%s", after)
+		}
+	}
+	if len(fixture.notices) != 0 {
+		t.Fatalf("notices = %v", fixture.notices)
+	}
+}
+
+func TestSwappedLockCommitIsRefused(t *testing.T) {
+	swappedKey := cache.ComputeKey(githubsource.NormalizedIdentity(githubsource.Source{Owner: "acme", Repo: "skills", Path: "demo"}, commitTwo))
+	for name, fixKey := range map[string]bool{"commit only": false, "commit and cache_key": true} {
+		for _, cleanCache := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/clean cache %v", name, cleanCache), func(t *testing.T) {
+				fixture := newIntegrityFixture(t)
+				fixture.upstream.refs["main"] = commitOne
+				fixture.manifest(demoKey, "main")
+				lock := fixture.lock()
+				fixture.sync(SyncOptions{})
+				fixture.editLock("commit = '"+commitOne, "commit = '"+commitTwo)
+				if fixKey {
+					fixture.editLock(lock.Packages[0].CacheKey, swappedKey)
+				}
+				before := fixture.lockText()
+				if cleanCache {
+					fixture.wipeCache()
+				}
+				fixture.requests = nil
+				for command, run := range map[string]func() error{
+					"sync": func() error {
+						_, err := fixture.service.Sync(context.Background(), fixture.project, SyncOptions{})
+						return err
+					},
+					"sync --verify-only": func() error {
+						_, err := fixture.service.Sync(context.Background(), fixture.project, SyncOptions{VerifyOnly: true})
+						return err
+					},
+					"launch": func() error {
+						_, _, err := fixture.service.SyncForLaunch(context.Background(), fixture.project, "", base.Claude)
+						return err
+					},
+				} {
+					err := run()
+					var inconsistent *cache.LockEntryError
+					var mismatch *cache.IntegrityError
+					switch {
+					case !fixKey && (!errors.As(err, &inconsistent) || inconsistent.Expected != swappedKey):
+						t.Fatalf("%s error = %v", command, err)
+					case fixKey && (!errors.As(err, &mismatch) || !mismatch.Fetched || mismatch.Expected != lock.Packages[0].ContentHash):
+						// The key now names the other commit, whose content the
+						// locked hash does not describe.
+						t.Fatalf("%s error = %v", command, err)
+					}
+					if fixture.lockText() != before {
+						t.Fatalf("%s rewrote pack.lock:\n%s", command, fixture.lockText())
+					}
+					if fixture.staged() != skillOne {
+						t.Fatalf("%s staged %q", command, fixture.staged())
+					}
+					if entry, _ := cache.EntryDir(swappedKey); !fixtureMissing(entry) {
+						t.Fatalf("%s cached the other commit", command)
+					}
+				}
+				if !fixKey && fixture.tarballRequests() != 0 {
+					t.Fatalf("fetched for an inconsistent entry: %v", fixture.requests)
+				}
+			})
+		}
+	}
+}
+
+func TestSyncReportsEveryChangeItMakesToTheLock(t *testing.T) {
+	const otherKey = "github.com/acme/skills/other"
+	fixture := newIntegrityFixture(t)
+	for _, commit := range []string{commitOne, commitTwo} {
+		fixture.upstream.tarballs[commit]["other/SKILL.md"] = "---\nname: other\ndescription: Other\n---\n\n# Other\n"
+	}
+	fixture.manifest(demoKey, commitOne)
+	fixture.lock()
+	if len(fixture.notices) != 0 {
+		t.Fatalf("first lock notices = %v", fixture.notices)
+	}
+
+	// A dependency added by hand to the manifest.
+	fixture.writeManifest("\n[dependencies]\n\"" + demoKey + "\" = \"" + commitOne + "\"\n\"" + otherKey + "\" = \"" + commitOne + "\"\n")
+	fixture.sync(SyncOptions{})
+	if !fixture.noticed("pack.lock: added "+otherKey+" at commit "+commitOne) || len(fixture.notices) != 1 {
+		t.Fatalf("after adding a dependency: %v", fixture.notices)
+	}
+	// An exact pin moved by hand in the manifest.
+	fixture.notices = nil
+	fixture.writeManifest("\n[dependencies]\n\"" + demoKey + "\" = \"" + commitTwo + "\"\n\"" + otherKey + "\" = \"" + commitOne + "\"\n")
+	fixture.sync(SyncOptions{})
+	if !fixture.noticed("pack.lock: "+demoKey+" moved from commit "+commitOne+" to "+commitTwo) || len(fixture.notices) != 1 || fixture.staged() != skillTwo {
+		t.Fatalf("after moving a pin: %v staged=%q", fixture.notices, fixture.staged())
+	}
+	// A dependency removed by hand.
+	fixture.notices = nil
+	fixture.manifest(demoKey, commitTwo)
+	fixture.sync(SyncOptions{})
+	if !fixture.noticed("pack.lock: removed "+otherKey) || len(fixture.notices) != 1 {
+		t.Fatalf("after removing a dependency: %v", fixture.notices)
+	}
+	// Explicit commands report moved pins too.
+	fixture.notices = nil
+	fixture.manifest(demoKey, commitOne)
+	fixture.lock()
+	if !fixture.noticed("pack.lock: " + demoKey + " moved from commit " + commitTwo + " to " + commitOne) {
+		t.Fatalf("lock notices = %v", fixture.notices)
+	}
+	for _, pkg := range fixture.loadLock().Packages {
+		if pkg.ContentHash == "" {
+			t.Fatalf("%s lost its content hash", pkg.Module)
+		}
+	}
+}
+
+func TestOnlyLockRegeneratesALockItCannotParse(t *testing.T) {
+	fixture := newIntegrityFixture(t)
+	fixture.manifest(demoKey, commitOne)
+	fixture.lock()
+	fixture.sync(SyncOptions{})
+	writeIntegrityFile(t, paths.LockPath(fixture.project), fixture.lockText()+"\n[[skills]]\nmodule = \"legacy\"\n")
+	before := fixture.lockText()
+	if _, err := fixture.service.Sync(context.Background(), fixture.project, SyncOptions{}); err == nil || !strings.Contains(err.Error(), "skills") {
+		t.Fatalf("sync error = %v", err)
+	}
+	if fixture.lockText() != before {
+		t.Fatal("sync regenerated a lock it could not parse")
+	}
+	fixture.lock()
+	if !fixture.noticed("the existing pack.lock could not be read and is regenerated") || fixture.loadLock().Packages[0].ContentHash == "" {
+		t.Fatalf("notices = %v", fixture.notices)
+	}
+}
+
+func TestVerifyOnlyComparesStagingWithTheLastSyncAndSyncReportsWhatItReplaces(t *testing.T) {
+	fixture := newIntegrityFixture(t)
+	fixture.manifest(demoKey, commitOne)
+	shared := filepath.Join(fixture.project, ".agents", "skills", "project-skill", "SKILL.md")
+	writeIntegrityFile(t, shared, "---\nname: project-skill\ndescription: Project\n---\n\n# Project\n")
+	fixture.lock()
+	verify := func() error {
+		_, err := fixture.service.Sync(context.Background(), fixture.project, SyncOptions{VerifyOnly: true})
+		return err
+	}
+	if err := verify(); err == nil || !strings.Contains(err.Error(), "cannot verify staging") {
+		t.Fatalf("verify before any sync = %v", err)
+	}
+	fixture.sync(SyncOptions{})
+	// A launch and a second sync change nothing that the record covers.
+	for range 2 {
+		if _, _, err := fixture.service.SyncForLaunch(context.Background(), fixture.project, "", base.Claude); err != nil {
+			t.Fatal(err)
+		}
+	}
+	fixture.sync(SyncOptions{})
+	if err := verify(); err != nil || len(fixture.notices) != 0 {
+		t.Fatalf("verify of an untouched tree = %v; notices = %v", err, fixture.notices)
+	}
+	// The user's own ./.agents file is hard-linked into staging: editing it in
+	// place is not a change to what agentpack staged.
+	appendFile(t, shared, "More.\n")
+	if err := verify(); err != nil {
+		t.Fatalf("verify after editing a project file = %v", err)
+	}
+
+	extra := filepath.Join(filepath.Dir(fixture.stagedPath()), "scripts", "extra.sh")
+	for name, tamper := range map[string]struct {
+		apply func()
+		line  string
+	}{
+		"edited": {func() { appendFile(t, fixture.stagedPath(), "TAMPER\n") }, "modified  " + fixture.stagedPath()},
+		"added":  {func() { writeIntegrityFile(t, extra, "TAMPER") }, "added     " + extra},
+		"deleted": {func() {
+			if err := os.Remove(fixture.stagedPath()); err != nil {
+				t.Fatal(err)
+			}
+		}, "missing   " + fixture.stagedPath()},
+		"same size and time": {func() {
+			info, err := os.Stat(fixture.stagedPath())
+			if err != nil {
+				t.Fatal(err)
+			}
+			writeIntegrityFile(t, fixture.stagedPath(), strings.Replace(skillOne, "# Demo one", "# Dem0 one", 1))
+			if err := os.Chtimes(fixture.stagedPath(), info.ModTime(), info.ModTime()); err != nil {
+				t.Fatal(err)
+			}
+		}, "modified  " + fixture.stagedPath()},
+	} {
+		t.Run(name, func(t *testing.T) {
+			fixture.sync(SyncOptions{})
+			fixture.notices = nil
+			tamper.apply()
+			err := verify()
+			var drift *staging.DriftError
+			if !errors.As(err, &drift) || len(drift.Changes) != 1 || drift.Changes[0] != tamper.line {
+				t.Fatalf("verify error = %v", err)
+			}
+			if err := verify(); !errors.As(err, &drift) {
+				t.Fatalf("verify accepted the tree the second time: %v", err)
+			}
+			fixture.sync(SyncOptions{})
+			words := strings.Join(strings.Fields(tamper.line), " ")
+			reported := fixture.noticed("1 staged file(s) changed since the last sync and were replaced from the verified cache: " + words)
+			// A sync does not hash staging before it rebuilds it, so it cannot
+			// name an edit that kept the file's size and time. It still
+			// replaces the file; verify-only above is the check that sees it.
+			if reported == (name == "same size and time") {
+				t.Fatalf("sync notices = %v", fixture.notices)
+			}
+			if _, statErr := os.Stat(extra); fixture.staged() != skillOne || !os.IsNotExist(statErr) {
+				t.Fatalf("staging after sync: %q, extra file: %v", fixture.staged(), statErr)
+			}
+			if err := verify(); err != nil {
+				t.Fatalf("verify after sync = %v", err)
+			}
+		})
+	}
+}
+
 type integrityUpstream struct {
 	tarballs     map[string]map[string]string
 	refs         map[string]string
@@ -612,6 +924,32 @@ func (fixture *integrityFixture) stripContentHashes() {
 	if err := lock.Save(fixture.project); err != nil {
 		fixture.t.Fatal(err)
 	}
+}
+
+// editLock replaces text in pack.lock on disk, as a hand edit would.
+func (fixture *integrityFixture) editLock(old, replacement string) {
+	fixture.t.Helper()
+	text := fixture.lockText()
+	if !strings.Contains(text, old) {
+		fixture.t.Fatalf("pack.lock does not contain %q:\n%s", old, text)
+	}
+	writeIntegrityFile(fixture.t, paths.LockPath(fixture.project), strings.Replace(text, old, replacement, 1))
+}
+
+// loadLockLoosely reads the cache key out of lock text the loader refuses.
+func (fixture *integrityFixture) loadLockLoosely(text string) lockfile.PackLock {
+	fixture.t.Helper()
+	_, rest, found := strings.Cut(text, "cache_key = '")
+	if !found {
+		fixture.t.Fatalf("no cache_key in:\n%s", text)
+	}
+	key, _, _ := strings.Cut(rest, "'")
+	return lockfile.PackLock{Packages: []lockfile.Package{{CacheKey: key}}}
+}
+
+func fixtureMissing(path string) bool {
+	_, err := os.Stat(path)
+	return os.IsNotExist(err)
 }
 
 func (fixture *integrityFixture) cacheEntry(lock lockfile.PackLock) string {

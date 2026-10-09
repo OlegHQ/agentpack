@@ -5,7 +5,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"maps"
 	"os"
+	"slices"
+	"sort"
 	"strings"
 
 	"github.com/OlegHQ/agentpack/internal/cache"
@@ -59,6 +62,75 @@ func launchDigest(projectRoot string, effective mode.Effective, target *base.Tar
 	}
 	sum := sha256.Sum256([]byte(inputs + "\x00cache\x00" + fingerprint))
 	return hex.EncodeToString(sum[:]), nil
+}
+
+// loadCheckedLock loads pack.lock and refuses one whose hashed entries are
+// not self-consistent. Every command that acts on the lock reads it this way.
+func loadCheckedLock(projectRoot string) (lockfile.PackLock, error) {
+	lock, err := lockfile.Load(projectRoot)
+	if err != nil {
+		return lockfile.PackLock{}, err
+	}
+	return lock, cache.CheckLockEntries(lock)
+}
+
+// sameLock reports whether two locks record the same thing, ignoring order.
+func sameLock(first, second lockfile.PackLock) bool {
+	packages := func(lock lockfile.PackLock) map[string]lockfile.Package {
+		byModule := make(map[string]lockfile.Package, len(lock.Packages))
+		for _, pkg := range lock.Packages {
+			byModule[pkg.Module] = pkg
+		}
+		return byModule
+	}
+	servers := func(lock lockfile.PackLock) map[string]lockfile.MCPServer {
+		byName := make(map[string]lockfile.MCPServer, len(lock.MCPServers))
+		for _, server := range lock.MCPServers {
+			byName[server.Name] = server
+		}
+		return byName
+	}
+	return first.Meta == second.Meta && slices.Equal(first.Config.DisabledPlugins, second.Config.DisabledPlugins) &&
+		len(first.Packages) == len(second.Packages) && maps.Equal(packages(first), packages(second)) &&
+		len(first.MCPServers) == len(second.MCPServers) && maps.Equal(servers(first), servers(second))
+}
+
+// lockChanges describes, one line each, how a resolve changed the lock: pins
+// that moved, and (for an implicit run) entries and MCP records that came or
+// went. A first content hash is reported separately.
+func lockChanges(previous, resolved lockfile.PackLock, membership bool) []string {
+	var changes []string
+	before := make(map[string]lockfile.Package, len(previous.Packages))
+	for _, pkg := range previous.Packages {
+		before[pkg.Module] = pkg
+	}
+	after := make(map[string]bool, len(resolved.Packages))
+	for _, pkg := range resolved.Packages {
+		after[pkg.Module] = true
+		old, found := before[pkg.Module]
+		switch {
+		case !found && membership:
+			changes = append(changes, fmt.Sprintf("added %s at commit %s", pkg.Module, pkg.Commit))
+		case found && old.Commit != pkg.Commit:
+			changes = append(changes, fmt.Sprintf("%s moved from commit %s to %s", pkg.Module, old.Commit, pkg.Commit))
+		}
+	}
+	for _, pkg := range previous.Packages {
+		if !after[pkg.Module] && membership {
+			changes = append(changes, fmt.Sprintf("removed %s", pkg.Module))
+		}
+	}
+	for _, old := range previous.MCPServers {
+		current, found := resolved.MCPServer(old.Name)
+		switch {
+		case !found && membership:
+			changes = append(changes, fmt.Sprintf("dropped the record of MCP server %s, which is gone or was redefined", old.Name))
+		case found && current.Version != old.Version:
+			changes = append(changes, fmt.Sprintf("MCP server %s moved from %s@%s to %s@%s", old.Name, old.Package, old.Version, current.Package, current.Version))
+		}
+	}
+	sort.Strings(changes)
+	return changes
 }
 
 // checkLockRecords reports what the lock does not vouch for: packages without
@@ -162,7 +234,7 @@ func (service Service) RefreshMCPRecords(ctx context.Context, projectRoot string
 	if err != nil {
 		return err
 	}
-	lock, err := lockfile.Load(projectRoot)
+	lock, err := loadCheckedLock(projectRoot)
 	if os.IsNotExist(rootCause(err)) {
 		return nil
 	}

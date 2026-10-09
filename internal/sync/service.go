@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/OlegHQ/agentpack/internal/cache"
@@ -62,41 +63,76 @@ func (service Service) notify(format string, arguments ...any) {
 	fmt.Fprintln(os.Stderr, "warning: "+message)
 }
 
-// resolveAndSave is the resolve step of the commands that edit the lock on
-// purpose (lock, add, remove, update): it records missing content hashes.
-func (service Service) resolveAndSave(ctx context.Context, projectRoot string, project *manifest.Manifest, refresh bool, primed []lockfile.Package) (lockfile.PackLock, error) {
-	return service.resolveAndSaveWithOptions(ctx, projectRoot, project, resolve.ResolveOptions{RefreshFloating: refresh, RecordContentHashes: true}, mcpCarry, false, primed)
+// resolveRun says who is resolving. Only an explicit run may change the pins
+// of entries that are already locked; an implicit one (sync, launch) keeps them.
+type resolveRun struct {
+	options resolve.ResolveOptions
+	pinMode mcpPinMode
+	// explicit marks lock, add, remove and update: they always write the lock.
+	explicit bool
+	// regenerate lets `agentpack lock` replace a lock it cannot parse.
+	regenerate       bool
+	allowUnpinnedMCP bool
+	primed           []lockfile.Package
 }
-func (service Service) resolveAndSaveWithOptions(ctx context.Context, projectRoot string, project *manifest.Manifest, options resolve.ResolveOptions, pinMode mcpPinMode, allowUnpinnedMCP bool, primed []lockfile.Package) (lockfile.PackLock, error) {
-	previous, _ := lockfile.Load(projectRoot)
+
+// resolveAndSave is the resolve step of add, remove and update: it records
+// missing content hashes and keeps MCP records as they are.
+func (service Service) resolveAndSave(ctx context.Context, projectRoot string, project *manifest.Manifest, refresh bool, primed []lockfile.Package) (lockfile.PackLock, error) {
+	return service.resolve(ctx, projectRoot, project, resolveRun{options: resolve.ResolveOptions{RefreshFloating: refresh, RecordContentHashes: true}, explicit: true, primed: primed})
+}
+
+func (service Service) resolve(ctx context.Context, projectRoot string, project *manifest.Manifest, run resolveRun) (lockfile.PackLock, error) {
+	previous, err := loadCheckedLock(projectRoot)
+	exists := err == nil
+	switch {
+	case err == nil:
+	case os.IsNotExist(rootCause(err)):
+		previous = lockfile.PackLock{}
+	case run.regenerate && !errors.Is(err, lockfile.ErrContentHash) && !errors.As(err, new(*cache.LockEntryError)):
+		service.notify("the existing pack.lock could not be read and is regenerated from agentpack.toml; pins it held are resolved again (%v)", err)
+		previous = lockfile.PackLock{}
+	default:
+		return lockfile.PackLock{}, err
+	}
+	locked := previous
+	locked.Packages = append([]lockfile.Package(nil), previous.Packages...)
 	unverified := make(map[string]bool)
 	for _, pkg := range previous.Packages {
 		if pkg.CacheKey != "" && pkg.ContentHash == "" {
 			unverified[pkg.CacheKey] = true
 		}
 	}
-	if len(primed) != 0 {
-		for _, pkg := range primed {
-			var kept []lockfile.Package
-			for _, current := range previous.Packages {
-				if current.Module != pkg.Module {
-					kept = append(kept, current)
-				}
+	for _, pkg := range run.primed {
+		var kept []lockfile.Package
+		for _, current := range previous.Packages {
+			if current.Module != pkg.Module {
+				kept = append(kept, current)
 			}
-			previous.Packages = append(kept, pkg)
 		}
+		previous.Packages = append(kept, pkg)
 	}
+	options := run.options
 	options.Previous = &previous
 	options.Notify = func(message string) { service.notify("%s", message) }
 	resolved, err := resolve.NewResolver(ctx, service.client()).Resolve(ctx, projectRoot, project, options)
 	if err != nil {
 		return lockfile.PackLock{}, err
 	}
-	if resolved.MCPServers, err = service.settleMCPServers(ctx, projectRoot, project, resolved, previous.MCPServers, pinMode, allowUnpinnedMCP); err != nil {
+	resolved.Config = locked.Config
+	if resolved.MCPServers, err = service.settleMCPServers(ctx, projectRoot, project, resolved, locked.MCPServers, run.pinMode, run.allowUnpinnedMCP); err != nil {
 		return lockfile.PackLock{}, err
 	}
-	if err := resolved.Save(projectRoot); err != nil {
-		return lockfile.PackLock{}, err
+	// An implicit run leaves the file alone unless what it records changed.
+	if run.explicit || !exists || !sameLock(locked, resolved) {
+		if err := resolved.Save(projectRoot); err != nil {
+			return lockfile.PackLock{}, err
+		}
+	}
+	if exists {
+		for _, change := range lockChanges(locked, resolved, !run.explicit) {
+			service.notify("pack.lock: %s", change)
+		}
 	}
 	recorded := 0
 	for _, pkg := range resolved.Packages {
@@ -130,7 +166,7 @@ func (service Service) LockWithOptions(ctx context.Context, projectRoot string, 
 	if options.Refresh {
 		pinMode = mcpRefresh
 	}
-	lock, err := service.resolveAndSaveWithOptions(ctx, projectRoot, project, resolve.ResolveOptions{RefreshFloating: options.Refresh, RecordContentHashes: true}, pinMode, options.AllowUnpinnedMCP, nil)
+	lock, err := service.resolve(ctx, projectRoot, project, resolveRun{options: resolve.ResolveOptions{RefreshFloating: options.Refresh, RecordContentHashes: true}, pinMode: pinMode, explicit: true, regenerate: true, allowUnpinnedMCP: options.AllowUnpinnedMCP})
 	if err == nil {
 		service.reportMCPServers(lock)
 	}
@@ -163,7 +199,7 @@ func (service Service) Update(ctx context.Context, projectRoot string, specs []s
 	if refresh {
 		pinMode = mcpRefresh
 	}
-	lock, err := service.resolveAndSaveWithOptions(ctx, projectRoot, project, resolve.ResolveOptions{RefreshFloating: refresh, RefreshModules: modules, RecordContentHashes: true}, pinMode, false, nil)
+	lock, err := service.resolve(ctx, projectRoot, project, resolveRun{options: resolve.ResolveOptions{RefreshFloating: refresh, RefreshModules: modules, RecordContentHashes: true}, pinMode: pinMode, explicit: true})
 	if err != nil {
 		return lockfile.PackLock{}, err
 	}
@@ -256,12 +292,13 @@ func (service Service) Sync(ctx context.Context, projectRoot string, options Syn
 	if !options.DryRun && project != nil && len(project.Dependencies) != 0 {
 		// sync verifies what the lock already pins. It records a content hash
 		// only for content it has to download, and adds no MCP records.
+		// --update-lock is the one way it re-resolves on purpose.
 		resolveOptions := resolve.ResolveOptions{RefreshFloating: options.UpdateLock, RepairCache: options.Repair}
-		if _, err := service.resolveAndSaveWithOptions(ctx, projectRoot, project, resolveOptions, mcpCarry, false, nil); err != nil {
+		if _, err := service.resolve(ctx, projectRoot, project, resolveRun{options: resolveOptions, explicit: options.UpdateLock}); err != nil {
 			return SyncResult{}, err
 		}
 	}
-	lock, err := lockfile.Load(projectRoot)
+	lock, err := loadCheckedLock(projectRoot)
 	if os.IsNotExist(rootCause(err)) && options.Target != nil {
 		lock = lockfile.EmptyForProject(projectRoot)
 		err = nil
@@ -332,9 +369,37 @@ func (service Service) Sync(ctx context.Context, projectRoot string, options Syn
 		return result, err
 	}
 	pipeline := staging.Pipeline{ProjectRoot: projectRoot, Lock: lock, Manifest: project, Mode: effective, Target: options.Target}
+	drift, recorded, driftErr := pipeline.StagedDrift(options.VerifyOnly)
+	if driftErr != nil {
+		return result, driftErr
+	}
 	if options.VerifyOnly {
-		err = pipeline.Verify()
+		switch {
+		case !recorded:
+			err = fmt.Errorf("cannot verify staging: no sync by this version of agentpack has recorded what it staged for mode %q; run `agentpack sync` once", effective.Name())
+		case len(drift) != 0:
+			err = &staging.DriftError{Changes: drift}
+		default:
+			// Verify may drop staged duplicates of skills the user has since
+			// installed; record the tree again so that is not read as drift.
+			if err = pipeline.Verify(); err == nil {
+				err = pipeline.RecordStaged()
+			}
+		}
 	} else {
+		if len(drift) != 0 {
+			shown := append([]string(nil), drift...)
+			if len(shown) > 5 {
+				shown = append(shown[:5], fmt.Sprintf("and %d more", len(drift)-5))
+			}
+			for index, change := range shown {
+				// "modified  /path" is aligned for a list; use one space in a sentence.
+				if kind, path, found := strings.Cut(change, " "); found {
+					shown[index] = kind + " " + strings.TrimLeft(path, " ")
+				}
+			}
+			service.notify("%d staged file(s) changed since the last sync and were replaced from the verified cache: %s", len(drift), strings.Join(shown, "; "))
+		}
 		_, err = pipeline.Rebuild()
 		if err == nil {
 			err = pipeline.Verify()
@@ -356,7 +421,7 @@ func (service Service) SyncForLaunch(ctx context.Context, projectRoot, selectedM
 	if err != nil {
 		return mode.Effective{}, false, err
 	}
-	lock, err := lockfile.Load(projectRoot)
+	lock, err := loadCheckedLock(projectRoot)
 	if os.IsNotExist(rootCause(err)) {
 		lock = lockfile.EmptyForProject(projectRoot)
 		err = nil
@@ -395,7 +460,7 @@ func (service Service) SyncForLaunch(ctx context.Context, projectRoot, selectedM
 		return mode.Effective{}, false, err
 	}
 	effective = result.Mode
-	if lock, err = lockfile.Load(projectRoot); os.IsNotExist(rootCause(err)) {
+	if lock, err = loadCheckedLock(projectRoot); os.IsNotExist(rootCause(err)) {
 		lock = lockfile.EmptyForProject(projectRoot)
 	} else if err != nil {
 		return mode.Effective{}, false, err

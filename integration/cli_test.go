@@ -308,6 +308,76 @@ func TestCompiledCLIRefusesTamperedCacheUntilRepaired(t *testing.T) {
 	}
 }
 
+func TestCompiledCLIRefusesInvalidContentHashWithoutRewritingTheLock(t *testing.T) {
+	project := t.TempDir()
+	skill := filepath.Join(project, "local-skill")
+	if err := os.Mkdir(skill, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, filepath.Join(skill, "SKILL.md"), "---\nname: local-skill\ndescription: fixture\n---\n\n# Local\n")
+	if result := runCLI(t, project, "add", "local-skill"); result.err != nil {
+		t.Fatalf("add: stdout=%q stderr=%q err=%v", result.stdout, result.stderr, result.err)
+	}
+	lockPath := filepath.Join(project, "pack.lock")
+	good := readFile(t, lockPath)
+	zeros := strings.Repeat("0", 64)
+	for name, value := range map[string]string{"no algorithm prefix": "sha256-" + zeros, "empty": ""} {
+		_, rest, found := strings.Cut(good, "content_hash = '")
+		if !found {
+			t.Fatalf("lock has no content_hash:\n%s", good)
+		}
+		original, _, _ := strings.Cut(rest, "'")
+		tampered := strings.Replace(good, original, value, 1)
+		writeFile(t, lockPath, tampered)
+		for _, arguments := range [][]string{{"sync"}, {"sync", "--verify-only"}, {"lock"}} {
+			result := runCLI(t, project, arguments...)
+			if result.err == nil || !strings.Contains(result.stderr, "invalid content_hash in pack.lock: local-skill") || !strings.Contains(result.stderr, "expected  sha256-tree-v1:<64 lowercase hex digits>") {
+				t.Fatalf("%s, %v: stdout=%q stderr=%q err=%v", name, arguments, result.stdout, result.stderr, result.err)
+			}
+			if readFile(t, lockPath) != tampered {
+				t.Fatalf("%s, %v rewrote pack.lock:\n%s", name, arguments, readFile(t, lockPath))
+			}
+		}
+	}
+}
+
+func TestCompiledCLIVerifyOnlyChecksStagedFilesAndSyncReportsReplacingThem(t *testing.T) {
+	project := t.TempDir()
+	skill := filepath.Join(project, "local-skill")
+	if err := os.Mkdir(skill, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	body := "---\nname: local-skill\ndescription: fixture\n---\n\n# Local\n"
+	writeFile(t, filepath.Join(skill, "SKILL.md"), body)
+	if result := runCLI(t, project, "add", "local-skill"); result.err != nil {
+		t.Fatalf("add: stdout=%q stderr=%q err=%v", result.stdout, result.stderr, result.err)
+	}
+	if result := runCLI(t, project, "sync", "--verify-only"); result.err != nil || result.stderr != "" {
+		t.Fatalf("verify of an untouched tree: stdout=%q stderr=%q err=%v", result.stdout, result.stderr, result.err)
+	}
+	staged := filepath.Join(project, "_staging", "modes", "default", "plugins", "agentpack-bundle", "skills", "local-skill", "SKILL.md")
+	extra := filepath.Join(filepath.Dir(staged), "extra.sh")
+	writeFile(t, staged, body+"TAMPER\n")
+	writeFile(t, extra, "TAMPER")
+	result := runCLI(t, project, "sync", "--verify-only")
+	if result.err == nil || !strings.Contains(result.stderr, "staged tree does not match the last sync\n") || !strings.Contains(result.stderr, "  modified  "+staged+"\n") || !strings.Contains(result.stderr, "  added     "+extra+"\n") {
+		t.Fatalf("verify of a tampered tree: stdout=%q stderr=%q err=%v", result.stdout, result.stderr, result.err)
+	}
+	if !strings.Contains(readFile(t, staged), "TAMPER") {
+		t.Fatal("verify-only changed staging")
+	}
+	result = runCLI(t, project, "sync")
+	if result.err != nil || !strings.Contains(result.stderr, "warning: 2 staged file(s) changed since the last sync and were replaced from the verified cache:") || !strings.Contains(result.stderr, "modified "+staged) || !strings.Contains(result.stderr, "added "+extra) {
+		t.Fatalf("sync over a tampered tree: stdout=%q stderr=%q err=%v", result.stdout, result.stderr, result.err)
+	}
+	if _, err := os.Stat(extra); readFile(t, staged) != body || !os.IsNotExist(err) {
+		t.Fatalf("staging after sync: %q, extra: %v", readFile(t, staged), err)
+	}
+	if result := runCLI(t, project, "sync", "--verify-only"); result.err != nil || result.stderr != "" {
+		t.Fatalf("verify after sync: stdout=%q stderr=%q err=%v", result.stdout, result.stderr, result.err)
+	}
+}
+
 func TestCompiledCLIPinsNPXServerAndRecordsUnpinnedOnlyWhenAllowed(t *testing.T) {
 	registry := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		if request.URL.EscapedPath() != "/@playwright%2Fmcp/latest" {

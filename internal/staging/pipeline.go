@@ -144,6 +144,9 @@ func (pipeline Pipeline) Rebuild() (_ []string, rebuildErr error) {
 	if err := pipeline.verify(ctx); err != nil {
 		return nil, err
 	}
+	if err := pipeline.recordStaged(ctx); err != nil {
+		return nil, fmt.Errorf("record staged content: %w", err)
+	}
 	for _, transaction := range transactions {
 		if err := transaction.Commit(); err != nil {
 			return nil, fmt.Errorf("publish staged home: %w", err)

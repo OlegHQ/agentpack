@@ -193,6 +193,12 @@ func ModePathComponent(modeName string) string {
 	return name + "-" + hex.EncodeToString(sum[:4])
 }
 
+// StagedManifestPath is where a sync records what it staged for a mode, kept
+// outside the staging tree it describes.
+func StagedManifestPath(projectRoot, modeName string) (string, error) {
+	return projectStateFile(projectRoot, "staged-"+ModePathComponent(modeName)+".json")
+}
+
 func LaunchSyncStatePath(projectRoot, modeName string) (string, error) {
 	return projectStateFile(projectRoot, "launch-sync-"+ModePathComponent(modeName)+".state")
 }
