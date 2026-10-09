@@ -195,7 +195,15 @@ func (resolver Resolver) settleContentHash(pkg lockfile.Package, options Resolve
 	expected := ""
 	if options.Previous != nil {
 		for _, previous := range options.Previous.Packages {
-			if previous.CacheKey == pkg.CacheKey && previous.ContentHash != "" {
+			if previous.CacheKey != pkg.CacheKey {
+				continue
+			}
+			// Same slot means same repository, path and commit: keep the
+			// entry's URL as locked so an unchanged pin rewrites nothing.
+			if previous.URL != "" {
+				pkg.URL = previous.URL
+			}
+			if previous.ContentHash != "" {
 				expected = previous.ContentHash
 				break
 			}

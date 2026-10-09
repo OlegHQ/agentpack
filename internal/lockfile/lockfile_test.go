@@ -1,6 +1,7 @@
 package lockfile
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -224,13 +225,37 @@ func TestVersion3RoundTripsContentHashesAndMCPServers(t *testing.T) {
 	}
 }
 
-func TestUnknownContentHashAlgorithmIsRejected(t *testing.T) {
+func TestPresentButInvalidContentHashIsRejected(t *testing.T) {
+	digest := strings.Repeat("a", 64)
+	for name, value := range map[string]string{
+		"unknown algorithm":   "sha256-tree-v9:" + digest,
+		"no algorithm prefix": "sha256-" + digest,
+		"bare hex":            digest,
+		"short digest":        ContentHashPrefix + digest[:63],
+		"uppercase digest":    ContentHashPrefix + strings.Repeat("A", 64),
+		"trailing data":       ContentHashPrefix + digest + "0",
+		"empty value":         "",
+	} {
+		t.Run(name, func(t *testing.T) {
+			root := t.TempDir()
+			raw := "lockfile_version = 3\n\n[meta]\nname = \"p\"\nversion = \"0.1.0\"\n\n[[packages]]\nmodule = \"github.com/acme/demo\"\nkind = \"skill\"\nurl = \"u\"\nowner = \"acme\"\nrepo = \"demo\"\ncommit = \"c\"\ncache_key = \"k\"\ncontent_hash = \"" + value + "\"\n"
+			if err := os.WriteFile(filepath.Join(root, "pack.lock"), []byte(raw), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			_, err := Load(root)
+			var invalid *ContentHashError
+			if !errors.Is(err, ErrContentHash) || !errors.As(err, &invalid) || invalid.Value != value || !strings.Contains(err.Error(), "sha256-tree-v1:") {
+				t.Fatalf("Load() error = %v", err)
+			}
+		})
+	}
+	// Only a missing key means "no content hash".
 	root := t.TempDir()
-	raw := "lockfile_version = 3\n\n[meta]\nname = \"p\"\nversion = \"0.1.0\"\n\n[[packages]]\nmodule = \"github.com/acme/demo\"\nkind = \"skill\"\nurl = \"u\"\nowner = \"acme\"\nrepo = \"demo\"\ncommit = \"c\"\ncache_key = \"k\"\ncontent_hash = \"sha256-tree-v9:abc\"\n"
+	raw := "lockfile_version = 2\n\n[meta]\nname = \"p\"\nversion = \"0.1.0\"\n\n[[packages]]\nmodule = \"github.com/acme/demo\"\nkind = \"skill\"\nurl = \"u\"\nowner = \"acme\"\nrepo = \"demo\"\ncommit = \"c\"\ncache_key = \"k\"\n"
 	if err := os.WriteFile(filepath.Join(root, "pack.lock"), []byte(raw), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Load(root); err == nil || !strings.Contains(err.Error(), "sha256-tree-v9:abc") || !strings.Contains(err.Error(), "sha256-tree-v1:") {
-		t.Fatalf("Load() error = %v", err)
+	if lock, err := Load(root); err != nil || len(lock.UnverifiedPackages()) != 1 {
+		t.Fatalf("Load(absent key) = %#v, %v", lock, err)
 	}
 }

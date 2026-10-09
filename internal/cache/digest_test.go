@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	githubsource "github.com/OlegHQ/agentpack/internal/github"
 	"github.com/OlegHQ/agentpack/internal/lockfile"
 )
 
@@ -184,6 +185,35 @@ func TestEnsureLockCachedInstallsOnlyAFetchThatMatchesTheLock(t *testing.T) {
 	}
 	if mustDigest(t, out) != pkg.ContentHash {
 		t.Fatal("installed entry does not match the lock")
+	}
+}
+
+func TestCheckLockEntriesRejectsACommitThatDoesNotOwnItsCacheKey(t *testing.T) {
+	commit, other := strings.Repeat("a", 40), strings.Repeat("b", 40)
+	source := githubsource.Source{Owner: "Acme", Repo: "skills", Path: "demo"}
+	pkg := lockfile.Package{Module: "github.com/acme/skills/demo", Owner: "Acme", Repo: "skills", Path: "demo", Commit: commit,
+		CacheKey: ComputeKey(githubsource.NormalizedIdentity(source, commit)), ContentHash: lockfile.ContentHashPrefix + strings.Repeat("0", 64)}
+	if err := CheckLockEntries(lockfile.PackLock{Packages: []lockfile.Package{pkg}}); err != nil {
+		t.Fatal(err)
+	}
+	swapped := pkg
+	swapped.Commit = other
+	err := CheckLockEntries(lockfile.PackLock{Packages: []lockfile.Package{swapped}})
+	var inconsistent *LockEntryError
+	if !errors.As(err, &inconsistent) || inconsistent.Expected != ComputeKey(githubsource.NormalizedIdentity(source, other)) {
+		t.Fatalf("CheckLockEntries(swapped commit) = %v", err)
+	}
+	for _, part := range []string{pkg.Module, other, pkg.CacheKey, inconsistent.Expected} {
+		if !strings.Contains(inconsistent.Details(), part) {
+			t.Errorf("details do not name %q:\n%s", part, inconsistent.Details())
+		}
+	}
+	// Entries the check cannot judge: no content hash yet, or not from GitHub.
+	unhashed, local := swapped, swapped
+	unhashed.ContentHash = ""
+	local.Owner, local.URL = "path", "file:///tmp/demo"
+	if err := CheckLockEntries(lockfile.PackLock{Packages: []lockfile.Package{unhashed, local}}); err != nil {
+		t.Fatal(err)
 	}
 }
 

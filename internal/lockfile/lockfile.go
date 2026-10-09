@@ -25,6 +25,67 @@ const (
 // ContentHashPrefix names the tree digest algorithm stored in content_hash.
 const ContentHashPrefix = "sha256-tree-v1:"
 
+// ErrContentHash marks a lock whose content_hash key is present but is not a
+// digest this build can check. Such a lock is never regenerated automatically.
+var ErrContentHash = errors.New("invalid content hash in lockfile")
+
+// ContentHashError is the ErrContentHash for one package.
+type ContentHashError struct{ Module, Value, Path string }
+
+func (err *ContentHashError) Unwrap() error { return ErrContentHash }
+
+func (err *ContentHashError) Error() string {
+	return fmt.Sprintf("%v: package %s has content_hash %q in %s, but a content hash must be %s followed by 64 lowercase hex digits; nothing was fetched or staged; restore pack.lock from version control, or upgrade agentpack if a newer version wrote it", ErrContentHash, err.Module, err.Value, err.Path, ContentHashPrefix)
+}
+
+func (err *ContentHashError) Details() string {
+	return strings.Join([]string{
+		"invalid content_hash in pack.lock: " + err.Module,
+		"  found     " + fmt.Sprintf("%q", err.Value),
+		"  expected  " + ContentHashPrefix + "<64 lowercase hex digits>",
+		"  lockfile  " + err.Path,
+		"  fix       restore pack.lock from version control, or upgrade agentpack if a newer version wrote it",
+	}, "\n") + "\n"
+}
+
+func (err *ContentHashError) Summary() string {
+	return fmt.Sprintf("invalid content_hash for %s in pack.lock: nothing was fetched or staged", err.Module)
+}
+
+// ValidContentHash reports whether value is a complete sha256-tree-v1 digest.
+func ValidContentHash(value string) bool {
+	digest, found := strings.CutPrefix(value, ContentHashPrefix)
+	if !found || len(digest) != 64 {
+		return false
+	}
+	for _, character := range digest {
+		if !(character >= '0' && character <= '9' || character >= 'a' && character <= 'f') {
+			return false
+		}
+	}
+	return true
+}
+
+// contentHashKeys reports, per [[packages]] entry in file order, whether the
+// content_hash key is written at all, so an empty value is not read as absent.
+func contentHashKeys(path string) ([]bool, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("read lockfile %s: %w", path, err)
+	}
+	var raw struct {
+		Packages []map[string]any `toml:"packages"`
+	}
+	if err := toml.Unmarshal(data, &raw); err != nil {
+		return nil, fmt.Errorf("parse lockfile: %w", err)
+	}
+	present := make([]bool, len(raw.Packages))
+	for index, pkg := range raw.Packages {
+		_, present[index] = pkg["content_hash"]
+	}
+	return present, nil
+}
+
 type PackageKind string
 
 const (
@@ -164,9 +225,18 @@ func loadFromPath(path string) (PackLock, error) {
 	if disk.LockfileVersion != baseVersion && disk.LockfileVersion != Version {
 		return PackLock{}, fmt.Errorf("parse lockfile: unsupported lockfile_version %d (expected %d or %d); run `agentpack lock` to regenerate %s", disk.LockfileVersion, baseVersion, Version, path)
 	}
-	for _, pkg := range disk.Packages {
-		if pkg.ContentHash != "" && !strings.HasPrefix(pkg.ContentHash, ContentHashPrefix) {
-			return PackLock{}, fmt.Errorf("parse lockfile: package %s has unsupported content_hash %q (expected prefix %s) in %s; upgrade agentpack or run `agentpack lock` to regenerate it", pkg.Module, pkg.ContentHash, ContentHashPrefix, path)
+	present, err := contentHashKeys(path)
+	if err != nil {
+		return PackLock{}, err
+	}
+	for index, pkg := range disk.Packages {
+		// "No content hash" means the key is absent. A key that is present must
+		// hold a well-formed digest of a known algorithm, or the lock is refused.
+		if !present[index] {
+			continue
+		}
+		if !ValidContentHash(pkg.ContentHash) {
+			return PackLock{}, &ContentHashError{Module: pkg.Module, Value: pkg.ContentHash, Path: path}
 		}
 	}
 	lock := PackLock{LockfileVersion: disk.LockfileVersion, Meta: disk.Meta, Packages: disk.Packages, MCPServers: disk.MCPServers}

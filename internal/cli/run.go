@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/OlegHQ/agentpack/internal/cache"
 	base "github.com/OlegHQ/agentpack/internal/harness"
 	"github.com/OlegHQ/agentpack/internal/harness/registry"
 	"github.com/OlegHQ/agentpack/internal/lockfile"
@@ -184,15 +183,18 @@ func (runner Runner) Run(ctx context.Context, arguments []string) (int, error) {
 	return 0, nil
 }
 
-// reportIntegrity prints a content hash mismatch as plain lines, because the
-// error renderer reflows text and would break the digests and the cache path.
+// reportIntegrity prints an integrity failure as plain lines, because the
+// error renderer reflows text and would break digests and paths.
 func (runner Runner) reportIntegrity(err error) error {
-	var mismatch *cache.IntegrityError
-	if !errors.As(err, &mismatch) {
+	var failure interface {
+		Details() string
+		Summary() string
+	}
+	if !errors.As(err, &failure) {
 		return err
 	}
-	fmt.Fprint(runner.Stderr, mismatch.Details())
-	return errors.New(mismatch.Summary())
+	fmt.Fprint(runner.Stderr, failure.Details())
+	return errors.New(failure.Summary())
 }
 
 func dependencySelector(project *manifest.Manifest, module string) string {

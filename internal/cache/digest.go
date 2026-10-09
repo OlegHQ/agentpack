@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	githubsource "github.com/OlegHQ/agentpack/internal/github"
 	"github.com/OlegHQ/agentpack/internal/lockfile"
 	"github.com/OlegHQ/agentpack/internal/paths"
 )
@@ -29,7 +30,7 @@ type IntegrityError struct {
 
 func (err *IntegrityError) Error() string {
 	if err.Fetched {
-		return fmt.Sprintf("content hash mismatch for %s: the content fetched for commit %s is %s but pack.lock pins %s; nothing was cached or staged; the source now serves different content for that commit, so review it and run `agentpack lock --update` only if you accept a new pin",
+		return fmt.Sprintf("content hash mismatch for %s: the content fetched for commit %s is %s but pack.lock pins %s; nothing was cached or staged; either the source now serves different content for that commit or pack.lock was edited, so restore pack.lock from version control and do not accept the fetched content without reviewing it",
 			err.name(), err.Package.Commit, err.Actual, err.Expected)
 	}
 	return fmt.Sprintf("content hash mismatch for %s: the cache entry %s is %s but pack.lock pins %s; nothing was staged from it; inspect the directory, then run `agentpack sync --repair` to re-fetch commit %s and verify it again",
@@ -41,7 +42,7 @@ func (err *IntegrityError) Error() string {
 func (err *IntegrityError) Details() string {
 	lines := []string{"content hash mismatch: " + err.name(), "  expected  " + err.Expected, "  actual    " + err.Actual}
 	if err.Fetched {
-		lines = append(lines, "  source    freshly fetched commit "+err.Package.Commit, "  accept    agentpack lock --update   (only after reviewing what changed upstream)")
+		lines = append(lines, "  source    freshly fetched commit "+err.Package.Commit, "  fix       restore pack.lock from version control; if it is intact, the source changed what it serves for this commit")
 	} else {
 		lines = append(lines, "  cache     "+err.Path, "  commit    "+err.Package.Commit, "  repair    agentpack sync --repair   (re-fetches the commit and verifies it again)")
 	}
@@ -61,6 +62,50 @@ func (err *IntegrityError) name() string {
 		return err.Package.Module
 	}
 	return err.Package.CacheKey
+}
+
+// LockEntryError reports a lock entry whose integrity fields contradict each
+// other, which only happens when the entry was edited after it was locked.
+type LockEntryError struct {
+	Package  lockfile.Package
+	Expected string
+}
+
+func (err *LockEntryError) Error() string {
+	return fmt.Sprintf("pack.lock entry for %s is inconsistent: cache_key %s does not belong to commit %s (that commit has cache_key %s), so the entry was edited after it was locked; nothing was fetched or staged; restore pack.lock from version control, and move a pin with `agentpack update` or `agentpack lock --update`",
+		err.Package.Module, err.Package.CacheKey, err.Package.Commit, err.Expected)
+}
+
+func (err *LockEntryError) Details() string {
+	return strings.Join([]string{
+		"inconsistent pack.lock entry: " + err.Package.Module,
+		"  commit     " + err.Package.Commit,
+		"  cache_key  " + err.Package.CacheKey,
+		"  expected   " + err.Expected + "   (the cache_key of that commit)",
+		"  fix        restore pack.lock from version control; move a pin with `agentpack update` or `agentpack lock --update`",
+	}, "\n") + "\n"
+}
+
+func (err *LockEntryError) Summary() string {
+	return fmt.Sprintf("pack.lock entry for %s was edited after it was locked: nothing was fetched or staged", err.Package.Module)
+}
+
+// CheckLockEntries verifies that every content-hashed GitHub entry still
+// names the cache slot of its own repository, path and commit. agentpack
+// writes the three together, so a commit that no longer matches its cache_key
+// means the lock was edited by hand, and the content hash describes some
+// other commit.
+func CheckLockEntries(lock lockfile.PackLock) error {
+	for _, pkg := range lock.Packages {
+		if pkg.ContentHash == "" || isLocalPackage(pkg) || strings.HasPrefix(pkg.URL, "agentpack-local:") {
+			continue
+		}
+		source := githubsource.Source{Owner: pkg.Owner, Repo: pkg.Repo, Path: pkg.Path}
+		if expected := ComputeKey(githubsource.NormalizedIdentity(source, pkg.Commit)); pkg.CacheKey != expected {
+			return &LockEntryError{Package: pkg, Expected: expected}
+		}
+	}
+	return nil
 }
 
 // Repaired is the one-line report for a mismatch that RefetchPackage fixed.
