@@ -12,6 +12,11 @@ window.
 - **`pack.lock` is now lockfile version 3** once it holds a content hash or an MCP record. Version 2
   locks still load and still stage, with a warning that their packages are not verified; run
   `agentpack lock` to upgrade. Binaries older than this change cannot read a version 3 lock.
+- `sync` and the launchers no longer rewrite `pack.lock` unless what it records changed, never change
+  the pins of entries that are already locked, and print one line for every entry they add, drop or
+  move because `agentpack.toml` changed. A `pack.lock` that cannot be parsed is now an error for
+  every command except `agentpack lock`, which regenerates it with a warning; before, it was
+  silently replaced. `[config] disabled_plugins` now survives a re-resolve.
 - A cache entry is no longer accepted because `SKILL.md` or a plugin manifest exists. A partly
   written or edited entry stops the command instead of being used.
 - The documentation no longer calls `cache_key` a content hash. It is a hash of the package
@@ -38,6 +43,12 @@ window.
   `npx`-style servers are resolved to an exact version and registry integrity, and staged as that
   version in every harness. An unreachable registry fails the lock unless `--allow-unpinned-mcp`
   (`mcp add --allow-unpinned`) records the server as unpinned.
+- **Lock entries are checked before use.** A `content_hash` that is present but malformed, and a
+  `commit` that does not match its `cache_key`, stop every command before anything is fetched or
+  staged, and the lock is left untouched.
+- **Staged files are verified.** `sync --verify-only` hashes the staged skills, commands, agents,
+  rules, hooks and MCP config against a record written by the last sync and fails naming each
+  modified, added or missing file. A plain `sync` reports the changed files it replaces.
 - `AGENTPACK_REQUIRE_VERIFIED` refuses a lock that still has packages without a content hash, and
   `AGENTPACK_FULL_VERIFY` hashes the cache on every launch.
 - `agentpack extra sync-claude` reconciles a project's `.claude/skills` and `.agents/skills`

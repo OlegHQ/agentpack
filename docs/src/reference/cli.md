@@ -88,7 +88,9 @@ agentpack sync --update-lock    # re-resolve floating pins while syncing
 agentpack sync --repair         # re-fetch cache entries that do not match pack.lock
 ```
 
-Every sync compares each cache entry with the `content_hash` in `pack.lock` and exits non-zero on a mismatch without staging anything; `--verify-only` does the same check without rebuilding. `--repair` downloads the pinned commit again, verifies it, replaces the entry, and reports what it replaced.
+Every sync compares each cache entry with the `content_hash` in `pack.lock` and exits non-zero on a mismatch without staging anything. A lock whose entries are malformed or inconsistent is refused the same way, and `sync` never changes the pins of entries that are already locked; see [what `sync` may write](../concepts/integrity.md#what-sync-may-write-to-packlock).
+
+`--verify-only` runs the lock and cache checks without rebuilding, then hashes the staged files and fails, naming each file, if any was modified, added or removed since the last sync. A plain `sync` rebuilds staging and prints which changed files it replaced. `--repair` downloads the pinned commit again, verifies it, replaces the cache entry, and reports what it replaced.
 
 ## Launchers
 
