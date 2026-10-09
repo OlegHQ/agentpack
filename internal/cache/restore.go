@@ -24,49 +24,53 @@ func FileURL(filePath string) string {
 	return (&url.URL{Scheme: "file", Path: slashPath}).String()
 }
 
+// EnsureLockCached makes the cache entry for pkg usable and, when the lock
+// carries a content hash, proves it matches before returning. An existing
+// entry is never repaired here: a mismatch is an IntegrityError. A missing
+// entry is built in a temporary directory and installed only once verified.
 func EnsureLockCached(pkg lockfile.Package, restoreRemote RemoteRestoreFunc) (bool, error) {
 	out, err := EntryDir(pkg.CacheKey)
 	if err != nil {
 		return false, err
 	}
+	if pkg.ContentHash != "" && !emptyOrMissingDir(out) {
+		if err := VerifyPackage(pkg); err != nil {
+			return false, err
+		}
+	}
 	ready, err := cacheReady(pkg, out)
 	if err != nil || ready {
 		return ready, err
 	}
-	local, err := localSourceDir(pkg.URL)
+	fill, err := packageSource(pkg, restoreRemote)
+	if err != nil || fill == nil {
+		return false, err
+	}
+	temporary, _, err := buildVerified(pkg, fill)
 	if err != nil {
 		return false, err
 	}
-	if local != "" {
-		if info, statErr := os.Stat(local); statErr == nil && info.IsDir() {
-			if err := prepareCacheOutput(out); err != nil {
-				return false, err
-			}
-			if err := copyMergeTree(local, out); err != nil {
-				return false, err
-			}
-			if err := NormalizePluginLayout(out); err != nil {
-				return false, err
-			}
-			return cacheReady(pkg, out)
-		}
-	}
-	if isLocalPackage(pkg) {
-		return false, nil
-	}
-	if restoreRemote == nil {
-		return false, fmt.Errorf("cache entry %s is missing and no remote restorer is configured", pkg.CacheKey)
-	}
-	if err := restoreRemote(pkg, out); err != nil {
-		return false, err
-	}
-	if err := NormalizePluginLayout(out); err != nil {
+	defer os.RemoveAll(temporary)
+	if err := installEntry(temporary, out); err != nil {
 		return false, err
 	}
 	return cacheReady(pkg, out)
 }
 
+// VerifyLockCacheIntegrity checks every locked package's cache entry: its
+// content hash when the lock has one, and that it still looks like a package.
 func VerifyLockCacheIntegrity(lock lockfile.PackLock) error {
+	for _, pkg := range lock.Packages {
+		if err := VerifyPackage(pkg); err != nil {
+			return err
+		}
+	}
+	return VerifyLockCacheLayout(lock)
+}
+
+// VerifyLockCacheLayout checks only that every cache entry still looks like
+// a package. It reads no file contents and proves nothing about them.
+func VerifyLockCacheLayout(lock lockfile.PackLock) error {
 	for _, pkg := range lock.Packages {
 		if pkg.CacheKey == "" {
 			continue
@@ -89,6 +93,11 @@ func VerifyLockCacheIntegrity(lock lockfile.PackLock) error {
 	return nil
 }
 
+func emptyOrMissingDir(path string) bool {
+	entries, err := os.ReadDir(path)
+	return os.IsNotExist(err) || err == nil && len(entries) == 0
+}
+
 func cacheReady(pkg lockfile.Package, out string) (bool, error) {
 	if pkg.Kind == lockfile.PackagePlugin {
 		if err := NormalizePluginLayout(out); err != nil {
@@ -97,23 +106,6 @@ func cacheReady(pkg lockfile.Package, out string) (bool, error) {
 		return HasPluginManifest(out), nil
 	}
 	return regularFile(filepath.Join(out, "SKILL.md")) || HasPluginManifest(out), nil
-}
-
-func prepareCacheOutput(out string) error {
-	cacheRoot, err := paths.CacheDir()
-	if err != nil {
-		return err
-	}
-	if err := os.MkdirAll(cacheRoot, 0o755); err != nil {
-		return fmt.Errorf("create cache directory %s: %w", cacheRoot, err)
-	}
-	if err := os.RemoveAll(out); err != nil {
-		return fmt.Errorf("remove cache entry %s: %w", out, err)
-	}
-	if err := os.MkdirAll(out, 0o755); err != nil {
-		return fmt.Errorf("create cache entry %s: %w", out, err)
-	}
-	return nil
 }
 
 func isLocalPackage(pkg lockfile.Package) bool {

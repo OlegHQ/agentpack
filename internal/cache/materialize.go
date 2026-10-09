@@ -68,7 +68,9 @@ func MaterializeGitHubTree(ctx context.Context, client *http.Client, source gith
 	if err != nil {
 		return lockfile.Package{}, err
 	}
+	fetched := false
 	if !IsPackageRoot(out) {
+		fetched = true
 		if len(prefetched) == 0 {
 			prefetched, err = githubsource.DownloadTarball(ctx, client, source.Owner, source.Repo, commit)
 			if err != nil {
@@ -83,7 +85,14 @@ func MaterializeGitHubTree(ctx context.Context, client *http.Client, source gith
 			return lockfile.Package{}, fmt.Errorf("no files matched repository path %q in %s/%s archive at %.8s", effective.Path, effective.Owner, effective.Repo, commit)
 		}
 	}
-	return ClassifyMaterialized(out, githubsource.CanonicalTreeURL(effective), effective, commit, cacheKey)
+	pkg, err := ClassifyMaterialized(out, githubsource.CanonicalTreeURL(effective), effective, commit, cacheKey)
+	if err != nil || !fetched {
+		return pkg, err
+	}
+	// Only bytes downloaded by this call may set the hash; an entry that was
+	// already cached is left for the resolver to verify against the lock.
+	pkg.ContentHash, err = TreeDigest(out)
+	return pkg, err
 }
 
 func FetchGitHubAssetURL(ctx context.Context, client *http.Client, rawURL string) (lockfile.Package, error) {
