@@ -2,7 +2,7 @@
 
 **agentpack** pins the skills, plugins, commands, and rules your project feeds to AI coding agents. You declare them once in `agentpack.toml`, lock them to exact commits in `pack.lock`, and launch any supported agent with everything already staged in its native format.
 
-Think of it as a package manager for agent configuration: a manifest, a lockfile, a content-addressed cache, and reproducible builds — except the artifacts are skills and prompts instead of libraries.
+Think of it as a package manager for agent configuration: a manifest, a lockfile, a shared verified cache, and reproducible builds — except the artifacts are skills and prompts instead of libraries.
 
 ## The problem it solves
 
@@ -17,8 +17,8 @@ agentpack replaces the copy-paste with a dependency graph.
 | Capability | What it means |
 |---|---|
 | Declarative manifest | `agentpack.toml` lists direct dependencies with version constraints, modes, and MCP servers |
-| Deterministic lockfile | `pack.lock` (v2) pins every package — direct and transitive — to an exact commit and `cache_key` |
-| Content-addressed cache | Each package is fetched once into `$AGENTPACK_HOME/cache/<cache_key>/` and shared across projects |
+| Deterministic lockfile | `pack.lock` pins every package — direct and transitive — to an exact commit and a content hash of its files |
+| Shared, verified cache | Each package is fetched once into `$AGENTPACK_HOME/cache/<cache_key>/`, shared across projects, and checked against the lock before it is staged |
 | Per-harness staging | Artifacts are materialized into per-harness staging trees **outside** your repo — never committed, never symlinked into your real `~/.claude` or `~/.cursor` |
 | Cross-harness conversion | A skill, command, agent, or rule is re-rendered into each harness's native format, not blindly copied |
 | Six launchers | `claude`, `agent` (Cursor), `opencode`, `codex`, `grok`, `agy` (Antigravity) — sync then exec the real binary |

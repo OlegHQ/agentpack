@@ -35,7 +35,7 @@ The command prints the script to stdout so you can source it directly or save it
 
 ### `agentpack init`
 
-Create `agentpack.toml` and a v2 `pack.lock` in the project root, and ensure `AGENTPACK_HOME` exists. Fails if `agentpack.toml` already exists.
+Create `agentpack.toml` and an empty `pack.lock` in the project root, and ensure `AGENTPACK_HOME` exists. Fails if `agentpack.toml` already exists.
 
 ```sh
 agentpack init
@@ -68,9 +68,12 @@ agentpack remove github.com/acme/monorepo/packages/rules
 Resolve `agentpack.toml` and rewrite `pack.lock` (direct + transitive). Network calls for ref/tag resolution; no content download.
 
 ```sh
-agentpack lock            # keep commits already pinned
-agentpack lock --update   # re-resolve floating pins from GitHub
+agentpack lock                        # keep commits and MCP versions already pinned
+agentpack lock --update               # re-resolve floating pins from GitHub and npm dist-tags
+agentpack lock --allow-unpinned-mcp   # record an MCP server as unpinned if its registry is unreachable
 ```
+
+`lock` records a `content_hash` for every package (downloading any package it has no hash for) and a record for every MCP server. See [Integrity and Verification](../concepts/integrity.md).
 
 ### `agentpack sync`
 
@@ -82,7 +85,12 @@ agentpack --mode writing sync
 agentpack sync --dry-run        # report actions without writing
 agentpack sync --verify-only    # check cache + staging integrity only
 agentpack sync --update-lock    # re-resolve floating pins while syncing
+agentpack sync --repair         # re-fetch cache entries that do not match pack.lock
 ```
+
+Every sync compares each cache entry with the `content_hash` in `pack.lock` and exits non-zero on a mismatch without staging anything. A lock whose entries are malformed or inconsistent is refused the same way, and `sync` never changes the pins of entries that are already locked; see [what `sync` may write](../concepts/integrity.md#what-sync-may-write-to-packlock).
+
+`--verify-only` runs the lock and cache checks without rebuilding, then hashes the staged files and fails, naming each file, if any was modified, added or removed since the last sync. A plain `sync` rebuilds staging and prints which changed files it replaced. `--repair` downloads the pinned commit again, verifies it, replaces the cache entry, and reports what it replaced.
 
 ## Launchers
 
@@ -108,13 +116,16 @@ See the [harness guides](../harnesses/claude.md) for what each one stages.
 
 ## `agentpack mcp`
 
-Manage `[mcp.servers]` in the manifest. `add`/`remove` sync afterward unless `--no-sync`.
+Manage `[mcp.servers]` in the manifest. `add`/`remove` update the server records in `pack.lock` and sync afterward unless `--no-sync`.
 
 ```sh
 agentpack mcp add retrieval --command uvx --args mcp-retrieval --env API_KEY=sk-...
+agentpack mcp add playwright --command npx --args @playwright/mcp@latest --allow-unpinned
 agentpack mcp remove retrieval
-agentpack mcp list      # all servers with provenance (manifest / plugin / .agents)
+agentpack mcp list      # all servers with provenance and lock status
 ```
+
+`add` resolves an npm server to an exact version and fails if the registry is unreachable; `--allow-unpinned` records it as unpinned instead. See [MCP Servers](../concepts/mcp.md#what-packlock-records).
 
 ## `agentpack mode`
 

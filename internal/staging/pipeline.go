@@ -15,6 +15,7 @@ import (
 	"github.com/OlegHQ/agentpack/internal/hooks"
 	"github.com/OlegHQ/agentpack/internal/lockfile"
 	"github.com/OlegHQ/agentpack/internal/manifest"
+	"github.com/OlegHQ/agentpack/internal/mcp"
 	"github.com/OlegHQ/agentpack/internal/mode"
 	"github.com/OlegHQ/agentpack/internal/paths"
 )
@@ -107,6 +108,7 @@ func (pipeline Pipeline) Rebuild() (_ []string, rebuildErr error) {
 	if err != nil {
 		return nil, err
 	}
+	merged = mcp.ApplyPins(merged, pipeline.Lock.MCPServers)
 	if len(merged) != 0 {
 		for _, candidate := range harnesses {
 			if err := candidate.WriteMCP(merged, ctx); err != nil {
@@ -141,6 +143,9 @@ func (pipeline Pipeline) Rebuild() (_ []string, rebuildErr error) {
 	}
 	if err := pipeline.verify(ctx); err != nil {
 		return nil, err
+	}
+	if err := pipeline.recordStaged(ctx); err != nil {
+		return nil, fmt.Errorf("record staged content: %w", err)
 	}
 	for _, transaction := range transactions {
 		if err := transaction.Commit(); err != nil {

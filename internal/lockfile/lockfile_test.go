@@ -1,6 +1,7 @@
 package lockfile
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -172,5 +173,89 @@ func TestPackageNeedsBackfill(t *testing.T) {
 	}
 	if (Package{Kind: PackageSkill, URL: "https://example.com"}).NeedsBackfill() {
 		t.Fatal("skill should not need plugin backfill")
+	}
+}
+
+func TestVersion2LockLoadsUnverifiedAndStaysVersion2(t *testing.T) {
+	root := t.TempDir()
+	raw := "lockfile_version = 2\n\n[meta]\nname = \"p\"\nversion = \"0.1.0\"\n\n[[packages]]\nmodule = \"github.com/acme/demo\"\nkind = \"skill\"\nurl = \"u\"\nowner = \"acme\"\nrepo = \"demo\"\ncommit = \"c\"\ncache_key = \"k\"\n"
+	if err := os.WriteFile(filepath.Join(root, "pack.lock"), []byte(raw), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	lock, err := Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if unverified := lock.UnverifiedPackages(); len(unverified) != 1 || unverified[0] != "github.com/acme/demo" {
+		t.Fatalf("UnverifiedPackages() = %v", unverified)
+	}
+	if err := lock.Save(root); err != nil {
+		t.Fatal(err)
+	}
+	saved, _ := os.ReadFile(filepath.Join(root, "pack.lock"))
+	if !strings.HasPrefix(string(saved), "lockfile_version = 2\n") || strings.Contains(string(saved), "content_hash") {
+		t.Fatalf("a lock without version 3 fields was not written as version 2:\n%s", saved)
+	}
+}
+
+func TestVersion3RoundTripsContentHashesAndMCPServers(t *testing.T) {
+	root := t.TempDir()
+	lock := EmptyForProject(root)
+	lock.Packages = []Package{{Module: "github.com/acme/demo", Kind: PackageSkill, CacheKey: "k", ContentHash: ContentHashPrefix + strings.Repeat("a", 64)}}
+	lock.MCPServers = []MCPServer{
+		{Name: "playwright", Source: "plugin", Launcher: "npm", Status: MCPPinned, Definition: "sha256:d", Requested: "@playwright/mcp@latest", Package: "@playwright/mcp", Version: "1.2.3", Integrity: "sha512-x", Registry: "https://registry.npmjs.org"},
+		{Name: "linear", Source: "plugin", Launcher: "remote", Status: MCPUnpinnable, Definition: "sha256:e", Host: "mcp.linear.app"},
+	}
+	if err := lock.Save(root); err != nil {
+		t.Fatal(err)
+	}
+	raw, _ := os.ReadFile(filepath.Join(root, "pack.lock"))
+	if !strings.HasPrefix(string(raw), "lockfile_version = 3\n") || strings.Index(string(raw), "name = 'linear'") > strings.Index(string(raw), "name = 'playwright'") {
+		t.Fatalf("unexpected version 3 lock:\n%s", raw)
+	}
+	loaded, err := Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.LockfileVersion != 3 || len(loaded.UnverifiedPackages()) != 0 || loaded.Packages[0].ContentHash != lock.Packages[0].ContentHash {
+		t.Fatalf("loaded = %#v", loaded)
+	}
+	if server, found := loaded.MCPServer("playwright"); !found || server != lock.MCPServers[0] {
+		t.Fatalf("MCPServer(playwright) = %#v, %v", server, found)
+	}
+}
+
+func TestPresentButInvalidContentHashIsRejected(t *testing.T) {
+	digest := strings.Repeat("a", 64)
+	for name, value := range map[string]string{
+		"unknown algorithm":   "sha256-tree-v9:" + digest,
+		"no algorithm prefix": "sha256-" + digest,
+		"bare hex":            digest,
+		"short digest":        ContentHashPrefix + digest[:63],
+		"uppercase digest":    ContentHashPrefix + strings.Repeat("A", 64),
+		"trailing data":       ContentHashPrefix + digest + "0",
+		"empty value":         "",
+	} {
+		t.Run(name, func(t *testing.T) {
+			root := t.TempDir()
+			raw := "lockfile_version = 3\n\n[meta]\nname = \"p\"\nversion = \"0.1.0\"\n\n[[packages]]\nmodule = \"github.com/acme/demo\"\nkind = \"skill\"\nurl = \"u\"\nowner = \"acme\"\nrepo = \"demo\"\ncommit = \"c\"\ncache_key = \"k\"\ncontent_hash = \"" + value + "\"\n"
+			if err := os.WriteFile(filepath.Join(root, "pack.lock"), []byte(raw), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			_, err := Load(root)
+			var invalid *ContentHashError
+			if !errors.Is(err, ErrContentHash) || !errors.As(err, &invalid) || invalid.Value != value || !strings.Contains(err.Error(), "sha256-tree-v1:") {
+				t.Fatalf("Load() error = %v", err)
+			}
+		})
+	}
+	// Only a missing key means "no content hash".
+	root := t.TempDir()
+	raw := "lockfile_version = 2\n\n[meta]\nname = \"p\"\nversion = \"0.1.0\"\n\n[[packages]]\nmodule = \"github.com/acme/demo\"\nkind = \"skill\"\nurl = \"u\"\nowner = \"acme\"\nrepo = \"demo\"\ncommit = \"c\"\ncache_key = \"k\"\n"
+	if err := os.WriteFile(filepath.Join(root, "pack.lock"), []byte(raw), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if lock, err := Load(root); err != nil || len(lock.UnverifiedPackages()) != 1 {
+		t.Fatalf("Load(absent key) = %#v, %v", lock, err)
 	}
 }

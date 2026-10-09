@@ -47,7 +47,7 @@ agentpack lock    # re-resolve agentpack.toml → pack.lock (network)
 agentpack sync    # fetch into the cache and rebuild every harness's staging
 ```
 
-Commit both `agentpack.toml` and `pack.lock`. The first sync downloads everything; later syncs reuse the content-addressed cache and are fast.
+Commit both `agentpack.toml` and `pack.lock`. The first sync downloads everything; later syncs reuse the cache, after checking it against the lock, and are fast.
 
 ## 4. Launch an agent
 

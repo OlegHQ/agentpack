@@ -145,8 +145,8 @@ Proxy diagnostics are written as JSONL under
 ## How It Works
 
 1. **`agentpack.toml`** — Declare dependencies (GitHub repos, subdirectories, single-plugin marketplace repos, or local paths) with version constraints.
-2. **`pack.lock`** — Deterministic lockfile pins every package to an exact commit + content hash.
-3. **`sync`** — Downloads, caches, and converts artifacts into per-harness staging directories.
+2. **`pack.lock`** — Deterministic lockfile pins every package to an exact commit and a content hash of its file tree, and records what each MCP server runs.
+3. **`sync`** — Downloads, caches, verifies the cache against the lock, and converts artifacts into per-harness staging directories.
 4. **Launchers** — `agentpack claude`, `agent`, `opencode`, `codex`, `grok`, `agy` each start the target agent with the staged bundle injected via that agent's native extension mechanism.
 
 ### Cross-Harness Artifact Conversion
@@ -186,8 +186,10 @@ disable = ["mcp:filesystem"]
 
 - **One manifest, six agents** — Write `agentpack.toml` once; launch Claude, Cursor, OpenCode, Codex, Grok, or Antigravity with the same skill set.
 - **Deterministic lockfile** — `pack.lock` pins every package, direct and transitive, to an exact commit and content hash, so resolution matches across machines and CI.
+- **Verified on every use** — The cache is re-hashed against the lock before anything is staged; a changed file stops `sync` and the launchers, and `sync --repair` re-fetches the pinned commit.
+- **MCP servers in the lock** — `npx`-style servers are resolved to an exact version and staged as that version; other launchers are recorded with an explicit `pinned` / `unpinned` / `unpinnable` status.
 - **Transitive resolution** — A package can declare its own `agentpack.toml`; agentpack walks the full graph and resolves conflicts.
-- **Content-addressed cache** — Each package is fetched once into `$AGENTPACK_HOME/cache/<cache_key>/` and shared by every project on the machine.
+- **Shared cache** — Each package is fetched once into `$AGENTPACK_HOME/cache/<cache_key>/`, keyed by repository, path and commit, and shared by every project on the machine.
 - **No workspace pollution** — Pack content stays in staging trees outside your repo, and never symlinks into your real `~/.claude` or `~/.cursor`.
 - **Resilient resolution** — Cached metadata and a `local/` mirror cut network calls; when the GitHub REST API is throttled, agentpack falls back to the Git protocol.
 - **Fast launch path** — When the manifest, lock, and `./.agents/` are unchanged, launchers verify staging and skip the full re-sync.
@@ -201,7 +203,7 @@ disable = ["mcp:filesystem"]
 | Version pinning | Semver, branch, tag, commit | None | None | Commit only |
 | Transitive deps | Yes | No | No | Manual |
 | Artifact conversion | Automatic per-harness | Manual | No | No |
-| Cache / dedup | Content-addressed | None | N/A | Partial |
+| Cache / dedup | Per commit, content-verified | None | N/A | Partial |
 | Workspace isolation | Full (staging dirs) | Files in repo | Symlinks in repo | Dirs in repo |
 | Lockfile | Deterministic | None | None | `.gitmodules` |
 

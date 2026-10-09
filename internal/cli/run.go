@@ -41,6 +41,9 @@ func (runner Runner) Run(ctx context.Context, arguments []string) (int, error) {
 	if err != nil {
 		return 2, err
 	}
+	if runner.Service.Notify == nil {
+		runner.Service.Notify = func(message string) { fmt.Fprintln(runner.Stderr, "warning: "+message) }
+	}
 	if invocation.Command != "init" && hasBeforeDoubleDash(invocation.Args, "--version", "-V") {
 		fmt.Fprintln(runner.Stdout, "agentpack "+Version)
 		return 0, nil
@@ -70,11 +73,12 @@ func (runner Runner) Run(ctx context.Context, arguments []string) (int, error) {
 	switch invocation.Command {
 	case "lock":
 		args, update := takeBool(invocation.Args, "--update")
+		args, allowUnpinned := takeBool(args, "--allow-unpinned-mcp")
 		if err := noArgs(args); err != nil {
 			return 2, err
 		}
 		var locked lockfile.PackLock
-		locked, err = runner.Service.Lock(ctx, root, update)
+		locked, err = runner.Service.LockWithOptions(ctx, root, packSync.LockOptions{Refresh: update, AllowUnpinnedMCP: allowUnpinned})
 		if err == nil && !invocation.Global.Quiet {
 			fmt.Fprintf(runner.Stdout, "Wrote %s (%d package(s)).\n", paths.LockPath(root), len(locked.Packages))
 		}
@@ -146,11 +150,12 @@ func (runner Runner) Run(ctx context.Context, arguments []string) (int, error) {
 		args, dry := takeBool(invocation.Args, "--dry-run")
 		args, verify := takeBool(args, "--verify-only")
 		args, update := takeBool(args, "--update-lock")
+		args, repair := takeBool(args, "--repair")
 		if err := noArgs(args); err != nil {
 			return 2, err
 		}
 		var result packSync.SyncResult
-		result, err = runner.Service.Sync(ctx, root, packSync.SyncOptions{DryRun: dry, VerifyOnly: verify, UpdateLock: update, Mode: invocation.Global.Mode})
+		result, err = runner.Service.Sync(ctx, root, packSync.SyncOptions{DryRun: dry, VerifyOnly: verify, UpdateLock: update, Repair: repair, Mode: invocation.Global.Mode})
 		if err == nil && !invocation.Global.Quiet {
 			if dry {
 				fmt.Fprintf(runner.Stdout, "Dry-run: would sync %d skill(s), %d plugin(s); %d skill(s) shadowed by plugins (omitted from staging); no changes made.\n", result.Skills, result.Plugins, result.Shadowed)
@@ -161,7 +166,8 @@ func (runner Runner) Run(ctx context.Context, arguments []string) (int, error) {
 			}
 		}
 	case "claude", "opencode", "codex", "grok", "agy", "agent":
-		return runner.launch(ctx, root, invocation)
+		code, err := runner.launch(ctx, root, invocation)
+		return code, runner.reportIntegrity(err)
 	case "mcp":
 		err = runner.runMCP(ctx, root, invocation.Args, invocation.Global.Quiet)
 	case "mode":
@@ -172,9 +178,23 @@ func (runner Runner) Run(ctx context.Context, arguments []string) (int, error) {
 		return 2, fmt.Errorf("unknown command %q", invocation.Command)
 	}
 	if err != nil {
-		return 1, err
+		return 1, runner.reportIntegrity(err)
 	}
 	return 0, nil
+}
+
+// reportIntegrity prints an integrity failure as plain lines, because the
+// error renderer reflows text and would break digests and paths.
+func (runner Runner) reportIntegrity(err error) error {
+	var failure interface {
+		Details() string
+		Summary() string
+	}
+	if !errors.As(err, &failure) {
+		return err
+	}
+	fmt.Fprint(runner.Stderr, failure.Details())
+	return errors.New(failure.Summary())
 }
 
 func dependencySelector(project *manifest.Manifest, module string) string {

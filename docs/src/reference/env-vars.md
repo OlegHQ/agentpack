@@ -38,6 +38,14 @@ Set this for a stable path when your OS rotates temp directories, or to put stag
 
 **Default:** enabled. Set to `0` to skip merging the project's `./.agents/` overlay into harness staging.
 
+### `AGENTPACK_REQUIRE_VERIFIED`
+
+**Default:** unset. Set to `1` / `true` / `yes` to make `sync` and the launchers refuse a `pack.lock` that still has packages without a `content_hash`, instead of staging them with a warning. Useful in CI once the lock has been re-locked. See [Integrity and Verification](../concepts/integrity.md#locks-without-content-hashes).
+
+### `AGENTPACK_FULL_VERIFY`
+
+**Default:** unset. Set to `1` / `true` / `yes` to hash every cache entry on every launch. By default a launch whose inputs are unchanged stages nothing and only compares cache file metadata with the last full verification. See [Integrity and Verification](../concepts/integrity.md#launches-that-skip-the-sync).
+
 ## Claude proxy diagnostics
 
 ### `AGENTPACK_PROXY_LOG_DIR`
