@@ -2,6 +2,7 @@ package resolve
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -20,6 +21,15 @@ type ResolveOptions struct {
 	// RefreshModules refreshes only the named modules. It is used by
 	// `agentpack update SPEC`; exact commit pins remain immutable.
 	RefreshModules map[string]bool
+	// RecordContentHashes re-fetches packages whose lock entry has no content
+	// hash so one can be recorded from freshly downloaded bytes. Without it a
+	// package that is already cached stays unverified.
+	RecordContentHashes bool
+	// RepairCache replaces a cache entry that fails verification with a fresh
+	// fetch of the pinned commit instead of failing.
+	RepairCache bool
+	// Notify receives one-line reports about cache entries that were replaced.
+	Notify func(message string)
 }
 
 type MaterializeFunc func(ctx context.Context, client *http.Client, source githubsource.Source, displayURL string, forceRefresh bool) (lockfile.Package, error)
@@ -28,6 +38,7 @@ type Resolver struct {
 	Client      *http.Client
 	Tags        TagLister
 	Materialize MaterializeFunc
+	Restore     cache.RemoteRestoreFunc
 }
 
 func NewResolver(ctx context.Context, client *http.Client) Resolver {
@@ -35,6 +46,7 @@ func NewResolver(ctx context.Context, client *http.Client) Resolver {
 		Client:      client,
 		Tags:        githubTagLister{ctx: ctx, client: client},
 		Materialize: cache.MaterializeGitHubTree,
+		Restore:     cache.GitHubRestore(ctx, client),
 	}
 }
 
@@ -84,6 +96,9 @@ func (resolver Resolver) Resolve(ctx context.Context, projectRoot string, projec
 		if err != nil {
 			return lockfile.PackLock{}, err
 		}
+		if pkg.ContentHash, err = cache.TreeDigest(destination); err != nil {
+			return lockfile.PackLock{}, err
+		}
 		pkg.Module, pkg.Direct = key, true
 		pathPackages = append(pathPackages, pkg)
 		nested, err := manifest.LoadNestedDependencies(destination)
@@ -131,6 +146,9 @@ func (resolver Resolver) Resolve(ctx context.Context, projectRoot string, projec
 			return lockfile.PackLock{}, err
 		}
 		pkg.Module, pkg.Direct = string(module), direct[module]
+		if pkg, err = resolver.settleContentHash(pkg, options); err != nil {
+			return lockfile.PackLock{}, err
+		}
 		resolved[module] = pkg
 		destination, err := cache.EntryDir(pkg.CacheKey)
 		if err != nil {
@@ -168,6 +186,60 @@ func (resolver Resolver) Resolve(ctx context.Context, projectRoot string, projec
 	}
 	sort.Slice(lock.Packages, func(i, j int) bool { return lock.Packages[i].Module < lock.Packages[j].Module })
 	return lock, nil
+}
+
+// settleContentHash decides the content hash of a materialized package. A hash
+// already in the lock for the same cache key always wins and the cache must
+// match it; a new hash is only ever taken from bytes fetched in this run.
+func (resolver Resolver) settleContentHash(pkg lockfile.Package, options ResolveOptions) (lockfile.Package, error) {
+	expected := ""
+	if options.Previous != nil {
+		for _, previous := range options.Previous.Packages {
+			if previous.CacheKey == pkg.CacheKey && previous.ContentHash != "" {
+				expected = previous.ContentHash
+				break
+			}
+		}
+	}
+	fetched := pkg.ContentHash
+	notify := func(format string, arguments ...any) {
+		if options.Notify != nil {
+			options.Notify(fmt.Sprintf(format, arguments...))
+		}
+	}
+	switch {
+	case expected != "" && fetched != "":
+		if fetched == expected {
+			return pkg, nil
+		}
+		if out, err := cache.EntryDir(pkg.CacheKey); err == nil {
+			_ = os.RemoveAll(out)
+		}
+		pkg.ContentHash = expected
+		return pkg, &cache.IntegrityError{Package: pkg, Expected: expected, Actual: fetched, Fetched: true}
+	case expected != "":
+		pkg.ContentHash = expected
+		err := cache.VerifyPackage(pkg)
+		var mismatch *cache.IntegrityError
+		if !options.RepairCache || !errors.As(err, &mismatch) {
+			return pkg, err
+		}
+		if _, _, err := cache.RefetchPackage(pkg, resolver.Restore); err != nil {
+			return pkg, err
+		}
+		notify("%s", mismatch.Repaired())
+		return pkg, nil
+	case fetched == "" && options.RecordContentHashes:
+		digest, replaced, err := cache.RefetchPackage(pkg, resolver.Restore)
+		if err != nil {
+			return pkg, err
+		}
+		if replaced {
+			notify("cache entry for %s differed from commit %s as fetched now and was replaced", pkg.Module, pkg.Commit)
+		}
+		pkg.ContentHash = digest
+	}
+	return pkg, nil
 }
 
 func seedDependencies(dependencies map[string]manifest.Dependency, merged map[ModuleID]ModuleConstraints, queue *[]ModuleID, queued, direct map[ModuleID]bool, isDirect bool) error {

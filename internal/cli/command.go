@@ -95,6 +95,7 @@ func (runner Runner) rootCommand(original []string, exitCode *int) *cobra.Comman
 	value(init, "version", "VERSION", "project version")
 	lock := leaf("lock", "Resolve the manifest and refresh pack.lock")
 	flag(lock, "update", "", "refresh floating dependency pins")
+	flag(lock, "allow-unpinned-mcp", "", "record an MCP server as unpinned when its registry is unreachable")
 	add := leaf("add SPEC", "Add and pin a package dependency")
 	flag(add, "no-sync", "", "record the change without staging")
 	remove := leaf("remove SPEC", "Remove a direct package dependency")
@@ -106,6 +107,7 @@ func (runner Runner) rootCommand(original []string, exitCode *int) *cobra.Comman
 	flag(syncCommand, "dry-run", "", "show what would change")
 	flag(syncCommand, "verify-only", "", "verify existing cache and staging")
 	flag(syncCommand, "update-lock", "", "refresh the lock before staging")
+	flag(syncCommand, "repair", "", "re-fetch cache entries that fail content verification")
 
 	root.AddCommand(init, lock, add, remove, update, list, syncCommand)
 	agent := leaf("agent [ARGS...]", "Launch Cursor Agent with a staged HOME")
@@ -125,6 +127,7 @@ func (runner Runner) rootCommand(original []string, exitCode *int) *cobra.Comman
 	value(mcpAdd, "args", "ARGS...", "arguments passed to the server")
 	value(mcpAdd, "env", "KEY=VALUE...", "environment passed to the server")
 	flag(mcpAdd, "no-sync", "", "record the change without staging")
+	flag(mcpAdd, "allow-unpinned", "", "record the server as unpinned when its registry is unreachable")
 	mcpRemove := leaf("remove NAME", "Remove an MCP server")
 	flag(mcpRemove, "no-sync", "", "record the change without staging")
 	mcp.AddCommand(mcpAdd, mcpRemove, leaf("list", "List configured MCP servers"))

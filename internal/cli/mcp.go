@@ -33,6 +33,7 @@ func (runner Runner) runMCP(ctx context.Context, root string, arguments []string
 		}
 		args = remaining
 		args, noSync := takeBool(args, "--no-sync")
+		args, allowUnpinned := takeBool(args, "--allow-unpinned")
 		serverArgs, environment, err := parseMCPLists(args)
 		if err != nil {
 			return err
@@ -42,6 +43,9 @@ func (runner Runner) runMCP(ctx context.Context, root string, arguments []string
 		}
 		if !quiet {
 			fmt.Fprintf(runner.Stdout, "Added MCP server %q to agentpack.toml\n", name)
+		}
+		if err := runner.Service.RefreshMCPRecords(ctx, root, true, allowUnpinned); err != nil {
+			return err
 		}
 		if !noSync {
 			_, err = runner.Service.Sync(ctx, root, packSync.SyncOptions{})
@@ -58,6 +62,9 @@ func (runner Runner) runMCP(ctx context.Context, root string, arguments []string
 		}
 		if !removed {
 			return fmt.Errorf("no MCP server named %q in agentpack.toml [mcp.servers]", args[0])
+		}
+		if err := runner.Service.RefreshMCPRecords(ctx, root, false, false); err != nil {
+			return err
 		}
 		if !noSync {
 			_, err = runner.Service.Sync(ctx, root, packSync.SyncOptions{})
@@ -95,7 +102,7 @@ func (runner Runner) runMCP(ctx context.Context, root string, arguments []string
 			if entry.Server.Disabled != nil && *entry.Server.Disabled {
 				disabled = " (disabled)"
 			}
-			fmt.Fprintf(runner.Stdout, "  %s: %s [from %s]%s\n", name, shown, entry.Source, disabled)
+			fmt.Fprintf(runner.Stdout, "  %s: %s [from %s]%s%s\n", name, shown, entry.Source, disabled, mcpPinLabel(lock, name, entry))
 		}
 		return nil
 	default:
@@ -130,4 +137,17 @@ func parseMCPLists(arguments []string) ([]string, map[string]string, error) {
 		}
 	}
 	return commandArgs, environment, nil
+}
+
+// mcpPinLabel describes what pack.lock records for a server as it is defined
+// now; a record made for an older definition counts as not locked.
+func mcpPinLabel(lock lockfile.PackLock, name string, entry mcp.Entry) string {
+	record, found := lock.MCPServer(name)
+	if !found || record.Definition != entry.Server.Definition() {
+		return " (not locked)"
+	}
+	if record.Status == lockfile.MCPPinned && record.Version != "" {
+		return fmt.Sprintf(" (%s %s@%s)", record.Status, record.Package, record.Version)
+	}
+	return " (" + record.Status + ")"
 }

@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/OlegHQ/agentpack/internal/cache"
 	base "github.com/OlegHQ/agentpack/internal/harness"
 	"github.com/OlegHQ/agentpack/internal/harness/registry"
 	"github.com/OlegHQ/agentpack/internal/lockfile"
@@ -41,6 +42,9 @@ func (runner Runner) Run(ctx context.Context, arguments []string) (int, error) {
 	if err != nil {
 		return 2, err
 	}
+	if runner.Service.Notify == nil {
+		runner.Service.Notify = func(message string) { fmt.Fprintln(runner.Stderr, "warning: "+message) }
+	}
 	if invocation.Command != "init" && hasBeforeDoubleDash(invocation.Args, "--version", "-V") {
 		fmt.Fprintln(runner.Stdout, "agentpack "+Version)
 		return 0, nil
@@ -70,11 +74,12 @@ func (runner Runner) Run(ctx context.Context, arguments []string) (int, error) {
 	switch invocation.Command {
 	case "lock":
 		args, update := takeBool(invocation.Args, "--update")
+		args, allowUnpinned := takeBool(args, "--allow-unpinned-mcp")
 		if err := noArgs(args); err != nil {
 			return 2, err
 		}
 		var locked lockfile.PackLock
-		locked, err = runner.Service.Lock(ctx, root, update)
+		locked, err = runner.Service.LockWithOptions(ctx, root, packSync.LockOptions{Refresh: update, AllowUnpinnedMCP: allowUnpinned})
 		if err == nil && !invocation.Global.Quiet {
 			fmt.Fprintf(runner.Stdout, "Wrote %s (%d package(s)).\n", paths.LockPath(root), len(locked.Packages))
 		}
@@ -146,11 +151,12 @@ func (runner Runner) Run(ctx context.Context, arguments []string) (int, error) {
 		args, dry := takeBool(invocation.Args, "--dry-run")
 		args, verify := takeBool(args, "--verify-only")
 		args, update := takeBool(args, "--update-lock")
+		args, repair := takeBool(args, "--repair")
 		if err := noArgs(args); err != nil {
 			return 2, err
 		}
 		var result packSync.SyncResult
-		result, err = runner.Service.Sync(ctx, root, packSync.SyncOptions{DryRun: dry, VerifyOnly: verify, UpdateLock: update, Mode: invocation.Global.Mode})
+		result, err = runner.Service.Sync(ctx, root, packSync.SyncOptions{DryRun: dry, VerifyOnly: verify, UpdateLock: update, Repair: repair, Mode: invocation.Global.Mode})
 		if err == nil && !invocation.Global.Quiet {
 			if dry {
 				fmt.Fprintf(runner.Stdout, "Dry-run: would sync %d skill(s), %d plugin(s); %d skill(s) shadowed by plugins (omitted from staging); no changes made.\n", result.Skills, result.Plugins, result.Shadowed)
@@ -161,7 +167,8 @@ func (runner Runner) Run(ctx context.Context, arguments []string) (int, error) {
 			}
 		}
 	case "claude", "opencode", "codex", "grok", "agy", "agent":
-		return runner.launch(ctx, root, invocation)
+		code, err := runner.launch(ctx, root, invocation)
+		return code, runner.reportIntegrity(err)
 	case "mcp":
 		err = runner.runMCP(ctx, root, invocation.Args, invocation.Global.Quiet)
 	case "mode":
@@ -172,9 +179,20 @@ func (runner Runner) Run(ctx context.Context, arguments []string) (int, error) {
 		return 2, fmt.Errorf("unknown command %q", invocation.Command)
 	}
 	if err != nil {
-		return 1, err
+		return 1, runner.reportIntegrity(err)
 	}
 	return 0, nil
+}
+
+// reportIntegrity prints a content hash mismatch as plain lines, because the
+// error renderer reflows text and would break the digests and the cache path.
+func (runner Runner) reportIntegrity(err error) error {
+	var mismatch *cache.IntegrityError
+	if !errors.As(err, &mismatch) {
+		return err
+	}
+	fmt.Fprint(runner.Stderr, mismatch.Details())
+	return errors.New(mismatch.Summary())
 }
 
 func dependencySelector(project *manifest.Manifest, module string) string {

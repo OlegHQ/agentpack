@@ -2,6 +2,7 @@ package sync
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -19,11 +20,25 @@ import (
 	"github.com/OlegHQ/agentpack/internal/staging"
 )
 
-type Service struct{ Client *http.Client }
+type Service struct {
+	Client *http.Client
+	// Notify receives one-line integrity reports. Nil writes them to stderr.
+	Notify func(message string)
+}
 type SyncOptions struct {
 	DryRun, VerifyOnly, UpdateLock bool
-	Mode                           string
-	Target                         *base.Target
+	// Repair re-fetches cache entries that fail content verification.
+	Repair bool
+	Mode   string
+	Target *base.Target
+}
+
+// LockOptions tunes the commands that are allowed to add records to pack.lock.
+type LockOptions struct {
+	Refresh bool
+	// AllowUnpinnedMCP records an MCP server as unpinned when its registry
+	// cannot be asked for an exact version, instead of failing.
+	AllowUnpinnedMCP bool
 }
 type SyncResult struct {
 	Skills, Plugins, Shadowed, IndexEntries int
@@ -38,11 +53,28 @@ func (service Service) client() *http.Client {
 	}
 	return http.DefaultClient
 }
-func (service Service) resolveAndSave(ctx context.Context, projectRoot string, project *manifest.Manifest, refresh bool, primed []lockfile.Package) (lockfile.PackLock, error) {
-	return service.resolveAndSaveWithOptions(ctx, projectRoot, project, resolve.ResolveOptions{RefreshFloating: refresh}, primed)
+func (service Service) notify(format string, arguments ...any) {
+	message := fmt.Sprintf(format, arguments...)
+	if service.Notify != nil {
+		service.Notify(message)
+		return
+	}
+	fmt.Fprintln(os.Stderr, "warning: "+message)
 }
-func (service Service) resolveAndSaveWithOptions(ctx context.Context, projectRoot string, project *manifest.Manifest, options resolve.ResolveOptions, primed []lockfile.Package) (lockfile.PackLock, error) {
+
+// resolveAndSave is the resolve step of the commands that edit the lock on
+// purpose (lock, add, remove, update): it records missing content hashes.
+func (service Service) resolveAndSave(ctx context.Context, projectRoot string, project *manifest.Manifest, refresh bool, primed []lockfile.Package) (lockfile.PackLock, error) {
+	return service.resolveAndSaveWithOptions(ctx, projectRoot, project, resolve.ResolveOptions{RefreshFloating: refresh, RecordContentHashes: true}, mcpCarry, false, primed)
+}
+func (service Service) resolveAndSaveWithOptions(ctx context.Context, projectRoot string, project *manifest.Manifest, options resolve.ResolveOptions, pinMode mcpPinMode, allowUnpinnedMCP bool, primed []lockfile.Package) (lockfile.PackLock, error) {
 	previous, _ := lockfile.Load(projectRoot)
+	unverified := make(map[string]bool)
+	for _, pkg := range previous.Packages {
+		if pkg.CacheKey != "" && pkg.ContentHash == "" {
+			unverified[pkg.CacheKey] = true
+		}
+	}
 	if len(primed) != 0 {
 		for _, pkg := range primed {
 			var kept []lockfile.Package
@@ -55,16 +87,35 @@ func (service Service) resolveAndSaveWithOptions(ctx context.Context, projectRoo
 		}
 	}
 	options.Previous = &previous
+	options.Notify = func(message string) { service.notify("%s", message) }
 	resolved, err := resolve.NewResolver(ctx, service.client()).Resolve(ctx, projectRoot, project, options)
 	if err != nil {
+		return lockfile.PackLock{}, err
+	}
+	if resolved.MCPServers, err = service.settleMCPServers(ctx, projectRoot, project, resolved, previous.MCPServers, pinMode, allowUnpinnedMCP); err != nil {
 		return lockfile.PackLock{}, err
 	}
 	if err := resolved.Save(projectRoot); err != nil {
 		return lockfile.PackLock{}, err
 	}
+	recorded := 0
+	for _, pkg := range resolved.Packages {
+		if pkg.ContentHash != "" && unverified[pkg.CacheKey] {
+			recorded++
+		}
+	}
+	if recorded != 0 {
+		service.notify("recorded content hashes for %d package(s) in %s that had none", recorded, paths.LockPath(projectRoot))
+	}
 	return resolved, nil
 }
 func (service Service) Lock(ctx context.Context, projectRoot string, refresh bool) (lockfile.PackLock, error) {
+	return service.LockWithOptions(ctx, projectRoot, LockOptions{Refresh: refresh})
+}
+
+// LockWithOptions resolves the manifest, records a content hash for every
+// package, and pins the MCP servers the project stages.
+func (service Service) LockWithOptions(ctx context.Context, projectRoot string, options LockOptions) (lockfile.PackLock, error) {
 	if _, err := paths.EnsureUserAgentpackLayout(); err != nil {
 		return lockfile.PackLock{}, err
 	}
@@ -75,7 +126,15 @@ func (service Service) Lock(ctx context.Context, projectRoot string, refresh boo
 	if project == nil {
 		return lockfile.PackLock{}, fmt.Errorf("agentpack.toml required")
 	}
-	return service.resolveAndSave(ctx, projectRoot, project, refresh, nil)
+	pinMode := mcpResolve
+	if options.Refresh {
+		pinMode = mcpRefresh
+	}
+	lock, err := service.resolveAndSaveWithOptions(ctx, projectRoot, project, resolve.ResolveOptions{RefreshFloating: options.Refresh, RecordContentHashes: true}, pinMode, options.AllowUnpinnedMCP, nil)
+	if err == nil {
+		service.reportMCPServers(lock)
+	}
+	return lock, err
 }
 
 // Update refreshes every floating dependency when specs is empty. Otherwise it
@@ -100,7 +159,11 @@ func (service Service) Update(ctx context.Context, projectRoot string, specs []s
 		}
 		modules[module] = true
 	}
-	lock, err := service.resolveAndSaveWithOptions(ctx, projectRoot, project, resolve.ResolveOptions{RefreshFloating: refresh, RefreshModules: modules}, nil)
+	pinMode := mcpCarry
+	if refresh {
+		pinMode = mcpRefresh
+	}
+	lock, err := service.resolveAndSaveWithOptions(ctx, projectRoot, project, resolve.ResolveOptions{RefreshFloating: refresh, RefreshModules: modules, RecordContentHashes: true}, pinMode, false, nil)
 	if err != nil {
 		return lockfile.PackLock{}, err
 	}
@@ -191,7 +254,10 @@ func (service Service) Sync(ctx context.Context, projectRoot string, options Syn
 		return SyncResult{}, err
 	}
 	if !options.DryRun && project != nil && len(project.Dependencies) != 0 {
-		if _, err := service.resolveAndSave(ctx, projectRoot, project, options.UpdateLock, nil); err != nil {
+		// sync verifies what the lock already pins. It records a content hash
+		// only for content it has to download, and adds no MCP records.
+		resolveOptions := resolve.ResolveOptions{RefreshFloating: options.UpdateLock, RepairCache: options.Repair}
+		if _, err := service.resolveAndSaveWithOptions(ctx, projectRoot, project, resolveOptions, mcpCarry, false, nil); err != nil {
 			return SyncResult{}, err
 		}
 	}
@@ -242,7 +308,15 @@ func (service Service) Sync(ctx context.Context, projectRoot string, options Syn
 		if pkg.CacheKey == "" {
 			continue
 		}
-		ready, err := cache.EnsureLockCached(pkg, cache.GitHubRestore(ctx, service.client()))
+		restore := cache.GitHubRestore(ctx, service.client())
+		ready, err := cache.EnsureLockCached(pkg, restore)
+		var mismatch *cache.IntegrityError
+		if options.Repair && errors.As(err, &mismatch) && !mismatch.Fetched {
+			if _, _, err = cache.RefetchPackage(pkg, restore); err == nil {
+				service.notify("%s", mismatch.Repaired())
+				ready, err = cache.EnsureLockCached(pkg, restore)
+			}
+		}
 		if err != nil {
 			return result, err
 		}
@@ -253,6 +327,9 @@ func (service Service) Sync(ctx context.Context, projectRoot string, options Syn
 		if err := cache.UpsertEntry(pkg.CacheKey, record, nil); err != nil {
 			return result, err
 		}
+	}
+	if err := service.checkLockRecords(projectRoot, project, lock); err != nil {
+		return result, err
 	}
 	pipeline := staging.Pipeline{ProjectRoot: projectRoot, Lock: lock, Manifest: project, Mode: effective, Target: options.Target}
 	if options.VerifyOnly {
@@ -291,15 +368,25 @@ func (service Service) SyncForLaunch(ctx context.Context, projectRoot, selectedM
 	if err != nil {
 		return mode.Effective{}, false, err
 	}
-	current, err := ComputeLaunchDigest(projectRoot, effective, &target)
+	current, err := launchDigest(projectRoot, effective, &target, lock)
 	if err != nil {
 		return mode.Effective{}, false, err
 	}
 	if stored, found, err := ReadLaunchDigest(projectRoot, effective.Name()); err != nil {
 		return mode.Effective{}, false, err
 	} else if found && stored == current {
+		// Nothing is staged on this path, so the harness keeps the tree built
+		// by the last full sync. The digest above already covers the cache
+		// metadata; hashing the content again is opt-in.
+		verifyCache := cache.VerifyLockCacheLayout
+		if envEnabled(FullVerifyEnv) {
+			verifyCache = cache.VerifyLockCacheIntegrity
+		}
 		pipeline := staging.Pipeline{ProjectRoot: projectRoot, Lock: lock, Manifest: project, Mode: effective, Target: &target}
-		if cache.VerifyLockCacheIntegrity(lock) == nil && pipeline.Verify() == nil {
+		if verifyCache(lock) == nil && pipeline.Verify() == nil {
+			if err := service.checkLockRecords(projectRoot, project, lock); err != nil {
+				return mode.Effective{}, false, err
+			}
 			return effective, true, nil
 		}
 	}
@@ -308,7 +395,12 @@ func (service Service) SyncForLaunch(ctx context.Context, projectRoot, selectedM
 		return mode.Effective{}, false, err
 	}
 	effective = result.Mode
-	digest, err := ComputeLaunchDigest(projectRoot, effective, &target)
+	if lock, err = lockfile.Load(projectRoot); os.IsNotExist(rootCause(err)) {
+		lock = lockfile.EmptyForProject(projectRoot)
+	} else if err != nil {
+		return mode.Effective{}, false, err
+	}
+	digest, err := launchDigest(projectRoot, effective, &target, lock)
 	if err != nil {
 		return mode.Effective{}, false, err
 	}
