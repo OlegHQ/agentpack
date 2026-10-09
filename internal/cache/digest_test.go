@@ -187,6 +187,24 @@ func TestEnsureLockCachedInstallsOnlyAFetchThatMatchesTheLock(t *testing.T) {
 	}
 }
 
+func TestRenameEntryAcceptsOnlyTheSameTreeInstalledConcurrently(t *testing.T) {
+	root := t.TempDir()
+	out, same, different := filepath.Join(root, "entry"), filepath.Join(root, "same"), filepath.Join(root, "different")
+	// The slot is already filled, as if another process won the race.
+	writeTestFile(t, filepath.Join(out, "SKILL.md"), "# Demo")
+	writeTestFile(t, filepath.Join(same, "SKILL.md"), "# Demo")
+	writeTestFile(t, filepath.Join(different, "SKILL.md"), "# Different")
+	if err := renameEntry(same, out); err != nil {
+		t.Fatalf("identical concurrent install was rejected: %v", err)
+	}
+	if err := renameEntry(different, out); err == nil || !strings.Contains(err.Error(), "install cache entry") {
+		t.Fatalf("renameEntry(different tree) error = %v", err)
+	}
+	if body, err := os.ReadFile(filepath.Join(out, "SKILL.md")); err != nil || string(body) != "# Demo" {
+		t.Fatalf("occupied slot changed: %q, %v", body, err)
+	}
+}
+
 func TestRefetchPackageReplacesOnlyWhatDiffersAndNeverAgainstTheLock(t *testing.T) {
 	t.Setenv("AGENTPACK_HOME", t.TempDir())
 	pkg := lockfile.Package{Module: "github.com/acme/demo", Kind: lockfile.PackageSkill, Owner: "acme", Repo: "demo", Commit: strings.Repeat("a", 40), CacheKey: "entry"}

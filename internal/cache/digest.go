@@ -321,8 +321,21 @@ func installEntry(temporary, out string) error {
 	if err := os.RemoveAll(out); err != nil {
 		return fmt.Errorf("remove cache entry %s: %w", out, err)
 	}
-	if err := os.Rename(temporary, out); err != nil {
-		return fmt.Errorf("install cache entry %s: %w", out, err)
+	return renameEntry(temporary, out)
+}
+
+// renameEntry moves a verified tree into its cache slot. If the slot is
+// occupied again, another agentpack process installed the entry between the
+// removal and the rename; that is success when it holds the same tree.
+func renameEntry(temporary, out string) error {
+	err := os.Rename(temporary, out)
+	if err == nil {
+		return nil
 	}
-	return nil
+	ours, oursErr := TreeDigest(temporary)
+	theirs, theirsErr := TreeDigest(out)
+	if oursErr == nil && theirsErr == nil && ours == theirs {
+		return nil
+	}
+	return fmt.Errorf("install cache entry %s: %w", out, err)
 }
