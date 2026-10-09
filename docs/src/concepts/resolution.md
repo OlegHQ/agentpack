@@ -36,7 +36,7 @@ Because the lockfile stores the resolved commit, a branch pin does not move on i
 
 ## Local path dependencies
 
-A `path` dependency skips version selection entirely. agentpack reads the directory on disk and computes its content hash from the files present at lock time, so local edits are reflected on the next `lock`/`sync`.
+A `path` dependency skips version selection entirely. agentpack copies the directory on disk and derives its `commit`, `cache_key` and `content_hash` from the files present at lock time, so local edits are reflected on the next `lock`/`sync`.
 
 ## Package roots and marketplace repositories
 

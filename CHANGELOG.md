@@ -9,6 +9,13 @@ window.
 
 ### Changed
 
+- **`pack.lock` is now lockfile version 3** once it holds a content hash or an MCP record. Version 2
+  locks still load and still stage, with a warning that their packages are not verified; run
+  `agentpack lock` to upgrade. Binaries older than this change cannot read a version 3 lock.
+- A cache entry is no longer accepted because `SKILL.md` or a plugin manifest exists. A partly
+  written or edited entry stops the command instead of being used.
+- The documentation no longer calls `cache_key` a content hash. It is a hash of the package
+  identity (repository, path, commit) and names the cache slot; `content_hash` covers the files.
 - Reimplemented agentpack as a Go 1.24 CLI while preserving the manifest, v2 lockfile, cache paths,
   six harnesses, modes/TUI, hooks, MCP merge, durable auth/history, fast launch sync, and supervised
   Claude proxy behavior.
@@ -19,6 +26,20 @@ window.
 
 ### Added
 
+- **Content hashes in `pack.lock`.** Every package now carries `content_hash`, a `sha256-tree-v1`
+  digest of its cached file tree (sorted paths, file kind, bytes). `lock`, `add`, `remove`, and
+  `update` record it from freshly fetched bytes.
+- **Verification on every use.** `sync`, `sync --verify-only`, and the launchers compare the cache
+  with the lock before anything is staged and stop with a non-zero exit on a mismatch, naming the
+  package, both digests, and the cache path. Downloads are verified before they enter the cache.
+  `agentpack sync --repair` re-fetches the pinned commit, verifies it, and reports what it replaced.
+- **MCP servers in `pack.lock`.** `lock` and `mcp add` record each staged MCP server under
+  `[[mcp_servers]]` with a launcher kind and a `pinned` / `unpinned` / `unpinnable` status.
+  `npx`-style servers are resolved to an exact version and registry integrity, and staged as that
+  version in every harness. An unreachable registry fails the lock unless `--allow-unpinned-mcp`
+  (`mcp add --allow-unpinned`) records the server as unpinned.
+- `AGENTPACK_REQUIRE_VERIFIED` refuses a lock that still has packages without a content hash, and
+  `AGENTPACK_FULL_VERIFY` hashes the cache on every launch.
 - `agentpack extra sync-claude` reconciles a project's `.claude/skills` and `.agents/skills`
   directories so a local skill authored under either one reaches both, since Claude Code only
   discovers project-local skills under `.claude/skills` while dot-agents shares them under

@@ -2,7 +2,7 @@
 
 `agentpack` is a Go CLI that pins **GitHub-hosted skills**, **plugin directories** (`.claude-plugin`, `.cursor-plugin`, and/or `.codex-plugin`), and single-plugin marketplace repositories for a project.
 
-**Source of truth for what to install** is **`agentpack.toml`** at the repo root (direct dependencies, project-local modes, and MCP settings). **`pack.lock`** (v2) lists every resolved **package** (direct and transitive from nested `agentpack.toml` files inside dependencies) with pinned commits and `cache_key`s. Both files live in the **project repo**.
+**Source of truth for what to install** is **`agentpack.toml`** at the repo root (direct dependencies, project-local modes, and MCP settings). **`pack.lock`** (v3; v2 still loads) lists every resolved **package** (direct and transitive from nested `agentpack.toml` files inside dependencies) with its pinned commit, `cache_key`, and a **`content_hash`** of its file tree, plus a record of what each staged **MCP server** runs. Both files live in the **project repo**.
 
 All downloaded trees, the metadata index, and your **`local/`** mirror live under a **user-wide agentpack home** (see below)—not under a repo-local `.agentpack/` directory. Staging for harnesses still uses a **per-project temp** directory (or **`AGENTPACK_STAGING_ROOT`**).
 
@@ -41,7 +41,7 @@ All agentpack-owned terminal rendering is monochrome and terminal-agnostic: use 
 
 | Path | Purpose |
 | --- | --- |
-| **`$AGENTPACK_HOME/cache/<cache_key>/`** | Content-addressed package trees (GitHub tarball, or **copies** from filesystem / `local/`). |
+| **`$AGENTPACK_HOME/cache/<cache_key>/`** | Package trees (GitHub tarball, or **copies** from filesystem / `local/`). The key is the SHA-256 of the package identity (`github:<owner>/<repo>`, path, commit), **not** of the files; the lock's `content_hash` is what verifies them. |
 | **`$AGENTPACK_HOME/cache/db.reddb`** | Metadata + alias map for fast repeat **`add`**, plus cached GitHub ref/tag lookups to reduce API calls. |
 | **`$AGENTPACK_HOME/local/<owner>/<repo>/…`** | Optional offline mirror; same slash layout as **`owner/repo/…`** specs. |
 | **`$AGENTPACK_HOME/projects/<hash>/cursor-overlay.manifest`** | Per-project Cursor overlay bookkeeping (not stored in the repo). |
@@ -99,7 +99,13 @@ A repository root with **`.claude-plugin/marketplace.json`**, **`.cursor-plugin/
 - **Rust v2 compatibility is mandatory.** `lockfile_version` and `disabled_plugins` are the canonical underscore keys emitted by Rust `v0.3.12`. The reader also accepts the erroneous `lockfile-version` spelling emitted briefly by the early Go port, but the writer always emits the canonical underscore spelling. Decoder implementation terms such as “strict mode” must never leak into CLI errors; unsupported fields are reported by name with a regeneration command.
 - **`sync`** refreshes **`pack.lock`** from **`agentpack.toml`** only when **`[dependencies]`** is **non-empty**. With an **empty** dependency table, **`sync`** treats the existing lock as authoritative (manual edits, tests, or hybrid workflows).
 - Run **`agentpack lock`** to force a full resolve from the manifest (requires **`agentpack.toml`**).
-- Harness launchers (**`agentpack claude`**, **`opencode`**, **`codex`**, **`agent`**) run a **fast pre-sync** when **`agentpack.toml`**, **`pack.lock`**, and **`./.agents/`** are unchanged since the last successful launch sync: they verify cache + staging integrity and **skip** full lock resolve, re-download, and staging rebuild. Floating pins (branch / floating semver) therefore **do not advance** on launch alone — run **`agentpack sync`** or **`agentpack lock`** when you need **`pack.lock`** refreshed from the manifest.
+- **Lockfile v3 = v2 + `content_hash` per package + `[[mcp_servers]]`.** The reader accepts 2 and 3. The writer emits 3 as soon as a lock holds either addition and 2 otherwise, so a lock that was never re-locked stays byte-compatible with older binaries. `content_hash` carries an algorithm prefix (**`sha256-tree-v1:`**); an unknown prefix is rejected.
+- **`sha256-tree-v1`** hashes the materialized cache entry (after extraction and `NormalizePluginLayout`): every regular file and symlink, sorted bytewise by slash-separated relative path, each written as `kind 0x00 path 0x00 decimal-length 0x00 payload` with kind `f` (regular), `x` (any execute bit), or `l` (symlink; payload is the target, never followed). Directories, other permission bits, owners, and times are ignored. `docs/src/concepts/integrity.md` is the normative description. **Changing extraction or layout normalization changes the digest of existing packages and requires a new prefix**; `TestTreeDigestOfNormalizedPluginIsPinned` guards this.
+- **A content hash is only recorded from bytes fetched in the same command**, never read off an existing cache entry. `lock`, `add`, `remove`, and `update` record one for every package and re-download any package that has none; `sync` and launchers record one only for packages they must download. A hash already in the lock for a `cache_key` always wins.
+- **Every read of the cache for resolving or staging verifies it first.** A mismatch is a `cache.IntegrityError`: the command exits non-zero, nothing is staged, the entry is left as found, and the CLI prints expected/actual digests and the cache path as plain lines. Nothing heals silently. **`agentpack sync --repair`** re-fetches the pinned commit into a temporary directory, verifies it against the lock, replaces the entry, and reports it. Freshly downloaded content is verified before it enters the cache; a download that contradicts the lock is discarded.
+- **Locks without content hashes still stage**, with a one-line warning on every `sync` and launch. **`AGENTPACK_REQUIRE_VERIFIED=1`** turns the warning into a refusal.
+- **MCP records.** `lock` and `mcp add` write one `[[mcp_servers]]` record per merged server with `launcher` (`npm` / `pypi` / `docker` / `remote` / `command`) and `status` (`pinned` / `unpinned` / `unpinnable`). npm servers (`npx`, `bunx`, `pnpm dlx`, `yarn dlx`, `bun x`) are resolved to an exact version plus registry integrity, and staging rewrites the package argument to `pkg@<version>` for every harness. An unreachable registry fails the lock unless **`--allow-unpinned-mcp`** records `status = "unpinned"` with `allow_unpinned = true`. `sync` and launchers never contact a registry; a record applies only while its `definition` digest (command, args, URL — never env) matches. Only the top-level package is pinned: its own dependencies still float.
+- Harness launchers (**`agentpack claude`**, **`opencode`**, **`codex`**, **`agent`**) run a **fast pre-sync** when **`agentpack.toml`**, **`pack.lock`**, and **`./.agents/`** are unchanged since the last successful launch sync: they check staging and the cache layout and **skip** full lock resolve, re-download, and staging rebuild. Nothing is staged on that path, so the cache content is not hashed there: the launch digest includes a fingerprint of the cache entries' file metadata (path, type, permission bits, size, mtime), and any visible change forces the full sync, which hashes. **`AGENTPACK_FULL_VERIFY=1`** hashes on every launch. Floating pins (branch / floating semver) therefore **do not advance** on launch alone — run **`agentpack sync`** or **`agentpack lock`** when you need **`pack.lock`** refreshed from the manifest.
 - GitHub **ref → commit** and **tag list** lookups are cached in **`db.reddb`** and reused across **`add`**, **`lock`**, and **`sync`**. Fresh cached metadata avoids repeat API calls; exact tag-name ref lookups also reuse the cached tag list directly.
 - When GitHub REST ref/tag lookups fail, agentpack falls back to the Git protocol through an embedded Go Git client against **`https://github.com/<owner>/<repo>.git`** before using stale cached metadata. This removes dependencies on both the throttled REST API and an external `git` executable for ref and tag resolution.
 
@@ -220,6 +226,8 @@ For Cursor specifically, **`$STAGING/cursor-home/.cursor/cli-config.json`** is m
 | --- | --- |
 | **`AGENTPACK_HOME`** | User agentpack root (`cache/`, `local/`, `projects/`, `db.reddb`). Overrides XDG / OS defaults. |
 | **`AGENTPACK_STAGING_ROOT`** | Staging root override (default: `temp_dir()/agentpack-<hash>`). |
+| **`AGENTPACK_REQUIRE_VERIFIED`** | Set to **`1`** / **`true`** / **`yes`** to make **`sync`** and launchers refuse a lock that has packages without a `content_hash`. Default: stage them with a warning. |
+| **`AGENTPACK_FULL_VERIFY`** | Set to **`1`** / **`true`** / **`yes`** to hash every cache entry on every launch, including launches that skip the sync. |
 | **`AGENTPACK_KEEP_ATTRIBUTION`** | Set to **`1`** / **`true`** / **`yes`** to keep AI attribution settings (Co-Authored-By trailers, "Generated with X" footers) in staged harness configs. Default: drop attribution (see below). |
 | **`CLAUDE_CODE_PATH`** | Path to the **`claude`** binary. |
 | **`OPENCODE_PATH`** | Path to the **`opencode`** binary. |
@@ -235,11 +243,11 @@ For Cursor specifically, **`$STAGING/cursor-home/.cursor/cli-config.json`** is m
 ### Commands (short)
 
 - **`init`** — write stub **`agentpack.toml`**, **v2** **`pack.lock`**, and ensure **`AGENTPACK_HOME`**. Fails if **`agentpack.toml`** already exists.
-- **`lock`** — resolve **`agentpack.toml`** and overwrite **`pack.lock`** with all packages (direct + transitive).
+- **`lock [--update] [--allow-unpinned-mcp]`** — resolve **`agentpack.toml`** and overwrite **`pack.lock`** with all packages (direct + transitive), a content hash for each, and the MCP server records.
 - **`add <spec>`** — append module to **`[dependencies]`**, resolve, save **`pack.lock`**, then **`sync`** unless **`--no-sync`** (requires manifest; see golden rules).
 - **`remove <spec>`** — remove matching **`[dependencies]`** key, prune any mode selectors that target that module, resolve, save **`pack.lock`**, then **`sync`** unless **`--no-sync`**. Accepts the same shapes as **`add`** where sensible (module id, **`owner/repo/path`**, GitHub **`tree`/`blob`** URL); picks the **`[dependencies]`** entry by walking parent paths for blob file URLs, like **`add`**.
-- **`sync`** — ensure cache + rebuild staging; recomputes **`pack.lock`** from the manifest when **`[dependencies]`** is non-empty.
-- **`mcp add <name> --command <cmd> [--args ...] [--env K=V ...]`** — add an MCP server to **`[mcp.servers]`** in **`agentpack.toml`**, then **`sync`** unless **`--no-sync`**.
+- **`sync [--verify-only] [--repair]`** — verify the cache against **`pack.lock`**, fetch what is missing, and rebuild staging; recomputes **`pack.lock`** from the manifest when **`[dependencies]`** is non-empty. **`--repair`** re-fetches entries that fail verification.
+- **`mcp add <name> --command <cmd> [--args ...] [--env K=V ...] [--allow-unpinned]`** — add an MCP server to **`[mcp.servers]`** in **`agentpack.toml`**, record it in **`pack.lock`**, then **`sync`** unless **`--no-sync`**.
 - **`mcp remove <name>`** — remove an MCP server from **`[mcp.servers]`**, then **`sync`** unless **`--no-sync`**.
 - **`mcp list`** — show all MCP servers (from manifest, plugins, and **`.agents/mcp.json`**) with provenance.
 - **`extra sync-claude [--dry-run]`** — reconcile a project's **`.claude/skills`** and **`.agents/skills`** directories so a *local* skill authored under either one reaches both. Claude Code only discovers project-local skills under **`.claude/skills`**, while the dot-agents convention shares project-local content across every harness under **`.agents/skills`**; this command is unrelated to fetched pack content or **`$STAGING`**. A skill present on only one side is copied to the other; a skill present on both sides with differing content is reconciled toward whichever copy has the newer file modification time. **`--dry-run`** reports what would change without touching the filesystem.
@@ -274,10 +282,10 @@ args = ["mcp-retrieval"]
 env = { API_KEY = "sk-..." }
 ```
 
-### `pack.lock` sketch (v2)
+### `pack.lock` sketch (v3)
 
 ```toml
-lockfile_version = 2
+lockfile_version = 3
 
 [meta]
 name = "myproj"
@@ -296,7 +304,7 @@ repo = "skills"
 path = "skills/canvas-design"
 commit = "<40 hex>"
 cache_key = "<64 hex>"
-name = ""
+content_hash = "sha256-tree-v1:<64 hex>"
 
 [[packages]]
 module = "github.com/anthropics/claude-plugins-official/plugins/hookify"
@@ -308,7 +316,30 @@ repo = "claude-plugins-official"
 path = "plugins/hookify"
 commit = "<40 hex>"
 cache_key = "<64 hex>"
+content_hash = "sha256-tree-v1:<64 hex>"
 name = "hookify"
+
+[[mcp_servers]]
+name = "filesystem"
+source = "manifest"
+launcher = "npm"
+status = "pinned"
+definition = "sha256:<64 hex>"
+requested = "@modelcontextprotocol/server-filesystem"
+package = "@modelcontextprotocol/server-filesystem"
+version = "<exact version>"
+integrity = "sha512-<base64>"
+registry = "https://registry.npmjs.org"
+
+[[mcp_servers]]
+name = "retrieval"
+source = "manifest"
+launcher = "pypi"
+status = "unpinned"
+definition = "sha256:<64 hex>"
+requested = "mcp-retrieval"
+package = "mcp-retrieval"
+reason = "PyPI version and hash resolution is not implemented"
 ```
 
 ### Limits
