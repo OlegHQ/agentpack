@@ -23,7 +23,11 @@ func New() base.Harness {
 func launch(ctx base.LaunchContext) (*exec.Cmd, error) {
 	arguments := append([]string(nil), ctx.Arguments...)
 	if !base.HasFlagValue(arguments, "--add-dir") {
-		arguments = append([]string{"--add-dir", base.WorkspaceRoot(ctx.ProjectRoot)}, arguments...)
+		workspace := ctx.WorkspaceRoot
+		if workspace == "" {
+			workspace = base.WorkspaceRoot(ctx.ProjectRoot)
+		}
+		arguments = append([]string{"--add-dir", workspace}, arguments...)
 	}
 	if ctx.Yolo {
 		arguments = base.PrependOnce(arguments, "--dangerously-skip-permissions")
@@ -45,8 +49,10 @@ func resetPaths(ctx base.StageContext) ([]string, error) {
 	return []string{root}, nil
 }
 func prepare(ctx base.StageContext) error {
-	if err := cleanupOverlay(ctx.ProjectRoot); err != nil {
-		return err
+	if !ctx.StrictExternal {
+		if err := cleanupOverlay(ctx.ProjectRoot); err != nil {
+			return err
+		}
 	}
 	bundle, err := stagedRoot(ctx)
 	if err != nil {

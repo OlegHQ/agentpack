@@ -2,6 +2,7 @@ package environment
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -46,7 +47,38 @@ func CompareReceipts(left, right Receipt) Comparison {
 	compareField("source_id", left.SourceIdentity, right.SourceIdentity)
 	compareField("lock_digest", left.LockDigest, right.LockDigest)
 	compareField("mode", left.Mode, right.Mode)
+	compareField("workspace_digest", left.WorkspaceDigest, right.WorkspaceDigest)
+	compareField("generation_id", left.GenerationID, right.GenerationID)
+	compareField("policy_digest", left.PolicyDigest, right.PolicyDigest)
 	compareField("native_version", left.Target.NativeVersion, right.Target.NativeVersion)
+	if left.Target.NativeVersion == "" || right.Target.NativeVersion == "" || left.Target.NativeVersion != right.Target.NativeVersion {
+		out.Compatible = false
+		out.Unknowns = append(out.Unknowns, "native version boundaries differ or are unobserved")
+	}
+	if left.Termination.Status != "completed" || right.Termination.Status != "completed" || left.Termination.NativeExitCode != 0 || right.Termination.NativeExitCode != 0 {
+		out.Compatible = false
+		out.Unknowns = append(out.Unknowns, "one or both probes did not complete successfully")
+	}
+
+	leftDomains, rightDomains := map[string]bool{}, map[string]bool{}
+	for _, prop := range left.Properties {
+		scope := prop.Scope
+		if scope == "" {
+			scope = "native_catalog"
+		}
+		leftDomains[prop.Category+"|"+scope] = true
+	}
+	for _, prop := range right.Properties {
+		scope := prop.Scope
+		if scope == "" {
+			scope = "native_catalog"
+		}
+		rightDomains[prop.Category+"|"+scope] = true
+	}
+	if !valuesEqual(leftDomains, rightDomains) {
+		out.Compatible = false
+		out.Unknowns = append(out.Unknowns, "observation categories or scopes differ")
+	}
 	leftProps := propertyMap(left.Properties)
 	rightProps := propertyMap(right.Properties)
 	for key, lv := range leftProps {
@@ -55,11 +87,11 @@ func CompareReceipts(left, right Receipt) Comparison {
 			out.Unknowns = append(out.Unknowns, key+" missing on right")
 			continue
 		}
-		if lv.Evidence == EvidenceUnknown || rv.Evidence == EvidenceUnknown {
+		if !out.Compatible || lv.Evidence != EvidenceObserved || rv.Evidence != EvidenceObserved {
 			out.Unknowns = append(out.Unknowns, key+" unobserved")
 			continue
 		}
-		if fmt.Sprint(lv.Value) != fmt.Sprint(rv.Value) {
+		if !valuesEqual(lv.Value, rv.Value) {
 			out.Deltas = append(out.Deltas, fmt.Sprintf("%s: %v vs %v", key, lv.Value, rv.Value))
 		}
 	}
@@ -68,13 +100,19 @@ func CompareReceipts(left, right Receipt) Comparison {
 			out.Unknowns = append(out.Unknowns, key+" missing on left")
 		}
 	}
+	sort.Strings(out.Deltas)
+	sort.Strings(out.Unknowns)
 	return out
 }
 
 func propertyMap(props []ObservedProperty) map[string]ObservedProperty {
 	out := make(map[string]ObservedProperty, len(props))
 	for _, prop := range props {
-		key := strings.TrimSpace(prop.ArtifactID) + "|" + prop.Property
+		scope := prop.Scope
+		if scope == "" {
+			scope = "native_catalog"
+		}
+		key := prop.Category + "|" + scope + "|" + strings.TrimSpace(prop.ArtifactID) + "|" + prop.Property
 		out[key] = prop
 	}
 	return out

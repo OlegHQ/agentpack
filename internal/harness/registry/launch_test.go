@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -34,7 +35,12 @@ func TestHarnessLaunchCommandsOwnArgumentsAndEnvironment(t *testing.T) {
 	}{{base.Claude, []string{"hi"}, []string{"--dangerously-skip-permissions", "hi"}, ""}, {base.Codex, []string{"exec", "hi"}, []string{"exec", "--dangerously-bypass-approvals-and-sandbox", "hi"}, "CODEX_HOME="}, {base.Grok, []string{"inspect"}, []string{"--always-approve", "--cwd", project, "inspect"}, "GROK_HOME="}, {base.Agy, []string{"--print", "ok"}, []string{"--dangerously-skip-permissions", "--add-dir"}, ""}, {base.Cursor, []string{"--print", "ok"}, []string{"--trust", "--force", "--workspace"}, "CURSOR_CONFIG_DIR="}}
 	for _, test := range tests {
 		candidate, _ := ByTarget(test.target)
-		ctx := base.LaunchContext{ProjectRoot: project, Arguments: test.arguments, Mode: effective, Yolo: true}
+		ctx := base.LaunchContext{ProjectRoot: project, WorkspaceRoot: project, Arguments: test.arguments, Mode: effective, Yolo: true}
+		if test.target == base.Claude {
+			if err := candidate.Prepare(base.StageContext{ProjectRoot: project, Mode: effective}); err != nil {
+				t.Fatal(err)
+			}
+		}
 		command, err := candidate.LaunchCommand(ctx)
 		if err != nil {
 			t.Fatalf("%s: %v", test.target, err)
@@ -42,6 +48,23 @@ func TestHarnessLaunchCommandsOwnArgumentsAndEnvironment(t *testing.T) {
 		ctx.Command = command
 		t.Cleanup(func() { _ = candidate.AfterLaunch(ctx) })
 		got := command.Args[1:]
+		if test.target == base.Claude {
+			if len(got) < 2 || got[0] != "--settings" {
+				t.Fatalf("missing Claude settings: %q", got)
+			}
+			var settings map[string]any
+			if err := json.Unmarshal([]byte(got[1]), &settings); err != nil {
+				t.Fatalf("Claude settings must be inline JSON: %v", err)
+			}
+			if settings["includeCoAuthoredBy"] != false {
+				t.Fatalf("missing attribution override: %v", settings)
+			}
+			got = got[2:]
+			if len(got) < 2 || got[0] != "--plugin-dir" || filepath.Base(got[1]) != paths.StagedAgentpackBundleName {
+				t.Fatalf("missing prepared plugin bundle: %q", got)
+			}
+			got = got[2:]
+		}
 		if len(got) < len(test.wantPrefix) || !reflect.DeepEqual(got[:len(test.wantPrefix)], test.wantPrefix) {
 			t.Fatalf("%s args=%q want prefix=%q", test.target, got, test.wantPrefix)
 		}

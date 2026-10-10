@@ -123,6 +123,8 @@ func (runner Runner) rootCommand(original []string, exitCode *int) *cobra.Comman
 	flag(probe, "json", "", "emit the receipt JSON")
 	value(probe, "agent", "claude|codex", "native adapter to probe")
 	value(probe, "mode", "NAME", "staged mode whose generation to probe")
+	value(probe, "policy", "local|ci", "policy to bind into receipt freshness")
+	flag(probe, "strict-external", "", "bind no-workspace-write requirements into receipt")
 
 	configCmd := &cobra.Command{Use: "config", Short: "Compare configuration observation receipts"}
 	configCompare := leaf("compare RECEIPT_A RECEIPT_B", "Diff two probe receipts")

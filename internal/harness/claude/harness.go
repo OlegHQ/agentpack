@@ -1,6 +1,7 @@
 package claude
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -25,13 +26,20 @@ func launch(ctx base.LaunchContext) (*exec.Cmd, error) {
 		arguments = base.PrependOnce(arguments, "--dangerously-skip-permissions")
 	}
 	command := exec.Command(binary)
-	settings, err := paths.AgentpackClaudeSettingsPath()
+	settings, err := SettingsPath(base.StageContext{ProjectRoot: ctx.ProjectRoot, WorkspaceRoot: ctx.WorkspaceRoot, Mode: ctx.Mode})
 	if err != nil {
 		return nil, err
 	}
-	if _, err := os.Stat(settings); err == nil {
-		command.Args = append(command.Args, "--settings", settings)
+	data, err := os.ReadFile(settings)
+	if err != nil {
+		return nil, fmt.Errorf("read staged Claude settings: %w", err)
 	}
+	var value map[string]any
+	if err := json.Unmarshal(data, &value); err != nil {
+		return nil, fmt.Errorf("parse staged Claude settings: %w", err)
+	}
+	// Inline settings avoid a project-dependent config filename in Claude's credential namespace.
+	command.Args = append(command.Args, "--settings", string(data))
 	plugins, err := paths.StagingPluginsDirForMode(ctx.ProjectRoot, ctx.Mode.Name())
 	if err != nil {
 		return nil, err
@@ -75,7 +83,7 @@ func prepare(ctx base.StageContext) error {
 	if err := os.WriteFile(filepath.Join(manifestDirectory, "plugin.json"), []byte(manifest), 0o644); err != nil {
 		return err
 	}
-	return MaterializeSettings()
+	return MaterializeSettings(ctx)
 }
 
 func writeMCP(entries mcp.Entries, ctx base.StageContext) error {
@@ -92,7 +100,7 @@ func injectGuidance(blob string, ctx base.StageContext) error {
 	}
 	return InjectGuidance(root, blob)
 }
-func finalize(entries mcp.Entries, _ base.StageContext) error {
+func finalize(entries mcp.Entries, ctx base.StageContext) error {
 	var names []string
 	for _, name := range entries.Names() {
 		disabled := entries[name].Server.Disabled
@@ -100,10 +108,7 @@ func finalize(entries mcp.Entries, _ base.StageContext) error {
 			names = append(names, name)
 		}
 	}
-	if len(names) != 0 {
-		return SetMCPAllowlist(names)
-	}
-	return nil
+	return SetMCPAllowlist(ctx, names)
 }
 func verify(ctx base.StageContext) error {
 	bundle, err := stagedRoot(ctx)
@@ -113,8 +118,8 @@ func verify(ctx base.StageContext) error {
 	if _, err := os.Stat(filepath.Join(bundle, ".claude-plugin", "plugin.json")); err != nil {
 		return fmt.Errorf("bundle missing manifest %s: %w", bundle, err)
 	}
-	if !KeepAttribution() {
-		overlay, err := paths.AgentpackClaudeSettingsPath()
+	{
+		overlay, err := SettingsPath(ctx)
 		if err != nil {
 			return err
 		}

@@ -20,12 +20,12 @@ type launchState struct {
 	Digest string `json:"digest"`
 }
 
-func ComputeLaunchDigest(projectRoot string, effective mode.Effective, target *base.Target) (string, error) {
+func ComputeLaunchDigest(projectRoot, workspace string, effective mode.Effective, target *base.Target) (string, error) {
 	hash := sha256.New()
 	writeDigestFile(hash, "manifest", paths.ManifestPath(projectRoot))
 	writeDigestFile(hash, "lock", paths.LockPath(projectRoot))
 	hash.Write([]byte("dot_agents\x00"))
-	dot, err := hashDotAgents(paths.ProjectDotAgentsDir(projectRoot))
+	dot, err := hashDotAgents(paths.ProjectDotAgentsDir(workspace))
 	if err != nil {
 		return "", err
 	}
@@ -38,9 +38,7 @@ func ComputeLaunchDigest(projectRoot string, effective mode.Effective, target *b
 	}
 	hash.Write([]byte("target\x00" + name))
 	hash.Write([]byte("workspace\x00"))
-	if target != nil && target.UsesWorkspaceOverlay() {
-		hash.Write([]byte(base.WorkspaceRoot(projectRoot)))
-	}
+	hash.Write([]byte(workspace))
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 func writeDigestFile(hash interface{ Write([]byte) (int, error) }, label, path string) {
@@ -105,6 +103,50 @@ func ReadLaunchDigest(projectRoot, modeName string) (string, bool, error) {
 	if err != nil {
 		return "", false, err
 	}
+	return readDigestState(path)
+}
+func WriteLaunchDigest(projectRoot, modeName, digest string) error {
+	path, err := paths.LaunchSyncStatePath(projectRoot, modeName)
+	if err != nil {
+		return err
+	}
+	return writeDigestState(path, digest)
+}
+func readMaterializationDigest(projectRoot, modeName string) (string, bool, error) {
+	path, err := paths.ProjectStateFile(projectRoot, "materialized-"+paths.ModePathComponent(modeName)+".json")
+	if err != nil {
+		return "", false, err
+	}
+	return readDigestState(path)
+}
+func writeMaterializationDigest(projectRoot, modeName, digest string) error {
+	path, err := paths.ProjectStateFile(projectRoot, "materialized-"+paths.ModePathComponent(modeName)+".json")
+	if err != nil {
+		return err
+	}
+	return writeDigestState(path, digest)
+}
+func computeMaterializationDigest(definition, workspace string, effective mode.Effective) (string, error) {
+	inputs, err := ComputeLaunchDigest(definition, workspace, effective, nil)
+	if err != nil {
+		return "", err
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	roots := []string{filepath.Join(workspace, ".agents"), filepath.Join(workspace, ".claude"), filepath.Join(workspace, ".cursor"), filepath.Join(workspace, "AGENTS.md"), filepath.Join(workspace, "CLAUDE.md"), filepath.Join(home, ".claude", "skills"), filepath.Join(home, ".grok", "skills")}
+	for _, target := range base.AllTargets() {
+		roots = append(roots, inheritedConfigPaths(&target)...)
+	}
+	ambient, err := fingerprintInputs(roots)
+	if err != nil {
+		return "", err
+	}
+	sum := sha256.Sum256([]byte(inputs + "\x00ambient\x00" + ambient + "\x00attribution\x00" + os.Getenv("AGENTPACK_KEEP_ATTRIBUTION")))
+	return "sha256:" + hex.EncodeToString(sum[:]), nil
+}
+func readDigestState(path string) (string, bool, error) {
 	data, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
 		return "", false, nil
@@ -114,21 +156,33 @@ func ReadLaunchDigest(projectRoot, modeName string) (string, bool, error) {
 	}
 	var state launchState
 	if err := json.Unmarshal(data, &state); err != nil {
-		return "", false, fmt.Errorf("launch-sync.state: %w", err)
+		return "", false, fmt.Errorf("read sync input state %s: %w", path, err)
 	}
 	return state.Digest, true, nil
 }
-func WriteLaunchDigest(projectRoot, modeName, digest string) error {
-	path, err := paths.LaunchSyncStatePath(projectRoot, modeName)
-	if err != nil {
-		return err
-	}
+func writeDigestState(path, digest string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	data, err := json.MarshalIndent(launchState{digest}, "", "  ")
+	data, err := json.Marshal(launchState{Digest: digest})
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, data, 0o644)
+	file, err := os.CreateTemp(filepath.Dir(path), ".sync-state-*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(file.Name())
+	if _, err := file.Write(data); err != nil {
+		file.Close()
+		return err
+	}
+	if err := file.Sync(); err != nil {
+		file.Close()
+		return err
+	}
+	if err := file.Close(); err != nil {
+		return err
+	}
+	return os.Rename(file.Name(), path)
 }

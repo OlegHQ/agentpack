@@ -432,10 +432,21 @@ func (service Service) Sync(ctx context.Context, projectRoot string, options Syn
 			return result, lockErr
 		}
 		_, err = pipeline.Rebuild()
-		_ = rebuildLock.Unlock()
 		if err == nil {
 			err = pipeline.Verify()
 		}
+		if err == nil {
+			workspace := options.WorkspaceRoot
+			if workspace == "" {
+				workspace = projectRoot
+			}
+			var digest string
+			digest, err = computeMaterializationDigest(projectRoot, workspace, effective)
+			if err == nil {
+				err = writeMaterializationDigest(projectRoot, effective.Name(), digest)
+			}
+		}
+		_ = rebuildLock.Unlock()
 	}
 	if err != nil {
 		return result, err
@@ -478,13 +489,17 @@ func (service Service) SyncForLaunchOptions(ctx context.Context, projectRoot str
 	if workspace == "" {
 		workspace = projectRoot
 	}
-	current, err := launchDigest(projectRoot, effective, &target, lock)
+	pending, err := (staging.Pipeline{ProjectRoot: projectRoot, WorkspaceRoot: workspace, Mode: effective, Target: &target}).RebuildPending()
+	if err != nil {
+		return mode.Effective{}, false, err
+	}
+	current, err := launchDigest(projectRoot, workspace, effective, &target, lock)
 	if err != nil {
 		return mode.Effective{}, false, err
 	}
 	if stored, found, err := ReadLaunchDigest(projectRoot, effective.Name()); err != nil {
 		return mode.Effective{}, false, err
-	} else if found && stored == current {
+	} else if found && stored == current && !pending {
 		// Nothing is staged on this path, so the harness keeps the tree built
 		// by the last full sync. The digest above already covers the cache
 		// metadata; hashing the content again is opt-in.
@@ -516,7 +531,7 @@ func (service Service) SyncForLaunchOptions(ctx context.Context, projectRoot str
 	} else if err != nil {
 		return mode.Effective{}, false, err
 	}
-	digest, err := launchDigest(projectRoot, effective, &target, lock)
+	digest, err := launchDigest(projectRoot, workspace, effective, &target, lock)
 	if err != nil {
 		return mode.Effective{}, false, err
 	}

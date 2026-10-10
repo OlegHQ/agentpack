@@ -7,6 +7,31 @@ window.
 
 ## Unreleased
 
+## [0.4.2] - 2026-10-10
+
+### Fixed
+
+- Named artifact contracts match effective mode-filtered artifacts; supported property predicates evaluate explicit evidence. Missing observations and incomplete/stale receipts cannot satisfy required native checks.
+- Receipt freshness binds source, lock, workspace/ambient inputs, staged generation, policy and executable bytes. Strict external launches check the contract under their staging lease.
+- Explicit external selectors and modes reach restore, export, preflight and probes. Native processes run in the selected workspace; launch caches include workspace identity and inputs.
+- CI inheritance findings reflect detected configuration rather than explanatory text. JSON preflight failures remain machine-readable.
+- Failed native processes, malformed output, timeouts and capture limits are failures; Unix cancellation terminates the process group.
+- Bundle import validates checksums, schemas and definitions before atomic publication; it refuses existing destinations. Export preserves contracts and rejects inline credentials and nonportable local resources.
+- Support exports omit arbitrary native prose and values that can contain private data.
+- Per-project staging under a shared override, independent Grok mode homes and per-bundle Claude settings prevent configuration cross-contamination. Returned rebuild errors restore prior staging; interrupted rebuilds recover from a validated journal before the next rebuild.
+
+### Added
+
+- Controlled positive native skill discovery for Codex 0.159.2, restored-pack conformance for Claude 2.1.296 and Codex 0.159.2, and explicit observation scopes.
+- Offline contribution fixtures and a documented ICSE evaluation/demo workflow with explicit native-evidence boundaries.
+
+### Compatibility
+
+- Re-export old bundles; metadata-less archives are rejected. Old receipts require a new probe.
+- `AGENTPACK_STAGING_ROOT` now contains per-definition subdirectories; restage with `env restore` or `sync`. Grok configuration homes are mode-specific; native/shared credentials and history remain separate.
+- Claude receives selected settings as inline JSON and leaves `CLAUDE_CONFIG_DIR` unset. The old shared settings file is ignored.
+- Returned errors roll back staging; journal recovery on the next rebuild is not a single atomic transaction across all harnesses. Native observations do not guarantee model answers or enforce network isolation.
+
 ## [0.4.1] - 2026-10-10
 
 ### Added

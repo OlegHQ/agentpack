@@ -21,7 +21,11 @@ func New() base.Harness {
 func launch(ctx base.LaunchContext) (*exec.Cmd, error) {
 	arguments := append([]string(nil), ctx.Arguments...)
 	if !base.HasFlagValue(arguments, "--cwd") {
-		arguments = append([]string{"--cwd", ctx.ProjectRoot}, arguments...)
+		workspace := ctx.WorkspaceRoot
+		if workspace == "" {
+			workspace = base.WorkspaceRoot(ctx.ProjectRoot)
+		}
+		arguments = append([]string{"--cwd", workspace}, arguments...)
 	}
 	if ctx.Yolo {
 		arguments = base.PrependOnce(arguments, "--always-approve")

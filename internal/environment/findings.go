@@ -63,14 +63,16 @@ type Finding struct {
 
 // ArtifactRecord is a planned package artifact identity for effective-plan reports.
 type ArtifactRecord struct {
-	ID       string        `json:"id"`
-	Kind     string        `json:"kind"`
-	Name     string        `json:"name"`
-	Module   string        `json:"module,omitempty"`
-	Winner   string        `json:"winner,omitempty"` // package | user | project | plugin
-	Omitted  bool          `json:"omitted,omitempty"`
-	Reason   string        `json:"reason,omitempty"`
-	Evidence EvidenceLevel `json:"evidence,omitempty"`
+	Properties map[string]any `json:"properties,omitempty"`
+	OutputPath string         `json:"output_path,omitempty"`
+	ID         string         `json:"id"`
+	Kind       string         `json:"kind"`
+	Name       string         `json:"name"`
+	Module     string         `json:"module,omitempty"`
+	Winner     string         `json:"winner,omitempty"` // package | user | project | plugin
+	Omitted    bool           `json:"omitted,omitempty"`
+	Reason     string         `json:"reason,omitempty"`
+	Evidence   EvidenceLevel  `json:"evidence,omitempty"`
 }
 
 // CoverageNote records observation completeness for a category.
@@ -83,36 +85,49 @@ type CoverageNote struct {
 
 // Report is the shared human/JSON preflight payload.
 type Report struct {
-	SchemaVersion   int               `json:"schema_version"`
-	Phase           string            `json:"phase"`
-	Environment     string            `json:"environment,omitempty"`
-	DefinitionRoot  string            `json:"definition_root"`
-	WorkspaceRoot   string            `json:"workspace_root"`
-	Mode            string            `json:"mode"`
-	Target          string            `json:"target,omitempty"`
-	Policy          Policy            `json:"policy"`
-	StrictExternal  bool              `json:"strict_external"`
-	SourceIdentity  string            `json:"source_identity,omitempty"`
-	LockDigest      string            `json:"lock_digest,omitempty"`
-	Skills          int               `json:"skills"`
-	Plugins         int               `json:"plugins"`
-	Shadowed        int               `json:"shadowed"`
-	Inheritance     []string          `json:"inheritance,omitempty"`
-	Capabilities    map[string]string `json:"capabilities,omitempty"`
-	PlannedWrites   []string          `json:"planned_writes,omitempty"`
-	Artifacts       []ArtifactRecord  `json:"artifacts,omitempty"`
-	Coverage        []CoverageNote    `json:"coverage,omitempty"`
-	ContractResults []ContractResult  `json:"contract_results,omitempty"`
-	Findings        []Finding         `json:"findings"`
-	OverallStatus   string            `json:"overall_status"`
-	OK              bool              `json:"ok"`
+	SchemaVersion   int                `json:"schema_version"`
+	Phase           string             `json:"phase"`
+	Environment     string             `json:"environment,omitempty"`
+	DefinitionRoot  string             `json:"definition_root"`
+	WorkspaceRoot   string             `json:"workspace_root"`
+	Mode            string             `json:"mode"`
+	Target          string             `json:"target,omitempty"`
+	Policy          Policy             `json:"policy"`
+	StrictExternal  bool               `json:"strict_external"`
+	WorkspaceDigest string             `json:"workspace_digest,omitempty"`
+	GenerationID    string             `json:"generation_id,omitempty"`
+	PolicyDigest    string             `json:"policy_digest,omitempty"`
+	ExpectedTarget  ReceiptTarget      `json:"expected_target"`
+	Properties      []ObservedProperty `json:"properties,omitempty"`
+	SourceIdentity  string             `json:"source_identity,omitempty"`
+	LockDigest      string             `json:"lock_digest,omitempty"`
+	Skills          int                `json:"skills"`
+	Plugins         int                `json:"plugins"`
+	Shadowed        int                `json:"shadowed"`
+	Inheritance     []string           `json:"inheritance,omitempty"`
+	Capabilities    map[string]string  `json:"capabilities,omitempty"`
+	PlannedWrites   []string           `json:"planned_writes,omitempty"`
+	Artifacts       []ArtifactRecord   `json:"artifacts,omitempty"`
+	Coverage        []CoverageNote     `json:"coverage,omitempty"`
+	ContractResults []ContractResult   `json:"contract_results,omitempty"`
+	Findings        []Finding          `json:"findings"`
+	OverallStatus   string             `json:"overall_status"`
+	OK              bool               `json:"ok"`
 }
 
 // HasObservedCoverage reports whether a category has complete observed coverage.
 func (report Report) HasObservedCoverage(category string) bool {
+	return report.HasObservedCoverageScope(category, "native_catalog")
+}
+
+func (report Report) HasObservedCoverageScope(category, scope string) bool {
 	for _, note := range report.Coverage {
-		if strings.EqualFold(note.Category, category) && note.Completeness == "complete" && note.Scope == "native_catalog" {
-			return true
+		if strings.EqualFold(note.Category, category) && note.Completeness == "complete" && note.Scope == scope {
+			for _, property := range report.Properties {
+				if property.Category == category && (property.Scope == scope || (property.Scope == "" && scope == "native_catalog")) && property.Property == "catalog_complete" && valuesEqual(property.Value, true) && property.Evidence == EvidenceObserved && property.Method != "" {
+					return true
+				}
+			}
 		}
 	}
 	return false

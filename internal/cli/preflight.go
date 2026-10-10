@@ -8,8 +8,18 @@ import (
 	packSync "github.com/OlegHQ/agentpack/internal/sync"
 )
 
-func (runner Runner) runPreflight(definitionRoot, workspaceRoot string, arguments []string, quiet bool) (int, error) {
+func (runner Runner) runPreflight(definitionRoot, workspaceRoot, mode string, arguments []string, quiet bool) (code int, resultErr error) {
 	args, jsonOut := takeBool(arguments, "--json")
+	written := false
+	defer func() {
+		if jsonOut && !written && resultErr != nil {
+			report := environment.Report{SchemaVersion: 1, Phase: "preflight", DefinitionRoot: definitionRoot, WorkspaceRoot: workspaceRoot, Mode: mode, OverallStatus: "error", Findings: []environment.Finding{{Code: "PREFLIGHT_ERROR", Severity: environment.SeverityError, Message: resultErr.Error(), Evidence: environment.EvidenceUnknown}}}
+			if err := writeJSON(runner.Stdout, report); err != nil {
+				resultErr = fmt.Errorf("%w; write JSON: %v", resultErr, err)
+			}
+		}
+	}()
+
 	args, strict := takeBool(args, "--strict-external")
 	agent, args, _, err := takeFlag(args, "--agent")
 	if err != nil {
@@ -52,6 +62,7 @@ func (runner Runner) runPreflight(definitionRoot, workspaceRoot string, argument
 		target = &parsed
 	}
 	report, err := runner.Service.Preflight(definitionRoot, packSync.PreflightOptions{
+		Mode:           mode,
 		Target:         target,
 		Policy:         policy,
 		StrictExternal: strict,
@@ -60,9 +71,10 @@ func (runner Runner) runPreflight(definitionRoot, workspaceRoot string, argument
 		ReceiptID:      receiptID,
 	})
 	if err != nil {
-		return 1, err
+		return 5, err
 	}
 	if jsonOut {
+		written = true
 		if err := writeJSON(runner.Stdout, report); err != nil {
 			return 1, err
 		}

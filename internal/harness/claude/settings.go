@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/OlegHQ/agentpack/internal/paths"
+	base "github.com/OlegHQ/agentpack/internal/harness"
 )
 
 func KeepAttribution() bool {
@@ -19,32 +19,43 @@ func KeepAttribution() bool {
 	}
 }
 
-func MaterializeSettings() error {
-	path, err := paths.AgentpackClaudeSettingsPath()
+// SettingsPath is mode-scoped; inline launch settings do not alter the keychain namespace.
+func SettingsPath(ctx base.StageContext) (string, error) {
+	root, err := stagedRoot(ctx)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(root, "agentpack-settings.json"), nil
+}
+
+func MaterializeSettings(ctx base.StageContext) error {
+	path, err := SettingsPath(ctx)
 	if err != nil {
 		return err
 	}
-	if KeepAttribution() {
-		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-			return err
-		}
-		return nil
+	settings := map[string]any{}
+	if !KeepAttribution() {
+		settings["includeCoAuthoredBy"] = false
+		settings["attribution"] = map[string]any{"commit": "", "pr": ""}
 	}
-	return writeSettings(path, map[string]any{"includeCoAuthoredBy": false, "attribution": map[string]any{"commit": "", "pr": ""}})
+	return writeSettings(path, settings)
 }
 
-func SetMCPAllowlist(names []string) error {
-	path, err := paths.AgentpackClaudeSettingsPath()
+func SetMCPAllowlist(ctx base.StageContext, names []string) error {
+	path, err := SettingsPath(ctx)
+	if err != nil {
+		return err
+	}
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
 	settings := make(map[string]any)
-	if data, readErr := os.ReadFile(path); readErr == nil {
-		if err := json.Unmarshal(data, &settings); err != nil {
-			return fmt.Errorf("parse %s: %w", path, err)
-		}
-	} else if !os.IsNotExist(readErr) {
-		return readErr
+	if err := json.Unmarshal(data, &settings); err != nil {
+		return fmt.Errorf("parse %s: %w", path, err)
+	}
+	if names == nil {
+		names = []string{}
 	}
 	settings["enabledMcpjsonServers"] = names
 	return writeSettings(path, settings)

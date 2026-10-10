@@ -39,7 +39,7 @@ A project-local `AGENTPACK_HOME` keeps all cached content and bookkeeping inside
 
 ## Attribution
 
-By default, `sync` forces AI attribution **off** in every staged harness config — Co-Authored-By trailers and "Generated with X" footers — so your project doesn't pick up agent credit lines unintentionally. Your real `~/.claude`, `~/.codex`, `~/.cursor`, and `~/.config/opencode` are never modified; only the staged copies and the Claude overlay file at `$AGENTPACK_HOME/claude-settings.json` are touched.
+By default, `sync` forces AI attribution **off** in every staged harness config — Co-Authored-By trailers and "Generated with X" footers — so your project doesn't pick up agent credit lines unintentionally. Your real `~/.claude`, `~/.codex`, `~/.cursor`, and `~/.config/opencode` are never modified; only staged configuration copies are touched. Claude settings are project/mode-specific and passed inline at launch.
 
 Set `AGENTPACK_KEEP_ATTRIBUTION=1` (or `true`/`yes`) to keep your existing values.
 
@@ -47,7 +47,7 @@ How each harness is handled:
 
 | Harness | Mechanism |
 |---|---|
-| Claude Code | `$AGENTPACK_HOME/claude-settings.json` via `--settings`: `includeCoAuthoredBy = false`, empty commit/PR attribution (loads at `flagSettings` scope) |
+| Claude Code | Project/mode-specific staged JSON passed inline via `--settings`: `includeCoAuthoredBy = false`, empty commit/PR attribution (loads at `flagSettings` scope) |
 | Codex | Legacy `commit_attribution` stripped from staged `config.toml` |
 | Cursor | `attributeCommitsToAgent = false`, `attributePRsToAgent = false` in the staged `cli-config.json` (a real file, never your real one) |
 | OpenCode | No first-class setting; a system-prompt file is added to `instructions[]` |

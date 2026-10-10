@@ -103,7 +103,7 @@ func TestRecoverCredentialsFromLegacyStaging(t *testing.T) {
 	}
 }
 
-func TestVerifyDetectsConfigFromAnotherMode(t *testing.T) {
+func TestModesPreserveIndependentConfig(t *testing.T) {
 	project, home := t.TempDir(), t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("AGENTPACK_HOME", t.TempDir())
@@ -124,7 +124,10 @@ func TestVerifyDetectsConfigFromAnotherMode(t *testing.T) {
 	if err := h.Prepare(other); err != nil {
 		t.Fatal(err)
 	}
-	if err := h.Verify(first); err == nil {
-		t.Fatal("old mode config was accepted")
+	if err := h.Verify(first); err != nil {
+		t.Fatalf("other mode overwrote first config: %v", err)
+	}
+	if err := h.Verify(other); err != nil {
+		t.Fatal(err)
 	}
 }

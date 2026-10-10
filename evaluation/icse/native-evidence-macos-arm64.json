@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "kind": "recorded_controlled_conformance_run",
+  "date": "2026-10-10",
+  "platform": "darwin_arm64",
+  "command": "AGENTPACK_NATIVE_PROBES=1 go test -v ./internal/harness/claude ./internal/harness/codex -run '^TestNative.*Sentinel$'",
+  "cases": [
+    {
+      "adapter": "claude",
+      "native_version": "2.1.296 (Claude Code)",
+      "known_positive_sentinel_observed": true,
+      "removed_sentinel_no_longer_observed": true,
+      "fixture_workspace_unchanged": true,
+      "scope": "controlled_projection",
+      "coverage": "partial",
+      "model_inference_requested": false,
+      "network_effects": "not_measured",
+      "native_other_effects": "not_measured"
+    },
+    {
+      "adapter": "codex",
+      "native_version": "codex-cli 0.159.2",
+      "known_positive_sentinel_observed": true,
+      "removed_sentinel_no_longer_observed": true,
+      "fixture_workspace_unchanged": true,
+      "scope": "controlled_projection",
+      "coverage": "partial",
+      "model_inference_requested": false,
+      "network_effects": "not_measured",
+      "native_other_effects": "not_measured"
+    }
+  ],
+  "limitations": [
+    "Synthetic independently authored sentinel inputs, not a competition benchmark",
+    "Missing sentinel observation does not prove complete native absence",
+    "Controlled projection excludes production authentication, history and hooks",
+    "No model use, answer quality or general runtime isolation claim",
+    "Held-out ambient/precedence fault and competing-tool benchmarks require further evaluation"
+  ],
+  "restored_pack_run": {
+    "command": "AGENTPACK_NATIVE_PROBES=1 go test -v ./internal/cli -run '^TestNativeRestoredPackConformance$'",
+    "passed": true,
+    "locked_payload": "independently authored content-hashed local skill fixture",
+    "adapters": [
+      "claude 2.1.296",
+      "codex-cli 0.159.2"
+    ],
+    "same_source_identity": true,
+    "frozen_lock_bytes_unchanged": true,
+    "fixture_workspace_unchanged": true,
+    "observation_scope": "controlled_projection"
+  }
+}

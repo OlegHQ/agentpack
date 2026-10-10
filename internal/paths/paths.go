@@ -213,7 +213,11 @@ func LaunchSyncStatePath(projectRoot, modeName string) (string, error) {
 
 func stagingRootBase(projectRoot string) (string, error) {
 	if value, ok := os.LookupEnv("AGENTPACK_STAGING_ROOT"); ok {
-		return value, nil
+		hash, err := ProjectPathHash(projectRoot)
+		if err != nil {
+			return "", err
+		}
+		return filepath.Join(value, "projects", hash), nil
 	}
 	hash, err := ProjectPathHash(projectRoot)
 	if err != nil {
@@ -252,7 +256,7 @@ func StagingGrokHomeDirForMode(root, mode string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(state, "grok-home"), nil
+	return filepath.Join(state, "grok-homes", ModePathComponent(mode)), nil
 }
 func StagingGrokDirForMode(root, mode string) (string, error) {
 	return stagingSubdir(root, mode, "grok")
@@ -285,9 +289,8 @@ func StagingCursorPackPluginDirForMode(root, mode string) (string, error) {
 	return bundleDirForMode(root, mode, "cursor")
 }
 
-func SharedCodexAuthPath() (string, error)         { return underHome("shared", "codex", "auth.json") }
-func SharedGrokCredentialsDir() (string, error)    { return underHome("shared", "grok") }
-func AgentpackClaudeSettingsPath() (string, error) { return underHome("claude-settings.json") }
+func SharedCodexAuthPath() (string, error)      { return underHome("shared", "codex", "auth.json") }
+func SharedGrokCredentialsDir() (string, error) { return underHome("shared", "grok") }
 
 func canonical(path string) (string, error) {
 	abs, err := filepath.Abs(path)

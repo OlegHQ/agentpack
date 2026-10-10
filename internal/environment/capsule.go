@@ -2,9 +2,9 @@ package environment
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -34,13 +34,12 @@ func ExportSupportCapsule(receipt Receipt) SupportCapsule {
 		SchemaVersion: 1,
 		ExportedAt:    time.Now().UTC(),
 		Scope:         "local-diagnostic; no credentials; paths pseudonymized",
-		ReceiptID:     receipt.ReceiptID,
+		ReceiptID:     "<receipt>",
 		Adapter:       receipt.Target.Adapter,
-		NativeVersion: receipt.Target.NativeVersion,
+		NativeVersion: publicVersion(receipt.Target.NativeVersion),
 		SourceID:      prefixDigest(receipt.SourceIdentity, 16),
 		LockDigest:    prefixDigest(receipt.LockDigest, 24),
-		Mode:          receipt.Mode,
-		Coverage:      receipt.Coverage,
+		Mode:          "<mode>",
 		OverallStatus: receipt.OverallStatus,
 		Notes: []string{
 			"Private names and absolute paths are redacted.",
@@ -48,12 +47,31 @@ func ExportSupportCapsule(receipt Receipt) SupportCapsule {
 			"Do not upload automatically; review before sharing.",
 		},
 	}
+	for _, note := range receipt.Coverage {
+		note.Reason = ""
+		capsule.Coverage = append(capsule.Coverage, note)
+	}
 	for _, finding := range receipt.Findings {
 		capsule.Findings = append(capsule.Findings, redactFinding(finding))
 	}
 	for _, prop := range receipt.Properties {
 		prop.ArtifactID = redactPath(prop.ArtifactID)
-		if prop.Property == "source_digest" {
+		prop.Reason, prop.EvidenceRef, prop.EvidenceDigest = "", "", ""
+		if prop.Method != "" {
+			prop.Method = "<method>"
+		}
+		switch value := prop.Value.(type) {
+		case bool:
+			if prop.Property != "present" && prop.Property != "enabled" && prop.Property != "loaded" {
+				prop.Value = nil
+			}
+		case string:
+			if prop.Property == "native_version" {
+				prop.Value = publicVersion(value)
+			} else {
+				prop.Value = nil
+			}
+		default:
 			prop.Value = nil
 		}
 		capsule.Properties = append(capsule.Properties, prop)
@@ -70,11 +88,19 @@ func WriteSupportCapsule(destination string, capsule SupportCapsule) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(destination, append(data, '\n'), 0o644)
+	return os.WriteFile(destination, append(data, '\n'), 0o600)
 }
 
 func prefixDigest(value string, n int) string {
 	value = strings.TrimPrefix(value, "sha256:")
+	if len(value) != 64 {
+		return ""
+	}
+	for _, c := range value {
+		if !(c >= '0' && c <= '9' || c >= 'a' && c <= 'f') {
+			return ""
+		}
+	}
 	if value == "" {
 		return ""
 	}
@@ -84,23 +110,28 @@ func prefixDigest(value string, n int) string {
 	return "sha256:" + value + "…"
 }
 
+// Free-form native diagnostics can contain arbitrary secrets, not just recognizable paths.
 func redactFinding(finding Finding) Finding {
 	finding.Source = redactPath(finding.Source)
-	finding.Message = redactPath(finding.Message)
-	finding.Remedy = redactPath(finding.Remedy)
+	finding.Winner = redactPath(finding.Winner)
+	finding.Message = "Diagnostic text omitted; consult the local receipt."
+	finding.Remedy = ""
 	return finding
 }
 
 func redactPath(value string) string {
 	if value == "" {
-		return value
+		return ""
 	}
-	// Drop absolute home-like prefixes; keep the leaf identity.
-	if strings.HasPrefix(value, "/") || strings.Contains(value, ":\\") || strings.HasPrefix(value, "~") {
-		return "<path>/" + filepath.Base(value)
+	return "<private>"
+}
+
+var publicVersionPattern = regexp.MustCompile(`^(?:[A-Za-z][A-Za-z0-9 _.-]* )?(v?[0-9]+\.[0-9]+\.[0-9]+)$`)
+
+func publicVersion(value string) string {
+	match := publicVersionPattern.FindStringSubmatch(strings.TrimSpace(value))
+	if len(match) == 2 {
+		return match[1]
 	}
-	if strings.Count(value, "/") >= 3 && (strings.HasPrefix(value, "github.com/") || strings.Contains(value, "/home/") || strings.Contains(value, "/Users/")) {
-		return fmt.Sprintf("<module>/…/%s", filepath.Base(value))
-	}
-	return value
+	return ""
 }

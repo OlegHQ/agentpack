@@ -1,6 +1,8 @@
 package staging
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -43,6 +45,17 @@ func (pipeline Pipeline) workspace() string {
 func (pipeline Pipeline) Rebuild() (_ []string, rebuildErr error) {
 	ctx := pipeline.context()
 	harnesses := registry.All()
+	managed, err := pipeline.managedRebuildPaths(ctx, harnesses)
+	if err != nil {
+		return nil, err
+	}
+	journalPath, err := pipeline.rebuildJournalPath()
+	if err != nil {
+		return nil, err
+	}
+	if err := recoverRebuildJournal(journalPath, managed); err != nil {
+		return nil, fmt.Errorf("recover interrupted staging: %w", err)
+	}
 	for _, candidate := range harnesses {
 		if err := candidate.PreReset(ctx); err != nil {
 			return nil, fmt.Errorf("pre-reset %s: %w", candidate.ID(), err)
@@ -67,21 +80,12 @@ func (pipeline Pipeline) Rebuild() (_ []string, rebuildErr error) {
 			ctx.StagedRoots[candidate.ID()] = transaction.Root()
 		}
 	}
-	var reset []string
-	for _, candidate := range harnesses {
-		paths, err := candidate.ResetPaths(ctx)
-		if err != nil {
-			return nil, err
-		}
-		reset = append(reset, paths...)
+	backups, err := backupRebuildPaths(managed, journalPath)
+	if err != nil {
+		return nil, err
 	}
-	sort.Strings(reset)
-	reset = slices.Compact(reset)
-	for _, path := range reset {
-		if err := removeRebuildPath(path); err != nil {
-			return nil, err
-		}
-	}
+	published := false
+	defer func() { rebuildErr = errors.Join(rebuildErr, finishRebuildJournal(journalPath, backups, published)) }()
 	for _, candidate := range harnesses {
 		if err := candidate.Prepare(ctx); err != nil {
 			return nil, fmt.Errorf("prepare %s: %w", candidate.ID(), err)
@@ -167,6 +171,7 @@ func (pipeline Pipeline) Rebuild() (_ []string, rebuildErr error) {
 			return nil, fmt.Errorf("publish staged home: %w", err)
 		}
 	}
+	published = true
 	return []string{filepath.Join(plugins, paths.StagedAgentpackBundleName)}, nil
 }
 
@@ -350,7 +355,146 @@ func (pipeline Pipeline) stageHooks(ctx base.StageContext, harnesses []base.Harn
 	}
 	return nil
 }
-func removeRebuildPath(path string) error {
+
+// A durable journal records original paths before any rename. Production callers
+// hold the rebuild-exclusive lock; launch fast paths refuse pending journals.
+type rebuildBackup struct {
+	Path      string `json:"path"`
+	Directory string `json:"directory,omitempty"`
+	Existed   bool   `json:"existed"`
+}
+type rebuildJournal struct {
+	SchemaVersion int             `json:"schema_version"`
+	Committed     bool            `json:"committed"`
+	Backups       []rebuildBackup `json:"backups"`
+}
+
+func (pipeline Pipeline) rebuildJournalPath() (string, error) {
+	return paths.ProjectStateFile(pipeline.ProjectRoot, "rebuild-"+paths.ModePathComponent(pipeline.Mode.Name())+".json")
+}
+
+// RebuildPending tells launchers to restore before using staging after an interruption.
+func (pipeline Pipeline) RebuildPending() (bool, error) {
+	path, err := pipeline.rebuildJournalPath()
+	if err != nil {
+		return false, err
+	}
+	_, err = os.Lstat(path)
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return err == nil, err
+}
+
+func (pipeline Pipeline) managedRebuildPaths(ctx base.StageContext, harnesses []base.Harness) ([]string, error) {
+	var managed []string
+	for _, candidate := range harnesses {
+		if candidate.ID() == base.Codex {
+			continue
+		}
+		reset, err := candidate.ResetPaths(ctx)
+		if err != nil {
+			return nil, err
+		}
+		managed = append(managed, reset...)
+		root, err := candidate.StagedRoot(ctx)
+		if err != nil {
+			return nil, err
+		}
+		managed = append(managed, root)
+	}
+	grokHome, err := paths.StagingGrokHomeDirForMode(pipeline.ProjectRoot, pipeline.Mode.Name())
+	if err != nil {
+		return nil, err
+	}
+	managed = append(managed, grokHome)
+	manifestPath, err := paths.StagedManifestPath(pipeline.ProjectRoot, pipeline.Mode.Name())
+	if err != nil {
+		return nil, err
+	}
+	managed = append(managed, manifestPath)
+	return normalizeRebuildPaths(managed), nil
+}
+
+func normalizeRebuildPaths(values []string) []string {
+	for index, path := range values {
+		values[index] = filepath.Clean(path)
+	}
+	sort.Strings(values)
+	var result []string
+	for _, path := range slices.Compact(values) {
+		nested := false
+		for _, parent := range result {
+			if strings.HasPrefix(path, parent+string(filepath.Separator)) {
+				nested = true
+				break
+			}
+		}
+		if !nested {
+			result = append(result, path)
+		}
+	}
+	return result
+}
+
+func writeRebuildJournal(path string, journal rebuildJournal) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return err
+	}
+	data, err := json.Marshal(journal)
+	if err != nil {
+		return err
+	}
+	file, err := os.CreateTemp(filepath.Dir(path), ".rebuild-journal-*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(file.Name())
+	if _, err := file.Write(data); err != nil {
+		file.Close()
+		return err
+	}
+	if err := file.Sync(); err != nil {
+		file.Close()
+		return err
+	}
+	if err := file.Close(); err != nil {
+		return err
+	}
+	return os.Rename(file.Name(), path)
+}
+
+func backupRebuildPaths(values []string, journalPath string) ([]rebuildBackup, error) {
+	var backups []rebuildBackup
+	for _, path := range normalizeRebuildPaths(values) {
+		backup := rebuildBackup{Path: path}
+		_, err := os.Lstat(path)
+		if err != nil && !os.IsNotExist(err) {
+			return nil, errors.Join(err, finishRebuildBackups(backups, true))
+		}
+		if err == nil {
+			backup.Existed = true
+			backup.Directory, err = os.MkdirTemp(filepath.Dir(path), ".agentpack-rebuild-backup-*")
+			if err != nil {
+				return nil, errors.Join(err, finishRebuildBackups(backups, true))
+			}
+		}
+		backups = append(backups, backup)
+	}
+	if err := writeRebuildJournal(journalPath, rebuildJournal{SchemaVersion: 1, Backups: backups}); err != nil {
+		return nil, errors.Join(err, finishRebuildBackups(backups, true))
+	}
+	for _, backup := range backups {
+		if backup.Existed {
+			if err := os.Rename(backup.Path, filepath.Join(backup.Directory, "previous")); err != nil {
+				return nil, errors.Join(err, finishRebuildJournal(journalPath, backups, false))
+			}
+		}
+	}
+	return backups, nil
+}
+
+func recoverRebuildJournal(path string, managed []string) error {
 	info, err := os.Lstat(path)
 	if os.IsNotExist(err) {
 		return nil
@@ -358,13 +502,105 @@ func removeRebuildPath(path string) error {
 	if err != nil {
 		return err
 	}
-	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
-		return os.Remove(path)
+	if !info.Mode().IsRegular() || info.Size() > 1<<20 {
+		return fmt.Errorf("invalid staging recovery journal")
 	}
-	trash := fmt.Sprintf("%s.agentpack-reset-%d", path, os.Getpid())
-	_ = os.RemoveAll(trash)
-	if err := os.Rename(path, trash); err != nil {
+	data, err := os.ReadFile(path)
+	if err != nil {
 		return err
 	}
-	return os.RemoveAll(trash)
+	var journal rebuildJournal
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&journal); err != nil {
+		return err
+	}
+	if journal.SchemaVersion != 1 {
+		return fmt.Errorf("unsupported rebuild journal schema")
+	}
+	allowed := map[string]bool{}
+	for _, value := range managed {
+		allowed[value] = true
+	}
+	seen := map[string]bool{}
+	if len(journal.Backups) != len(allowed) {
+		return fmt.Errorf("recovery journal does not enumerate every managed path")
+	}
+	for _, backup := range journal.Backups {
+		if !allowed[backup.Path] || seen[backup.Path] {
+			return fmt.Errorf("recovery journal references an unexpected managed path")
+		}
+		seen[backup.Path] = true
+		if backup.Existed {
+			if filepath.Dir(backup.Directory) != filepath.Dir(backup.Path) || !strings.HasPrefix(filepath.Base(backup.Directory), ".agentpack-rebuild-backup-") {
+				return fmt.Errorf("invalid staging backup location")
+			}
+			if info, err := os.Lstat(backup.Directory); err == nil {
+				if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+					return fmt.Errorf("staging backup must be a private directory")
+				}
+			} else if !os.IsNotExist(err) {
+				return err
+			}
+		} else if backup.Directory != "" {
+			return fmt.Errorf("unexpected staging backup for absent path")
+		}
+	}
+	return finishRebuildJournal(path, journal.Backups, journal.Committed)
+}
+
+func finishRebuildJournal(path string, backups []rebuildBackup, published bool) error {
+	if published {
+		if err := writeRebuildJournal(path, rebuildJournal{SchemaVersion: 1, Committed: true, Backups: backups}); err != nil {
+			return fmt.Errorf("staging published but recovery marker could not be saved: %w", err)
+		}
+	}
+	if err := finishRebuildBackups(backups, published); err != nil {
+		return err
+	}
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
+}
+
+func finishRebuildBackups(backups []rebuildBackup, published bool) error {
+	var failures []error
+	for index := len(backups) - 1; index >= 0; index-- {
+		backup := backups[index]
+		if !published {
+			restore := !backup.Existed
+			if backup.Existed {
+				if _, err := os.Lstat(filepath.Join(backup.Directory, "previous")); err == nil {
+					restore = true
+				} else if !os.IsNotExist(err) {
+					failures = append(failures, err)
+					continue
+				} else if _, originalErr := os.Lstat(backup.Path); originalErr != nil {
+					failures = append(failures, fmt.Errorf("prior staging and backup are missing for %s; journal retained", backup.Path))
+					continue
+				}
+			}
+			// A missing prior tree means interruption occurred before its rename, or
+			// rollback already restored it. Never remove that surviving original.
+			if restore {
+				if err := os.RemoveAll(backup.Path); err != nil {
+					failures = append(failures, fmt.Errorf("rollback %s (backup retained at %s): %w", backup.Path, backup.Directory, err))
+					continue
+				}
+				if backup.Existed {
+					if err := os.Rename(filepath.Join(backup.Directory, "previous"), backup.Path); err != nil {
+						failures = append(failures, fmt.Errorf("restore %s (backup retained at %s): %w", backup.Path, backup.Directory, err))
+						continue
+					}
+				}
+			}
+		}
+		if backup.Directory != "" {
+			if err := os.RemoveAll(backup.Directory); err != nil {
+				failures = append(failures, err)
+			}
+		}
+	}
+	return errors.Join(failures...)
 }

@@ -21,7 +21,11 @@ func New() base.Harness {
 func launch(ctx base.LaunchContext) (*exec.Cmd, error) {
 	arguments := append([]string(nil), ctx.Arguments...)
 	if !base.HasFlagValue(arguments, "--workspace") {
-		arguments = append([]string{"--workspace", base.WorkspaceRoot(ctx.ProjectRoot)}, arguments...)
+		workspace := ctx.WorkspaceRoot
+		if workspace == "" {
+			workspace = base.WorkspaceRoot(ctx.ProjectRoot)
+		}
+		arguments = append([]string{"--workspace", workspace}, arguments...)
 	}
 	if ctx.Yolo {
 		arguments = base.PrependOnce(arguments, "--force", "--yolo")
@@ -82,8 +86,10 @@ func resetPaths(ctx base.StageContext) ([]string, error) {
 	return []string{bundle, home}, nil
 }
 func prepare(ctx base.StageContext) error {
-	if err := cleanupOverlay(ctx.ProjectRoot); err != nil {
-		return err
+	if !ctx.StrictExternal {
+		if err := cleanupOverlay(ctx.ProjectRoot); err != nil {
+			return err
+		}
 	}
 	bundle, err := paths.StagingCursorBundleDirForMode(ctx.ProjectRoot, ctx.Mode.Name())
 	if err != nil {
