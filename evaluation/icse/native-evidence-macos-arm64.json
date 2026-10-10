@@ -48,6 +48,16 @@
     "same_source_identity": true,
     "frozen_lock_bytes_unchanged": true,
     "fixture_workspace_unchanged": true,
-    "observation_scope": "controlled_projection"
+    "observation_scope": "controlled_projection",
+    "full_cli_receipt_saved_and_validated": true,
+    "held_out_empty_mode": {
+      "positive_removed_skill_observation": false,
+      "required_observed_contract_result": "unknown",
+      "adapters": [
+        "claude 2.1.296",
+        "codex-cli 0.159.2"
+      ],
+      "complete_absence_claim": false
+    }
   }
 }
