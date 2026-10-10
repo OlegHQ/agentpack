@@ -43,7 +43,7 @@ def main():
         for workspace in workspaces:
             workspace.mkdir(parents=True)
             (workspace / 'project.txt').write_text('benign evaluation workspace\n')
-        env = dict(os.environ, HOME=str(native_home), USERPROFILE=str(native_home), XDG_CONFIG_HOME=str(native_home/'config'), AGENTPACK_HOME=str(home), AGENTPACK_STAGING_ROOT=str(root/'staging'), CLAUDE_CODE_PATH=binary)
+        env = dict(os.environ, HOME=str(native_home), USERPROFILE=str(native_home), XDG_CONFIG_HOME=str(native_home/'config'), AGENTPACK_HOME=str(home), AGENTPACK_STAGING_ROOT=str(root/'staging'), CLAUDE_CODE_PATH=binary, CURSOR_AGENT_PATH=binary)
         def run(argv, workspace, expected):
             proc = subprocess.run([binary, '--project-root', str(workspace), *argv], cwd=workspace, env=env, capture_output=True, text=True, timeout=30)
             if proc.returncode != expected:
