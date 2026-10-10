@@ -265,6 +265,7 @@ func TestPreflightFlagsAmbientUserSkill(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("AGENTPACK_HOME", home)
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", os.Getenv("HOME"))
 	if _, err := paths.EnsureUserAgentpackLayout(); err != nil {
 		t.Fatal(err)
 	}
@@ -359,6 +360,7 @@ func TestPreflightFlagsProjectAmbientSkill(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("AGENTPACK_HOME", home)
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", os.Getenv("HOME"))
 	if _, err := paths.EnsureUserAgentpackLayout(); err != nil {
 		t.Fatal(err)
 	}
@@ -492,6 +494,7 @@ func TestPreflightContractNoWorkspaceWrite(t *testing.T) {
 func TestReceiptFreshnessRejectsInputsPolicyBinaryAndFailure(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", os.Getenv("HOME"))
 	t.Setenv("AGENTPACK_HOME", filepath.Join(home, "state"))
 	definition, workspace := t.TempDir(), t.TempDir()
 	if err := manifest.WriteStub(definition, "demo", "0.1.0"); err != nil {
@@ -578,6 +581,7 @@ func TestReceiptFreshnessRejectsInputsPolicyBinaryAndFailure(t *testing.T) {
 func TestStrictCICleanHomeDoesNotViolateInheritanceBoilerplate(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", os.Getenv("HOME"))
 	t.Setenv("AGENTPACK_HOME", filepath.Join(home, "state"))
 	definition := t.TempDir()
 	if err := manifest.WriteStub(definition, "demo", "0.1.0"); err != nil {
@@ -665,6 +669,7 @@ func TestContractWarningSeverityIsNonBlocking(t *testing.T) {
 func TestPreflightDetectsMaterializationInputsChangedAfterSync(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", os.Getenv("HOME"))
 	t.Setenv("AGENTPACK_HOME", filepath.Join(home, "state"))
 	t.Setenv("AGENTPACK_STAGING_ROOT", t.TempDir())
 	definition, workspace := t.TempDir(), t.TempDir()

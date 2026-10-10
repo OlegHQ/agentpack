@@ -15,6 +15,7 @@ import (
 
 func TestExternalCommandsPreserveSelectorAndMode(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
+	t.Setenv("USERPROFILE", os.Getenv("HOME"))
 	t.Setenv("AGENTPACK_HOME", t.TempDir())
 	t.Setenv("AGENTPACK_STAGING_ROOT", t.TempDir())
 	definition, workspace := t.TempDir(), t.TempDir()
@@ -78,6 +79,7 @@ func TestStrictLaunchRefusesUnknownObservationWithoutRunningAgent(t *testing.T) 
 	// Static binary-presence check only; the unknown contract must prevent execution.
 	t.Setenv("CLAUDE_CODE_PATH", executable)
 	t.Setenv("HOME", t.TempDir())
+	t.Setenv("USERPROFILE", os.Getenv("HOME"))
 	t.Setenv("AGENTPACK_HOME", t.TempDir())
 	t.Setenv("AGENTPACK_STAGING_ROOT", t.TempDir())
 	definition, workspace := t.TempDir(), t.TempDir()

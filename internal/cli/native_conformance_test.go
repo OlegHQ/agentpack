@@ -25,6 +25,7 @@ func TestNativeRestoredPackConformance(t *testing.T) {
 		t.Skip("explicit opt-in controlled native metadata test")
 	}
 	t.Setenv("HOME", t.TempDir())
+	t.Setenv("USERPROFILE", os.Getenv("HOME"))
 	t.Setenv("AGENTPACK_HOME", t.TempDir())
 	t.Setenv("AGENTPACK_STAGING_ROOT", t.TempDir())
 	definition, workspace, source := t.TempDir(), t.TempDir(), t.TempDir()
