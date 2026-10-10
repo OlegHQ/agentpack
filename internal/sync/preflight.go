@@ -5,9 +5,14 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"github.com/OlegHQ/agentpack/internal/artifacts"
+	"github.com/OlegHQ/agentpack/internal/harness/claude"
+	"github.com/OlegHQ/agentpack/internal/harness/codex"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/OlegHQ/agentpack/internal/cache"
@@ -36,6 +41,9 @@ type PreflightOptions struct {
 // Preflight inspects an already-available definition without repairing cache,
 // downloading, amending the lock, rebuilding staging, or writing overlays.
 func (service Service) Preflight(definitionRoot string, options PreflightOptions) (environment.Report, error) {
+	if options.Policy == "" {
+		options.Policy = environment.PolicyLocal
+	}
 	workspace := options.WorkspaceRoot
 	if workspace == "" {
 		workspace = definitionRoot
@@ -91,28 +99,46 @@ func (service Service) Preflight(definitionRoot string, options PreflightOptions
 	if binding, found, _ := environment.LoadBinding(workspace); found {
 		report.Environment = binding.Environment
 	}
-	report.Artifacts = plannedArtifacts(lock)
-	appendAmbientFindings(&report, workspace, lock, options)
-
-	report.Inheritance = inheritanceNotes(options.Target, options.Policy)
-	for index, note := range report.Inheritance {
-		severity := environment.SeverityInfo
-		// Target-specific inheritance is a CI warning (named, not silent). It
-		// becomes a violation only with --strict-external, which claims no
-		// undeclared configuration influence beyond the portable inputs.
-		if index > 0 && options.Policy == environment.PolicyCI {
-			severity = environment.SeverityWarning
-			if options.StrictExternal {
-				severity = environment.SeverityViolation
+	report.Artifacts, err = plannedArtifacts(lock, effective, workspace, options.Target)
+	if err != nil {
+		return report, fmt.Errorf("plan effective artifacts: %w", err)
+	}
+	report.Skills, report.Plugins = 0, 0
+	for _, artifact := range report.Artifacts {
+		if !artifact.Omitted {
+			if artifact.Kind == "skill" {
+				report.Skills++
+			}
+			if artifact.Kind == "plugin" {
+				report.Plugins++
 			}
 		}
-		report.Findings = append(report.Findings, environment.Finding{
-			Code:     "INHERITED_CONFIG",
-			Severity: severity,
-			Message:  note,
-			Remedy:   "use --policy local to accept inheritance, or narrow the claim with fixtures that prove exclusion",
-		})
 	}
+	if err := populateFreshness(&report, options, effective); err != nil {
+		return report, fmt.Errorf("fingerprint preflight inputs: %w", err)
+	}
+	appendAmbientFindings(&report, workspace, lock, options)
+	for _, artifact := range report.Artifacts {
+		if artifact.Omitted {
+			continue
+		}
+		severity := environment.SeverityWarning
+		if options.Policy == environment.PolicyCI {
+			severity = environment.SeverityViolation
+		}
+		if preserved, ok := artifact.Properties["scope_preserved"].(bool); ok && !preserved {
+			report.Findings = append(report.Findings, environment.Finding{Code: "RULE_SCOPE_DEGRADED", Severity: severity, Source: artifact.ID, Target: report.Target, Message: "scoped rule rendered as an unscoped skill; native glob enforcement is not preserved", Evidence: environment.EvidenceGenerated, Remedy: "choose a native rule target, disable this rule in the selected mode, or explicitly accept conversion under policy local"})
+		}
+		if fields, ok := artifact.Properties["dropped_fields"].([]string); ok && len(fields) > 0 {
+			report.Findings = append(report.Findings, environment.Finding{Code: "ARTIFACT_FIELDS_DROPPED", Severity: severity, Source: artifact.ID, Target: report.Target, Message: "native rendering drops fields: " + strings.Join(fields, ", "), Evidence: environment.EvidenceGenerated, Remedy: "remove unsupported fields or choose a target that preserves them"})
+		}
+	}
+
+	report.Inheritance = inheritanceNotes(options.Target, options.Policy)
+	for _, note := range report.Inheritance {
+		report.Findings = append(report.Findings, environment.Finding{Code: "INHERITANCE_BOUNDARY", Severity: environment.SeverityInfo, Message: note, Evidence: environment.EvidenceDeclared})
+	}
+	appendDetectedInheritance(&report, options)
 
 	if options.StrictExternal {
 		report.Findings = append(report.Findings, environment.Finding{
@@ -240,6 +266,16 @@ func (service Service) Preflight(definitionRoot string, options PreflightOptions
 		Target:         options.Target,
 		StrictExternal: options.StrictExternal,
 	}
+	materialized, materializedFound, materializedErr := readMaterializationDigest(definitionRoot, effective.Name())
+	if materializedErr != nil {
+		report.Findings = append(report.Findings, environment.Finding{Code: "STAGING_UNREADABLE", Severity: environment.SeverityError, Message: materializedErr.Error(), Evidence: environment.EvidenceUnknown, Remedy: "run sync to restore materialization metadata"})
+	} else if !materializedFound {
+		report.Findings = append(report.Findings, environment.Finding{Code: "STAGING_INPUTS_UNKNOWN", Severity: environment.SeverityWarning, Message: "no materialization input identity is recorded", Evidence: environment.EvidenceUnknown, Remedy: "run sync before probing native configuration"})
+	} else if current, err := computeMaterializationDigest(definitionRoot, workspace, effective); err != nil {
+		return report, err
+	} else if materialized != current {
+		report.Findings = append(report.Findings, environment.Finding{Code: "STAGING_INPUTS_STALE", Severity: environment.SeverityViolation, Message: "staged configuration was built from different definition, mode, workspace, or inherited inputs", Evidence: environment.EvidenceGenerated, Remedy: "run sync to materialize current inputs before probing"})
+	}
 	drift, recorded, driftErr := pipeline.StagedDrift(true)
 	if driftErr != nil {
 		report.Findings = append(report.Findings, environment.Finding{
@@ -333,39 +369,203 @@ func lockDigest(definitionRoot string) (string, error) {
 	return "sha256:" + hex.EncodeToString(sum[:]), nil
 }
 
-func plannedArtifacts(lock lockfile.PackLock) []environment.ArtifactRecord {
+func plannedArtifacts(lock lockfile.PackLock, effective mode.Effective, workspace string, target *base.Target) ([]environment.ArtifactRecord, error) {
+	var records []environment.ArtifactRecord
 	plugins := lock.Plugins()
-	var artifacts []environment.ArtifactRecord
-	for _, skill := range lock.Skills() {
-		name := staging.SkillFolderName(skill)
-		record := environment.ArtifactRecord{
-			ID: skill.Module, Kind: "skill", Name: name, Module: skill.Module,
-			Winner: "package", Evidence: environment.EvidenceDeclared,
+	sort.Slice(plugins, func(i, j int) bool { return plugins[i].CacheKey < plugins[j].CacheKey })
+	skills := lock.Skills()
+	sort.Slice(skills, func(i, j int) bool { return skills[i].CacheKey < skills[j].CacheKey })
+	appendTree := func(root, module, bareName string, enabled bool, dot bool) error {
+		if _, err := os.Stat(root); os.IsNotExist(err) {
+			return nil
+		} else if err != nil {
+			return err
 		}
-		if staging.SkillIsShadowed(skill, plugins) {
-			record.Omitted = true
-			record.Winner = "plugin"
-			record.Reason = "shadowed by containing plugin"
+		return filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
+			if walkErr != nil {
+				return walkErr
+			}
+			if entry.IsDir() {
+				return nil
+			}
+			relative, err := filepath.Rel(root, path)
+			if err != nil {
+				return err
+			}
+			relative = filepath.ToSlash(relative)
+			allowed := false
+			if dot {
+				allowed, err = effective.AllowsDotAgentsPath(relative)
+			} else {
+				allowed, err = effective.AllowsPackagePath(module, relative)
+			}
+			if err != nil {
+				return err
+			}
+			if extension := strings.ToLower(filepath.Ext(path)); extension != ".md" && extension != ".mdc" {
+				return nil
+			}
+			contents, err := os.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			parseRelative := relative
+			if dot {
+				if strings.HasPrefix(relative, "claude/") {
+					if target != nil && *target != base.Claude {
+						return nil
+					}
+					parseRelative = strings.TrimPrefix(relative, "claude/")
+				}
+				if strings.HasPrefix(relative, "codex/") {
+					if target != nil && *target != base.Codex {
+						return nil
+					}
+					parseRelative = strings.TrimPrefix(relative, "codex/")
+				}
+			}
+			parsed, err := artifacts.Parse(parseRelative, string(contents), bareName)
+			if err != nil {
+				return fmt.Errorf("parse %s artifact: %w", module, err)
+			}
+			if parsed == nil {
+				return nil
+			}
+			kind := map[artifacts.Kind]string{artifacts.Skill: "skill", artifacts.Command: "command", artifacts.Agent: "agent", artifacts.Rule: "rule"}[parsed.Kind]
+			record := environment.ArtifactRecord{ID: module + ":" + relative, Kind: kind, Name: parsed.StorageName, Module: module, Winner: "package", Evidence: environment.EvidenceGenerated, Properties: map[string]any{"source_digest": digestBytes(contents)}}
+			if dot {
+				record.Winner = "project"
+			}
+			if !enabled || !allowed {
+				record.Omitted = true
+				record.Reason = "disabled by mode or lock"
+			}
+			if target != nil {
+				rendered := parsed.Render(*target)
+				if dot {
+					switch *target {
+					case base.Claude:
+						rendered.RelativePath = parseRelative
+						rendered.Contents = string(contents)
+						if parsed.Kind == artifacts.Rule {
+							rendered.RelativePath = "rules/dot-agents--" + strings.ReplaceAll(strings.TrimPrefix(parseRelative, "rules/"), "/", "--")
+						}
+					case base.Codex:
+						if parsed.Kind == artifacts.Skill {
+							rendered.RelativePath = parseRelative
+							rendered.Contents = string(contents)
+						}
+						if parsed.Kind == artifacts.Rule {
+							record.Evidence = environment.EvidenceDeclared
+							rendered.RelativePath = ""
+							rendered.Contents = ""
+						}
+					default:
+						// shortcut: adapter-specific .agents seeding has no shared renderer, leave its projection unknown until modeled.
+						record.Evidence = environment.EvidenceDeclared
+						rendered.RelativePath = ""
+						rendered.Contents = ""
+					}
+				}
+
+				record.OutputPath = rendered.RelativePath
+				record.Properties["output_path"] = rendered.RelativePath
+				if rendered.RelativePath != "" {
+					record.Properties["rendered_digest"] = digestBytes([]byte(rendered.Contents))
+				}
+				record.Properties["source_kind"] = kind
+				if parsed.Kind == artifacts.Rule && strings.HasPrefix(rendered.RelativePath, "skills/") && len(parsed.Globs) > 0 {
+					record.Properties["scope_preserved"] = false
+				}
+				projected, parseErr := artifacts.Parse(rendered.RelativePath, rendered.Contents, "")
+				if parseErr != nil {
+					return parseErr
+				}
+				var dropped []string
+				for key := range parsed.ExtraFrontmatter {
+					if rendered.RelativePath == "" {
+						continue
+					}
+					if projected == nil {
+						dropped = append(dropped, key)
+					} else if _, ok := projected.ExtraFrontmatter[key]; !ok {
+						dropped = append(dropped, key)
+					}
+				}
+				sort.Strings(dropped)
+				if len(dropped) > 0 {
+					record.Properties["dropped_fields"] = dropped
+				}
+
+				if strings.HasPrefix(rendered.RelativePath, "skills/") {
+					record.Kind = "skill"
+				}
+			}
+			// Later sources overwrite the same native output, just as materialization does.
+			if !record.Omitted {
+				for index := range records {
+					prior := &records[index]
+					same := prior.Kind == record.Kind && prior.Name == record.Name
+					if record.OutputPath != "" {
+						same = prior.OutputPath == record.OutputPath
+					}
+					if same && !prior.Omitted {
+						prior.Omitted = true
+						prior.Winner = record.Winner
+						prior.Reason = "overridden by " + record.ID
+					}
+				}
+			}
+			records = append(records, record)
+			return nil
+		})
+	}
+	disabled := func(key string) bool {
+		for _, value := range lock.Config.DisabledPlugins {
+			if value == key {
+				return true
+			}
 		}
-		artifacts = append(artifacts, record)
+		return false
 	}
 	for _, plugin := range plugins {
+		root, err := cache.EntryDir(plugin.CacheKey)
+		if err != nil {
+			return nil, err
+		}
 		name := plugin.Name
 		if name == "" {
 			name = staging.SkillFolderName(plugin)
 		}
-		artifacts = append(artifacts, environment.ArtifactRecord{
-			ID: plugin.Module, Kind: "plugin", Name: name, Module: plugin.Module,
-			Winner: "package", Evidence: environment.EvidenceDeclared,
-		})
+		record := environment.ArtifactRecord{ID: plugin.Module, Kind: "plugin", Name: name, Module: plugin.Module, Winner: "package", Evidence: environment.EvidenceDeclared, Properties: map[string]any{"source_digest": plugin.ContentHash}}
+		if disabled(plugin.CacheKey) {
+			record.Omitted = true
+			record.Reason = "disabled by lock"
+		}
+		records = append(records, record)
+		if err := appendTree(root, plugin.Module, "", !disabled(plugin.CacheKey), false); err != nil {
+			return nil, err
+		}
 	}
-	return artifacts
+	for _, skill := range skills {
+		root, err := cache.EntryDir(skill.CacheKey)
+		if err != nil {
+			return nil, err
+		}
+		if err := appendTree(root, skill.Module, staging.SkillFolderName(skill), !disabled(skill.CacheKey) && !staging.SkillIsShadowed(skill, plugins), false); err != nil {
+			return nil, err
+		}
+	}
+	if err := appendTree(paths.ProjectDotAgentsDir(workspace), ".agents", "", true, true); err != nil {
+		return nil, err
+	}
+	return records, nil
 }
 
 func markArtifactWinner(report *environment.Report, name, winner, reason string) {
 	for index := range report.Artifacts {
 		artifact := &report.Artifacts[index]
-		if artifact.Kind != "skill" || !strings.EqualFold(artifact.Name, name) {
+		if artifact.Kind != "skill" || artifact.Module == "user" || artifact.Module == "project" || !strings.EqualFold(artifact.Name, name) {
 			continue
 		}
 		artifact.Winner = winner
@@ -377,13 +577,10 @@ func markArtifactWinner(report *environment.Report, name, winner, reason string)
 
 func appendAmbientFindings(report *environment.Report, workspace string, lock lockfile.PackLock, options PreflightOptions) {
 	packSkills := map[string]string{}
-	plugins := lock.Plugins()
-	for _, skill := range lock.Skills() {
-		if staging.SkillIsShadowed(skill, plugins) {
-			continue
+	for _, artifact := range report.Artifacts {
+		if artifact.Kind == "skill" && !artifact.Omitted {
+			packSkills[strings.ToLower(artifact.Name)] = artifact.Name
 		}
-		name := staging.SkillFolderName(skill)
-		packSkills[strings.ToLower(name)] = name
 	}
 	home, _ := os.UserHomeDir()
 	userSkills, err := staging.UserHomeSkillNames(home)
@@ -395,7 +592,33 @@ func appendAmbientFindings(report *environment.Report, workspace string, lock lo
 		})
 		return
 	}
-	projectSkills, _ := staging.ProjectClaudeSkillNames(workspace)
+	projectSkills, projectErr := staging.ProjectClaudeSkillNames(workspace)
+	if projectErr != nil {
+		report.Findings = append(report.Findings, environment.Finding{Code: "AMBIENT_SCAN_FAILED", Severity: environment.SeverityError, Message: projectErr.Error(), Evidence: environment.EvidenceUnknown})
+		return
+	}
+	for _, layer := range []struct {
+		names  map[string]struct{}
+		winner string
+	}{{userSkills, "user"}, {projectSkills, "project"}} {
+		keys := make([]string, 0, len(layer.names))
+		for key := range layer.names {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		for _, lower := range keys {
+			display := lower
+			report.Artifacts = append(report.Artifacts, environment.ArtifactRecord{ID: layer.winner + ":" + display, Kind: "skill", Name: display, Module: layer.winner, Winner: layer.winner, Evidence: environment.EvidenceGenerated})
+			if _, packaged := packSkills[lower]; !packaged {
+				severity := environment.SeverityInfo
+				if options.Policy == environment.PolicyCI {
+					severity = environment.SeverityViolation
+				}
+				report.Findings = append(report.Findings, environment.Finding{Code: "AMBIENT_ARTIFACT", Severity: severity, Source: display, Winner: layer.winner, Message: "undeclared skill exists in a native discovery root", Evidence: environment.EvidenceGenerated, Remedy: "use a controlled home/workspace for CI or narrow the policy to local"})
+			}
+		}
+	}
+
 	for lower, display := range packSkills {
 		if _, hit := userSkills[lower]; hit {
 			severity := environment.SeverityWarning
@@ -436,31 +659,38 @@ func applyReceipt(report *environment.Report, workspace string, options Prefligh
 		})
 		return
 	}
-	stale := false
-	if report.SourceIdentity != "" && receipt.SourceIdentity != "" && report.SourceIdentity != receipt.SourceIdentity {
-		stale = true
-	}
-	if report.LockDigest != "" && receipt.LockDigest != "" && report.LockDigest != receipt.LockDigest {
-		stale = true
-	}
-	if report.Mode != "" && receipt.Mode != "" && report.Mode != receipt.Mode {
-		stale = true
-	}
-	if options.Target != nil && receipt.Target.Adapter != "" && string(*options.Target) != receipt.Target.Adapter {
-		stale = true
-	}
+	stale := receipt.SourceIdentity != report.SourceIdentity || receipt.LockDigest != report.LockDigest || receipt.Mode != report.Mode || receipt.WorkspaceDigest != report.WorkspaceDigest || receipt.GenerationID != report.GenerationID || receipt.PolicyDigest != report.PolicyDigest
+	expected := report.ExpectedTarget
+	stale = stale || expected.Adapter == "" || receipt.Target.Adapter != expected.Adapter || receipt.Target.AdapterRevision != expected.AdapterRevision || receipt.Target.ExecutableIdentity != expected.ExecutableIdentity || receipt.Target.CapabilityRevision != expected.CapabilityRevision
 	if stale {
-		report.Findings = append(report.Findings, environment.Finding{
-			Code: "RECEIPT_STALE", Severity: environment.SeverityViolation,
-			Message:  "receipt identities do not match the current definition/mode/target",
-			Evidence: environment.EvidenceGenerated,
-			Remedy:   "run `agentpack probe --agent <target>` again after sync/restore",
-		})
+		report.Findings = append(report.Findings, environment.Finding{Code: "RECEIPT_STALE", Severity: environment.SeverityViolation, Message: "receipt identities do not match current definition, workspace inputs, generation, policy, or native adapter", Evidence: environment.EvidenceUnknown, Remedy: "run `agentpack probe --agent <target>` again after sync/restore"})
 		return
 	}
-	if len(receipt.Coverage) > 0 {
-		report.Coverage = receipt.Coverage
+	if receipt.Termination.Status != "completed" || receipt.Termination.NativeExitCode != 0 || (receipt.OverallStatus != "ready" && receipt.OverallStatus != "ready_with_warnings") {
+		report.Findings = append(report.Findings, environment.Finding{Code: "PROBE_FAILED", Severity: environment.SeverityError, Message: "receipt does not describe a successful completed probe", Evidence: environment.EvidenceUnknown, Remedy: "resolve probe failures and run probe again"})
+		return
 	}
+	for _, prop := range receipt.Properties {
+		if prop.Evidence != environment.EvidenceObserved {
+			continue
+		}
+		info, statErr := os.Stat(prop.EvidenceRef)
+		digest := ""
+		var err error
+		if statErr == nil && info.Mode().IsRegular() && info.Size() <= 2<<20 {
+			digest, err = environment.ExecutableIdentity(prop.EvidenceRef)
+		} else {
+			err = fmt.Errorf("native evidence must be a bounded regular file")
+		}
+		if prop.EvidenceRef == "" || prop.EvidenceDigest == "" || err != nil || digest != prop.EvidenceDigest {
+			report.Findings = append(report.Findings, environment.Finding{Code: "OBSERVATION_UNAVAILABLE", Severity: environment.SeverityError, Message: "native evidence is unavailable or differs from its recorded digest", Evidence: environment.EvidenceUnknown, Remedy: "run probe again to retain current diagnostic evidence"})
+			return
+		}
+	}
+	// Complete coverage alone never manufactures positive observations.
+	report.Coverage = receipt.Coverage
+	report.Properties = receipt.Properties
+
 	for _, prop := range receipt.Properties {
 		if prop.Evidence != environment.EvidenceObserved {
 			continue
@@ -480,18 +710,27 @@ func applyContract(report *environment.Report, contract environment.Contract) {
 	if unknownMode == "" {
 		unknownMode = "fail"
 	}
+	requirements := map[string]environment.Requirement{}
+	for _, req := range contract.Requirements {
+		requirements[req.ID] = req
+	}
 	for _, result := range results {
+		reqSeverity := requirements[result.RequirementID].Severity
+		violationSeverity := environment.SeverityViolation
+		if reqSeverity == environment.SeverityInfo || reqSeverity == environment.SeverityWarning {
+			violationSeverity = reqSeverity
+		}
 		switch result.Result {
 		case "violated":
 			report.Findings = append(report.Findings, environment.Finding{
-				Code: result.FindingCode, Severity: environment.SeverityViolation,
+				Code: result.FindingCode, Severity: violationSeverity,
 				Message: result.Message, Remedy: "adjust the environment or add a scoped allowance with rationale",
 				Evidence: environment.EvidenceGenerated,
 			})
 		case "unknown":
 			severity := environment.SeverityWarning
 			if unknownMode == "fail" {
-				severity = environment.SeverityViolation
+				severity = violationSeverity
 			} else if unknownMode == "allow" {
 				severity = environment.SeverityInfo
 			}
@@ -648,6 +887,13 @@ func lookPathForTarget(target base.Target) (string, error) {
 		envName, binary = "AGY_PATH", "agy"
 	}
 	if value := strings.TrimSpace(os.Getenv(envName)); value != "" {
+		info, err := os.Stat(value)
+		if err != nil {
+			return "", fmt.Errorf("native CLI configured by %s is unavailable: %w", envName, err)
+		}
+		if !info.Mode().IsRegular() {
+			return "", fmt.Errorf("native CLI configured by %s is not a regular file", envName)
+		}
 		return value, nil
 	}
 	return exec.LookPath(binary)
@@ -657,4 +903,201 @@ func looksLikeSecret(key string) bool {
 	upper := strings.ToUpper(key)
 	return strings.Contains(upper, "KEY") || strings.Contains(upper, "TOKEN") ||
 		strings.Contains(upper, "SECRET") || strings.Contains(upper, "PASSWORD")
+}
+
+func digestBytes(data []byte) string {
+	sum := sha256.Sum256(data)
+	return "sha256:" + hex.EncodeToString(sum[:])
+}
+
+func populateFreshness(report *environment.Report, options PreflightOptions, effective mode.Effective) error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+	inputs := []string{filepath.Join(report.WorkspaceRoot, ".agents"), filepath.Join(report.WorkspaceRoot, ".claude"), filepath.Join(report.WorkspaceRoot, ".cursor"), filepath.Join(report.WorkspaceRoot, "AGENTS.md"), filepath.Join(report.WorkspaceRoot, "CLAUDE.md"), filepath.Join(home, ".claude", "skills"), filepath.Join(home, ".grok", "skills")}
+	inputs = append(inputs, inheritedConfigPaths(options.Target)...)
+	report.WorkspaceDigest, err = fingerprintInputs(inputs)
+	if err != nil {
+		return err
+	}
+	stagedPath, err := paths.StagedManifestPath(report.DefinitionRoot, effective.Name())
+	if err != nil {
+		return err
+	}
+	stagedBytes, err := os.ReadFile(stagedPath)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	var stagedConfigs []string
+	if options.Target != nil {
+		candidate, err := registry.ByTarget(*options.Target)
+		if err != nil {
+			return err
+		}
+		ctx := base.StageContext{ProjectRoot: report.DefinitionRoot, WorkspaceRoot: report.WorkspaceRoot, Mode: effective}
+		root, err := candidate.StagedRoot(ctx)
+		if err != nil {
+			return err
+		}
+		for _, name := range []string{"config.toml", "opencode.json", "cli-config.json", "AGENTS.md", "CLAUDE.md", "plugin.json", ".claude-plugin/plugin.json", "hooks.json", ".mcp.json", "mcp.json", "mcp_config.json"} {
+			stagedConfigs = append(stagedConfigs, filepath.Join(root, filepath.FromSlash(name)))
+		}
+		if *options.Target == base.Claude {
+			path, err := claude.SettingsPath(ctx)
+			if err != nil {
+				return err
+			}
+			stagedConfigs = append(stagedConfigs, path)
+		}
+	}
+	stagedConfigDigest, err := fingerprintInputs(stagedConfigs)
+	if err != nil {
+		return err
+	}
+	report.GenerationID = digestBytes(append([]byte(report.SourceIdentity+"\x00"+effective.FingerprintMaterial()+"\x00"+report.WorkspaceDigest+"\x00"+stagedConfigDigest+"\x00"), stagedBytes...))
+	contractPath := options.ContractPath
+	if contractPath == "" {
+		contractPath = filepath.Join(report.DefinitionRoot, "contract.json")
+	}
+	contractBytes, err := os.ReadFile(contractPath)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	report.PolicyDigest = digestBytes(append([]byte(fmt.Sprintf("policy=%s\nstrict=%t\n", options.Policy, options.StrictExternal)), contractBytes...))
+	if options.Target != nil {
+		report.ExpectedTarget.Adapter = string(*options.Target)
+		var capability map[string]string
+		switch *options.Target {
+		case base.Claude:
+			capability = claude.Capability()
+		case base.Codex:
+			capability = codex.Capability()
+		}
+		report.ExpectedTarget.AdapterRevision = capability["adapter_revision"]
+		report.ExpectedTarget.CapabilityRevision = capability["capability_revision"]
+		if path, err := lookPathForTarget(*options.Target); err == nil {
+			identity, err := environment.ExecutableIdentity(path)
+			if err == nil {
+				report.ExpectedTarget.ExecutableIdentity = identity
+			}
+		}
+	}
+	return nil
+}
+
+// Fingerprints include absence and file bytes; absolute paths stay local to this identity.
+func fingerprintInputs(inputs []string) (string, error) {
+	hash := sha256.New()
+	active := map[string]bool{}
+	var visit func(string, string) error
+	visit = func(path, relative string) error {
+		info, err := os.Lstat(path)
+		if os.IsNotExist(err) {
+			fmt.Fprintf(hash, "%q absent\n", relative)
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(hash, "%q mode=%s size=%d\n", relative, info.Mode(), info.Size())
+		if info.Mode()&os.ModeSymlink != 0 {
+			link, err := os.Readlink(path)
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(hash, "link=%q\n", link)
+			resolved, err := filepath.EvalSymlinks(path)
+			if err != nil {
+				return err
+			}
+			return visit(resolved, relative+"/resolved")
+		}
+		if info.IsDir() {
+			absolute, err := filepath.Abs(path)
+			if err != nil {
+				return err
+			}
+			if active[absolute] {
+				return fmt.Errorf("cyclic configuration symlink")
+			}
+			active[absolute] = true
+			defer delete(active, absolute)
+			entries, err := os.ReadDir(path)
+			if err != nil {
+				return err
+			}
+			for _, entry := range entries {
+				if err := visit(filepath.Join(path, entry.Name()), relative+"/"+entry.Name()); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+		if !info.Mode().IsRegular() {
+			return fmt.Errorf("nonregular configuration input %s", relative)
+		}
+		file, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+		_, err = io.Copy(hash, file)
+		hash.Write([]byte{0})
+		return err
+	}
+	for index, root := range inputs {
+		if err := visit(root, fmt.Sprintf("input-%d", index)); err != nil {
+			return "", err
+		}
+	}
+	return "sha256:" + hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+func inheritedConfigPaths(target *base.Target) []string {
+	if target == nil {
+		return nil
+	}
+	home, _ := os.UserHomeDir()
+	var names []string
+	switch *target {
+	case base.Claude:
+		names = []string{".claude.json", ".claude/settings.json"}
+	case base.OpenCode:
+		names = []string{".config/opencode/opencode.json", ".config/opencode/opencode.jsonc"}
+	case base.Codex:
+		names = []string{".codex/config.toml", ".codex/AGENTS.md"}
+	case base.Grok:
+		names = []string{".grok/config.toml", ".grok/hooks", ".claude/settings.json"}
+	case base.Cursor:
+		names = []string{".cursor/cli-config.json", ".cursor/mcp.json"}
+	case base.Agy:
+		names = []string{".gemini/settings.json", ".gemini/GEMINI.md"}
+	}
+	var result []string
+	for _, name := range names {
+		result = append(result, filepath.Join(home, filepath.FromSlash(name)))
+	}
+	return result
+}
+
+func appendDetectedInheritance(report *environment.Report, options PreflightOptions) {
+	for _, path := range inheritedConfigPaths(options.Target) {
+		info, err := os.Stat(path)
+		if os.IsNotExist(err) {
+			continue
+		}
+		if err != nil {
+			report.Findings = append(report.Findings, environment.Finding{Code: "AMBIENT_SCAN_FAILED", Severity: environment.SeverityError, Source: path, Message: "cannot inspect inherited configuration", Evidence: environment.EvidenceUnknown})
+			continue
+		}
+		if !info.IsDir() && info.Size() == 0 {
+			continue
+		}
+		severity := environment.SeverityWarning
+		if options.Policy == environment.PolicyCI {
+			severity = environment.SeverityViolation
+		}
+		report.Findings = append(report.Findings, environment.Finding{Code: "INHERITED_CONFIG", Severity: severity, Source: path, Message: "native launch may read existing undeclared configuration", Evidence: environment.EvidenceGenerated, Remedy: "use a controlled account/configuration home for CI, or use policy local"})
+	}
 }

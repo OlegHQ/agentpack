@@ -12,7 +12,7 @@
   <a href="https://oleghq.github.io/agentpack"><img alt="Documentation" src="https://img.shields.io/badge/docs-oleghq.github.io-1f6feb.svg"></a>
   <a href="https://olegpustovit.com/posts/agentpack/"><img alt="Writeup" src="https://img.shields.io/badge/writeup-olegpustovit.com-ff6b6b.svg"></a>
   <a href="https://github.com/OlegHQ/agentpack/blob/dev/LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
-  <a href="https://github.com/OlegHQ/agentpack/releases"><img alt="Version" src="https://img.shields.io/badge/version-v0.4.1-blue.svg"></a>
+  <a href="https://github.com/OlegHQ/agentpack/releases"><img alt="Version" src="https://img.shields.io/badge/version-v0.4.2-blue.svg"></a>
   <a href="https://github.com/OlegHQ/agentpack"><img alt="Built with Go" src="https://img.shields.io/badge/built_with-Go-00ADD8.svg"></a>
 </p>
 
@@ -260,3 +260,5 @@ CI can push the cask across repos.
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+For the research artifact, see the [evaluation fixtures and demo storyboard](docs/src/guides/icse-evaluation.md) and [contract/evidence reference](docs/src/reference/contracts.md). Native discovery evidence is scoped; package integrity, generated configuration, and model behavior are separate claims.

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 )
 
 const (
-	capabilityRevision = "codex-probe-v1"
+	capabilityRevision = "codex-probe-v2"
 	adapterRevision    = "codex-observe-2026-10"
 )
 
@@ -21,11 +22,11 @@ func Capability() map[string]string {
 	return map[string]string{
 		"adapter_revision":    adapterRevision,
 		"capability_revision": capabilityRevision,
-		"validated_versions":  "0.159.3",
+		"validated_versions":  "0.159.2, 0.159.3 (version only)",
 		"native_version":      "observed via `codex --version`",
-		"skill_presence":      "unknown — no stable non-model skill catalog API in 0.159.3",
+		"skill_presence":      "positive names via controlled debug prompt-input in 0.159.2; partial, no absence or model use proof",
 		"skill_source_digest": "unknown",
-		"effects":             "version probe only; no model inference",
+		"effects":             "0.159.2 controlled static config clone; no auth/history/hooks copied, no model inference requested; native network/global effects unmeasured",
 	}
 }
 
@@ -34,6 +35,10 @@ func ProbeHome(ctx context.Context, codexHome, workspace, sourceID, lockDigest, 
 	exe, err := base.LookPathEnv("CODEX_PATH", "codex")
 	if err != nil {
 		return environment.Receipt{}, err
+	}
+	identity, identityErr := environment.ExecutableIdentity(exe)
+	if identityErr != nil {
+		return environment.Receipt{}, identityErr
 	}
 	env := withCodexHome(os.Environ(), codexHome)
 	versionResult, err := base.RunProbe(ctx, base.ProbePlan{
@@ -56,20 +61,30 @@ func ProbeHome(ctx context.Context, codexHome, workspace, sourceID, lockDigest, 
 		Target: environment.ReceiptTarget{
 			Adapter:            "codex",
 			AdapterRevision:    adapterRevision,
-			ExecutableIdentity: exe,
+			ExecutableIdentity: identity,
 			CapabilityRevision: capabilityRevision,
 		},
 		CreatedAt: time.Now().UTC(),
 		Coverage: []environment.CoverageNote{{
-			Category: "skill", Scope: "native_catalog", Completeness: "none",
+			Category: "skill", Scope: "controlled_projection", Completeness: "none",
 			Reason: "Codex 0.159.3 has no validated non-model skill catalog probe",
 		}},
 		Effects: environment.ProbeEffects{
 			ModelCalls: false,
-			Network:    "none_required",
-			WriteScope: "managed_diagnostic_storage",
+			Network:    "not_measured",
+			WriteScope: "native_runtime_unmeasured; receipt_in_managed_storage",
 		},
 		Termination: environment.Termination{Status: "completed"},
+	}
+	versionEvidence, saveErr := base.SaveProbeEvidence(workspace, receipt.ReceiptID, "version", versionResult)
+	if saveErr != nil {
+		return receipt, saveErr
+	}
+	receipt.DiagnosticRefs = append(receipt.DiagnosticRefs, versionEvidence)
+
+	receipt.Termination.NativeExitCode = versionResult.ExitCode
+	if err == nil && !regexp.MustCompile(`^(?:codex-cli )?[0-9]+\.[0-9]+\.[0-9]+$`).MatchString(strings.TrimSpace(versionResult.Stdout)) {
+		err = fmt.Errorf("Codex version probe returned an unexpected version format")
 	}
 	if err != nil {
 		receipt.Termination.Status = "failed"
@@ -83,17 +98,26 @@ func ProbeHome(ctx context.Context, codexHome, workspace, sourceID, lockDigest, 
 	}
 	receipt.Termination.NativeExitCode = versionResult.ExitCode
 	receipt.Target.NativeVersion = strings.TrimSpace(versionResult.Stdout)
-	receipt.Properties = append(receipt.Properties, environment.ObservedProperty{
-		Property: "native_version", Value: receipt.Target.NativeVersion,
-		Evidence: environment.EvidenceObserved, Method: "codex --version",
+	receipt.Properties = append(receipt.Properties, environment.ObservedProperty{Scope: "controlled_projection",
+		Category: "runtime", Property: "native_version", Value: receipt.Target.NativeVersion,
+		Evidence: environment.EvidenceObserved, Method: "codex --version", EvidenceRef: versionEvidence,
 	})
+	if receipt.Target.NativeVersion == "codex-cli 0.159.2" || receipt.Target.NativeVersion == "0.159.2" {
+		observePromptSkills(ctx, exe, codexHome, workspace, &receipt)
+		return receipt, nil
+	}
 	receipt.Findings = append(receipt.Findings, environment.Finding{
 		Code: "OBSERVATION_UNAVAILABLE", Severity: environment.SeverityWarning, Target: "codex",
-		Message:  "skill discovery cannot be confirmed without a native catalog API",
+		Message:  "this native version has no validated configuration discovery parser",
 		Evidence: environment.EvidenceUnknown,
 		Remedy:   "use generated-configuration contracts, or narrow required evidence below observed",
 	})
-	receipt.OverallStatus = "ready_with_warnings"
+	if receipt.Target.NativeVersion != "codex-cli 0.159.3" && receipt.Target.NativeVersion != "0.159.3" {
+		receipt.Findings = append(receipt.Findings, environment.Finding{Code: "OBSERVATION_UNAVAILABLE", Severity: environment.SeverityWarning, Target: "codex", Message: "native version is outside validated capability coverage", Evidence: environment.EvidenceUnknown})
+		receipt.OverallStatus = "unknown"
+	} else {
+		receipt.OverallStatus = "ready_with_warnings"
+	}
 	return receipt, nil
 }
 

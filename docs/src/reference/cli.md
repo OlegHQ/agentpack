@@ -99,7 +99,7 @@ Every sync compares each cache entry with the `content_hash` in `pack.lock` and 
 
 ### `agentpack preflight`
 
-Pure offline inspection of a locked environment. Does not download, repair, rewrite `pack.lock`, rebuild staging, or write workspace overlays. Prints a human summary or `--json` report with stable finding codes, severity, source, target, and remedy. Optional `--contract` / `contract.json` and `--receipt` for observed coverage / freshness.
+Pure offline inspection of a locked environment. Does not download, repair, rewrite `pack.lock`, rebuild staging, or write workspace overlays. Prints a human summary or `--json` report with stable finding codes, severity, source, target, and remedy. Optional `--contract` / `contract.json` and `--receipt ID|PATH|latest` for observed coverage / freshness. `--mode` selects the same mode as restore and launch. Receipt policy and strictness must match the preflight invocation; stale or incomplete receipts fail closed. Strict external launches evaluate the default contract under their staging lease.
 
 ```sh
 agentpack preflight --agent claude
@@ -110,12 +110,14 @@ agentpack preflight --agent claude --receipt RECEIPT_ID --json
 
 ### `agentpack probe`
 
-Explicit native observation (never inside preflight). Claude: `plugin list --json` + `plugin details` against the staged bundle. Codex: `--version` (skill catalog unknown). Writes a receipt under `$AGENTPACK_HOME/projects/<hash>/probe-receipts/`.
+Explicit native observation (never inside preflight). Claude: `plugin list --json` + `plugin details` against the staged bundle. Codex: version, plus validated 0.159.2 positive skill discovery from native prompt input in a disposable static projection. Observations use explicit `controlled_projection` scope; they do not prove full interactive configuration or model use. Writes a receipt under `$AGENTPACK_HOME/projects/<hash>/probe-receipts/`.
 
 ```sh
 agentpack sync
 agentpack probe --agent claude
-agentpack probe --agent codex --json
+agentpack --mode review probe --agent codex --json
+agentpack --strict-external probe --agent claude --policy ci
+agentpack --strict-external preflight --agent claude --policy ci --receipt latest
 ```
 
 ### `agentpack env`
@@ -128,14 +130,14 @@ agentpack env use team --project /path/to/checkout
 agentpack env status
 agentpack env export team.bundle --from team
 agentpack env import team.bundle --name team
-agentpack env restore
+agentpack --env team --workspace /path/to/checkout --mode review env restore
 agentpack env unuse
 agentpack env list
 ```
 
 ### `agentpack support export`
 
-Write a redacted diagnostic capsule from a probe receipt (`--output` required). Paths and secret-bearing digests are stripped; preview notes are printed before sharing.
+Write a redacted diagnostic capsule from a probe receipt (`--output` required). Paths, free-form native messages, arbitrary values and secret-bearing digests are omitted; preview notes are printed before sharing.
 
 ```sh
 agentpack support export RECEIPT_ID --output ./support-capsule.json

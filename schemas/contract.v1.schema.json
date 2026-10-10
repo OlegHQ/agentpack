@@ -3,27 +3,104 @@
   "$id": "https://agentpack.dev/schemas/contract.v1.schema.json",
   "title": "agentpack contract v1",
   "type": "object",
-  "required": ["schema_version", "requirements"],
+  "required": [
+    "schema_version",
+    "requirements"
+  ],
   "additionalProperties": false,
   "properties": {
-    "schema_version": { "const": 1 },
+    "schema_version": {
+      "const": 1
+    },
     "requirements": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "target", "selector", "predicate", "minimum_evidence", "severity"],
+        "required": [
+          "id",
+          "selector",
+          "predicate"
+        ],
         "additionalProperties": false,
         "properties": {
-          "id": { "type": "string", "minLength": 1 },
-          "target": { "type": "string" },
-          "selector": { "type": "object" },
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target": {
+            "enum": [
+              "",
+              "*",
+              "claude",
+              "codex",
+              "opencode",
+              "grok",
+              "cursor",
+              "agy"
+            ]
+          },
+          "selector": {
+            "type": "object",
+            "required": [
+              "category"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "category": {
+                "enum": [
+                  "skill",
+                  "plugin",
+                  "command",
+                  "agent",
+                  "rule",
+                  "runtime",
+                  "planned_write"
+                ]
+              },
+              "name": {
+                "type": "string"
+              },
+              "property": {
+                "type": "string"
+              },
+              "scope": {
+                "enum": [
+                  "native_catalog",
+                  "controlled_projection"
+                ]
+              }
+            }
+          },
           "predicate": {
             "type": "string",
-            "enum": ["present", "absent", "equals", "source_allowed", "native_property", "no_workspace_write", "coverage_complete"]
+            "enum": [
+              "present",
+              "absent",
+              "equals",
+              "source_allowed",
+              "native_property",
+              "no_workspace_write",
+              "coverage_complete"
+            ]
           },
           "expected": {},
-          "minimum_evidence": { "type": "string", "enum": ["declared", "generated", "observed"] },
-          "severity": { "type": "string", "enum": ["info", "warning", "error", "violation"] }
+          "minimum_evidence": {
+            "type": "string",
+            "enum": [
+              "declared",
+              "generated",
+              "observed"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "info",
+              "warning",
+              "error",
+              "violation"
+            ]
+          }
         }
       }
     },
@@ -31,13 +108,27 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["requirement_id", "rationale"],
+        "required": [
+          "requirement_id",
+          "rationale"
+        ],
         "properties": {
-          "requirement_id": { "type": "string" },
-          "rationale": { "type": "string" }
+          "requirement_id": {
+            "type": "string"
+          },
+          "rationale": {
+            "type": "string"
+          }
         }
       }
     },
-    "unknown_required": { "type": "string", "enum": ["fail", "warn", "allow"] }
+    "unknown_required": {
+      "type": "string",
+      "enum": [
+        "fail",
+        "warn",
+        "allow"
+      ]
+    }
   }
 }

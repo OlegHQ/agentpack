@@ -11,11 +11,21 @@ import (
 	"github.com/OlegHQ/agentpack/internal/harness/claude"
 	"github.com/OlegHQ/agentpack/internal/harness/codex"
 	"github.com/OlegHQ/agentpack/internal/paths"
+	"github.com/OlegHQ/agentpack/internal/staging"
 	packSync "github.com/OlegHQ/agentpack/internal/sync"
 )
 
-func (runner Runner) runProbe(ctx context.Context, definitionRoot, workspaceRoot string, arguments []string, quiet bool) (int, error) {
+func (runner Runner) runProbe(ctx context.Context, definitionRoot, workspaceRoot, mode string, arguments []string, quiet bool) (int, error) {
 	args, jsonOut := takeBool(arguments, "--json")
+	args, strict := takeBool(args, "--strict-external")
+	policyName, args, _, err := takeFlag(args, "--policy")
+	if err != nil {
+		return 2, err
+	}
+	policy, err := environment.ParsePolicy(policyName)
+	if err != nil {
+		return 2, err
+	}
 	agent, args, _, err := takeFlag(args, "--agent")
 	if err != nil {
 		return 2, err
@@ -29,9 +39,12 @@ func (runner Runner) runProbe(ctx context.Context, definitionRoot, workspaceRoot
 	if agent == "" {
 		return 2, fmt.Errorf("probe requires --agent claude|codex")
 	}
-	mode, args, _, err := takeFlag(args, "--mode")
+	requestedMode, args, _, err := takeFlag(args, "--mode")
 	if err != nil {
 		return 2, err
+	}
+	if requestedMode != "" {
+		mode = requestedMode
 	}
 	if err := noArgs(args); err != nil {
 		return 2, err
@@ -50,7 +63,7 @@ func (runner Runner) runProbe(ctx context.Context, definitionRoot, workspaceRoot
 	}
 
 	report, err := runner.Service.Preflight(definitionRoot, packSync.PreflightOptions{
-		Mode: mode, Target: &target, Policy: environment.PolicyLocal, WorkspaceRoot: workspaceRoot,
+		Mode: mode, Target: &target, Policy: policy, WorkspaceRoot: workspaceRoot, StrictExternal: strict,
 	})
 	if err != nil {
 		return 5, err
@@ -59,6 +72,25 @@ func (runner Runner) runProbe(ctx context.Context, definitionRoot, workspaceRoot
 		mode = report.Mode
 	}
 
+	lease, err := staging.AcquireLaunchShared(definitionRoot, mode)
+	if err != nil {
+		return 5, err
+	}
+	defer lease.Unlock()
+	report, err = runner.Service.Preflight(definitionRoot, packSync.PreflightOptions{Mode: mode, Target: &target, Policy: policy, WorkspaceRoot: workspaceRoot, StrictExternal: strict})
+	if err != nil {
+		return 5, err
+	}
+	for _, finding := range report.Findings {
+		if finding.Severity == environment.SeverityError || (finding.Severity == environment.SeverityViolation && finding.Code != "CONTRACT_MISMATCH" && finding.Code != "OBSERVATION_UNAVAILABLE") || finding.Code == "STAGING_NOT_RECORDED" || finding.Code == "STAGING_INPUTS_UNKNOWN" {
+			if jsonOut {
+				if err := writeJSON(runner.Stdout, report); err != nil {
+					return 5, err
+				}
+			}
+			return 5, fmt.Errorf("probe cannot observe current staging: %s; restore/sync and resolve preflight findings first", finding.Code)
+		}
+	}
 	var receipt environment.Receipt
 	switch target {
 	case base.Claude:
@@ -75,9 +107,9 @@ func (runner Runner) runProbe(ctx context.Context, definitionRoot, workspaceRoot
 			return 5, err
 		}
 	case base.Codex:
-		codexHome, homeErr := paths.StagingCodexHomeDirForMode(definitionRoot, mode)
+		codexHome, homeErr := codex.CurrentHome(definitionRoot, mode)
 		if homeErr != nil {
-			codexHome = ""
+			return 5, homeErr
 		}
 		receipt, err = codex.ProbeHome(ctx, codexHome, workspaceRoot, report.SourceIdentity, report.LockDigest, mode)
 		if err != nil {
@@ -85,6 +117,36 @@ func (runner Runner) runProbe(ctx context.Context, definitionRoot, workspaceRoot
 		}
 	}
 
+	if receipt.Coverage == nil {
+		receipt.Coverage = []environment.CoverageNote{}
+	}
+	if receipt.Properties == nil {
+		receipt.Properties = []environment.ObservedProperty{}
+	}
+	if receipt.Findings == nil {
+		receipt.Findings = []environment.Finding{}
+	}
+	for i := range receipt.Properties {
+		property := &receipt.Properties[i]
+		if property.Evidence == environment.EvidenceObserved {
+			property.EvidenceDigest, err = environment.ExecutableIdentity(property.EvidenceRef)
+			if err != nil {
+				return 5, fmt.Errorf("retain native observation evidence: %w", err)
+			}
+		}
+	}
+	after, err := runner.Service.Preflight(definitionRoot, packSync.PreflightOptions{Mode: mode, Target: &target, Policy: policy, WorkspaceRoot: workspaceRoot, StrictExternal: strict})
+	if err != nil {
+		return 5, err
+	}
+	if after.SourceIdentity != report.SourceIdentity || after.LockDigest != report.LockDigest || after.WorkspaceDigest != report.WorkspaceDigest || after.GenerationID != report.GenerationID || after.PolicyDigest != report.PolicyDigest {
+		receipt.OverallStatus = "error"
+		receipt.Termination.Status = "failed"
+		receipt.Findings = append(receipt.Findings, environment.Finding{Code: "INPUTS_CHANGED", Severity: environment.SeverityError, Evidence: environment.EvidenceUnknown, Message: "environment inputs changed during native observation", Remedy: "restore and probe again"})
+	}
+	receipt.WorkspaceDigest = report.WorkspaceDigest
+	receipt.GenerationID = report.GenerationID
+	receipt.PolicyDigest = report.PolicyDigest
 	path, err := environment.SaveReceipt(workspaceRoot, receipt)
 	if err != nil {
 		return 1, err

@@ -63,3 +63,17 @@ jobs:
           start=$(date +%s)
           go test -race ./...
           echo "race_seconds=$(($(date +%s)-start))"
+
+  contribution-fixtures:
+    name: Portable environment contribution fixtures
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Build real CLI
+        run: go build -o /tmp/agentpack-fixtures ./cmd/agentpack
+      - name: Offline preflight and relocation evidence
+        run: python3 evaluation/icse/run.py --binary /tmp/agentpack-fixtures

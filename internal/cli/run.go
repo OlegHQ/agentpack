@@ -21,7 +21,7 @@ import (
 	packSync "github.com/OlegHQ/agentpack/internal/sync"
 )
 
-var Version = "0.4.1"
+var Version = "0.4.2"
 
 type Runner struct {
 	Stdout, Stderr io.Writer
@@ -175,10 +175,14 @@ func (runner Runner) Run(ctx context.Context, arguments []string) (int, error) {
 		if invocation.Global.StrictExternal && !hasBeforeDoubleDash(args, "--strict-external") {
 			args = append(append([]string{}, args...), "--strict-external")
 		}
-		code, preflightErr := runner.runPreflight(root, workspace, args, invocation.Global.Quiet)
+		code, preflightErr := runner.runPreflight(root, workspace, invocation.Global.Mode, args, invocation.Global.Quiet)
 		return code, runner.reportIntegrity(preflightErr)
 	case "probe":
-		code, probeErr := runner.runProbe(ctx, root, workspace, invocation.Args, invocation.Global.Quiet)
+		args := invocation.Args
+		if invocation.Global.StrictExternal {
+			args = append(append([]string{}, args...), "--strict-external")
+		}
+		code, probeErr := runner.runProbe(ctx, root, workspace, invocation.Global.Mode, args, invocation.Global.Quiet)
 		return code, runner.reportIntegrity(probeErr)
 	case "config":
 		if len(invocation.Args) == 0 {
@@ -195,7 +199,7 @@ func (runner Runner) Run(ctx context.Context, arguments []string) (int, error) {
 		code, supportErr := runner.runSupport(workspace, invocation.Args, invocation.Global.Quiet)
 		return code, runner.reportIntegrity(supportErr)
 	case "env":
-		err = runner.runEnv(ctx, workspace, invocation.Args, invocation.Global.Quiet)
+		err = runner.runEnv(ctx, root, workspace, invocation.Global.Mode, invocation.Args, invocation.Global.Quiet)
 	case "claude", "opencode", "codex", "grok", "agy", "agent":
 		code, err := runner.launch(ctx, packContext, invocation)
 		return code, runner.reportIntegrity(err)
@@ -370,6 +374,49 @@ func (runner Runner) launch(ctx context.Context, packContext paths.Context, invo
 	if invocation.Global.Debug {
 		fmt.Fprintf(runner.Stderr, "agentpack: target=%s mode=%s definition=%s workspace=%s fast-sync=%t\n", target, effective.Name(), packContext.DefinitionRoot, packContext.WorkspaceRoot, skipped)
 	}
+	stagingLock, err := staging.AcquireLaunchShared(packContext.DefinitionRoot, effective.Name())
+	if err != nil {
+		return 1, err
+	}
+	defer stagingLock.Unlock()
+	if err := runner.Service.ValidateLaunchInputs(packContext.DefinitionRoot, packContext.WorkspaceRoot, effective, target); err != nil {
+		return 1, err
+	}
+	if invocation.Global.StrictExternal {
+		options := packSync.PreflightOptions{Mode: effective.Name(), Target: &target, Policy: environment.PolicyLocal, WorkspaceRoot: packContext.WorkspaceRoot, StrictExternal: true}
+		contract, contractErr := environment.LoadContract(filepath.Join(packContext.DefinitionRoot, "contract.json"))
+		if contractErr != nil && !os.IsNotExist(contractErr) {
+			return 2, contractErr
+		}
+		for _, requirement := range contract.Requirements {
+			if (requirement.MinimumEvidence == "observed" || requirement.Predicate == "native_property" || requirement.Predicate == "coverage_complete") && (requirement.Target == "" || requirement.Target == "*" || requirement.Target == string(target)) {
+				root, err := environment.ReceiptsRoot(packContext.WorkspaceRoot)
+				if err != nil {
+					return 5, err
+				}
+				if _, err := os.Stat(root); err == nil {
+					options.ReceiptID = "latest"
+				} else if !os.IsNotExist(err) {
+					return 5, err
+				}
+				break
+			}
+		}
+		report, err := runner.Service.Preflight(packContext.DefinitionRoot, options)
+		if err != nil {
+			return 5, err
+		}
+		if !report.OK {
+			printPreflight(runner, report)
+			if report.OverallStatus == "unknown" {
+				return 4, fmt.Errorf("strict launch requires fresh observation; run agentpack probe --agent %s --strict-external", target)
+			}
+			if report.OverallStatus == "error" {
+				return 5, fmt.Errorf("strict launch preflight operational failure; resolve findings before launch")
+			}
+			return 3, fmt.Errorf("strict launch preflight failed; resolve findings before launch")
+		}
+	}
 	harness, err := registry.ByTarget(target)
 	if err != nil {
 		return 1, err
@@ -390,13 +437,9 @@ func (runner Runner) launch(ctx context.Context, packContext paths.Context, invo
 	if err != nil {
 		return 1, err
 	}
+	command.Dir = packContext.WorkspaceRoot
 	launch.Command = command
 	command.Stdin, command.Stdout, command.Stderr = runner.Stdin, runner.Stdout, runner.Stderr
-	stagingLock, err := staging.AcquireLaunchShared(packContext.DefinitionRoot, effective.Name())
-	if err != nil {
-		return 1, err
-	}
-	defer stagingLock.Unlock()
 	if invocation.Global.Proxy {
 		running, err := proxy.Start(packContext.DefinitionRoot)
 		if err != nil {

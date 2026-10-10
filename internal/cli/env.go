@@ -11,7 +11,7 @@ import (
 	packSync "github.com/OlegHQ/agentpack/internal/sync"
 )
 
-func (runner Runner) runEnv(ctx context.Context, workspace string, arguments []string, quiet bool) error {
+func (runner Runner) runEnv(ctx context.Context, definition, workspace, mode string, arguments []string, quiet bool) error {
 	if len(arguments) == 0 {
 		return fmt.Errorf("env requires an action (init|use|bind|unuse|list|status|export|import|restore)")
 	}
@@ -34,14 +34,14 @@ func (runner Runner) runEnv(ctx context.Context, workspace string, arguments []s
 		}
 		return runner.envStatus(workspace, quiet)
 	case "export":
-		return runner.envExport(workspace, args, quiet)
+		return runner.envExport(definition, workspace, args, quiet)
 	case "import":
 		return runner.envImport(args, quiet)
 	case "restore":
 		if err := noArgs(args); err != nil {
 			return err
 		}
-		return runner.envRestore(ctx, workspace, quiet)
+		return runner.envRestore(ctx, definition, workspace, mode, quiet)
 	default:
 		return fmt.Errorf("unknown env action %q", action)
 	}
@@ -167,13 +167,7 @@ func (runner Runner) envStatus(workspace string, quiet bool) error {
 	return nil
 }
 
-func (runner Runner) envExport(workspace string, args []string, quiet bool) error {
-	definition := ""
-	if binding, found, err := environment.LoadBinding(workspace); err != nil {
-		return err
-	} else if found {
-		definition = binding.DefinitionRoot
-	}
+func (runner Runner) envExport(definition, workspace string, args []string, quiet bool) error {
 	from, args, _, err := takeFlag(args, "--from")
 	if err != nil {
 		return err
@@ -199,6 +193,7 @@ func (runner Runner) envExport(workspace string, args []string, quiet bool) erro
 	}
 	if !quiet {
 		fmt.Fprintf(runner.Stdout, "Exported %s -> %s\n", definition, args[0])
+		fmt.Fprintln(runner.Stdout, "Includes manifest, unchanged lock, optional contract and checksums; excludes cache, bindings, receipts, auth and history. Review definitions before sharing.")
 	}
 	return nil
 }
@@ -237,22 +232,10 @@ func (runner Runner) envImport(args []string, quiet bool) error {
 	return nil
 }
 
-func (runner Runner) envRestore(ctx context.Context, workspace string, quiet bool) error {
-	definition := workspace
-	if binding, found, err := environment.LoadBinding(workspace); err != nil {
-		return err
-	} else if found {
-		definition = binding.DefinitionRoot
-	} else {
-		root, err := paths.ResolveProjectRoot(workspace)
-		if err != nil {
-			return err
-		}
-		definition = root
-	}
+func (runner Runner) envRestore(ctx context.Context, definition, workspace, mode string, quiet bool) error {
 	strict := definition != workspace
 	if err := runner.Service.RestoreFrozenOptions(ctx, definition, packSync.SyncOptions{
-		WorkspaceRoot: workspace, StrictExternal: strict,
+		Mode: mode, WorkspaceRoot: workspace, StrictExternal: strict,
 	}); err != nil {
 		return err
 	}

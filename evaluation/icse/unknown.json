@@ -1,0 +1,1 @@
+{"schema_version":1,"unknown_required":"fail","requirements":[{"id":"native-sentinel","selector":{"category":"skill","name":"sentinel"},"predicate":"present","minimum_evidence":"observed","severity":"error"}]}

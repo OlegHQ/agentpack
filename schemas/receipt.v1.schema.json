@@ -3,31 +3,240 @@
   "$id": "https://agentpack.dev/schemas/receipt.v1.schema.json",
   "title": "agentpack probe receipt v1",
   "type": "object",
-  "required": ["schema_version", "phase", "receipt_id", "target", "coverage", "properties", "findings", "effects", "termination", "overall_status"],
+  "required": [
+    "schema_version",
+    "phase",
+    "receipt_id",
+    "target",
+    "coverage",
+    "properties",
+    "findings",
+    "effects",
+    "termination",
+    "overall_status",
+    "source_id",
+    "lock_digest",
+    "generation_id",
+    "workspace_digest",
+    "policy_digest",
+    "mode",
+    "created_at"
+  ],
   "properties": {
-    "schema_version": { "const": 1 },
-    "phase": { "const": "probe" },
-    "receipt_id": { "type": "string" },
-    "source_id": { "type": "string" },
-    "lock_digest": { "type": "string" },
-    "mode": { "type": "string" },
+    "schema_version": {
+      "const": 1
+    },
+    "phase": {
+      "const": "probe"
+    },
+    "receipt_id": {
+      "type": "string"
+    },
+    "source_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "lock_digest": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mode": {
+      "type": "string",
+      "minLength": 1
+    },
     "target": {
       "type": "object",
-      "required": ["adapter"],
+      "required": [
+        "adapter",
+        "adapter_revision",
+        "executable_identity",
+        "capability_revision"
+      ],
       "properties": {
-        "adapter": { "type": "string" },
-        "native_version": { "type": "string" },
-        "capability_revision": { "type": "string" }
+        "adapter": {
+          "type": "string",
+          "minLength": 1
+        },
+        "native_version": {
+          "type": "string"
+        },
+        "capability_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "adapter_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "executable_identity": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
-    "coverage": { "type": "array" },
-    "properties": { "type": "array" },
-    "findings": { "type": "array" },
-    "effects": { "type": "object" },
-    "termination": { "type": "object" },
+    "coverage": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "category",
+          "scope",
+          "completeness"
+        ],
+        "properties": {
+          "category": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scope": {
+            "type": "string",
+            "minLength": 1
+          },
+          "completeness": {
+            "enum": [
+              "complete",
+              "partial",
+              "none"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "properties": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "property",
+          "value",
+          "evidence"
+        ],
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "artifact_id": {
+            "type": "string"
+          },
+          "property": {
+            "type": "string",
+            "minLength": 1
+          },
+          "value": {},
+          "evidence": {
+            "enum": [
+              "declared",
+              "generated",
+              "observed",
+              "unknown"
+            ]
+          },
+          "method": {
+            "type": "string"
+          },
+          "evidence_ref": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "evidence_digest": {
+            "type": "string"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "evidence": {
+                  "const": "observed"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "method"
+              ],
+              "properties": {
+                "method": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "value": {
+                  "not": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "findings": {
+      "type": "array"
+    },
+    "effects": {
+      "type": "object"
+    },
+    "termination": {
+      "type": "object",
+      "required": [
+        "status",
+        "native_exit_code"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "completed",
+            "failed",
+            "cancelled",
+            "timed_out"
+          ]
+        },
+        "native_exit_code": {
+          "type": "integer"
+        }
+      }
+    },
     "overall_status": {
       "type": "string",
-      "enum": ["ready", "ready_with_warnings", "violated", "unknown", "error"]
+      "enum": [
+        "ready",
+        "ready_with_warnings",
+        "violated",
+        "unknown",
+        "error"
+      ]
+    },
+    "generation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "workspace_digest": {
+      "type": "string",
+      "minLength": 1
+    },
+    "policy_digest": {
+      "type": "string",
+      "minLength": 1
+    },
+    "created_at": {
+      "type": "string",
+      "minLength": 1,
+      "format": "date-time"
+    },
+    "diagnostic_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     }
   }
 }

@@ -5,7 +5,7 @@
 ## What the launcher does
 
 ```sh
-GROK_HOME="$AGENTPACK_HOME/projects/<project-hash>/grok-home" grok --cwd <project-root>
+GROK_HOME="$AGENTPACK_HOME/projects/<project-hash>/grok-homes/<mode>" grok --cwd <workspace-root>
 ```
 
 agentpack injects `--cwd` when you don't supply it. Extra arguments are forwarded:
@@ -22,7 +22,7 @@ Grok session transcripts are durable too: staged `sessions/` links to `~/.grok/s
 ## Layout
 
 ```text
-projects/<project-hash>/grok-home/
+projects/<project-hash>/grok-homes/<mode>/
   config.toml          # seeded + [plugins].paths + [mcp_servers] + attribution guidance
   auth.json            # synchronized with shared/grok/auth.json
   sessions/ -> ~/.grok/sessions/

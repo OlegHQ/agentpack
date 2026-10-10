@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/OlegHQ/agentpack/internal/cli"
 	"github.com/OlegHQ/agentpack/internal/paths"
 )
 
@@ -38,7 +39,7 @@ func TestMain(m *testing.M) {
 
 func TestCompiledCLIHelpAndVersion(t *testing.T) {
 	result := runCLI(t, t.TempDir(), "--version")
-	if result.err != nil || strings.TrimSpace(result.stdout) != "agentpack 0.4.1" {
+	if result.err != nil || strings.TrimSpace(result.stdout) != "agentpack "+cli.Version {
 		t.Fatalf("--version: stdout=%q stderr=%q err=%v", result.stdout, result.stderr, result.err)
 	}
 	result = runCLI(t, t.TempDir(), "mode", "--help")
@@ -127,7 +128,7 @@ func TestCompiledCLISyncStagesLocalSkillForEveryHarness(t *testing.T) {
 	if result := runCLI(t, project, "sync"); result.err != nil {
 		t.Fatalf("sync: stdout=%q stderr=%q err=%v", result.stdout, result.stderr, result.err)
 	}
-	root := filepath.Join(project, "_staging", "modes", "default")
+	root := stagedModeRoot(t, project)
 	codexHome := stagedCodexHome(t, project, project)
 	for _, relative := range []string{
 		"plugins/agentpack-bundle/skills/portable-skill/SKILL.md",
@@ -173,11 +174,11 @@ func TestCompiledCLIGrokInspectRegistersBundleSkill(t *testing.T) {
 	if result := runCLI(t, project, "sync"); result.err != nil {
 		t.Fatalf("sync: stdout=%q stderr=%q err=%v", result.stdout, result.stderr, result.err)
 	}
-	home, err := filepath.Glob(filepath.Join(project, "_agentpack", "projects", "*", "grok-home"))
+	home, err := filepath.Glob(filepath.Join(project, "_agentpack", "projects", "*", "grok-homes", "default"))
 	if err != nil || len(home) != 1 {
 		t.Fatalf("grok home: %v %v", home, err)
 	}
-	bundle := filepath.Join(project, "_staging", "modes", "default", "grok", "agentpack-bundle")
+	bundle := filepath.Join(stagedModeRoot(t, project), "grok", "agentpack-bundle")
 	target, err := os.Readlink(filepath.Join(home[0], "plugins", "agentpack-bundle"))
 	if err != nil || target != bundle {
 		t.Fatalf("plugin link target=%q err=%v", target, err)
@@ -276,7 +277,7 @@ func TestCompiledCLIRefusesTamperedCacheUntilRepaired(t *testing.T) {
 	if err := os.Remove(launched); err != nil {
 		t.Fatalf("harness did not start before tampering: %v", err)
 	}
-	staged := filepath.Join(project, "_staging", "modes", "default", "plugins", "agentpack-bundle", "skills", "local-skill", "SKILL.md")
+	staged := filepath.Join(stagedModeRoot(t, project), "plugins", "agentpack-bundle", "skills", "local-skill", "SKILL.md")
 	entries, err := filepath.Glob(filepath.Join(project, "_agentpack", "cache", "*", "SKILL.md"))
 	if err != nil || len(entries) != 1 {
 		t.Fatalf("cache entries = %v, %v", entries, err)
@@ -355,7 +356,7 @@ func TestCompiledCLIVerifyOnlyChecksStagedFilesAndSyncReportsReplacingThem(t *te
 	if result := runCLI(t, project, "sync", "--verify-only"); result.err != nil || result.stderr != "" {
 		t.Fatalf("verify of an untouched tree: stdout=%q stderr=%q err=%v", result.stdout, result.stderr, result.err)
 	}
-	staged := filepath.Join(project, "_staging", "modes", "default", "plugins", "agentpack-bundle", "skills", "local-skill", "SKILL.md")
+	staged := filepath.Join(stagedModeRoot(t, project), "plugins", "agentpack-bundle", "skills", "local-skill", "SKILL.md")
 	extra := filepath.Join(filepath.Dir(staged), "extra.sh")
 	writeFile(t, staged, body+"TAMPER\n")
 	writeFile(t, extra, "TAMPER")
@@ -402,7 +403,7 @@ func TestCompiledCLIPinsNPXServerAndRecordsUnpinnedOnlyWhenAllowed(t *testing.T)
 			t.Fatalf("pack.lock lacks %q:\n%s", part, lock)
 		}
 	}
-	staged := readFile(t, filepath.Join(project, "_staging", "modes", "default", "plugins", "agentpack-bundle", ".mcp.json"))
+	staged := readFile(t, filepath.Join(stagedModeRoot(t, project), "plugins", "agentpack-bundle", ".mcp.json"))
 	if !strings.Contains(staged, `"@playwright/mcp@0.0.41"`) || strings.Contains(staged, "@latest") {
 		t.Fatalf("staged MCP config = %s", staged)
 	}
@@ -543,4 +544,13 @@ func writeFile(t *testing.T, path, contents string) {
 	if err := os.WriteFile(path, []byte(contents), 0o644); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func stagedModeRoot(t *testing.T, project string) string {
+	t.Helper()
+	hash, err := paths.ProjectPathHash(project)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return filepath.Join(project, "_staging", "projects", hash, "modes", "default")
 }

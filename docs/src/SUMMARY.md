@@ -33,6 +33,7 @@
 # Reference
 
 - [CLI Commands](./reference/cli.md)
+- [Contracts and Evidence](./reference/contracts.md)
 - [Manifest Schema](./reference/manifest-schema.md)
 - [Environment Variables](./reference/env-vars.md)
 
@@ -41,3 +42,5 @@
 - [Publishing Packages](./guides/publishing.md)
 - [Team Workflows](./guides/team-workflows.md)
 - [Overrides and Attribution](./guides/overrides.md)
+
+- [ICSE Evaluation and Demo](./guides/icse-evaluation.md)
