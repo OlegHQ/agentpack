@@ -1,49 +1,59 @@
 lockfile_version = 2
 
 [meta]
-name = "test"
-version = "0.0.1"
+name = 'test'
+version = '0.0.1'
 
 [[packages]]
-module = "github.com/mccteam/minecraft-console-client/.skills/humanizer"
+module = 'github.com/dietrichgebert/ponytail'
 direct = true
-kind = "skill"
-url = "https://github.com/mccteam/minecraft-console-client/tree/f39fe2d067844a21b2efc20976831f265c1f5f5c/.skills/humanizer"
-owner = "mccteam"
-repo = "minecraft-console-client"
-path = ".skills/humanizer"
-commit = "f39fe2d067844a21b2efc20976831f265c1f5f5c"
-cache_key = "ed850325c375ee6a8556209f42e05faaa0c5e064683a50a44c5807172885fbca"
+kind = 'plugin'
+url = 'https://github.com/dietrichgebert/ponytail/tree/9b58c1ffb790c075ca32e70a89cf1d80588f4abf'
+owner = 'dietrichgebert'
+repo = 'ponytail'
+commit = '9b58c1ffb790c075ca32e70a89cf1d80588f4abf'
+cache_key = '14a939838da478918aef80cab384ab47aae7d1ee873d96bff48259da31d4815e'
 
 [[packages]]
-module = "github.com/oleghq/agent-configs/mcps/linear"
+module = 'github.com/mccteam/minecraft-console-client/.skills/humanizer'
 direct = true
-kind = "plugin"
-url = "https://github.com/oleghq/agent-configs/tree/281d30f17f215d5d6cdb55cbcb7456ae4ca952f1/mcps/linear"
-owner = "oleghq"
-repo = "agent-configs"
-path = "mcps/linear"
-commit = "281d30f17f215d5d6cdb55cbcb7456ae4ca952f1"
-cache_key = "af38e50122e8da8dc3fd6fdc20ea217bf94361a17d8744573b727d7efe6cf12d"
+kind = 'skill'
+url = 'https://github.com/mccteam/minecraft-console-client/tree/f39fe2d067844a21b2efc20976831f265c1f5f5c/.skills/humanizer'
+owner = 'mccteam'
+repo = 'minecraft-console-client'
+path = '.skills/humanizer'
+commit = 'f39fe2d067844a21b2efc20976831f265c1f5f5c'
+cache_key = 'ed850325c375ee6a8556209f42e05faaa0c5e064683a50a44c5807172885fbca'
 
 [[packages]]
-module = "github.com/oleghq/agent-configs/plugins/simplifier"
+module = 'github.com/oleghq/agent-configs/mcps/linear'
 direct = true
-kind = "plugin"
-url = "https://github.com/oleghq/agent-configs/tree/281d30f17f215d5d6cdb55cbcb7456ae4ca952f1/plugins/simplifier"
-owner = "oleghq"
-repo = "agent-configs"
-path = "plugins/simplifier"
-commit = "281d30f17f215d5d6cdb55cbcb7456ae4ca952f1"
-cache_key = "407ba1a3066c7d262edd9276e2c8ff991e47ae1a3e6f1b666cc1621ff85c742e"
+kind = 'plugin'
+url = 'https://github.com/oleghq/agent-configs/tree/281d30f17f215d5d6cdb55cbcb7456ae4ca952f1/mcps/linear'
+owner = 'oleghq'
+repo = 'agent-configs'
+path = 'mcps/linear'
+commit = '281d30f17f215d5d6cdb55cbcb7456ae4ca952f1'
+cache_key = 'af38e50122e8da8dc3fd6fdc20ea217bf94361a17d8744573b727d7efe6cf12d'
 
 [[packages]]
-module = "github.com/s1mplesonny/technical-writing-skill/technical-writing"
+module = 'github.com/oleghq/agent-configs/plugins/simplifier'
 direct = true
-kind = "skill"
-url = "https://github.com/s1mplesonny/technical-writing-skill/tree/7b6fea6dd290676bdafc442c324fec813a6de50e/technical-writing"
-owner = "s1mplesonny"
-repo = "technical-writing-skill"
-path = "technical-writing"
-commit = "7b6fea6dd290676bdafc442c324fec813a6de50e"
-cache_key = "9cbdec767473b02a0b89ebe184548ac8b36b43a7f4cc640c1f4f14ee0eb5ae84"
+kind = 'plugin'
+url = 'https://github.com/oleghq/agent-configs/tree/281d30f17f215d5d6cdb55cbcb7456ae4ca952f1/plugins/simplifier'
+owner = 'oleghq'
+repo = 'agent-configs'
+path = 'plugins/simplifier'
+commit = '281d30f17f215d5d6cdb55cbcb7456ae4ca952f1'
+cache_key = '407ba1a3066c7d262edd9276e2c8ff991e47ae1a3e6f1b666cc1621ff85c742e'
+
+[[packages]]
+module = 'github.com/s1mplesonny/technical-writing-skill/technical-writing'
+direct = true
+kind = 'skill'
+url = 'https://github.com/s1mplesonny/technical-writing-skill/tree/7b6fea6dd290676bdafc442c324fec813a6de50e/technical-writing'
+owner = 's1mplesonny'
+repo = 'technical-writing-skill'
+path = 'technical-writing'
+commit = '7b6fea6dd290676bdafc442c324fec813a6de50e'
+cache_key = '9cbdec767473b02a0b89ebe184548ac8b36b43a7f4cc640c1f4f14ee0eb5ae84'

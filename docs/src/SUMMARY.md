@@ -15,6 +15,7 @@
 - [Dependency Resolution](./concepts/resolution.md)
 - [Package Cache](./concepts/cache.md)
 - [Integrity and Verification](./concepts/integrity.md)
+- [Portable Environments](./concepts/environments.md)
 - [Staging and Bundles](./concepts/staging.md)
 - [Modes](./concepts/modes.md)
 - [MCP Servers](./concepts/mcp.md)

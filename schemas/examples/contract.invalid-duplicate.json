@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "requirements": [
+    {
+      "id": "dup",
+      "target": "*",
+      "selector": { "category": "planned_write", "property": "workspace_configuration" },
+      "predicate": "no_workspace_write",
+      "minimum_evidence": "generated",
+      "severity": "error"
+    },
+    {
+      "id": "dup",
+      "target": "*",
+      "selector": { "category": "planned_write", "property": "workspace_configuration" },
+      "predicate": "no_workspace_write",
+      "minimum_evidence": "generated",
+      "severity": "error"
+    }
+  ],
+  "allowances": [],
+  "unknown_required": "fail"
+}

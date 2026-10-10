@@ -38,7 +38,7 @@ func TestMain(m *testing.M) {
 
 func TestCompiledCLIHelpAndVersion(t *testing.T) {
 	result := runCLI(t, t.TempDir(), "--version")
-	if result.err != nil || strings.TrimSpace(result.stdout) != "agentpack 0.3.27" {
+	if result.err != nil || strings.TrimSpace(result.stdout) != "agentpack 0.3.28" {
 		t.Fatalf("--version: stdout=%q stderr=%q err=%v", result.stdout, result.stderr, result.err)
 	}
 	result = runCLI(t, t.TempDir(), "mode", "--help")
@@ -431,6 +431,64 @@ func TestCompiledCLIPinsNPXServerAndRecordsUnpinnedOnlyWhenAllowed(t *testing.T)
 	if result := runCLI(t, offline, "mcp", "list"); result.err != nil || !strings.Contains(result.stdout, "(unpinned)") {
 		t.Fatalf("mcp list: stdout=%q stderr=%q err=%v", result.stdout, result.stderr, result.err)
 	}
+}
+
+func TestCompiledCLIExternalEnvDoesNotWriteCheckout(t *testing.T) {
+	// One CLI cwd so AGENTPACK_HOME/_agentpack is shared across env init/bind/preflight.
+	cwd := t.TempDir()
+	project := filepath.Join(cwd, "project")
+	checkout := filepath.Join(cwd, "checkout")
+	if err := os.MkdirAll(project, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(checkout, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if result := runCLI(t, cwd, "--project-root", project, "init", "--name", "team"); result.err != nil {
+		t.Fatalf("init: stderr=%q err=%v", result.stderr, result.err)
+	}
+	if result := runCLI(t, cwd, "env", "init", "team", "--from", project); result.err != nil {
+		t.Fatalf("env init: stderr=%q err=%v", result.stderr, result.err)
+	}
+	if result := runCLI(t, cwd, "env", "bind", "team", "--project", checkout); result.err != nil {
+		t.Fatalf("env bind: stderr=%q err=%v", result.stderr, result.err)
+	}
+	entries, err := os.ReadDir(checkout)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("checkout should stay empty, got %#v", names(entries))
+	}
+	result := runCLI(t, cwd, "--env", "team", "--workspace", checkout, "preflight", "--json", "--policy", "local")
+	if result.err != nil {
+		t.Fatalf("preflight: stdout=%q stderr=%q err=%v", result.stdout, result.stderr, result.err)
+	}
+	if !strings.Contains(result.stdout, `"schema_version":1`) || !strings.Contains(result.stdout, `"phase":"preflight"`) {
+		t.Fatalf("preflight json=%q", result.stdout)
+	}
+	entries, err = os.ReadDir(checkout)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("preflight wrote checkout: %#v", names(entries))
+	}
+	bundle := filepath.Join(cwd, "team.bundle")
+	if result := runCLI(t, cwd, "env", "export", bundle, "--from", "team"); result.err != nil {
+		t.Fatalf("export: stderr=%q err=%v", result.stderr, result.err)
+	}
+	if result := runCLI(t, cwd, "--env", "no-such-env", "--workspace", checkout, "preflight"); result.err == nil {
+		t.Fatal("invalid --env must fail")
+	}
+}
+
+func names(entries []os.DirEntry) []string {
+	out := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		out = append(out, entry.Name())
+	}
+	return out
 }
 
 func stagedCodexHome(t *testing.T, projectRoot, workingDirectory string) string {

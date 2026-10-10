@@ -58,7 +58,11 @@ func (runner Runner) rootCommand(original []string, exitCode *int) *cobra.Comman
 
 	var global Global
 	flags := root.PersistentFlags()
-	flags.StringVar(&global.ProjectRoot, "project-root", "", "project root containing agentpack.toml")
+	flags.StringVar(&global.ProjectRoot, "project-root", "", "legacy single root (definition+workspace when no split flags)")
+	flags.StringVar(&global.DefinitionRoot, "definition-root", "", "external directory holding agentpack.toml and pack.lock")
+	flags.StringVar(&global.Env, "env", "", "external environment name or path (fails if missing; no fallthrough)")
+	flags.StringVar(&global.WorkspaceRoot, "workspace", "", "checkout / agent cwd for .agents and overlays")
+	flags.BoolVar(&global.StrictExternal, "strict-external", false, "refuse workspace overlay writes (Cursor/Agy)")
 	flags.BoolVarP(&global.Quiet, "quiet", "q", false, "suppress status output")
 	flags.BoolVar(&global.NoProgress, "no-progress", false, "disable progress output")
 	flags.BoolVar(&global.Yolo, "yolo", false, "enable unattended harness execution")
@@ -108,8 +112,29 @@ func (runner Runner) rootCommand(original []string, exitCode *int) *cobra.Comman
 	flag(syncCommand, "verify-only", "", "verify existing cache and staging")
 	flag(syncCommand, "update-lock", "", "refresh the lock before staging")
 	flag(syncCommand, "repair", "", "re-fetch cache entries that fail content verification")
+	preflight := leaf("preflight", "Pure offline check of a locked environment (no mutation)")
+	flag(preflight, "json", "", "emit a JSON report")
+	flag(preflight, "strict-external", "", "treat workspace overlay targets as violations")
+	value(preflight, "agent", "TARGET", "harness target to check (claude, opencode, ...)")
+	value(preflight, "policy", "local|ci", "inheritance policy")
+	value(preflight, "contract", "PATH", "versioned contract.json (default: <definition>/contract.json)")
+	value(preflight, "receipt", "ID", "compare a prior probe receipt (freshness / observed coverage)")
+	probe := leaf("probe", "Run an explicit native observation probe (writes a receipt)")
+	flag(probe, "json", "", "emit the receipt JSON")
+	value(probe, "agent", "claude|codex", "native adapter to probe")
+	value(probe, "mode", "NAME", "staged mode whose generation to probe")
 
-	root.AddCommand(init, lock, add, remove, update, list, syncCommand)
+	configCmd := &cobra.Command{Use: "config", Short: "Compare configuration observation receipts"}
+	configCompare := leaf("compare RECEIPT_A RECEIPT_B", "Diff two probe receipts")
+	flag(configCompare, "json", "", "emit JSON comparison")
+	configCmd.AddCommand(configCompare)
+	supportCmd := &cobra.Command{Use: "support", Short: "Export redacted diagnostic capsules"}
+	supportExport := leaf("export RECEIPT_ID", "Write a redacted support capsule")
+	value(supportExport, "output", "PATH", "destination JSON file")
+	flag(supportExport, "json", "", "also emit the capsule on stdout")
+	supportCmd.AddCommand(supportExport)
+
+	root.AddCommand(init, lock, add, remove, update, list, syncCommand, preflight, probe, configCmd, supportCmd)
 	agent := leaf("agent [ARGS...]", "Launch Cursor Agent with a staged HOME")
 	agent.Aliases = []string{"cursor-agent"}
 	root.AddCommand(
@@ -145,6 +170,33 @@ func (runner Runner) rootCommand(original []string, exitCode *int) *cobra.Comman
 		leaf("tui [NAME]", "Open the interactive mode editor"),
 	)
 	root.AddCommand(mode)
+
+	env := &cobra.Command{Use: "env", Short: "Manage portable external environments"}
+	envInit := leaf("init [NAME]", "Create an external definition directory")
+	value(envInit, "name", "NAME", "environment name under AGENTPACK_HOME/environments")
+	value(envInit, "dir", "PATH", "explicit definition directory")
+	value(envInit, "from", "PATH", "copy agentpack.toml and pack.lock from a project")
+	envUse := leaf("use REF", "Bind the workspace to an external definition")
+	value(envUse, "project", "PATH", "workspace checkout to bind")
+	envBind := leaf("bind REF", "Alias for env use")
+	value(envBind, "project", "PATH", "workspace checkout to bind")
+	envExport := leaf("export PATH", "Export definition+lock as a portable bundle")
+	value(envExport, "from", "REF", "environment name or definition path")
+	envImport := leaf("import PATH", "Import a portable bundle")
+	value(envImport, "name", "NAME", "destination environment name")
+	value(envImport, "dir", "PATH", "explicit destination directory")
+	env.AddCommand(
+		envInit,
+		envUse,
+		envBind,
+		leaf("unuse", "Clear the workspace environment binding"),
+		leaf("list", "List environments under AGENTPACK_HOME"),
+		leaf("status", "Show binding and storage location"),
+		envExport,
+		envImport,
+		leaf("restore", "Fetch locked cache inputs without changing pack.lock"),
+	)
+	root.AddCommand(env)
 
 	extra := &cobra.Command{Use: "extra", Short: "Optional, non-core commands"}
 	syncClaude := leaf("sync-claude", "Reconcile .claude/skills and .agents/skills")

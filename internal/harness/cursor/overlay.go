@@ -1,12 +1,14 @@
 package cursor
 
 import (
-	base "github.com/OlegHQ/agentpack/internal/harness"
-	"github.com/OlegHQ/agentpack/internal/paths"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	base "github.com/OlegHQ/agentpack/internal/harness"
+	"github.com/OlegHQ/agentpack/internal/paths"
 )
 
 func readOverlayManifest(project string) ([]string, error) {
@@ -68,6 +70,9 @@ func cleanupOverlay(project string) error {
 	return writeOverlayManifest(project, nil)
 }
 func materializeAgentsOverlay(ctx base.StageContext) error {
+	if ctx.StrictExternal {
+		return fmt.Errorf("cursor workspace overlay refused under --strict-external")
+	}
 	pack, err := stagedRoot(ctx)
 	if err != nil {
 		return err
@@ -87,9 +92,12 @@ func materializeAgentsOverlay(ctx base.StageContext) error {
 	if !found {
 		return writeOverlayManifest(ctx.ProjectRoot, nil)
 	}
-	workspace, err := os.Getwd()
-	if err != nil {
-		workspace = ctx.ProjectRoot
+	workspace := ctx.WorkspaceRoot
+	if workspace == "" {
+		workspace, err = os.Getwd()
+		if err != nil {
+			workspace = ctx.ProjectRoot
+		}
 	}
 	destination := filepath.Join(workspace, ".cursor", "agents")
 	if info, err := os.Lstat(destination); err == nil {

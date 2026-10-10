@@ -65,6 +65,15 @@ func ResolveCollisionsWithHome(bundle string, skillRoots, markdownRoots []string
 	return removed, nil
 }
 
+// UserHomeSkillNames lists skill directory names under the user's Claude/Grok homes.
+// Read-only; suitable for pure preflight ambient checks.
+func UserHomeSkillNames(home string) (map[string]struct{}, error) {
+	if home == "" {
+		return map[string]struct{}{}, nil
+	}
+	return directoryNames(filepath.Join(home, ".claude", "skills"), filepath.Join(home, ".grok", "skills"))
+}
+
 func directoryNames(roots ...string) (map[string]struct{}, error) {
 	result := make(map[string]struct{})
 	for _, root := range roots {

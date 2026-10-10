@@ -7,6 +7,36 @@ window.
 
 ## Unreleased
 
+## [0.4.1] - 2026-10-10
+
+### Added
+
+- **Portable external environments.** `agentpack env init|use|unuse|list|status|export|import|restore` keeps
+  `agentpack.toml`/`pack.lock` outside a checkout, with a machine-local binding under
+  `$AGENTPACK_HOME/projects/<hash>/environment.toml`. Global `--definition-root` and `--workspace`
+  split definition from agent cwd; legacy `--project-root` remains the single-root workflow.
+- **`agentpack preflight`.** Pure offline check (no lock/cache/staging/repo writes) with human and
+  `--json` findings (`code`/`severity`/`source`/`target`/`remedy`), inheritance notes, MCP pin status,
+  hook diagnostics, and planned workspace writes. `--policy local|ci` and `--strict-external`.
+  Reports ambient `CONFIG_SHADOWED` / `AMBIENT_ARTIFACT` from user/project skills (generated evidence),
+  optional `contract.json` evaluation, `overall_status`, and exit codes `0/2/3/4/5`.
+- **`--env`.** Explicit external environment name or path; invalid selectors fail without falling
+  through to a binding or project manifest. `env bind` is an alias for `env use`. MCP
+  `--env KEY=VALUE` assignments still pass through (values containing `=`).
+- **`agentpack probe`.** Explicit native observation for Claude (`plugin list --json` +
+  `plugin details`) and Codex (`--version`, skills unknown). Writes receipts under
+  `$AGENTPACK_HOME/projects/<hash>/probe-receipts/`; never runs inside pure preflight.
+- **`agentpack config compare`.** Diff two probe receipts; unobserved fields stay unknown.
+- **`agentpack support export`.** Redacted opt-in diagnostic capsule from a probe receipt.
+- **Frozen restore publishes staging.** `env restore` / `RestoreFrozen` rebuilds staging from the
+  exact lock without re-resolving pins or rewriting `pack.lock`; missing locked inputs fail hard.
+  Staging rebuild takes an exclusive flock; launches hold a shared lock so restore cannot wipe an
+  active session's staged tree.
+- **Effective-plan winners.** Preflight artifact records mark package/user/project/plugin winners.
+- **Contract schema.** `schemas/contract.v1.schema.json` plus valid/invalid examples.
+- **`--strict-external`.** Refuses Cursor/Antigravity workspace overlay writes before they happen;
+  Claude and OpenCode remain the validated no-checkout-write adapters.
+
 ### Changed
 
 - **`pack.lock` is now lockfile version 3** once it holds a content hash or an MCP record. Version 2

@@ -98,6 +98,9 @@ func verify(ctx base.StageContext) error {
 	return nil
 }
 func finalizeWorkspace(ctx base.StageContext) error {
+	if ctx.StrictExternal {
+		return fmt.Errorf("agy workspace overlay refused under --strict-external")
+	}
 	bundle, err := stagedRoot(ctx)
 	if err != nil {
 		return err
@@ -105,9 +108,12 @@ func finalizeWorkspace(ctx base.StageContext) error {
 	if _, err := os.Stat(filepath.Join(bundle, "plugin.json")); err != nil {
 		return nil
 	}
-	workspace, err := os.Getwd()
-	if err != nil {
-		workspace = ctx.ProjectRoot
+	workspace := ctx.WorkspaceRoot
+	if workspace == "" {
+		workspace, err = os.Getwd()
+		if err != nil {
+			workspace = ctx.ProjectRoot
+		}
 	}
 	overlay := filepath.Join(workspace, filepath.FromSlash(workspaceOverlay))
 	if info, err := os.Lstat(overlay); err == nil {

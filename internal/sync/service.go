@@ -30,8 +30,15 @@ type SyncOptions struct {
 	DryRun, VerifyOnly, UpdateLock bool
 	// Repair re-fetches cache entries that fail content verification.
 	Repair bool
+	// Frozen restores exact locked cache inputs and rebuilds staging without
+	// re-resolving pins or rewriting pack.lock. Missing locked inputs fail.
+	Frozen bool
 	Mode   string
 	Target *base.Target
+	// WorkspaceRoot selects checkout inputs (.agents); empty means projectRoot.
+	WorkspaceRoot string
+	// StrictExternal refuses Cursor/Agy workspace overlay writes.
+	StrictExternal bool
 }
 
 // LockOptions tunes the commands that are allowed to add records to pack.lock.
@@ -289,7 +296,7 @@ func (service Service) Sync(ctx context.Context, projectRoot string, options Syn
 	if err != nil {
 		return SyncResult{}, err
 	}
-	if !options.DryRun && project != nil && len(project.Dependencies) != 0 {
+	if !options.DryRun && !options.Frozen && project != nil && len(project.Dependencies) != 0 {
 		// sync verifies what the lock already pins. It records a content hash
 		// only for content it has to download, and adds no MCP records.
 		// --update-lock is the one way it re-resolves on purpose.
@@ -299,7 +306,7 @@ func (service Service) Sync(ctx context.Context, projectRoot string, options Syn
 		}
 	}
 	lock, err := loadCheckedLock(projectRoot)
-	if os.IsNotExist(rootCause(err)) && options.Target != nil {
+	if os.IsNotExist(rootCause(err)) && options.Target != nil && !options.Frozen {
 		lock = lockfile.EmptyForProject(projectRoot)
 		err = nil
 	}
@@ -321,24 +328,33 @@ func (service Service) Sync(ctx context.Context, projectRoot string, options Syn
 	if options.DryRun {
 		return result, nil
 	}
-	dirty := false
-	for index := range lock.Packages {
-		pkg := &lock.Packages[index]
-		if pkg.NeedsBackfill() {
-			resolved, err := cache.FetchGitHubAssetURL(ctx, service.client(), pkg.URL)
-			if err != nil {
-				return result, err
+	if options.Frozen {
+		for _, pkg := range lock.Packages {
+			if pkg.NeedsBackfill() {
+				return result, fmt.Errorf("frozen restore refuses incomplete lock entry %s; run `agentpack lock`", pkg.Module)
 			}
-			if resolved.Kind != lockfile.PackagePlugin {
-				return result, fmt.Errorf("plugin URL %s resolved to a skill subtree", pkg.URL)
-			}
-			*pkg = resolved
-			dirty = true
 		}
 	}
-	if dirty {
-		if err := lock.Save(projectRoot); err != nil {
-			return result, err
+	dirty := false
+	if !options.Frozen {
+		for index := range lock.Packages {
+			pkg := &lock.Packages[index]
+			if pkg.NeedsBackfill() {
+				resolved, err := cache.FetchGitHubAssetURL(ctx, service.client(), pkg.URL)
+				if err != nil {
+					return result, err
+				}
+				if resolved.Kind != lockfile.PackagePlugin {
+					return result, fmt.Errorf("plugin URL %s resolved to a skill subtree", pkg.URL)
+				}
+				*pkg = resolved
+				dirty = true
+			}
+		}
+		if dirty {
+			if err := lock.Save(projectRoot); err != nil {
+				return result, err
+			}
 		}
 	}
 	for _, pkg := range lock.Packages {
@@ -348,7 +364,7 @@ func (service Service) Sync(ctx context.Context, projectRoot string, options Syn
 		restore := cache.GitHubRestore(ctx, service.client())
 		ready, err := cache.EnsureLockCached(pkg, restore)
 		var mismatch *cache.IntegrityError
-		if options.Repair && errors.As(err, &mismatch) && !mismatch.Fetched {
+		if !options.Frozen && options.Repair && errors.As(err, &mismatch) && !mismatch.Fetched {
 			if _, _, err = cache.RefetchPackage(pkg, restore); err == nil {
 				service.notify("%s", mismatch.Repaired())
 				ready, err = cache.EnsureLockCached(pkg, restore)
@@ -358,6 +374,9 @@ func (service Service) Sync(ctx context.Context, projectRoot string, options Syn
 			return result, err
 		}
 		if !ready {
+			if options.Frozen {
+				return result, fmt.Errorf("cache missing and source unavailable for %s", pkg.Module)
+			}
 			result.Warnings = append(result.Warnings, fmt.Sprintf("%s %s: cache missing and source unavailable", pkg.Kind, pkg.CacheKey))
 		}
 		record := cache.EntryRecord{Kind: pkg.Kind, SourceURL: pkg.URL, Owner: pkg.Owner, Repo: pkg.Repo, Path: pkg.Path, Commit: pkg.Commit, FetchedAtUnix: time.Now().Unix()}
@@ -368,7 +387,15 @@ func (service Service) Sync(ctx context.Context, projectRoot string, options Syn
 	if err := service.checkLockRecords(projectRoot, project, lock); err != nil {
 		return result, err
 	}
-	pipeline := staging.Pipeline{ProjectRoot: projectRoot, Lock: lock, Manifest: project, Mode: effective, Target: options.Target}
+	pipeline := staging.Pipeline{
+		ProjectRoot:    projectRoot,
+		WorkspaceRoot:  options.WorkspaceRoot,
+		Lock:           lock,
+		Manifest:       project,
+		Mode:           effective,
+		Target:         options.Target,
+		StrictExternal: options.StrictExternal,
+	}
 	drift, recorded, driftErr := pipeline.StagedDrift(options.VerifyOnly)
 	if driftErr != nil {
 		return result, driftErr
@@ -400,7 +427,12 @@ func (service Service) Sync(ctx context.Context, projectRoot string, options Syn
 			}
 			service.notify("%d staged file(s) changed since the last sync and were replaced from the verified cache: %s", len(drift), strings.Join(shown, "; "))
 		}
+		rebuildLock, lockErr := staging.TryAcquireRebuildExclusive(projectRoot, effective.Name())
+		if lockErr != nil {
+			return result, lockErr
+		}
 		_, err = pipeline.Rebuild()
+		_ = rebuildLock.Unlock()
 		if err == nil {
 			err = pipeline.Verify()
 		}
@@ -414,6 +446,15 @@ func (service Service) Sync(ctx context.Context, projectRoot string, options Syn
 }
 
 func (service Service) SyncForLaunch(ctx context.Context, projectRoot, selectedMode string, target base.Target) (mode.Effective, bool, error) {
+	return service.SyncForLaunchOptions(ctx, projectRoot, SyncOptions{Mode: selectedMode, Target: &target})
+}
+
+// SyncForLaunchOptions is SyncForLaunch with workspace/strict-external controls.
+func (service Service) SyncForLaunchOptions(ctx context.Context, projectRoot string, options SyncOptions) (mode.Effective, bool, error) {
+	if options.Target == nil {
+		return mode.Effective{}, false, fmt.Errorf("launch sync requires a target")
+	}
+	target := *options.Target
 	if _, err := paths.EnsureUserAgentpackLayout(); err != nil {
 		return mode.Effective{}, false, err
 	}
@@ -429,9 +470,13 @@ func (service Service) SyncForLaunch(ctx context.Context, projectRoot, selectedM
 	if err != nil {
 		return mode.Effective{}, false, err
 	}
-	effective, err := resolveMode(projectRoot, project, &lock, selectedMode)
+	effective, err := resolveMode(projectRoot, project, &lock, options.Mode)
 	if err != nil {
 		return mode.Effective{}, false, err
+	}
+	workspace := options.WorkspaceRoot
+	if workspace == "" {
+		workspace = projectRoot
 	}
 	current, err := launchDigest(projectRoot, effective, &target, lock)
 	if err != nil {
@@ -447,7 +492,10 @@ func (service Service) SyncForLaunch(ctx context.Context, projectRoot, selectedM
 		if envEnabled(FullVerifyEnv) {
 			verifyCache = cache.VerifyLockCacheIntegrity
 		}
-		pipeline := staging.Pipeline{ProjectRoot: projectRoot, Lock: lock, Manifest: project, Mode: effective, Target: &target}
+		pipeline := staging.Pipeline{
+			ProjectRoot: projectRoot, WorkspaceRoot: workspace, Lock: lock, Manifest: project,
+			Mode: effective, Target: &target, StrictExternal: options.StrictExternal,
+		}
 		if verifyCache(lock) == nil && pipeline.Verify() == nil {
 			if err := service.checkLockRecords(projectRoot, project, lock); err != nil {
 				return mode.Effective{}, false, err
@@ -455,7 +503,10 @@ func (service Service) SyncForLaunch(ctx context.Context, projectRoot, selectedM
 			return effective, true, nil
 		}
 	}
-	result, err := service.Sync(ctx, projectRoot, SyncOptions{Mode: effective.Name(), Target: &target})
+	result, err := service.Sync(ctx, projectRoot, SyncOptions{
+		Mode: effective.Name(), Target: &target,
+		WorkspaceRoot: workspace, StrictExternal: options.StrictExternal,
+	})
 	if err != nil {
 		return mode.Effective{}, false, err
 	}

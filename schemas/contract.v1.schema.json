@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentpack.dev/schemas/contract.v1.schema.json",
+  "title": "agentpack contract v1",
+  "type": "object",
+  "required": ["schema_version", "requirements"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": 1 },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "target", "selector", "predicate", "minimum_evidence", "severity"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "target": { "type": "string" },
+          "selector": { "type": "object" },
+          "predicate": {
+            "type": "string",
+            "enum": ["present", "absent", "equals", "source_allowed", "native_property", "no_workspace_write", "coverage_complete"]
+          },
+          "expected": {},
+          "minimum_evidence": { "type": "string", "enum": ["declared", "generated", "observed"] },
+          "severity": { "type": "string", "enum": ["info", "warning", "error", "violation"] }
+        }
+      }
+    },
+    "allowances": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["requirement_id", "rationale"],
+        "properties": {
+          "requirement_id": { "type": "string" },
+          "rationale": { "type": "string" }
+        }
+      }
+    },
+    "unknown_required": { "type": "string", "enum": ["fail", "warn", "allow"] }
+  }
+}

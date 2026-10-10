@@ -21,11 +21,23 @@ import (
 )
 
 type Pipeline struct {
+	// ProjectRoot is the definition root (manifest, lock, staging identity).
 	ProjectRoot string
-	Lock        lockfile.PackLock
-	Manifest    *manifest.Manifest
-	Mode        mode.Effective
-	Target      *base.Target
+	// WorkspaceRoot is the checkout for .agents inputs; empty means ProjectRoot.
+	WorkspaceRoot string
+	Lock          lockfile.PackLock
+	Manifest      *manifest.Manifest
+	Mode          mode.Effective
+	Target        *base.Target
+	// StrictExternal refuses workspace overlay materialization.
+	StrictExternal bool
+}
+
+func (pipeline Pipeline) workspace() string {
+	if pipeline.WorkspaceRoot != "" {
+		return pipeline.WorkspaceRoot
+	}
+	return pipeline.ProjectRoot
 }
 
 func (pipeline Pipeline) Rebuild() (_ []string, rebuildErr error) {
@@ -93,7 +105,7 @@ func (pipeline Pipeline) Rebuild() (_ []string, rebuildErr error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := StageDotAgents(pipeline.ProjectRoot, pipeline.Mode.Name(), pipeline.Mode, codexRoot); err != nil {
+	if err := StageDotAgents(pipeline.ProjectRoot, pipeline.workspace(), pipeline.Mode.Name(), pipeline.Mode, codexRoot); err != nil {
 		return nil, err
 	}
 	plugins, err := paths.StagingPluginsDirForMode(pipeline.ProjectRoot, pipeline.Mode.Name())
@@ -101,10 +113,10 @@ func (pipeline Pipeline) Rebuild() (_ []string, rebuildErr error) {
 		return nil, err
 	}
 	bundle := filepath.Join(plugins, paths.StagedAgentpackBundleName)
-	if err := OmitProjectClaudeSkillDuplicates(pipeline.ProjectRoot, bundle); err != nil {
+	if err := OmitProjectClaudeSkillDuplicates(pipeline.workspace(), bundle); err != nil {
 		return nil, err
 	}
-	merged, err := CollectMCP(pipeline.ProjectRoot, pipeline.Lock, pipeline.Manifest, &pipeline.Mode)
+	merged, err := CollectMCP(pipeline.workspace(), pipeline.Lock, pipeline.Manifest, &pipeline.Mode)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +128,7 @@ func (pipeline Pipeline) Rebuild() (_ []string, rebuildErr error) {
 			}
 		}
 	}
-	guidance, err := CollectGuidance(pipeline.ProjectRoot, pipeline.Lock, pipeline.Mode)
+	guidance, err := CollectGuidance(pipeline.workspace(), pipeline.Lock, pipeline.Mode)
 	if err != nil {
 		return nil, err
 	}
@@ -133,6 +145,9 @@ func (pipeline Pipeline) Rebuild() (_ []string, rebuildErr error) {
 		}
 	}
 	if pipeline.Target != nil {
+		if pipeline.StrictExternal && pipeline.Target.UsesWorkspaceOverlay() {
+			return nil, fmt.Errorf("%s requires a workspace overlay write; refuse under --strict-external (use claude/opencode, or omit --strict-external)", *pipeline.Target)
+		}
 		candidate, err := registry.ByTarget(*pipeline.Target)
 		if err != nil {
 			return nil, err
@@ -202,7 +217,7 @@ func (pipeline Pipeline) verify(ctx base.StageContext) error {
 	if err != nil {
 		return err
 	}
-	projectClaudeSkills, err := ProjectClaudeSkillNames(pipeline.ProjectRoot)
+	projectClaudeSkills, err := ProjectClaudeSkillNames(pipeline.workspace())
 	if err != nil {
 		return err
 	}
@@ -254,8 +269,45 @@ func registryRoot(harnesses []base.Harness, target base.Target, ctx base.StageCo
 }
 
 func (pipeline Pipeline) context() base.StageContext {
-	return base.StageContext{ProjectRoot: pipeline.ProjectRoot, Mode: pipeline.Mode, LaunchTarget: pipeline.Target}
+	return base.StageContext{
+		ProjectRoot:    pipeline.ProjectRoot,
+		WorkspaceRoot:  pipeline.workspace(),
+		Mode:           pipeline.Mode,
+		LaunchTarget:   pipeline.Target,
+		StrictExternal: pipeline.StrictExternal,
+	}
 }
+
+// HookDiagnostics returns renderer findings without writing hook files.
+func (pipeline Pipeline) HookDiagnostics() ([]hooks.Diagnostic, hooks.RenderSummary, error) {
+	bundle, err := hooks.Collect(pipeline.workspace(), pipeline.Lock, "", pipeline.Mode)
+	if err != nil {
+		return nil, hooks.RenderSummary{}, err
+	}
+	var diagnostics []hooks.Diagnostic
+	var summary hooks.RenderSummary
+	for _, target := range base.AllTargets() {
+		renderer := registry.Renderer(target)
+		if renderer == nil || len(bundle.Hooks) == 0 {
+			continue
+		}
+		root, err := paths.StagingRootForMode(pipeline.ProjectRoot, pipeline.Mode.Name())
+		if err != nil {
+			return nil, hooks.RenderSummary{}, err
+		}
+		output, err := renderer.Render(bundle, hooks.RenderContext{ProjectRoot: pipeline.ProjectRoot, TargetRoot: filepath.Join(root, string(target)), StagedPackages: map[string]string{}})
+		if err != nil {
+			return nil, hooks.RenderSummary{}, err
+		}
+		diagnostics = append(diagnostics, output.Diagnostics...)
+		summary.Native += output.Summary.Native
+		summary.Emulated += output.Summary.Emulated
+		summary.Degraded += output.Summary.Degraded
+		summary.Omitted += output.Summary.Omitted
+	}
+	return diagnostics, summary, nil
+}
+
 func (pipeline Pipeline) stageHooks(ctx base.StageContext, harnesses []base.Harness) error {
 	codexHarness, err := registry.ByTarget(base.Codex)
 	if err != nil {
@@ -265,7 +317,7 @@ func (pipeline Pipeline) stageHooks(ctx base.StageContext, harnesses []base.Harn
 	if err != nil {
 		return err
 	}
-	bundle, err := hooks.Collect(pipeline.ProjectRoot, pipeline.Lock, filepath.Join(codexRoot, "hooks.json"), pipeline.Mode)
+	bundle, err := hooks.Collect(pipeline.workspace(), pipeline.Lock, filepath.Join(codexRoot, "hooks.json"), pipeline.Mode)
 	if err != nil {
 		return err
 	}
@@ -288,6 +340,9 @@ func (pipeline Pipeline) stageHooks(ctx base.StageContext, harnesses []base.Harn
 		output, err := renderer.Render(bundle, hooks.RenderContext{ProjectRoot: pipeline.ProjectRoot, TargetRoot: root, StagedPackages: packages})
 		if err != nil {
 			return err
+		}
+		for _, diagnostic := range output.Diagnostics {
+			fmt.Fprintf(os.Stderr, "warning: %s: %s\n", diagnostic.Source, diagnostic.Message)
 		}
 		if err := hooks.WriteRenderedFiles(output); err != nil {
 			return err

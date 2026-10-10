@@ -7,13 +7,17 @@ import (
 )
 
 type Global struct {
-	ProjectRoot string
-	Quiet       bool
-	NoProgress  bool
-	Yolo        bool
-	Mode        string
-	Debug       bool
-	Proxy       bool
+	ProjectRoot    string
+	DefinitionRoot string
+	WorkspaceRoot  string
+	Env            string // environment name/path; resolved before binding fallthrough
+	Quiet          bool
+	NoProgress     bool
+	Yolo           bool
+	Mode           string
+	Debug          bool
+	Proxy          bool
+	StrictExternal bool
 }
 
 type Invocation struct {
@@ -45,19 +49,47 @@ func Parse(arguments []string) (Invocation, error) {
 			invocation.Global.Debug = true
 		case "--proxy":
 			invocation.Global.Proxy = true
-		case "--project-root", "--mode":
+		case "--strict-external":
+			invocation.Global.StrictExternal = true
+		case "--project-root", "--definition-root", "--workspace", "--mode":
 			if index+1 >= len(arguments) {
 				return Invocation{}, fmt.Errorf("%s requires a value", argument)
 			}
 			index++
-			if argument == "--project-root" {
+			switch argument {
+			case "--project-root":
 				invocation.Global.ProjectRoot = arguments[index]
-			} else {
+			case "--definition-root":
+				invocation.Global.DefinitionRoot = arguments[index]
+			case "--workspace":
+				invocation.Global.WorkspaceRoot = arguments[index]
+			default:
 				invocation.Global.Mode = arguments[index]
 			}
+		case "--env":
+			// Environment selector. KEY=VALUE belongs to `mcp add --env` and must pass through.
+			if index+1 >= len(arguments) {
+				return Invocation{}, fmt.Errorf("%s requires a value", argument)
+			}
+			if strings.Contains(arguments[index+1], "=") {
+				rest = append(rest, argument)
+				continue
+			}
+			index++
+			invocation.Global.Env = arguments[index]
 		default:
 			if value, found := strings.CutPrefix(argument, "--project-root="); found {
 				invocation.Global.ProjectRoot = value
+			} else if value, found := strings.CutPrefix(argument, "--definition-root="); found {
+				invocation.Global.DefinitionRoot = value
+			} else if value, found := strings.CutPrefix(argument, "--workspace="); found {
+				invocation.Global.WorkspaceRoot = value
+			} else if value, found := strings.CutPrefix(argument, "--env="); found {
+				if strings.Contains(value, "=") {
+					rest = append(rest, argument)
+				} else {
+					invocation.Global.Env = value
+				}
 			} else if value, found := strings.CutPrefix(argument, "--mode="); found {
 				invocation.Global.Mode = value
 			} else {

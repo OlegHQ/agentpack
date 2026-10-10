@@ -239,13 +239,19 @@ For Cursor specifically, **`$STAGING/cursor-home/.cursor/cli-config.json`** is m
 | **`GROK_PATH`** | Path to the **`grok`** binary. |
 | **`AGY_PATH`** | Path to the **`agy`** binary. |
 
+### Portable environments
+
+**DefinitionRoot** holds **`agentpack.toml`** / **`pack.lock`**. **WorkspaceRoot** is the checkout (`.agents/`, overlays). Legacy **`--project-root`** alone keeps them equal. Prefer **`--env <name|path>`** or **`--definition-root`** + **`--workspace`**, or **`agentpack env use|bind <ref> --project <checkout>`** (binding under **`$AGENTPACK_HOME/projects/<hash>/environment.toml`**). Invalid **`--env`** fails (no fallthrough). Environments may live under **`$AGENTPACK_HOME/environments/<name>/`**. **`agentpack preflight`** is the pure offline check (no lock/cache/staging/repo writes); optional **`contract.json`**, ambient skill shadow findings, exit codes **`0/2/3/4/5`**. **`agentpack probe`** writes native observation receipts (Claude plugin/skill presence; Codex version). **`agentpack support export`** writes a redacted capsule. **`env restore`** is frozen (cache + staging, no lock rewrite) and refuses rebuild while a launch holds the staging lock. **`--strict-external`** refuses Cursor/Agy workspace overlays; Claude and OpenCode are the validated no-checkout-write adapters. See **`docs/src/concepts/environments.md`**.
+
 ### Global CLI flags
 
-**`--project-root`**, **`-q` / `--quiet`**, **`--no-progress`**.
+**`--project-root`**, **`--definition-root`**, **`--workspace`**, **`--strict-external`**, **`-q` / `--quiet`**, **`--no-progress`**.
 
 ### Commands (short)
 
 - **`init`** — write stub **`agentpack.toml`**, **v2** **`pack.lock`**, and ensure **`AGENTPACK_HOME`**. Fails if **`agentpack.toml`** already exists.
+- **`env`** — **`init`**, **`use`**, **`unuse`**, **`list`**, **`status`**, **`export`**, **`import`**, **`restore`** for external definitions.
+- **`preflight`** — pure offline environment report (`--agent`, `--json`, `--policy local|ci`, `--strict-external`).
 - **`lock [--update] [--allow-unpinned-mcp]`** — resolve **`agentpack.toml`** and overwrite **`pack.lock`** with all packages (direct + transitive), a content hash for each, and the MCP server records.
 - **`add <spec>`** — append module to **`[dependencies]`**, resolve, save **`pack.lock`**, then **`sync`** unless **`--no-sync`** (requires manifest; see golden rules).
 - **`remove <spec>`** — remove matching **`[dependencies]`** key, prune any mode selectors that target that module, resolve, save **`pack.lock`**, then **`sync`** unless **`--no-sync`**. Accepts the same shapes as **`add`** where sensible (module id, **`owner/repo/path`**, GitHub **`tree`/`blob`** URL); picks the **`[dependencies]`** entry by walking parent paths for blob file URLs, like **`add`**.

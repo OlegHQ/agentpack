@@ -55,7 +55,7 @@ func EnsureUserAgentpackLayout() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	for _, name := range []string{"cache", "local", "projects"} {
+	for _, name := range []string{"cache", "local", "projects", "environments"} {
 		path := filepath.Join(root, name)
 		if err := os.MkdirAll(path, 0o755); err != nil {
 			return "", fmt.Errorf("create %s: %w", path, err)
@@ -63,6 +63,9 @@ func EnsureUserAgentpackLayout() (string, error) {
 	}
 	return root, nil
 }
+
+// EnvironmentsRoot holds portable external definition directories.
+func EnvironmentsRoot() (string, error) { return underHome("environments") }
 
 func underHome(parts ...string) (string, error) {
 	root, err := UserAgentpackHome()
@@ -94,6 +97,11 @@ func projectStateFile(projectRoot, name string) (string, error) {
 		return "", err
 	}
 	return filepath.Join(root, name), nil
+}
+
+// ProjectStateFile is the public form of the per-project state path helper.
+func ProjectStateFile(projectRoot, name string) (string, error) {
+	return projectStateFile(projectRoot, name)
 }
 
 func CursorOverlayManifestPath(projectRoot string) (string, error) {

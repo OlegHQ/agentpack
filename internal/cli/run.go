@@ -10,16 +10,18 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/OlegHQ/agentpack/internal/environment"
 	base "github.com/OlegHQ/agentpack/internal/harness"
 	"github.com/OlegHQ/agentpack/internal/harness/registry"
 	"github.com/OlegHQ/agentpack/internal/lockfile"
 	"github.com/OlegHQ/agentpack/internal/manifest"
 	"github.com/OlegHQ/agentpack/internal/paths"
 	"github.com/OlegHQ/agentpack/internal/proxy"
+	"github.com/OlegHQ/agentpack/internal/staging"
 	packSync "github.com/OlegHQ/agentpack/internal/sync"
 )
 
-var Version = "0.3.27"
+var Version = "0.3.28"
 
 type Runner struct {
 	Stdout, Stderr io.Writer
@@ -60,16 +62,13 @@ func (runner Runner) Run(ctx context.Context, arguments []string) (int, error) {
 		}
 		return 0, nil
 	}
-	allowsMissing := map[string]bool{"add": true, "claude": true, "opencode": true, "codex": true, "grok": true, "agy": true, "agent": true}
-	var root string
-	if allowsMissing[invocation.Command] {
-		root, err = paths.ResolveProjectRootOrCWD(invocation.Global.ProjectRoot)
-	} else {
-		root, err = paths.ResolveProjectRoot(invocation.Global.ProjectRoot)
-	}
+	allowsMissing := map[string]bool{"add": true, "claude": true, "opencode": true, "codex": true, "grok": true, "agy": true, "agent": true, "env": true, "config": true, "support": true}
+	packContext, err := resolveInvocationContext(invocation, allowsMissing[invocation.Command])
 	if err != nil {
 		return 1, err
 	}
+	root := packContext.DefinitionRoot
+	workspace := packContext.WorkspaceRoot
 	switch invocation.Command {
 	case "lock":
 		args, update := takeBool(invocation.Args, "--update")
@@ -155,8 +154,14 @@ func (runner Runner) Run(ctx context.Context, arguments []string) (int, error) {
 			return 2, err
 		}
 		var result packSync.SyncResult
-		result, err = runner.Service.Sync(ctx, root, packSync.SyncOptions{DryRun: dry, VerifyOnly: verify, UpdateLock: update, Repair: repair, Mode: invocation.Global.Mode})
+		result, err = runner.Service.Sync(ctx, root, packSync.SyncOptions{
+			DryRun: dry, VerifyOnly: verify, UpdateLock: update, Repair: repair,
+			Mode: invocation.Global.Mode, WorkspaceRoot: workspace, StrictExternal: invocation.Global.StrictExternal,
+		})
 		if err == nil && !invocation.Global.Quiet {
+			for _, warning := range result.Warnings {
+				fmt.Fprintln(runner.Stderr, "warning: "+warning)
+			}
 			if dry {
 				fmt.Fprintf(runner.Stdout, "Dry-run: would sync %d skill(s), %d plugin(s); %d skill(s) shadowed by plugins (omitted from staging); no changes made.\n", result.Skills, result.Plugins, result.Shadowed)
 			} else if verify {
@@ -165,15 +170,41 @@ func (runner Runner) Run(ctx context.Context, arguments []string) (int, error) {
 				fmt.Fprintf(runner.Stdout, "Sync finished — %d skill(s), %d plugin(s), %d cache index entr(ies). One merged bundle: agentpack-bundle.\n", result.Skills, result.Plugins, result.IndexEntries)
 			}
 		}
+	case "preflight":
+		args := invocation.Args
+		if invocation.Global.StrictExternal && !hasBeforeDoubleDash(args, "--strict-external") {
+			args = append(append([]string{}, args...), "--strict-external")
+		}
+		code, preflightErr := runner.runPreflight(root, workspace, args, invocation.Global.Quiet)
+		return code, runner.reportIntegrity(preflightErr)
+	case "probe":
+		code, probeErr := runner.runProbe(ctx, root, workspace, invocation.Args, invocation.Global.Quiet)
+		return code, runner.reportIntegrity(probeErr)
+	case "config":
+		if len(invocation.Args) == 0 {
+			return 2, fmt.Errorf("config requires an action (compare)")
+		}
+		switch invocation.Args[0] {
+		case "compare":
+			code, compareErr := runner.runConfigCompare(workspace, invocation.Args[1:], invocation.Global.Quiet)
+			return code, runner.reportIntegrity(compareErr)
+		default:
+			return 2, fmt.Errorf("unknown config action %q", invocation.Args[0])
+		}
+	case "support":
+		code, supportErr := runner.runSupport(workspace, invocation.Args, invocation.Global.Quiet)
+		return code, runner.reportIntegrity(supportErr)
+	case "env":
+		err = runner.runEnv(ctx, workspace, invocation.Args, invocation.Global.Quiet)
 	case "claude", "opencode", "codex", "grok", "agy", "agent":
-		code, err := runner.launch(ctx, root, invocation)
+		code, err := runner.launch(ctx, packContext, invocation)
 		return code, runner.reportIntegrity(err)
 	case "mcp":
 		err = runner.runMCP(ctx, root, invocation.Args, invocation.Global.Quiet)
 	case "mode":
 		err = runner.runMode(root, invocation.Args, invocation.Global.Quiet)
 	case "extra":
-		err = runner.runExtra(root, invocation.Args, invocation.Global.Quiet)
+		err = runner.runExtra(workspace, invocation.Args, invocation.Global.Quiet)
 	default:
 		return 2, fmt.Errorf("unknown command %q", invocation.Command)
 	}
@@ -271,7 +302,53 @@ func (runner Runner) runInit(invocation Invocation) error {
 	return nil
 }
 
-func (runner Runner) launch(ctx context.Context, root string, invocation Invocation) (int, error) {
+func resolveInvocationContext(invocation Invocation, allowMissing bool) (paths.Context, error) {
+	definitionRoot := invocation.Global.DefinitionRoot
+	if invocation.Global.Env != "" {
+		if definitionRoot != "" {
+			return paths.Context{}, fmt.Errorf("use either --env or --definition-root, not both")
+		}
+		resolved, err := environment.ResolveRef(invocation.Global.Env)
+		if err != nil {
+			return paths.Context{}, err
+		}
+		definitionRoot = resolved
+	}
+	workspaceHint := firstNonEmpty(invocation.Global.WorkspaceRoot, invocation.Global.ProjectRoot)
+	if workspaceHint == "" {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return paths.Context{}, err
+		}
+		workspaceHint = cwd
+	}
+	bound := ""
+	// Explicit selector wins; never fall through from a bad --env/--definition-root to a binding.
+	if definitionRoot == "" {
+		if abs, err := filepath.Abs(workspaceHint); err == nil {
+			if binding, found, bindErr := environment.LoadBinding(abs); bindErr != nil {
+				return paths.Context{}, bindErr
+			} else if found {
+				bound = binding.DefinitionRoot
+			}
+		}
+	}
+	if allowMissing {
+		return paths.ResolveContextOrCWD(invocation.Global.ProjectRoot, definitionRoot, invocation.Global.WorkspaceRoot, bound)
+	}
+	return paths.ResolveContext(invocation.Global.ProjectRoot, definitionRoot, invocation.Global.WorkspaceRoot, bound)
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func (runner Runner) launch(ctx context.Context, packContext paths.Context, invocation Invocation) (int, error) {
 	targetName := invocation.Command
 	if targetName == "agent" {
 		targetName = "cursor"
@@ -280,12 +357,18 @@ func (runner Runner) launch(ctx context.Context, root string, invocation Invocat
 	if err != nil {
 		return 1, err
 	}
-	effective, skipped, err := runner.Service.SyncForLaunch(ctx, root, invocation.Global.Mode, target)
+	if invocation.Global.StrictExternal && target.UsesWorkspaceOverlay() {
+		return 1, fmt.Errorf("%s requires a workspace overlay write; refuse under --strict-external (use claude/opencode, or omit --strict-external)", target)
+	}
+	effective, skipped, err := runner.Service.SyncForLaunchOptions(ctx, packContext.DefinitionRoot, packSync.SyncOptions{
+		Mode: invocation.Global.Mode, Target: &target,
+		WorkspaceRoot: packContext.WorkspaceRoot, StrictExternal: invocation.Global.StrictExternal,
+	})
 	if err != nil {
 		return 1, err
 	}
 	if invocation.Global.Debug {
-		fmt.Fprintf(runner.Stderr, "agentpack: target=%s mode=%s fast-sync=%t\n", target, effective.Name(), skipped)
+		fmt.Fprintf(runner.Stderr, "agentpack: target=%s mode=%s definition=%s workspace=%s fast-sync=%t\n", target, effective.Name(), packContext.DefinitionRoot, packContext.WorkspaceRoot, skipped)
 	}
 	harness, err := registry.ByTarget(target)
 	if err != nil {
@@ -295,15 +378,27 @@ func (runner Runner) launch(ctx context.Context, root string, invocation Invocat
 	if len(args) > 0 && args[0] == "--" {
 		args = args[1:]
 	}
-	launch := base.LaunchContext{ProjectRoot: root, Arguments: args, Mode: effective, Yolo: invocation.Global.Yolo}
+	launch := base.LaunchContext{
+		ProjectRoot:    packContext.DefinitionRoot,
+		WorkspaceRoot:  packContext.WorkspaceRoot,
+		Arguments:      args,
+		Mode:           effective,
+		Yolo:           invocation.Global.Yolo,
+		StrictExternal: invocation.Global.StrictExternal,
+	}
 	command, err := harness.LaunchCommand(launch)
 	if err != nil {
 		return 1, err
 	}
 	launch.Command = command
 	command.Stdin, command.Stdout, command.Stderr = runner.Stdin, runner.Stdout, runner.Stderr
+	stagingLock, err := staging.AcquireLaunchShared(packContext.DefinitionRoot, effective.Name())
+	if err != nil {
+		return 1, err
+	}
+	defer stagingLock.Unlock()
 	if invocation.Global.Proxy {
-		running, err := proxy.Start(root)
+		running, err := proxy.Start(packContext.DefinitionRoot)
 		if err != nil {
 			return 1, err
 		}

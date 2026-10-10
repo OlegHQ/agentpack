@@ -6,7 +6,10 @@
 
 | Flag | Description |
 |---|---|
-| `--project-root <path>` | Project root holding `agentpack.toml`/`pack.lock` (default: search upward from cwd) |
+| `--project-root <path>` | Legacy single root for `agentpack.toml`/`pack.lock` (default: search upward from cwd) |
+| `--definition-root <path>` | External directory holding `agentpack.toml`/`pack.lock` (portable definition) |
+| `--workspace <path>` | Checkout / agent cwd for `.agents` and overlays (default: cwd) |
+| `--strict-external` | Refuse Cursor/Agy workspace overlay writes; prefer Claude/OpenCode |
 | `--mode <name>` | Select a mode from `[modes]` (default: the reserved `default` mode) |
 | `--yolo` | Forward each harness's "skip permission prompts" / full-access flag |
 | `-q`, `--quiet` | Only print warnings and errors |
@@ -15,6 +18,8 @@
 | `--proxy` | Run `agentpack claude` through the supervised Anthropic-compatible Codex proxy |
 | `-h`, `--help` | Print help |
 | `-V`, `--version` | Print the agentpack version |
+
+When `--env`, `--definition-root`, or an `env use`/`env bind` binding is set, lock/manifest operations use the definition root while `.agents` and overlays use the workspace. See [Portable Environments](../concepts/environments.md).
 
 Help and errors use the terminal's native foreground and transparent background, with no semantic colors or theme detection. Contextual help is available at every level, for example `agentpack mcp add --help`.
 
@@ -90,7 +95,51 @@ agentpack sync --repair         # re-fetch cache entries that do not match pack.
 
 Every sync compares each cache entry with the `content_hash` in `pack.lock` and exits non-zero on a mismatch without staging anything. A lock whose entries are malformed or inconsistent is refused the same way, and `sync` never changes the pins of entries that are already locked; see [what `sync` may write](../concepts/integrity.md#what-sync-may-write-to-packlock).
 
-`--verify-only` runs the lock and cache checks without rebuilding, then hashes the staged files and fails, naming each file, if any was modified, added or removed since the last sync. A plain `sync` rebuilds staging and prints which changed files it replaced. `--repair` downloads the pinned commit again, verifies it, replaces the cache entry, and reports what it replaced.
+`--verify-only` runs the lock and cache checks without rebuilding, then hashes the staged files and fails, naming each file, if any was modified, added or removed since the last sync. A plain `sync` rebuilds staging and prints which changed files it replaced. `--repair` downloads the pinned commit again, verifies it, replaces the cache entry, and reports what it replaced. For a check that must not mutate lock, cache, staging, or the checkout, use `preflight` instead.
+
+### `agentpack preflight`
+
+Pure offline inspection of a locked environment. Does not download, repair, rewrite `pack.lock`, rebuild staging, or write workspace overlays. Prints a human summary or `--json` report with stable finding codes, severity, source, target, and remedy. Optional `--contract` / `contract.json` and `--receipt` for observed coverage / freshness.
+
+```sh
+agentpack preflight --agent claude
+agentpack preflight --agent opencode --json --policy ci
+agentpack --env team --workspace . --strict-external preflight --agent claude
+agentpack preflight --agent claude --receipt RECEIPT_ID --json
+```
+
+### `agentpack probe`
+
+Explicit native observation (never inside preflight). Claude: `plugin list --json` + `plugin details` against the staged bundle. Codex: `--version` (skill catalog unknown). Writes a receipt under `$AGENTPACK_HOME/projects/<hash>/probe-receipts/`.
+
+```sh
+agentpack sync
+agentpack probe --agent claude
+agentpack probe --agent codex --json
+```
+
+### `agentpack env`
+
+Manage portable external definitions under `$AGENTPACK_HOME/environments` (or an explicit `--dir`). `env bind` is an alias for `env use`. `env restore` is frozen: exact locked cache + staging rebuild, no `pack.lock` rewrite.
+
+```sh
+agentpack env init team --from .
+agentpack env use team --project /path/to/checkout
+agentpack env status
+agentpack env export team.bundle --from team
+agentpack env import team.bundle --name team
+agentpack env restore
+agentpack env unuse
+agentpack env list
+```
+
+### `agentpack support export`
+
+Write a redacted diagnostic capsule from a probe receipt (`--output` required). Paths and secret-bearing digests are stripped; preview notes are printed before sharing.
+
+```sh
+agentpack support export RECEIPT_ID --output ./support-capsule.json
+```
 
 ## Launchers
 

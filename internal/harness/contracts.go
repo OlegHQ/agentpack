@@ -9,18 +9,22 @@ import (
 )
 
 type StageContext struct {
-	ProjectRoot  string
-	Mode         mode.Effective
-	LaunchTarget *Target
-	StagedRoots  map[Target]string
+	ProjectRoot    string
+	WorkspaceRoot  string
+	Mode           mode.Effective
+	LaunchTarget   *Target
+	StagedRoots    map[Target]string
+	StrictExternal bool
 }
 
 type LaunchContext struct {
-	ProjectRoot string
-	Arguments   []string
-	Mode        mode.Effective
-	Yolo        bool
-	Command     *exec.Cmd
+	ProjectRoot    string
+	WorkspaceRoot  string
+	Arguments      []string
+	Mode           mode.Effective
+	Yolo           bool
+	StrictExternal bool
+	Command        *exec.Cmd
 }
 
 // RebuildTransaction keeps a newly staged root private until all staging and

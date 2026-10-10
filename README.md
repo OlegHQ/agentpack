@@ -12,7 +12,7 @@
   <a href="https://oleghq.github.io/agentpack"><img alt="Documentation" src="https://img.shields.io/badge/docs-oleghq.github.io-1f6feb.svg"></a>
   <a href="https://olegpustovit.com/posts/agentpack/"><img alt="Writeup" src="https://img.shields.io/badge/writeup-olegpustovit.com-ff6b6b.svg"></a>
   <a href="https://github.com/OlegHQ/agentpack/blob/dev/LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
-  <a href="https://github.com/OlegHQ/agentpack/releases"><img alt="Version" src="https://img.shields.io/badge/version-v0.3.27-blue.svg"></a>
+  <a href="https://github.com/OlegHQ/agentpack/releases"><img alt="Version" src="https://img.shields.io/badge/version-v0.3.28-blue.svg"></a>
   <a href="https://github.com/OlegHQ/agentpack"><img alt="Built with Go" src="https://img.shields.io/badge/built_with-Go-00ADD8.svg"></a>
 </p>
 
@@ -38,7 +38,7 @@ Every coding agent manages skills, plugins, commands, and rules its own way — 
 
 ## What agentpack Does
 
-Declare your agent dependencies once in `agentpack.toml`. agentpack resolves them to exact commits, pins those in a lockfile, caches the content, re-renders each artifact into the target agent's native format, and launches the agent with everything staged. Your repo stays clean: nothing is copied into it, and nothing is written to your global agent config.
+Declare your agent dependencies once in `agentpack.toml`. agentpack resolves them to exact commits, pins those in a lockfile, caches the content, re-renders each artifact into the target agent's native format, and launches the agent with everything staged. Your repo stays clean: nothing is copied into it, and nothing is written to your global agent config. Portable **external environments** can keep the manifest and lock outside the checkout (`env` / `--env` / `preflight` / `probe`); see the [environments docs](https://oleghq.github.io/agentpack/concepts/environments.html).
 
 ```text
 agentpack.toml  ──>  pack.lock  ──>  staged bundles  ──>  launch

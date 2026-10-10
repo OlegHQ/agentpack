@@ -12,12 +12,15 @@ import (
 	"github.com/OlegHQ/agentpack/internal/paths"
 )
 
-func StageDotAgents(projectRoot, modeName string, effective mode.Effective, codex string) error {
-	dotRoot := paths.ProjectDotAgentsDir(projectRoot)
+func StageDotAgents(definitionRoot, workspaceRoot, modeName string, effective mode.Effective, codex string) error {
+	if workspaceRoot == "" {
+		workspaceRoot = definitionRoot
+	}
+	dotRoot := paths.ProjectDotAgentsDir(workspaceRoot)
 	if info, err := os.Stat(dotRoot); err != nil || !info.IsDir() {
 		return nil
 	}
-	plugins, err := paths.StagingPluginsDirForMode(projectRoot, modeName)
+	plugins, err := paths.StagingPluginsDirForMode(definitionRoot, modeName)
 	if err != nil {
 		return err
 	}

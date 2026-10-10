@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentpack.dev/schemas/receipt.v1.schema.json",
+  "title": "agentpack probe receipt v1",
+  "type": "object",
+  "required": ["schema_version", "phase", "receipt_id", "target", "coverage", "properties", "findings", "effects", "termination", "overall_status"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "phase": { "const": "probe" },
+    "receipt_id": { "type": "string" },
+    "source_id": { "type": "string" },
+    "lock_digest": { "type": "string" },
+    "mode": { "type": "string" },
+    "target": {
+      "type": "object",
+      "required": ["adapter"],
+      "properties": {
+        "adapter": { "type": "string" },
+        "native_version": { "type": "string" },
+        "capability_revision": { "type": "string" }
+      }
+    },
+    "coverage": { "type": "array" },
+    "properties": { "type": "array" },
+    "findings": { "type": "array" },
+    "effects": { "type": "object" },
+    "termination": { "type": "object" },
+    "overall_status": {
+      "type": "string",
+      "enum": ["ready", "ready_with_warnings", "violated", "unknown", "error"]
+    }
+  }
+}

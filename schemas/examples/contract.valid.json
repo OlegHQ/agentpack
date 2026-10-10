@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "requirements": [
+    {
+      "id": "no-checkout-config-writes",
+      "target": "*",
+      "selector": {
+        "category": "planned_write",
+        "property": "workspace_configuration"
+      },
+      "predicate": "no_workspace_write",
+      "minimum_evidence": "generated",
+      "severity": "error"
+    },
+    {
+      "id": "no-ambient-helper",
+      "target": "claude",
+      "selector": {
+        "category": "skill",
+        "name": "ambient-test-helper",
+        "property": "presence"
+      },
+      "predicate": "absent",
+      "minimum_evidence": "observed",
+      "severity": "error"
+    }
+  ],
+  "allowances": [],
+  "unknown_required": "fail"
+}

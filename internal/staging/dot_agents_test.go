@@ -25,7 +25,7 @@ func TestStageDotAgentsLeavesNativeCodexSkillsInProject(t *testing.T) {
 		}
 	}
 	codex, _ := paths.StagingCodexHomeDirForMode(project, "default")
-	if err := StageDotAgents(project, "default", mode.ImplicitEffective(), codex); err != nil {
+	if err := StageDotAgents(project, project, "default", mode.ImplicitEffective(), codex); err != nil {
 		t.Fatal(err)
 	}
 	plugins, _ := paths.StagingPluginsDirForMode(project, "default")

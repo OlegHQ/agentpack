@@ -18,6 +18,42 @@ func TestParseGlobalOptionsAcrossCommandAndProtectTrailingArguments(t *testing.T
 	}
 }
 
+func TestParseDefinitionWorkspaceAndStrictExternal(t *testing.T) {
+	got, err := Parse([]string{"--definition-root", "/def", "--workspace=/ws", "--strict-external", "preflight", "--json"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Command != "preflight" || got.Global.DefinitionRoot != "/def" || got.Global.WorkspaceRoot != "/ws" || !got.Global.StrictExternal {
+		t.Fatalf("unexpected invocation: %#v", got)
+	}
+	if !reflect.DeepEqual(got.Args, []string{"--json"}) {
+		t.Fatalf("args = %#v", got.Args)
+	}
+}
+
+func TestParseEnvSelector(t *testing.T) {
+	got, err := Parse([]string{"--env", "team-review", "--workspace", "/ws", "preflight"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Global.Env != "team-review" || got.Global.WorkspaceRoot != "/ws" || got.Command != "preflight" {
+		t.Fatalf("unexpected invocation: %#v", got)
+	}
+}
+
+func TestParseLeavesMCPEnvAssignments(t *testing.T) {
+	got, err := Parse([]string{"mcp", "add", "docs", "--command", "npx", "--env", "TOKEN=value"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Global.Env != "" {
+		t.Fatalf("mcp --env KEY=VALUE must not become global env selector: %#v", got.Global)
+	}
+	if !reflect.DeepEqual(got.Args, []string{"add", "docs", "--command", "npx", "--env", "TOKEN=value"}) {
+		t.Fatalf("args = %#v", got.Args)
+	}
+}
+
 func TestParseCursorAgentAliasAndMissingValue(t *testing.T) {
 	got, err := Parse([]string{"cursor-agent", "--print", "hi"})
 	if err != nil {
