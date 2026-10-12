@@ -979,6 +979,9 @@ func populateFreshness(report *environment.Report, options PreflightOptions, eff
 		return err
 	}
 	inputs := []string{filepath.Join(report.WorkspaceRoot, ".agents"), filepath.Join(report.WorkspaceRoot, ".claude"), filepath.Join(report.WorkspaceRoot, ".cursor"), filepath.Join(report.WorkspaceRoot, "AGENTS.md"), filepath.Join(report.WorkspaceRoot, "CLAUDE.md"), filepath.Join(home, ".claude", "skills"), filepath.Join(home, ".grok", "skills")}
+	// Project skill roots that Codex and OpenCode discover on their own: a skill added there
+	// changes what the agent lists, so it must retire earlier observations.
+	inputs = append(inputs, filepath.Join(report.WorkspaceRoot, ".codex", "skills"), filepath.Join(report.WorkspaceRoot, ".opencode", "skills"))
 	inputs = append(inputs, inheritedConfigPaths(options.Target)...)
 	report.WorkspaceDigest, err = fingerprintInputs(inputs)
 	if err != nil {

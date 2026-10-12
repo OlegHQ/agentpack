@@ -791,6 +791,33 @@ func TestPreflightReportsOnlySameNamedAgentsSkills(t *testing.T) {
 		}
 		return found
 	}
+	digest := func() string {
+		t.Helper()
+		target := base.Codex
+		report, err := NewService().Preflight(definition, PreflightOptions{WorkspaceRoot: workspace, Target: &target})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return report.WorkspaceDigest
+	}
+	before := digest()
+	for _, root := range []string{".codex", ".opencode"} {
+		directory := filepath.Join(workspace, root, "skills", "extra")
+		if err := os.MkdirAll(directory, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(directory, "SKILL.md"), []byte("---\nname: extra\n---\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		after := digest()
+		if after == before {
+			t.Fatalf("a skill added under %s/skills did not change the workspace digest", root)
+		}
+		before = after
+		if err := os.RemoveAll(filepath.Join(workspace, root)); err != nil {
+			t.Fatal(err)
+		}
+	}
 	writeSkill("house-style")
 	if found := sources(); len(found) != 0 {
 		t.Fatalf("the project's own skill was reported as a collision: %v", found)

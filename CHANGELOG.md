@@ -7,6 +7,12 @@ window.
 
 ## Unreleased
 
+## [0.4.5] - 2026-10-12
+
+### Fixed
+
+- The workspace digest covers the project's `.codex/skills` and `.opencode/skills`. A skill added there changes what Codex or OpenCode lists, but did not retire an earlier probe receipt.
+
 ## [0.4.4] - 2026-10-12
 
 ### Fixed
