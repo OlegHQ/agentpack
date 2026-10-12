@@ -64,6 +64,7 @@ For each packaged skill the receipt carries an observed `winner`:
 | `package` | the staged copy is the only catalog entry with that name |
 | `ambient` | Claude Code lists another skill under the bare name; the packaged copy is reachable only as `agentpack-bundle:<name>` or was dropped from the bundle |
 | `ambiguous` | Codex lists several entries with that name |
+| `unstable` | OpenCode 1.17.11 listed the staged file in some of 60 sampled runs and another file in others |
 
 ```json
 {

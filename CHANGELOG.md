@@ -7,6 +7,12 @@ window.
 
 ## Unreleased
 
+## [0.4.6] - 2026-10-12
+
+### Added
+
+- `probe --agent opencode` for OpenCode 1.17.11. OpenCode lists one skill per name with its file location, and with two same-named skills the listed one differs between runs in a few percent of them. The probe therefore samples 60 listings and records the observed `winner` as `package`, `ambient` or `unstable`.
+
 ## [0.4.5] - 2026-10-12
 
 ### Fixed

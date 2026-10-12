@@ -9,6 +9,7 @@ import (
 	"github.com/OlegHQ/agentpack/internal/artifacts"
 	"github.com/OlegHQ/agentpack/internal/harness/claude"
 	"github.com/OlegHQ/agentpack/internal/harness/codex"
+	"github.com/OlegHQ/agentpack/internal/harness/opencode"
 	"io"
 	"os"
 	"os/exec"
@@ -1039,6 +1040,8 @@ func populateFreshness(report *environment.Report, options PreflightOptions, eff
 			capability = claude.Capability()
 		case base.Codex:
 			capability = codex.Capability()
+		case base.OpenCode:
+			capability = opencode.Capability()
 		}
 		report.ExpectedTarget.AdapterRevision = capability["adapter_revision"]
 		report.ExpectedTarget.CapabilityRevision = capability["capability_revision"]

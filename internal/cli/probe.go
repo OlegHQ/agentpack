@@ -10,6 +10,7 @@ import (
 	base "github.com/OlegHQ/agentpack/internal/harness"
 	"github.com/OlegHQ/agentpack/internal/harness/claude"
 	"github.com/OlegHQ/agentpack/internal/harness/codex"
+	"github.com/OlegHQ/agentpack/internal/harness/opencode"
 	"github.com/OlegHQ/agentpack/internal/paths"
 	"github.com/OlegHQ/agentpack/internal/staging"
 	packSync "github.com/OlegHQ/agentpack/internal/sync"
@@ -37,7 +38,7 @@ func (runner Runner) runProbe(ctx context.Context, definitionRoot, workspaceRoot
 		}
 	}
 	if agent == "" {
-		return 2, fmt.Errorf("probe requires --agent claude|codex")
+		return 2, fmt.Errorf("probe requires --agent claude|codex|opencode")
 	}
 	requestedMode, args, _, err := takeFlag(args, "--mode")
 	if err != nil {
@@ -57,9 +58,9 @@ func (runner Runner) runProbe(ctx context.Context, definitionRoot, workspaceRoot
 		target = base.Cursor
 	}
 	switch target {
-	case base.Claude, base.Codex:
+	case base.Claude, base.Codex, base.OpenCode:
 	default:
-		return 2, fmt.Errorf("probe currently supports claude and codex only (got %s)", target)
+		return 2, fmt.Errorf("probe currently supports claude, codex and opencode only (got %s)", target)
 	}
 
 	report, err := runner.Service.Preflight(definitionRoot, packSync.PreflightOptions{
@@ -91,8 +92,23 @@ func (runner Runner) runProbe(ctx context.Context, definitionRoot, workspaceRoot
 			return 5, fmt.Errorf("probe cannot observe current staging: %s; restore/sync and resolve preflight findings first", finding.Code)
 		}
 	}
+	var packaged []string
+	for _, artifact := range report.Artifacts {
+		if artifact.Kind == "skill" && artifact.Module != "user" && artifact.Module != "project" {
+			packaged = append(packaged, artifact.Name)
+		}
+	}
 	var receipt environment.Receipt
 	switch target {
+	case base.OpenCode:
+		configDir, dirErr := paths.StagingOpenCodeDirForMode(definitionRoot, mode)
+		if dirErr != nil {
+			return 5, dirErr
+		}
+		receipt, err = opencode.ProbeConfigDir(ctx, configDir, workspaceRoot, report.SourceIdentity, report.LockDigest, mode, packaged...)
+		if err != nil {
+			return 5, err
+		}
 	case base.Claude:
 		plugins, err := paths.StagingPluginsDirForMode(definitionRoot, mode)
 		if err != nil {
@@ -103,12 +119,6 @@ func (runner Runner) runProbe(ctx context.Context, definitionRoot, workspaceRoot
 		// project skill replaces every packaged one, and the session shows who holds the names.
 		if _, err := os.Stat(bundle); err != nil {
 			return 5, fmt.Errorf("staged Claude bundle missing; run agentpack sync first: %w", err)
-		}
-		var packaged []string
-		for _, artifact := range report.Artifacts {
-			if artifact.Kind == "skill" && artifact.Module != "user" && artifact.Module != "project" {
-				packaged = append(packaged, artifact.Name)
-			}
 		}
 		receipt, err = claude.ProbeBundle(ctx, bundle, workspaceRoot, report.SourceIdentity, report.LockDigest, mode, packaged...)
 		if err != nil {
