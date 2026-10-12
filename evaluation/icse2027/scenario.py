@@ -7,8 +7,9 @@ then meets changed inputs. Every state is also judged by two simple alternatives
 that share Agentpack's materialization but not its contract or receipt logic:
 
   lock_hash    the pack.lock bytes are unchanged
-  live_wrapper asks the native CLI directly on every check and looks for the
-               exact skill name; it stores nothing
+  live_wrapper starts a session on every check, reads its catalog and requires
+               that the pinned skill is listed and no other skill holds its
+               name; it stores nothing
 
 Expected outcomes below were written from the released documentation
 (docs/src/reference/contracts.md at v0.4.2) before the first execution. A step
@@ -25,11 +26,11 @@ SKILL_SHA = 'dbd4588f9e1033efb41dad4bef2f7947c8993d44'
 SKILL = 'webapp-testing'
 SPEC = f'{SKILL_REPO}/skills/{SKILL}@{SKILL_SHA}'
 CHECKOUT_REPO = 'https://github.com/OlegHQ/agentpack.git'
-CHECKOUT_TAG = 'v0.4.4'
+CHECKOUT_TAG = 'v0.4.5'
 CLAUDE_VERSION = '2.1.296 (Claude Code)'
 
 parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-parser.add_argument('--agentpack', type=Path, required=True, help='released Agentpack 0.4.4 binary')
+parser.add_argument('--agentpack', type=Path, required=True, help='released Agentpack 0.4.5 binary')
 parser.add_argument('--claude', default=shutil.which('claude'), help='Claude Code 2.1.296 executable')
 parser.add_argument('--output', type=Path, default=Path(__file__).resolve().parent / 'scenario-results.json')
 args = parser.parse_args()
@@ -83,7 +84,7 @@ def run(case, cmd, cwd, env, base):
 
 
 def live_wrapper(bundle, checkout, base):
-    """Simple alternative: query the native CLI now, match the exact skill name."""
+    """Simple alternative: read the session catalog now; it keeps no receipt."""
     home = Path(tempfile.mkdtemp(prefix='wrapper-home-', dir=base))
     env = {'PATH': os.environ['PATH'], 'HOME': str(home), 'CLAUDE_CONFIG_DIR': str(home / 'claude'),
            'XDG_CONFIG_HOME': str(home / 'config'), 'XDG_DATA_HOME': str(home / 'data'),
@@ -98,18 +99,16 @@ def live_wrapper(bundle, checkout, base):
 def _live_wrapper(bundle, checkout, env):
     if not bundle.is_dir():
         return {'verdict': 'fail', 'reason': 'no materialized plugin directory', 'native_runs': 0}
-    listing = subprocess.run([CLAUDE, '--bare', '--plugin-dir', str(bundle), 'plugin', 'list', '--json'],
-                             cwd=checkout, env=env, capture_output=True, text=True, timeout=60)
-    plugins = json.loads(listing.stdout) if listing.returncode == 0 else []
-    ids = [p['id'] for p in plugins if p.get('id', '').split('@')[0] == 'agentpack-bundle']
-    if len(ids) != 1:
-        return {'verdict': 'fail', 'reason': 'plugin not listed', 'native_runs': 1}
-    details = subprocess.run([CLAUDE, '--bare', '--plugin-dir', str(bundle), 'plugin', 'details', ids[0]],
-                             cwd=checkout, env=env, capture_output=True, text=True, timeout=60)
-    match = re.search(r'^\s*Skills \((\d+)\)(.*)$', details.stdout, re.M)
-    names = match.group(2).replace(',', ' ').split() if match else []
-    ok = details.returncode == 0 and bool(match) and int(match.group(1)) == len(names) and SKILL in names
-    return {'verdict': 'pass' if ok else 'fail', 'skills_listed': names, 'native_runs': 2}
+    session = subprocess.run([CLAUDE, '-p', 'catalog', '--output-format', 'stream-json', '--verbose', '--plugin-dir',
+                              str(bundle), '--strict-mcp-config', '--settings', '{"disableAllHooks":true}'],
+                             cwd=checkout, env=env, capture_output=True, text=True, timeout=90)
+    try:
+        skills = json.loads(session.stdout.splitlines()[0])['skills']
+    except (ValueError, IndexError, KeyError):
+        return {'verdict': 'fail', 'reason': 'no session catalog', 'native_runs': 1}
+    ok = f'agentpack-bundle:{SKILL}' in skills and SKILL not in skills
+    return {'verdict': 'pass' if ok else 'fail', 'entries': sorted(x for x in skills if x.split(':')[-1] == SKILL),
+            'native_runs': 1}
 
 
 with tempfile.TemporaryDirectory(prefix='agentpack-scenario-') as td:

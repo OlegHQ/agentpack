@@ -6,33 +6,27 @@
   "codex": "codex-cli 0.159.3",
   "opencode": "1.17.11"
  },
- "agentpack_version": "agentpack 0.4.4",
- "agentpack_sha256": "4586af81a421bd078086e18b92668ff4f25d34f6ee06491ff55f9d4e5b51bb33",
+ "agentpack_version": "agentpack 0.4.5",
+ "agentpack_sha256": "e363f800673cba8f16302fb3cb71930a953f9450ab4fb8e607d21b64a08e9c6a",
  "skill_pin": "anthropics/skills/skills/webapp-testing@dbd4588f9e1033efb41dad4bef2f7947c8993d44",
  "model_inference_requested": false,
  "summary": {
   "cells": 15,
-  "agentpack_cells": 10,
+  "probed_cells": 10,
   "observed_matches_native": 10,
+  "receipt_expiry_checks": 8,
+  "earlier_receipt_retired": 8,
   "lock_unchanged_in_all_cells": true
  },
  "cells": [
   {
    "project_copy_at": "none",
    "agent": "claude",
-   "native": {
-    "entries": [
-     "agentpack-bundle:webapp-testing"
-    ],
-    "packaged_listed": true,
-    "bare_name_held_by_other": false,
-    "runs": 5,
-    "outcomes": {
-     "[\"agentpack-bundle:webapp-testing\"]": 5
-    }
+   "native_runs": 5,
+   "native_outcomes": {
+    "pinned": 5
    },
    "lock_unchanged": true,
-   "staged_bytes_are_pinned": true,
    "agentpack": {
     "probe_exit": 0,
     "preflight_exit": 0,
@@ -41,21 +35,16 @@
     "findings": []
    },
    "expected_observed_winner": "satisfied",
-   "observed_matches_native": true
+   "observed_matches_native": true,
+   "staged_skill_is_the_pinned_rendering": true,
+   "staged_skill_is_the_project_copy": false
   },
   {
    "project_copy_at": "none",
    "agent": "codex",
-   "native": {
-    "entries": [
-     "staged"
-    ],
-    "packaged_listed": true,
-    "bare_name_held_by_other": false,
-    "runs": 5,
-    "outcomes": {
-     "[\"staged\"]": 5
-    }
+   "native_runs": 5,
+   "native_outcomes": {
+    "pinned": 5
    },
    "lock_unchanged": true,
    "agentpack": {
@@ -71,136 +60,26 @@
   {
    "project_copy_at": "none",
    "agent": "opencode",
-   "native": {
-    "entries": [
-     "staged"
-    ],
-    "packaged_listed": true,
-    "bare_name_held_by_other": false,
-    "runs": 100,
-    "outcomes": {
-     "[\"staged\"]": 100
-    }
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
    },
-   "lock_unchanged": true
+   "lock_unchanged": true,
+   "agentpack": {
+    "preflight_exit": 4,
+    "planned-winner": "satisfied",
+    "observed-winner": "no probe",
+    "findings": [
+     "OBSERVATION_UNAVAILABLE"
+    ]
+   }
   },
   {
    "project_copy_at": ".claude/skills",
    "agent": "claude",
-   "native": {
-    "entries": [
-     "webapp-testing"
-    ],
-    "packaged_listed": false,
-    "bare_name_held_by_other": true,
-    "runs": 5,
-    "outcomes": {
-     "[\"webapp-testing\"]": 5
-    }
-   },
-   "lock_unchanged": true,
-   "staged_bytes_are_pinned": false,
-   "agentpack": {
-    "probe_exit": 0,
-    "preflight_exit": 3,
-    "planned-winner": "violated",
-    "observed-winner": "violated",
-    "findings": [
-     "AMBIENT_ARTIFACT",
-     "CONTRACT_MISMATCH"
-    ]
-   },
-   "expected_observed_winner": "violated",
-   "observed_matches_native": true
-  },
-  {
-   "project_copy_at": ".claude/skills",
-   "agent": "codex",
-   "native": {
-    "entries": [
-     "staged"
-    ],
-    "packaged_listed": true,
-    "bare_name_held_by_other": false,
-    "runs": 5,
-    "outcomes": {
-     "[\"staged\"]": 5
-    }
-   },
-   "lock_unchanged": true,
-   "agentpack": {
-    "probe_exit": 0,
-    "preflight_exit": 3,
-    "planned-winner": "violated",
-    "observed-winner": "satisfied",
-    "findings": [
-     "AMBIENT_ARTIFACT",
-     "CONTRACT_MISMATCH"
-    ]
-   },
-   "expected_observed_winner": "satisfied",
-   "observed_matches_native": true
-  },
-  {
-   "project_copy_at": ".claude/skills",
-   "agent": "opencode",
-   "native": {
-    "entries": [
-     "staged"
-    ],
-    "packaged_listed": true,
-    "bare_name_held_by_other": true,
-    "runs": 100,
-    "outcomes": {
-     "[\".claude/skills\"]": 1,
-     "[\"staged\"]": 99
-    }
-   },
-   "lock_unchanged": true
-  },
-  {
-   "project_copy_at": ".agents/skills",
-   "agent": "claude",
-   "native": {
-    "entries": [
-     "agentpack-bundle:webapp-testing"
-    ],
-    "packaged_listed": true,
-    "bare_name_held_by_other": false,
-    "runs": 5,
-    "outcomes": {
-     "[\"agentpack-bundle:webapp-testing\"]": 5
-    }
-   },
-   "lock_unchanged": true,
-   "staged_bytes_are_pinned": false,
-   "agentpack": {
-    "probe_exit": 0,
-    "preflight_exit": 3,
-    "planned-winner": "violated",
-    "observed-winner": "satisfied",
-    "findings": [
-     "AMBIENT_ARTIFACT",
-     "CONTRACT_MISMATCH"
-    ]
-   },
-   "expected_observed_winner": "satisfied",
-   "observed_matches_native": true
-  },
-  {
-   "project_copy_at": ".agents/skills",
-   "agent": "codex",
-   "native": {
-    "entries": [
-     ".agents/skills",
-     "staged"
-    ],
-    "packaged_listed": true,
-    "bare_name_held_by_other": true,
-    "runs": 5,
-    "outcomes": {
-     "[\".agents/skills\", \"staged\"]": 5
-    }
+   "native_runs": 5,
+   "native_outcomes": {
+    "pinned+project": 5
    },
    "lock_unchanged": true,
    "agentpack": {
@@ -214,64 +93,83 @@
     ]
    },
    "expected_observed_winner": "violated",
-   "observed_matches_native": true
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true,
+   "staged_skill_is_the_pinned_rendering": false,
+   "staged_skill_is_the_project_copy": false
+  },
+  {
+   "project_copy_at": ".claude/skills",
+   "agent": "codex",
+   "native_runs": 5,
+   "native_outcomes": {
+    "pinned": 5
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 3,
+    "planned-winner": "violated",
+    "observed-winner": "satisfied",
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH"
+    ]
+   },
+   "expected_observed_winner": "satisfied",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true
+  },
+  {
+   "project_copy_at": ".claude/skills",
+   "agent": "opencode",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 96,
+    "project": 4
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "preflight_exit": 4,
+    "planned-winner": "violated",
+    "observed-winner": "no probe",
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH",
+     "OBSERVATION_UNAVAILABLE"
+    ]
+   }
   },
   {
    "project_copy_at": ".agents/skills",
-   "agent": "opencode",
-   "native": {
-    "entries": [
-     "staged"
-    ],
-    "packaged_listed": true,
-    "bare_name_held_by_other": false,
-    "runs": 100,
-    "outcomes": {
-     "[\"staged\"]": 100
-    }
-   },
-   "lock_unchanged": true
-  },
-  {
-   "project_copy_at": ".codex/skills",
    "agent": "claude",
-   "native": {
-    "entries": [
-     "agentpack-bundle:webapp-testing"
-    ],
-    "packaged_listed": true,
-    "bare_name_held_by_other": false,
-    "runs": 5,
-    "outcomes": {
-     "[\"agentpack-bundle:webapp-testing\"]": 5
-    }
+   "native_runs": 5,
+   "native_outcomes": {
+    "pinned": 5
    },
    "lock_unchanged": true,
-   "staged_bytes_are_pinned": true,
    "agentpack": {
     "probe_exit": 0,
-    "preflight_exit": 0,
-    "planned-winner": "satisfied",
+    "preflight_exit": 3,
+    "planned-winner": "violated",
     "observed-winner": "satisfied",
-    "findings": []
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH"
+    ]
    },
    "expected_observed_winner": "satisfied",
-   "observed_matches_native": true
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true,
+   "staged_skill_is_the_pinned_rendering": false,
+   "staged_skill_is_the_project_copy": true
   },
   {
-   "project_copy_at": ".codex/skills",
+   "project_copy_at": ".agents/skills",
    "agent": "codex",
-   "native": {
-    "entries": [
-     ".codex/skills",
-     "staged"
-    ],
-    "packaged_listed": true,
-    "bare_name_held_by_other": true,
-    "runs": 5,
-    "outcomes": {
-     "[\".codex/skills\", \"staged\"]": 5
-    }
+   "native_runs": 5,
+   "native_outcomes": {
+    "pinned+project": 5
    },
    "lock_unchanged": true,
    "agentpack": {
@@ -285,40 +183,96 @@
     ]
    },
    "expected_observed_winner": "violated",
-   "observed_matches_native": true
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true
+  },
+  {
+   "project_copy_at": ".agents/skills",
+   "agent": "opencode",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "preflight_exit": 4,
+    "planned-winner": "violated",
+    "observed-winner": "no probe",
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH",
+     "OBSERVATION_UNAVAILABLE"
+    ]
+   }
+  },
+  {
+   "project_copy_at": ".codex/skills",
+   "agent": "claude",
+   "native_runs": 5,
+   "native_outcomes": {
+    "pinned": 5
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 0,
+    "planned-winner": "satisfied",
+    "observed-winner": "satisfied",
+    "findings": []
+   },
+   "expected_observed_winner": "satisfied",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true,
+   "staged_skill_is_the_pinned_rendering": true,
+   "staged_skill_is_the_project_copy": false
+  },
+  {
+   "project_copy_at": ".codex/skills",
+   "agent": "codex",
+   "native_runs": 5,
+   "native_outcomes": {
+    "pinned+project": 5
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 3,
+    "planned-winner": "violated",
+    "observed-winner": "violated",
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH"
+    ]
+   },
+   "expected_observed_winner": "violated",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true
   },
   {
    "project_copy_at": ".codex/skills",
    "agent": "opencode",
-   "native": {
-    "entries": [
-     "staged"
-    ],
-    "packaged_listed": true,
-    "bare_name_held_by_other": false,
-    "runs": 100,
-    "outcomes": {
-     "[\"staged\"]": 100
-    }
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
    },
-   "lock_unchanged": true
+   "lock_unchanged": true,
+   "agentpack": {
+    "preflight_exit": 4,
+    "planned-winner": "satisfied",
+    "observed-winner": "no probe",
+    "findings": [
+     "OBSERVATION_UNAVAILABLE"
+    ]
+   }
   },
   {
    "project_copy_at": ".opencode/skills",
    "agent": "claude",
-   "native": {
-    "entries": [
-     "agentpack-bundle:webapp-testing"
-    ],
-    "packaged_listed": true,
-    "bare_name_held_by_other": false,
-    "runs": 5,
-    "outcomes": {
-     "[\"agentpack-bundle:webapp-testing\"]": 5
-    }
+   "native_runs": 5,
+   "native_outcomes": {
+    "pinned": 5
    },
    "lock_unchanged": true,
-   "staged_bytes_are_pinned": true,
    "agentpack": {
     "probe_exit": 0,
     "preflight_exit": 0,
@@ -327,21 +281,17 @@
     "findings": []
    },
    "expected_observed_winner": "satisfied",
-   "observed_matches_native": true
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true,
+   "staged_skill_is_the_pinned_rendering": true,
+   "staged_skill_is_the_project_copy": false
   },
   {
    "project_copy_at": ".opencode/skills",
    "agent": "codex",
-   "native": {
-    "entries": [
-     "staged"
-    ],
-    "packaged_listed": true,
-    "bare_name_held_by_other": false,
-    "runs": 5,
-    "outcomes": {
-     "[\"staged\"]": 5
-    }
+   "native_runs": 5,
+   "native_outcomes": {
+    "pinned": 5
    },
    "lock_unchanged": true,
    "agentpack": {
@@ -352,24 +302,28 @@
     "findings": []
    },
    "expected_observed_winner": "satisfied",
-   "observed_matches_native": true
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true
   },
   {
    "project_copy_at": ".opencode/skills",
    "agent": "opencode",
-   "native": {
-    "entries": [
-     "staged"
-    ],
-    "packaged_listed": true,
-    "bare_name_held_by_other": true,
-    "runs": 100,
-    "outcomes": {
-     "[\".opencode/skills\"]": 1,
-     "[\"staged\"]": 99
-    }
+   "native_runs": 100,
+   "native_outcomes": {
+    "project": 4,
+    "pinned": 96
    },
-   "lock_unchanged": true
+   "lock_unchanged": true,
+   "agentpack": {
+    "preflight_exit": 4,
+    "planned-winner": "violated",
+    "observed-winner": "no probe",
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH",
+     "OBSERVATION_UNAVAILABLE"
+    ]
+   }
   }
  ]
 }

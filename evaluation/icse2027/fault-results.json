@@ -2,8 +2,8 @@
  "date": "2026-10-12",
  "platform": "Linux-6.8.0-142-generic-aarch64-with-glibc2.42",
  "machine": "aarch64",
- "agentpack_version": "agentpack 0.4.4",
- "agentpack_sha256": "4586af81a421bd078086e18b92668ff4f25d34f6ee06491ff55f9d4e5b51bb33",
+ "agentpack_version": "agentpack 0.4.5",
+ "agentpack_sha256": "e363f800673cba8f16302fb3cb71930a953f9450ab4fb8e607d21b64a08e9c6a",
  "claude_version": "2.1.296 (Claude Code)",
  "model_inference_requested": false,
  "summary": {
@@ -58,7 +58,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 259.0,
+   "elapsed_ms": 291.8,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -94,7 +94,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 165.7,
+   "elapsed_ms": 182.2,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -130,7 +130,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 15.9,
+   "elapsed_ms": 18.2,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -165,7 +165,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 164.3,
+   "elapsed_ms": 145.9,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -199,7 +199,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 145.3,
+   "elapsed_ms": 149.5,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -233,7 +233,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 146.5,
+   "elapsed_ms": 184.6,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -268,7 +268,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 145.3,
+   "elapsed_ms": 151.2,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -304,7 +304,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 144.9,
+   "elapsed_ms": 148.9,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -340,7 +340,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 146.6,
+   "elapsed_ms": 154.8,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -378,7 +378,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 145.8,
+   "elapsed_ms": 160.3,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -414,7 +414,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 145.9,
+   "elapsed_ms": 150.5,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -450,7 +450,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 145.9,
+   "elapsed_ms": 148.4,
    "oracle": {
     "exit": true,
     "finding": true,

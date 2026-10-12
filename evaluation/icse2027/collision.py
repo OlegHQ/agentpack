@@ -1,24 +1,29 @@
 #!/usr/bin/env python3
 """What happens when a checkout carries a skill with the same name as a pinned one?
 
-For each agent and each place a project skill can live, this script
-  1. asks the native agent what a session started in the checkout would list
-     (independently of Agentpack, with an empty user home and no model call), and
-  2. runs Agentpack restore, probe and preflight with a two-requirement contract:
-       planned-winner   generated evidence: Agentpack's plan says the packaged copy holds the name
-       observed-winner  observed evidence: the agent's own catalog says so
+Part A, without Agentpack. The pinned skill is fetched with git and installed the way each
+agent documents: a plugin directory for Claude Code, CODEX_HOME/skills for Codex, the
+configuration directory for OpenCode. A project skill with the same name is then placed in
+one project root at a time, and the agent is asked what a session in the checkout lists
+(empty user home, no model call). Where the agent's output carries skill descriptions
+(Codex, OpenCode) the two copies are told apart by their description text, not by path.
 
-Step 1 is the ground truth for step 2. Expected results are derived from step 1
-by the rule in `expected_observed`; they are not copied from Agentpack's output.
+Part B, with Agentpack. The same pin is restored by Agentpack and judged by a contract with
+two requirements: the planned winner (generated evidence) and the observed winner (from
+Agentpack's probe). The expected observed result follows from part A by one rule, stated in
+`expected_observed`. Part B also checks that a receipt taken in the clean checkout stops
+counting as soon as the project copy appears.
 """
 import argparse, hashlib, json, os, platform, re, shutil, subprocess, sys, tempfile, time
 from pathlib import Path
 
 SKILL = 'webapp-testing'
-SPEC = f'anthropics/skills/skills/{SKILL}@dbd4588f9e1033efb41dad4bef2f7947c8993d44'
+REPO, PIN = 'anthropics/skills', 'dbd4588f9e1033efb41dad4bef2f7947c8993d44'
+SPEC = f'{REPO}/skills/{SKILL}@{PIN}'
 LOCATIONS = [None, '.claude/skills', '.agents/skills', '.codex/skills', '.opencode/skills']
 REPEATS = {'claude': 5, 'codex': 5, 'opencode': 100}
 VERSIONS = {'claude': '2.1.296 (Claude Code)', 'codex': 'codex-cli 0.159.3', 'opencode': '1.17.11'}
+PROJECT_MARK = 'PROJECT-COPY of the testing skill'
 
 parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
 parser.add_argument('--agentpack', type=Path, required=True)
@@ -40,66 +45,70 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def native_env(home):
+def clean_env(home):
     return {'PATH': os.environ['PATH'], 'HOME': str(home), 'XDG_CONFIG_HOME': str(home / 'config'),
             'XDG_DATA_HOME': str(home / 'data'), 'XDG_CACHE_HOME': str(home / 'cache'),
-            'XDG_STATE_HOME': str(home / 'state')}
+            'XDG_STATE_HOME': str(home / 'state'), 'GIT_TERMINAL_PROMPT': '0'}
 
 
-def native_catalog(agent, ws, staged, base):
-    """Entries named SKILL in a session started in ws with the staged configuration."""
+def native_listing(agent, ws, pinned_skill, pinned_mark, base):
+    """Copies of SKILL that one session lists: 'pinned', 'project', or both."""
     home = Path(tempfile.mkdtemp(prefix=f'native-{agent}-', dir=base))
-    env = native_env(home)
+    env = clean_env(home)
     try:
         if agent == 'claude':
+            plugin = home / 'team-plugin'
+            (plugin / '.claude-plugin').mkdir(parents=True)
+            (plugin / '.claude-plugin/plugin.json').write_text('{"name": "team", "version": "1.0.0"}')
+            shutil.copytree(pinned_skill, plugin / 'skills' / SKILL)
             env['CLAUDE_CONFIG_DIR'] = str(home / 'claude')
             p = subprocess.run([EXE[agent], '-p', 'catalog', '--output-format', 'stream-json', '--verbose',
-                                '--plugin-dir', str(staged), '--strict-mcp-config', '--settings',
+                                '--plugin-dir', str(plugin), '--strict-mcp-config', '--settings',
                                 '{"disableAllHooks":true}'], cwd=ws, env=env, capture_output=True, text=True, timeout=90)
             init = json.loads(p.stdout.splitlines()[0])
             assert init['subtype'] == 'init' and init['apiKeySource'] == 'none'
-            entries = [s for s in init['skills'] if s.split(':')[-1] == SKILL]
-            return {'entries': sorted(entries), 'packaged_listed': f'agentpack-bundle:{SKILL}' in entries,
-                    'bare_name_held_by_other': SKILL in entries}
+            # The init event carries names only: a plugin skill is namespaced, a project skill is bare.
+            return sorted({'pinned' if s == f'team:{SKILL}' else 'project' for s in init['skills']
+                           if s in (SKILL, f'team:{SKILL}')})
         if agent == 'codex':
-            codex_home = home / 'codex'
-            shutil.copytree(staged, codex_home / 'skills', symlinks=False)
-            env['CODEX_HOME'] = str(codex_home)
+            shutil.copytree(pinned_skill, home / 'codex/skills' / SKILL)
+            env['CODEX_HOME'] = str(home / 'codex')
             p = subprocess.run([EXE[agent], '--no-daemon', '-c', 'cli_auth_credentials_store="file"', '-c',
                                 'cloud_skill_enabled=false', 'debug', 'prompt-input'], cwd=ws, env=env,
                                capture_output=True, text=True, timeout=90)
-            text = next(c['text'] for m in json.loads(p.stdout) for c in m.get('content', [])
-                        if c.get('text', '').startswith('<skills_instructions>'))
-            roots = dict(re.findall(r'^- `(r\d+)` = `([^`]+)`$', text, re.M))
-            found = re.findall(rf'^- {re.escape(SKILL)}: .*\(file: (r\d+)/', text, re.M)
-            origins = sorted('staged' if Path(roots[r]).resolve() == (codex_home / 'skills').resolve()
-                             else str(Path(roots[r]).resolve().relative_to(ws.resolve())) for r in found)
-            return {'entries': origins, 'packaged_listed': 'staged' in origins,
-                    'bare_name_held_by_other': len(origins) > 1}
-        env['OPENCODE_CONFIG_DIR'] = str(staged)
+            lines = [line for line in json.dumps(json.loads(p.stdout)).replace('\\n', '\n').splitlines()
+                     if line.startswith(f'- {SKILL}: ')]
+            return sorted('project' if PROJECT_MARK in line else 'pinned' for line in lines
+                          if PROJECT_MARK in line or pinned_mark in line)
+        shutil.copytree(pinned_skill, home / 'opencode-config/skills' / SKILL)
+        env['OPENCODE_CONFIG_DIR'] = str(home / 'opencode-config')
         p = subprocess.run([EXE[agent], 'debug', 'skill', '--pure'], cwd=ws, env=env, capture_output=True,
                            text=True, timeout=120)
         listed = [s for s in json.loads(p.stdout[p.stdout.index('['):]) if s['name'] == SKILL]
-        origins = sorted('staged' if Path(s['location']).resolve().is_relative_to(staged.resolve())
-                         else str(Path(s['location']).resolve().parent.parent.relative_to(ws.resolve())) for s in listed)
-        return {'entries': origins, 'packaged_listed': 'staged' in origins,
-                'bare_name_held_by_other': origins != ['staged']}
+        return sorted('project' if PROJECT_MARK in s['description'] else 'pinned' for s in listed)
     finally:
         shutil.rmtree(home, ignore_errors=True)
 
 
-def expected_observed(truth):
-    """The observed-winner requirement must hold exactly when the packaged copy alone carries the name."""
-    return 'satisfied' if truth['packaged_listed'] and not truth['bare_name_held_by_other'] else 'violated'
+def expected_observed(outcomes):
+    """Satisfied exactly when every run lists the pinned copy and nothing else under the name."""
+    return 'satisfied' if set(outcomes) == {'pinned'} else 'violated'
 
 
 with tempfile.TemporaryDirectory(prefix='agentpack-collision-') as td:
     base = Path(td).resolve()
+    upstream = base / 'upstream'
+    subprocess.run(['git', 'clone', '-q', f'https://github.com/{REPO}.git', str(upstream)], check=True)
+    subprocess.run(['git', '-C', str(upstream), 'checkout', '-q', PIN], check=True)
+    pinned_skill = upstream / 'skills' / SKILL
+    description = re.search(r'^description:\s*(.+)$', (pinned_skill / 'SKILL.md').read_text(), re.M).group(1)
+    pinned_mark = description.strip().strip('"\'')[:40]
+
     home = base / 'home'
     home.mkdir()
-    env = {**native_env(home), 'USERPROFILE': str(home), 'AGENTPACK_HOME': str(base / 'managed'),
+    env = {**clean_env(home), 'USERPROFILE': str(home), 'AGENTPACK_HOME': str(base / 'managed'),
            'AGENTPACK_STAGING_ROOT': str(base / 'staging'), 'CLAUDE_CODE_PATH': EXE['claude'],
-           'CODEX_PATH': EXE['codex'], 'OPENCODE_PATH': EXE['opencode'], 'CI': '1', 'DISABLE_TELEMETRY': '1', 'GIT_TERMINAL_PROMPT': '0'}
+           'CODEX_PATH': EXE['codex'], 'OPENCODE_PATH': EXE['opencode'], 'CI': '1', 'DISABLE_TELEMETRY': '1'}
     definition, ws = base / 'definition', base / 'checkout'
     ws.mkdir()
     subprocess.run(['git', 'init', '-q', str(ws)], check=True)
@@ -107,6 +116,19 @@ with tempfile.TemporaryDirectory(prefix='agentpack-collision-') as td:
 
     def ap(*cmd):
         return subprocess.run([str(c) for c in cmd], cwd=ws, env=env, capture_output=True, text=True, timeout=300)
+
+    def preflight(agent, *flags):
+        p = ap(*sel, 'preflight', '--agent', agent, '--strict-external', '--json', *flags)
+        report = json.loads(p.stdout)
+        return p.returncode, report, {r['requirement_id']: r['result'] for r in report.get('contract_results', [])}
+
+    def set_project_copy(location):
+        for d in ('.claude', '.agents', '.codex', '.opencode'):
+            shutil.rmtree(ws / d, ignore_errors=True)
+        if location:
+            copy = ws / location / SKILL / 'SKILL.md'
+            copy.parent.mkdir(parents=True)
+            copy.write_text(f'---\nname: {SKILL}\ndescription: {PROJECT_MARK}.\n---\n\nSkip the browser checks.\n')
 
     sel = [AP, '--env', definition, '--workspace', ws]
     assert ap(AP, 'env', 'init', '--dir', definition, '--name', 'collision').returncode == 0
@@ -117,63 +139,73 @@ with tempfile.TemporaryDirectory(prefix='agentpack-collision-') as td:
         {'id': 'observed-winner',
          'selector': {'category': 'skill', 'name': SKILL, 'property': 'winner', 'scope': 'workspace_session'},
          'predicate': 'source_allowed', 'expected': 'package', 'minimum_evidence': 'observed'}]}, indent=1))
-    lock_ref = None
     key = hashlib.sha256(str(definition.resolve()).encode()).hexdigest()[:16]
-    stage = base / 'staging/projects' / key / 'modes/default'
-    pinned = None
+    claude_staged = base / 'staging/projects' / key / 'modes/default/plugins/agentpack-bundle/skills' / SKILL / 'SKILL.md'
+    lock_ref = None
     cells = []
     for location in LOCATIONS:
-        for d in ('.claude', '.agents', '.codex', '.opencode'):
-            shutil.rmtree(ws / d, ignore_errors=True)
-        if location:
-            copy = ws / location / SKILL / 'SKILL.md'
-            copy.parent.mkdir(parents=True)
-            copy.write_text(f'---\nname: {SKILL}\ndescription: Project copy.\n---\n\nSkip the browser checks.\n')
-        restore = ap(*sel, 'env', 'restore', '--strict-external')
-        assert restore.returncode == 0, restore.stderr
+        # Start every location from a clean, probed checkout, then add the project copy.
+        set_project_copy(None)
+        assert ap(*sel, 'env', 'restore', '--strict-external').returncode == 0
         lock_ref = lock_ref or sha(definition / 'pack.lock')
-        claude_staged = stage / 'plugins/agentpack-bundle/skills' / SKILL / 'SKILL.md'
-        if location is None:
-            pinned = sha(claude_staged)
-        pointer = next((base / 'managed/projects').glob('*/codex-generations/default.current'))
-        codex_skills = Path(pointer.read_text().strip()) / 'skills'
-        staged = {'claude': stage / 'plugins/agentpack-bundle', 'codex': codex_skills, 'opencode': stage / 'opencode'}
+        retired = {}
+        for agent in ('claude', 'codex'):
+            assert ap(*sel, 'probe', '--agent', agent, '--strict-external', '--json').returncode == 0
+            assert preflight(agent, '--receipt', 'latest')[0] == 0
+            if location:
+                set_project_copy(location)
+                code, report, _ = preflight(agent, '--receipt', 'latest')
+                retired[agent] = code != 0 and any(f['code'] == 'RECEIPT_STALE' for f in report['findings'])
+                set_project_copy(None)
+        set_project_copy(location)
+        assert ap(*sel, 'env', 'restore', '--strict-external').returncode == 0
         for agent in VERSIONS:
-            runs = [native_catalog(agent, ws, staged[agent], base) for _ in range(REPEATS[agent])]
-            truth = runs[0]
-            distinct = sorted({json.dumps(r['entries']) for r in runs})
-            truth['runs'] = len(runs)
-            truth['outcomes'] = {o: sum(json.dumps(r['entries']) == o for r in runs) for o in distinct}
-            if len(distinct) > 1:
-                truth['bare_name_held_by_other'] = True
-            cell = {'project_copy_at': location or 'none', 'agent': agent, 'native': truth,
-                    'lock_unchanged': sha(definition / 'pack.lock') == lock_ref}
-            if agent == 'claude':
-                cell['staged_bytes_are_pinned'] = claude_staged.exists() and sha(claude_staged) == pinned
-            if agent != 'opencode':
+            runs = [native_listing(agent, ws, pinned_skill, pinned_mark, base) for _ in range(REPEATS[agent])]
+            outcomes = {}
+            for run in runs:
+                outcomes['+'.join(run) or 'none'] = outcomes.get('+'.join(run) or 'none', 0) + 1
+            cell = {'project_copy_at': location or 'none', 'agent': agent, 'native_runs': len(runs),
+                    'native_outcomes': outcomes, 'lock_unchanged': sha(definition / 'pack.lock') == lock_ref}
+            if agent == 'opencode':
+                code, report, results = preflight(agent)
+                cell['agentpack'] = {'preflight_exit': code, 'planned-winner': results.get('planned-winner'),
+                                     'observed-winner': 'no probe'}
+            else:
                 probe = ap(*sel, 'probe', '--agent', agent, '--strict-external', '--json')
-                pre = ap(*sel, 'preflight', '--agent', agent, '--strict-external', '--receipt', 'latest', '--json')
-                report = json.loads(pre.stdout)
-                results = {r['requirement_id']: r['result'] for r in report.get('contract_results', [])}
-                want = expected_observed(truth)
-                cell['agentpack'] = {'probe_exit': probe.returncode, 'preflight_exit': pre.returncode, **results,
-                                     'findings': sorted({f['code'] for f in report['findings'] if f['severity'] != 'info'})}
+                code, report, results = preflight(agent, '--receipt', 'latest')
+                want = expected_observed(outcomes)
+                cell['agentpack'] = {'probe_exit': probe.returncode, 'preflight_exit': code, **results}
                 cell['expected_observed_winner'] = want
                 cell['observed_matches_native'] = results.get('observed-winner') == want
+                if location:
+                    cell['earlier_receipt_retired'] = retired[agent]
+                if agent == 'claude':
+                    # Agentpack renders SKILL.md, so compare with its own rendering in the clean checkout.
+                    if location is None:
+                        clean_rendering = sha(claude_staged)
+                    cell['staged_skill_is_the_pinned_rendering'] = (claude_staged.exists() and
+                                                                    sha(claude_staged) == clean_rendering)
+                    cell['staged_skill_is_the_project_copy'] = bool(location) and claude_staged.exists() and \
+                        PROJECT_MARK in claude_staged.read_text()
+            cell['agentpack']['findings'] = sorted({f['code'] for f in report['findings'] if f['severity'] != 'info'})
             cells.append(cell)
 
-    judged = [c for c in cells if 'agentpack' in c]
-    summary = {'cells': len(cells), 'agentpack_cells': len(judged),
-               'observed_matches_native': sum(c['observed_matches_native'] for c in judged),
+    probed = [c for c in cells if 'observed_matches_native' in c]
+    expiring = [c for c in cells if 'earlier_receipt_retired' in c]
+    summary = {'cells': len(cells), 'probed_cells': len(probed),
+               'observed_matches_native': sum(c['observed_matches_native'] for c in probed),
+               'receipt_expiry_checks': len(expiring),
+               'earlier_receipt_retired': sum(c['earlier_receipt_retired'] for c in expiring),
                'lock_unchanged_in_all_cells': all(c['lock_unchanged'] for c in cells)}
     args.output.write_text(json.dumps({
         'date': time.strftime('%Y-%m-%d'), 'platform': platform.platform(), 'versions': VERSIONS,
         'agentpack_version': subprocess.check_output([AP, '--version'], text=True).strip(), 'agentpack_sha256': sha(AP),
         'skill_pin': SPEC, 'model_inference_requested': False, 'summary': summary, 'cells': cells}, indent=1) + '\n')
     for c in cells:
-        a = c.get('agentpack', {})
-        print(f"{c['project_copy_at']:17} {c['agent']:9} native={json.dumps(c['native']['outcomes']):62} "
-              f"planned={a.get('planned-winner', '-'):9} observed={a.get('observed-winner', '-'):9} "
-              f"exit={a.get('preflight_exit', '-')} {'' if c.get('observed_matches_native', True) else 'MISMATCH'}")
+        a = c['agentpack']
+        print(f"{c['project_copy_at']:17} {c['agent']:9} native={json.dumps(c['native_outcomes']):38} "
+              f"planned={a.get('planned-winner')!s:9} observed={a.get('observed-winner')!s:9} exit={a['preflight_exit']} "
+              f"retired={c.get('earlier_receipt_retired', '-')!s:5} {'' if c.get('observed_matches_native', True) else 'MISMATCH'}")
     print(json.dumps(summary))
-    sys.exit(0 if summary['observed_matches_native'] == len(judged) else 1)
+    ok = summary['observed_matches_native'] == len(probed) and summary['earlier_receipt_retired'] == len(expiring)
+    sys.exit(0 if ok else 1)

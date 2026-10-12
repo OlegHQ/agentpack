@@ -16,7 +16,7 @@ from pathlib import Path
 CLAUDE_VERSION = '2.1.296 (Claude Code)'
 SKILL = 'held-out-review'
 parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-parser.add_argument('--agentpack', type=Path, required=True, help='released Agentpack 0.4.4 binary')
+parser.add_argument('--agentpack', type=Path, required=True, help='released Agentpack 0.4.5 binary')
 parser.add_argument('--claude', help='Claude Code 2.1.296 executable; enables the two live-receipt cases')
 parser.add_argument('--output', type=Path, default=Path(__file__).resolve().parent / 'fault-results.json')
 args = parser.parse_args()

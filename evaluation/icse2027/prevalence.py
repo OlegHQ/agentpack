@@ -29,9 +29,15 @@ with tempfile.TemporaryDirectory() as td:
     versions = {}
     for name in names:
         path = f'skills/{name}/SKILL.md'
-        commits = git(repo, 'log', '--format=%H', PIN, '--', path).split()
-        versions[name] = {'pinned': git(repo, 'rev-parse', f'{PIN}:{path}').strip(),
-                          'all': sorted({git(repo, 'rev-parse', f'{c}:{path}').strip() for c in commits})}
+        commits = git(repo, 'log', '--follow', '--format=%H', PIN, '--', path).split()
+        # Every SKILL.md blob these commits touched, at any earlier path of the skill.
+        blobs = set()
+        for c in commits:
+            for line in git(repo, 'ls-tree', '-r', c).splitlines():
+                meta, file = line.split('\t', 1)
+                if file.endswith(f'/{name}/SKILL.md') or file == f'{name}/SKILL.md':
+                    blobs.add(meta.split()[2])
+        versions[name] = {'pinned': git(repo, 'rev-parse', f'{PIN}:{path}').strip(), 'all': sorted(blobs)}
 
 rows = []
 for root in ROOTS:
@@ -51,14 +57,17 @@ for root in ROOTS:
                 and i['repository']['full_name'].lower() != UPSTREAM]
         repos = {i['repository']['full_name'] for i in hits}
         kinds = {'equal_to_pinned': 0, 'equal_to_older_upstream': 0, 'differs_from_every_upstream_version': 0}
+        files = []
         for i in hits:
             kind = ('equal_to_pinned' if i['sha'] == versions[name]['pinned'] else
                     'equal_to_older_upstream' if i['sha'] in versions[name]['all'] else
                     'differs_from_every_upstream_version')
             kinds[kind] += 1
+            files.append({'repository': i['repository']['full_name'], 'blob': i['sha'], 'kind': kind})
         rows.append({'root': root, 'skill': name, 'github_total_count': data['total_count'],
-                     'exact_path_hits_in_first_100': len(hits), 'repositories': len(repos), **kinds})
-        print(rows[-1], flush=True)
+                     'exact_path_hits_in_first_100': len(hits), 'repositories': len(repos), **kinds,
+                     'capped': data['total_count'] > 100, 'files': files})
+        print({k: v for k, v in rows[-1].items() if k != 'files'}, flush=True)
         time.sleep(7)
 
 totals = {}
@@ -67,6 +76,11 @@ for root in ROOTS:
     totals[root] = {k: sum(r[k] for r in rs) for k in ('exact_path_hits_in_first_100', 'equal_to_pinned',
                     'equal_to_older_upstream', 'differs_from_every_upstream_version')}
     totals[root]['skills_with_at_least_one_hit'] = sum(r['exact_path_hits_in_first_100'] > 0 for r in rs)
+all_files = [f for r in rows for f in r.get('files', [])]
+totals['all_roots'] = {'files': len(all_files), 'distinct_repositories': len({f['repository'] for f in all_files}),
+                       'capped_queries': sum(r.get('capped', False) for r in rows), 'queries': len(rows),
+                       **{k: sum(f['kind'] == k for f in all_files) for k in
+                          ('equal_to_pinned', 'equal_to_older_upstream', 'differs_from_every_upstream_version')}}
 out.write_text(json.dumps({'date': time.strftime('%Y-%m-%d'), 'upstream': UPSTREAM, 'pin': PIN, 'skills': names,
                            'upstream_versions_per_skill': {n: len(v['all']) for n, v in versions.items()},
                            'totals': totals, 'rows': rows}, indent=1) + '\n')
