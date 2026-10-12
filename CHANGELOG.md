@@ -7,6 +7,13 @@ window.
 
 ## Unreleased
 
+## [0.4.7] - 2026-10-12
+
+### Fixed
+
+- The hooks plugin staged for OpenCode crashed on OpenCode 1.17.11 (`proc.stdin.getWriter is not a function`), so every prompt failed once a package carried a prompt hook. The payload is now passed to `hook-exec` as bytes.
+- The Claude probe no longer gives up when a very large bundle abbreviates its `plugin details` inventory; it records the session catalog instead.
+
 ## [0.4.6] - 2026-10-12
 
 ### Added

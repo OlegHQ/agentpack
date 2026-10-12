@@ -17,17 +17,16 @@ function matchesMatcher(matcher, toolName) {
 }
 
 async function runHook(kind, specPath, payload) {
+  // Hand the payload over as bytes: with stdin "pipe" Bun exposes a FileSink, not a
+  // WritableStream, and its shape has changed between OpenCode releases.
   const proc = Bun.spawn(
     ["agentpack", "hook-exec", kind, "--target", "opencode", "--spec", specPath],
     {
-      stdin: "pipe",
+      stdin: new TextEncoder().encode(JSON.stringify(payload)),
       stdout: "pipe",
       stderr: "pipe",
     },
   );
-  const writer = proc.stdin.getWriter();
-  await writer.write(new TextEncoder().encode(JSON.stringify(payload)));
-  await writer.close();
   const stdout = await new Response(proc.stdout).text();
   const stderr = await new Response(proc.stderr).text();
   const status = await proc.exited;

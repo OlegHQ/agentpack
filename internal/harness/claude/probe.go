@@ -225,8 +225,16 @@ func ProbeBundle(ctx context.Context, bundleDir, workspace, sourceID, lockDigest
 	skills, parseErr := parseSkillInventory(details.Stdout)
 	if parseErr != nil {
 		receipt.Coverage = []environment.CoverageNote{{Category: "skill", Scope: "controlled_projection", Completeness: "partial", Reason: parseErr.Error()}}
-		receipt.Findings = append(receipt.Findings, environment.Finding{Code: "OBSERVATION_PARTIAL", Severity: environment.SeverityError, Target: "claude", Message: parseErr.Error(), Evidence: environment.EvidenceUnknown})
-		receipt.OverallStatus = "unknown"
+		if !sessionValidated(version) {
+			receipt.Findings = append(receipt.Findings, environment.Finding{Code: "OBSERVATION_PARTIAL", Severity: environment.SeverityError, Target: "claude", Message: parseErr.Error(), Evidence: environment.EvidenceUnknown})
+			receipt.OverallStatus = "unknown"
+			return receipt, nil
+		}
+		// A very large bundle abbreviates its inventory line. The plugin listing is then
+		// unusable, but the session catalog still names every skill.
+		receipt.Findings = append(receipt.Findings, environment.Finding{Code: "OBSERVATION_PARTIAL", Severity: environment.SeverityWarning, Target: "claude", Message: "plugin inventory unreadable (" + parseErr.Error() + "); using the session catalog only", Evidence: environment.EvidenceUnknown})
+		observeSession(ctx, exe, bundleDir, workspace, diagnosticEnv, expected, &receipt)
+		receipt.OverallStatus = "ready_with_warnings"
 		return receipt, nil
 	}
 	receipt.Coverage = []environment.CoverageNote{{
