@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -135,6 +136,9 @@ func SaveReceipt(workspaceRoot string, receipt Receipt) (string, error) {
 	return path, nil
 }
 
+// ErrNoReceipt reports that "latest" was requested where no successful probe has been saved.
+var ErrNoReceipt = errors.New("no successful current-format probe receipt; run probe")
+
 // LoadReceipt loads a receipt by ID or absolute path.
 func LoadReceipt(workspaceRoot, idOrPath string) (Receipt, error) {
 	path := idOrPath
@@ -144,6 +148,9 @@ func LoadReceipt(workspaceRoot, idOrPath string) (Receipt, error) {
 			return Receipt{}, err
 		}
 		entries, err := os.ReadDir(root)
+		if os.IsNotExist(err) {
+			return Receipt{}, ErrNoReceipt
+		}
 		if err != nil {
 			return Receipt{}, err
 		}
@@ -161,7 +168,7 @@ func LoadReceipt(workspaceRoot, idOrPath string) (Receipt, error) {
 			}
 		}
 		if newest.ReceiptID == "" {
-			return Receipt{}, fmt.Errorf("no successful current-format probe receipt; run probe")
+			return Receipt{}, ErrNoReceipt
 		}
 		return newest, nil
 	}

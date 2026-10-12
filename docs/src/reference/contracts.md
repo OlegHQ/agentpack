@@ -53,6 +53,30 @@ Observation scope defaults to `native_catalog`. Current safe probes run in a con
 
 A controlled positive observation does not require complete ambient catalog coverage. An unscoped observed requirement stays unknown when only controlled evidence is available.
 
+### Session scope
+
+`scope: "workspace_session"` describes a session started in the checkout with the staged configuration and an empty user home. The probe reads the agent's own catalog and sends no model request: the print-mode init event for Claude Code 2.1.296, `debug prompt-input` for Codex 0.159.2 and 0.159.3. Unlike the controlled projection it includes skills the checkout itself provides. It still excludes user-level configuration, so absence stays unknown.
+
+For each packaged skill the receipt carries an observed `winner`:
+
+| Value | Meaning |
+| --- | --- |
+| `package` | the staged copy is the only catalog entry with that name |
+| `ambient` | Claude Code lists another skill under the bare name; the packaged copy is reachable only as `agentpack-bundle:<name>` or was dropped from the bundle |
+| `ambiguous` | Codex lists several entries with that name |
+
+```json
+{
+  "id": "review-holds-its-name",
+  "selector": {"category": "skill", "name": "review", "property": "winner", "scope": "workspace_session"},
+  "predicate": "source_allowed",
+  "expected": "package",
+  "minimum_evidence": "observed"
+}
+```
+
+The same requirement without a scope and with `minimum_evidence: "generated"` checks the planned winner from the workspace scan instead. The two grades disagree in useful ways. The scan flags `.claude/skills/<name>` for every target although Codex does not read that directory, and the observation shows Codex unaffected. A same-named `.agents/skills/<name>` replaces the packaged bytes inside the Claude bundle, which the Claude catalog cannot show because it lists names, not bytes; the scan reports it.
+
 ## Receipt freshness
 
 Current receipts require source and lock identities, mode, workspace input digest, generation digest, policy digest, creation time, adapter revision, executable byte identity, capability revision, termination, and status. Old incomplete receipts fail closed with a re-probe remedy. Failed, cancelled, nonzero, partial/error-status receipts are retained as diagnostics but cannot satisfy contracts.
@@ -61,7 +85,7 @@ Preflight compares current identities before attaching properties. Workspace fin
 
 Every observed property needs readable retained diagnostic evidence with the recorded byte digest. Missing or modified evidence is unavailable; the digest is a local integrity check, not an attestation. Raw evidence and diagnostic paths are excluded from support exports.
 
-`--receipt latest` selects the newest successful current-format receipt. It does not fall back silently when that receipt is stale. A receipt is local evidence, not a signed attestation. Fingerprints cannot establish unrecorded parent-directory instructions, arbitrary process environment, remote MCP state, model behavior, or external interpreters/dependencies behind an executable. Treat these as outside the closure.
+`--receipt latest` selects the newest successful current-format receipt. It does not fall back silently when that receipt is stale. Where no receipt exists, preflight reports `RECEIPT_MISSING` and required observations stay unknown. A receipt is local evidence, not a signed attestation. Fingerprints cannot establish unrecorded parent-directory instructions, arbitrary process environment, remote MCP state, model behavior, or external interpreters/dependencies behind an executable. Treat these as outside the closure.
 
 Under CI policy, existing undeclared native configuration and skill roots cause violations. Descriptive capability/inheritance notes are informational; a clean controlled home is not rejected merely because the adapter can inherit configuration.
 

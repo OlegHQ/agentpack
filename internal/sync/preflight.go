@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"github.com/OlegHQ/agentpack/internal/artifacts"
 	"github.com/OlegHQ/agentpack/internal/harness/claude"
@@ -619,6 +620,48 @@ func appendAmbientFindings(report *environment.Report, workspace string, lock lo
 		}
 	}
 
+	// Project skill roots beyond .claude/skills. .agents/skills is copied over a packaged skill of
+	// the same name in the Claude bundle and listed next to the staged copy by Codex; the
+	// agent-specific roots matter only to their own agent.
+	projectRoots := []string{".agents/skills"}
+	for _, extra := range []struct {
+		target base.Target
+		root   string
+	}{{base.Codex, ".codex/skills"}, {base.OpenCode, ".opencode/skills"}} {
+		if options.Target == nil || *options.Target == extra.target {
+			projectRoots = append(projectRoots, extra.root)
+		}
+	}
+	for _, root := range projectRoots {
+		names, rootErr := staging.ProjectSkillNames(workspace, root)
+		if rootErr != nil {
+			report.Findings = append(report.Findings, environment.Finding{Code: "AMBIENT_SCAN_FAILED", Severity: environment.SeverityError, Message: rootErr.Error(), Evidence: environment.EvidenceUnknown})
+			return
+		}
+		for lower, display := range packSkills {
+			if _, hit := names[lower]; !hit {
+				continue
+			}
+			severity := environment.SeverityWarning
+			if options.Policy == environment.PolicyCI {
+				severity = environment.SeverityViolation
+			}
+			alreadyProject := false
+			for _, artifact := range report.Artifacts {
+				alreadyProject = alreadyProject || (artifact.Kind == "skill" && artifact.Module == "project" && strings.EqualFold(artifact.Name, lower))
+			}
+			markArtifactWinner(report, display, "project", "project "+root+" has a skill with the packaged skill's name")
+			if !alreadyProject {
+				report.Artifacts = append(report.Artifacts, environment.ArtifactRecord{ID: "project:" + lower, Kind: "skill", Name: lower, Module: "project", Winner: "project", Evidence: environment.EvidenceGenerated})
+			}
+			report.Findings = append(report.Findings, environment.Finding{
+				Code: "AMBIENT_ARTIFACT", Severity: severity, Source: display, Winner: "project",
+				Message:  fmt.Sprintf("project %s/%s has the packaged skill's name", root, display),
+				Remedy:   "rename or remove the project skill, disable the package in a mode, or accept under --policy local",
+				Evidence: environment.EvidenceGenerated,
+			})
+		}
+	}
 	for lower, display := range packSkills {
 		if _, hit := userSkills[lower]; hit {
 			severity := environment.SeverityWarning
@@ -651,6 +694,15 @@ func appendAmbientFindings(report *environment.Report, workspace string, lock lo
 
 func applyReceipt(report *environment.Report, workspace string, options PreflightOptions) {
 	receipt, err := environment.LoadReceipt(workspace, options.ReceiptID)
+	if errors.Is(err, environment.ErrNoReceipt) {
+		// Nothing has been observed yet: required observations stay unknown, the evidence is not damaged.
+		report.Findings = append(report.Findings, environment.Finding{
+			Code: "RECEIPT_MISSING", Severity: environment.SeverityWarning,
+			Message: "no probe receipt exists for this workspace", Evidence: environment.EvidenceUnknown,
+			Remedy: "run `agentpack probe --agent <target>` to observe the native configuration",
+		})
+		return
+	}
 	if err != nil {
 		report.Findings = append(report.Findings, environment.Finding{
 			Code: "RECEIPT_STALE", Severity: environment.SeverityError,

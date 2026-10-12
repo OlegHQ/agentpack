@@ -16,7 +16,7 @@ import (
 )
 
 // probePromptSkills copies static inputs only: native auth/history/hooks never enter diagnostics.
-func probePromptSkills(ctx context.Context, exe, sourceHome, workspace string) (base.ProbeResult, []string, error) {
+func probePromptSkills(ctx context.Context, exe, sourceHome, workspace string) (base.ProbeResult, []promptSkill, error) {
 	root, err := paths.ProjectStateFile(workspace, "probe-diagnostics")
 	if err != nil {
 		return base.ProbeResult{}, nil, err
@@ -59,13 +59,51 @@ func probePromptSkills(ctx context.Context, exe, sourceHome, workspace string) (
 	if err != nil {
 		return result, nil, err
 	}
-	skills, err := parsePromptSkills(result.Stdout)
-	return result, skills, err
+	entries, err := parsePromptEntries(result.Stdout)
+	if err != nil {
+		return result, nil, err
+	}
+	// Classify while the diagnostic home still exists: its skills root holds the staged copies.
+	managed, _ := filepath.EvalSymlinks(filepath.Join(home, "skills"))
+	for i := range entries {
+		if root, rootErr := filepath.EvalSymlinks(entries[i].Root); rootErr == nil {
+			entries[i].Managed = managed != "" && root == managed
+		}
+	}
+	return result, entries, nil
 }
 
-var promptSkillLine = regexp.MustCompile(`(?m)^- ([A-Za-z0-9_.-]+): [^\n]*\(file: r[0-9]+/[^\n]+/SKILL\.md\)$`)
+// promptSkill is one entry of the native prompt's skill inventory.
+type promptSkill struct {
+	Name    string
+	Root    string
+	Managed bool
+}
 
+var promptRootLine = regexp.MustCompile("(?m)^- `(r[0-9]+)` = `([^`\\n]+)`$")
+
+var promptSkillLine = regexp.MustCompile(`(?m)^- ([A-Za-z0-9_.-]+): [^\n]*\(file: (r[0-9]+)/[^\n]+/SKILL\.md\)$`)
+
+// parsePromptSkills returns the distinct skill names of the inventory.
 func parsePromptSkills(output string) ([]string, error) {
+	entries, err := parsePromptEntries(output)
+	if err != nil {
+		return nil, err
+	}
+	var names []string
+	seen := map[string]bool{}
+	for _, entry := range entries {
+		if !seen[entry.Name] {
+			seen[entry.Name] = true
+			names = append(names, entry.Name)
+		}
+	}
+	return names, nil
+}
+
+// parsePromptEntries keeps every inventory entry: the native prompt can list one name several
+// times when the checkout and the home both provide it.
+func parsePromptEntries(output string) ([]promptSkill, error) {
 	var messages []struct {
 		Type    string `json:"type"`
 		Role    string `json:"role"`
@@ -95,14 +133,13 @@ func parsePromptSkills(output string) ([]string, error) {
 	if inventory == "" || !strings.HasSuffix(inventory, "</skills_instructions>") || !strings.Contains(inventory, "### Available skills\n") {
 		return nil, fmt.Errorf("native skills instruction inventory is incomplete")
 	}
-	var skills []string
-	seen := map[string]bool{}
+	roots := map[string]string{}
+	for _, match := range promptRootLine.FindAllStringSubmatch(inventory, -1) {
+		roots[match[1]] = match[2]
+	}
+	var skills []promptSkill
 	for _, match := range promptSkillLine.FindAllStringSubmatch(inventory, -1) {
-		if seen[match[1]] {
-			return nil, fmt.Errorf("duplicate native skill name")
-		}
-		seen[match[1]] = true
-		skills = append(skills, match[1])
+		skills = append(skills, promptSkill{Name: match[1], Root: roots[match[2]]})
 	}
 	if len(skills) == 0 {
 		return nil, fmt.Errorf("native positive skill discovery is unavailable; absence is not confirmed")
@@ -133,8 +170,29 @@ func observePromptSkills(ctx context.Context, exe, sourceHome, workspace string,
 		return
 	}
 	receipt.Coverage = []environment.CoverageNote{{Category: "skill", Scope: "controlled_projection", Completeness: "partial", Reason: "positive names in native prompt input from copied static skills only; excludes user config, auth/history/hooks and cloud skills; no absence or model use proof"}}
-	for _, name := range skills {
-		receipt.Properties = append(receipt.Properties, environment.ObservedProperty{Scope: "controlled_projection", Category: "skill", ArtifactID: filepath.Join("skills", name), Property: "presence", Value: true, Evidence: environment.EvidenceObserved, Method: "native_catalog", EvidenceRef: evidencePath})
+	count, managed := map[string]int{}, map[string]bool{}
+	var names []string
+	for _, skill := range skills {
+		if count[skill.Name] == 0 {
+			names = append(names, skill.Name)
+		}
+		count[skill.Name]++
+		managed[skill.Name] = managed[skill.Name] || skill.Managed
+	}
+	receipt.Coverage = append(receipt.Coverage, environment.CoverageNote{Category: "skill", Scope: "workspace_session", Completeness: "partial", Reason: "prompt input built in the checkout with the staged skills and an empty user home; user-level and cloud skills excluded"})
+	for _, name := range names {
+		id := filepath.Join("skills", name)
+		receipt.Properties = append(receipt.Properties, environment.ObservedProperty{Scope: "controlled_projection", Category: "skill", ArtifactID: id, Property: "presence", Value: true, Evidence: environment.EvidenceObserved, Method: "native_catalog", EvidenceRef: evidencePath})
+		if !managed[name] {
+			continue
+		}
+		winner := "package"
+		if count[name] > 1 {
+			winner = "ambiguous"
+		}
+		receipt.Properties = append(receipt.Properties,
+			environment.ObservedProperty{Scope: "workspace_session", Category: "skill", ArtifactID: id, Property: "presence", Value: true, Evidence: environment.EvidenceObserved, Method: "native_catalog", EvidenceRef: evidencePath},
+			environment.ObservedProperty{Scope: "workspace_session", Category: "skill", ArtifactID: id, Property: "winner", Value: winner, Evidence: environment.EvidenceObserved, Method: "native_catalog", EvidenceRef: evidencePath})
 	}
 	receipt.OverallStatus = "ready_with_warnings"
 }

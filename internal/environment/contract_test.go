@@ -150,3 +150,30 @@ func TestNegativeObservedPresenceRequiresCompleteScopeCoverage(t *testing.T) {
 		t.Fatalf("complete catalog negative should satisfy: %#v", got)
 	}
 }
+
+func TestWorkspaceSessionWinnerRequirement(t *testing.T) {
+	contract := Contract{SchemaVersion: 1, Requirements: []Requirement{{
+		ID:        "holds-name",
+		Selector:  map[string]any{"category": "skill", "name": "review", "property": "winner", "scope": "workspace_session"},
+		Predicate: "source_allowed", Expected: "package", MinimumEvidence: "observed",
+	}}}
+	if err := ValidateContract(contract); err != nil {
+		t.Fatal(err)
+	}
+	observed := func(winner string) Report {
+		return Report{Properties: []ObservedProperty{{Scope: "workspace_session", Category: "skill", ArtifactID: "skills/review", Property: "winner", Value: winner, Evidence: EvidenceObserved, Method: "native_catalog"}}}
+	}
+	for winner, want := range map[string]string{"package": "satisfied", "ambient": "violated", "ambiguous": "violated"} {
+		if got := EvaluateContract(contract, observed(winner))[0].Result; got != want {
+			t.Fatalf("winner %s: got %s, want %s", winner, got, want)
+		}
+	}
+	// An observation from another scope, or none, leaves the requirement unknown.
+	other := observed("package")
+	other.Properties[0].Scope = "controlled_projection"
+	for _, report := range []Report{other, {}} {
+		if got := EvaluateContract(contract, report)[0].Result; got != "unknown" {
+			t.Fatalf("got %s, want unknown", got)
+		}
+	}
+}

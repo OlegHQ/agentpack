@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -17,7 +18,7 @@ import (
 )
 
 const (
-	capabilityRevision = "claude-probe-v2"
+	capabilityRevision = "claude-probe-v3"
 	adapterRevision    = "claude-observe-2026-10"
 )
 
@@ -30,13 +31,15 @@ func Capability() map[string]string {
 		"plugin_presence":     "observed via `claude --bare --plugin-dir <bundle> plugin list --json`",
 		"skill_presence":      "observed via `claude plugin details <id>` inventory (names only; no source bytes)",
 		"skill_source_digest": "unknown — native interface does not attribute source bytes",
-		"ambient_user_skills": "unknown — plugin list does not enumerate ~/.claude/skills",
+		"skill_winner":        "2.1.296: observed in scope workspace_session from the session init catalog (checkout as cwd, empty user home); package when only the namespaced bundle copy carries the name, ambient when another skill holds the bare name",
+		"ambient_user_skills": "unknown — probes run with an empty user home",
 		"effects":             "isolated HOME and CLAUDE_CONFIG_DIR; no model inference requested; native network/other effects unmeasured",
 	}
 }
 
 // ProbeBundle runs a bounded Claude plugin/skill catalog probe against a staged bundle.
-func ProbeBundle(ctx context.Context, bundleDir, workspace, sourceID, lockDigest, mode string) (environment.Receipt, error) {
+// expected names the packaged skills of the plan, so a skill that staging dropped is still reported.
+func ProbeBundle(ctx context.Context, bundleDir, workspace, sourceID, lockDigest, mode string, expected ...string) (environment.Receipt, error) {
 	exe, err := base.LookPathEnv("CLAUDE_CODE_PATH", "claude")
 	if err != nil {
 		return environment.Receipt{}, err
@@ -179,6 +182,10 @@ func ProbeBundle(ctx context.Context, bundleDir, workspace, sourceID, lockDigest
 			Evidence: environment.EvidenceObserved,
 			Remedy:   "run agentpack sync then probe again with the staged Claude bundle",
 		})
+		if sessionValidated(version) {
+			// Staging can drop every packaged skill that a project skill replaces; the session still shows who holds the names.
+			observeSession(ctx, exe, bundleDir, workspace, diagnosticEnv, expected, &receipt)
+		}
 		receipt.OverallStatus = "ready_with_warnings"
 		return receipt, nil
 	}
@@ -240,8 +247,104 @@ func ProbeBundle(ctx context.Context, bundleDir, workspace, sourceID, lockDigest
 			Evidence: environment.EvidenceUnknown, Reason: "Native interface does not attribute source bytes.",
 		})
 	}
+	if sessionValidated(version) {
+		packaged := append([]string{}, skills...)
+		for _, name := range expected {
+			if !slices.Contains(packaged, name) {
+				packaged = append(packaged, name)
+			}
+		}
+		observeSession(ctx, exe, bundleDir, workspace, diagnosticEnv, packaged, &receipt)
+	} else {
+		receipt.Coverage = append(receipt.Coverage, environment.CoverageNote{Category: "skill", Scope: "workspace_session", Completeness: "none", Reason: "session catalog parser is validated for 2.1.296 only"})
+	}
 	receipt.OverallStatus = "ready_with_warnings"
 	return receipt, nil
+}
+
+func sessionValidated(version string) bool {
+	return version == "2.1.296 (Claude Code)" || version == "2.1.296"
+}
+
+// observeSession starts a print-mode session in the checkout with the staged bundle and an empty
+// user home, and reads the catalog from its init event. Without credentials the session ends
+// before any model request. A packaged skill is listed as agentpack-bundle:<name>; any other
+// skill holding the bare <name> is what a user or the model reaches under that name.
+func observeSession(ctx context.Context, exe, bundleDir, workspace string, env, packaged []string, receipt *environment.Receipt) {
+	unavailable := func(reason string) {
+		receipt.Coverage = append(receipt.Coverage, environment.CoverageNote{Category: "skill", Scope: "workspace_session", Completeness: "none", Reason: reason})
+		receipt.Findings = append(receipt.Findings, environment.Finding{Code: "OBSERVATION_PARTIAL", Severity: environment.SeverityWarning, Target: "claude", Message: "session catalog unavailable: " + reason, Evidence: environment.EvidenceUnknown})
+	}
+	result, _ := base.RunProbe(ctx, base.ProbePlan{
+		Executable: exe,
+		Argv:       []string{"-p", "agentpack session catalog probe", "--output-format", "stream-json", "--verbose", "--plugin-dir", bundleDir, "--strict-mcp-config", "--settings", `{"disableAllHooks":true}`},
+		Cwd:        workspace,
+		Env:        env,
+		Timeout:    45 * time.Second,
+		Categories: []string{"skill"},
+		Network:    "not_measured",
+		WriteScope: "managed_diagnostic_storage; native_other_effects_unmeasured",
+	})
+	evidence, saveErr := base.SaveProbeEvidence(workspace, receipt.ReceiptID, "session-init", result)
+	if saveErr != nil {
+		unavailable(saveErr.Error())
+		return
+	}
+	receipt.DiagnosticRefs = append(receipt.DiagnosticRefs, evidence)
+	if result.TimedOut || result.Canceled || result.Truncated {
+		unavailable("session did not complete within bounds")
+		return
+	}
+	catalog, credentials, err := parseSessionInit(result.Stdout)
+	if err != nil {
+		unavailable(err.Error())
+		return
+	}
+	if credentials {
+		// The diagnostic home is empty, so this means the environment supplied credentials.
+		receipt.Effects.ModelCalls = true
+	}
+	listed := map[string]bool{}
+	for _, name := range catalog {
+		listed[name] = true
+	}
+	receipt.Coverage = append(receipt.Coverage, environment.CoverageNote{Category: "skill", Scope: "workspace_session", Completeness: "partial", Reason: "session started in the checkout with the staged bundle and an empty user home; user-level skills and plugins excluded"})
+	for _, name := range packaged {
+		id := filepath.Join("agentpack-bundle", "skills", name)
+		bundled := listed["agentpack-bundle:"+name]
+		receipt.Properties = append(receipt.Properties, environment.ObservedProperty{Scope: "workspace_session", Category: "skill", ArtifactID: id, Property: "presence", Value: bundled, Evidence: environment.EvidenceObserved, Method: "session_init", EvidenceRef: evidence})
+		winner := "package"
+		switch {
+		case listed[name]:
+			winner = "ambient"
+		case !bundled:
+			continue
+		}
+		receipt.Properties = append(receipt.Properties, environment.ObservedProperty{Scope: "workspace_session", Category: "skill", ArtifactID: id, Property: "winner", Value: winner, Evidence: environment.EvidenceObserved, Method: "session_init", EvidenceRef: evidence})
+	}
+}
+
+// parseSessionInit returns the skill catalog of the first stream-json event and whether the
+// session had credentials. Anything but a well-formed init event is rejected.
+func parseSessionInit(output string) ([]string, bool, error) {
+	line, _, _ := strings.Cut(output, "\n")
+	var event struct {
+		Type         string   `json:"type"`
+		Subtype      string   `json:"subtype"`
+		Skills       []string `json:"skills"`
+		APIKeySource string   `json:"apiKeySource"`
+	}
+	if err := json.Unmarshal([]byte(line), &event); err != nil || event.Type != "system" || event.Subtype != "init" || event.Skills == nil {
+		return nil, false, fmt.Errorf("native session init event is missing or malformed")
+	}
+	seen := map[string]bool{}
+	for _, name := range event.Skills {
+		if name == "" || seen[name] {
+			return nil, false, fmt.Errorf("native session catalog has an empty or duplicate skill name")
+		}
+		seen[name] = true
+	}
+	return event.Skills, event.APIKeySource != "" && event.APIKeySource != "none", nil
 }
 
 func nativeVersion(ctx context.Context, exe string) (string, base.ProbeResult, error) {
@@ -258,7 +361,8 @@ func nativeVersion(ctx context.Context, exe string) (string, base.ProbeResult, e
 	return version, result, nil
 }
 
-var skillLine = regexp.MustCompile(`(?m)^\s*Skills\s*\((\d+)\)\s*(.*)$`)
+// Horizontal whitespace only: an empty inventory must not swallow the next line.
+var skillLine = regexp.MustCompile(`(?m)^[ \t]*Skills[ \t]*\((\d+)\)[ \t]*(.*)$`)
 
 type pluginEntry struct {
 	ID      string `json:"id"`

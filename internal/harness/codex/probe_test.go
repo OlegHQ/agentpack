@@ -125,3 +125,15 @@ func TestDiagnosticRejectsSymlinkInputsBeforeNativeExecution(t *testing.T) {
 		t.Fatalf("host-linked input not refused before execution: %v", err)
 	}
 }
+
+func TestPromptEntriesKeepDuplicateNamesAndRoots(t *testing.T) {
+	output := `[{"type":"message","role":"developer","content":[{"type":"input_text","text":"<skills_instructions>\n### Skill roots\n- ` + "`r0`" + ` = ` + "`/checkout/.agents/skills`" + `\n- ` + "`r1`" + ` = ` + "`/home/skills`" + `\n### Available skills\n- review: project (file: r0/review/SKILL.md)\n- review: staged (file: r1/review/SKILL.md)\n</skills_instructions>"}]}]`
+	entries, err := parsePromptEntries(output)
+	if err != nil || len(entries) != 2 || entries[0].Root != "/checkout/.agents/skills" || entries[1].Root != "/home/skills" {
+		t.Fatalf("entries=%+v err=%v", entries, err)
+	}
+	names, err := parsePromptSkills(output)
+	if err != nil || len(names) != 1 || names[0] != "review" {
+		t.Fatalf("names=%v err=%v", names, err)
+	}
+}

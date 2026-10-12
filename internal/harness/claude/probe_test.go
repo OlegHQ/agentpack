@@ -2,6 +2,7 @@ package claude
 
 import (
 	"context"
+	"github.com/OlegHQ/agentpack/internal/environment"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -105,4 +106,56 @@ func TestNativeClaudeSentinel(t *testing.T) {
 		t.Fatalf("native workspace changed: %v %v", entries, err)
 	}
 	t.Logf("native version=%s, positive+removed sentinel checked; effects=%+v", receipt.Target.NativeVersion, receipt.Effects)
+}
+
+func TestParseSessionInit(t *testing.T) {
+	skills, credentials, err := parseSessionInit(`{"type":"system","subtype":"init","apiKeySource":"none","skills":["review","agentpack-bundle:review"]}` + "\n" + `{"type":"result"}`)
+	if err != nil || credentials || len(skills) != 2 {
+		t.Fatalf("skills=%v credentials=%v err=%v", skills, credentials, err)
+	}
+	for _, output := range []string{"", "not json", `{"type":"assistant"}`, `{"type":"system","subtype":"init"}`, `{"type":"system","subtype":"init","skills":["a","a"]}`} {
+		if _, _, err := parseSessionInit(output); err == nil {
+			t.Fatalf("accepted %q", output)
+		}
+	}
+}
+
+func TestSessionObservationNamesAmbientWinner(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("synthetic Unix executable fixture")
+	}
+	exe := filepath.Join(t.TempDir(), "claude-fixture")
+	script := `#!/bin/sh
+printf '{"type":"system","subtype":"init","apiKeySource":"none","skills":["review","agentpack-bundle:review","agentpack-bundle:lint"]}\n'
+exit 1
+`
+	if err := os.WriteFile(exe, []byte(script), 0700); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("AGENTPACK_HOME", t.TempDir())
+	receipt := environment.Receipt{ReceiptID: "claude-test"}
+	observeSession(context.Background(), exe, t.TempDir(), t.TempDir(), nil, []string{"review", "lint", "dropped"}, &receipt)
+	got := map[string]any{}
+	for _, property := range receipt.Properties {
+		if property.Scope != "workspace_session" || property.Evidence != environment.EvidenceObserved {
+			t.Fatalf("unexpected property %+v", property)
+		}
+		got[filepath.Base(property.ArtifactID)+"."+property.Property] = property.Value
+	}
+	want := map[string]any{"review.presence": true, "review.winner": "ambient", "lint.presence": true, "lint.winner": "package", "dropped.presence": false}
+	if len(got) != len(want) {
+		t.Fatalf("got %v", got)
+	}
+	for key, value := range want {
+		if got[key] != value {
+			t.Fatalf("%s = %v, want %v (all %v)", key, got[key], value, got)
+		}
+	}
+}
+
+func TestEmptySkillInventoryIsNotTheNextLine(t *testing.T) {
+	names, err := parseSkillInventory("Component inventory\n  Skills (0)\n  Agents (0)\n")
+	if err != nil || len(names) != 0 {
+		t.Fatalf("names=%v err=%v", names, err)
+	}
 }

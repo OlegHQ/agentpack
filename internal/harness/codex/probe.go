@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	capabilityRevision = "codex-probe-v2"
+	capabilityRevision = "codex-probe-v3"
 	adapterRevision    = "codex-observe-2026-10"
 )
 
@@ -22,11 +22,12 @@ func Capability() map[string]string {
 	return map[string]string{
 		"adapter_revision":    adapterRevision,
 		"capability_revision": capabilityRevision,
-		"validated_versions":  "0.159.2, 0.159.3 (version only)",
+		"validated_versions":  "0.159.2, 0.159.3",
 		"native_version":      "observed via `codex --version`",
-		"skill_presence":      "positive names via controlled debug prompt-input in 0.159.2; partial, no absence or model use proof",
+		"skill_presence":      "positive names via controlled debug prompt-input in 0.159.2 and 0.159.3; partial, no absence or model use proof",
+		"skill_winner":        "observed in scope workspace_session: package when the staged copy is the only prompt entry with that name, ambiguous when the checkout contributes another entry with the same name",
 		"skill_source_digest": "unknown",
-		"effects":             "0.159.2 controlled static config clone; no auth/history/hooks copied, no model inference requested; native network/global effects unmeasured",
+		"effects":             "controlled static config clone; no auth/history/hooks copied, no model inference requested; native network/global effects unmeasured",
 	}
 }
 
@@ -67,7 +68,7 @@ func ProbeHome(ctx context.Context, codexHome, workspace, sourceID, lockDigest, 
 		CreatedAt: time.Now().UTC(),
 		Coverage: []environment.CoverageNote{{
 			Category: "skill", Scope: "controlled_projection", Completeness: "none",
-			Reason: "Codex 0.159.3 has no validated non-model skill catalog probe",
+			Reason: "this Codex version has no validated non-model skill catalog probe",
 		}},
 		Effects: environment.ProbeEffects{
 			ModelCalls: false,
@@ -102,7 +103,8 @@ func ProbeHome(ctx context.Context, codexHome, workspace, sourceID, lockDigest, 
 		Category: "runtime", Property: "native_version", Value: receipt.Target.NativeVersion,
 		Evidence: environment.EvidenceObserved, Method: "codex --version", EvidenceRef: versionEvidence,
 	})
-	if receipt.Target.NativeVersion == "codex-cli 0.159.2" || receipt.Target.NativeVersion == "0.159.2" {
+	switch strings.TrimPrefix(receipt.Target.NativeVersion, "codex-cli ") {
+	case "0.159.2", "0.159.3":
 		observePromptSkills(ctx, exe, codexHome, workspace, &receipt)
 		return receipt, nil
 	}
@@ -112,12 +114,7 @@ func ProbeHome(ctx context.Context, codexHome, workspace, sourceID, lockDigest, 
 		Evidence: environment.EvidenceUnknown,
 		Remedy:   "use generated-configuration contracts, or narrow required evidence below observed",
 	})
-	if receipt.Target.NativeVersion != "codex-cli 0.159.3" && receipt.Target.NativeVersion != "0.159.3" {
-		receipt.Findings = append(receipt.Findings, environment.Finding{Code: "OBSERVATION_UNAVAILABLE", Severity: environment.SeverityWarning, Target: "codex", Message: "native version is outside validated capability coverage", Evidence: environment.EvidenceUnknown})
-		receipt.OverallStatus = "unknown"
-	} else {
-		receipt.OverallStatus = "ready_with_warnings"
-	}
+	receipt.OverallStatus = "unknown"
 	return receipt, nil
 }
 

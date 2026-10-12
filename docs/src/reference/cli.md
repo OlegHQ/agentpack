@@ -110,7 +110,7 @@ agentpack preflight --agent claude --receipt RECEIPT_ID --json
 
 ### `agentpack probe`
 
-Explicit native observation (never inside preflight). Claude: `plugin list --json` + `plugin details` against the staged bundle. Codex: version, plus validated 0.159.2 positive skill discovery from native prompt input in a disposable static projection. Observations use explicit `controlled_projection` scope; they do not prove full interactive configuration or model use. Writes a receipt under `$AGENTPACK_HOME/projects/<hash>/probe-receipts/`.
+Explicit native observation (never inside preflight). Claude: `plugin list --json` + `plugin details` against the staged bundle. Codex: version, plus validated 0.159.2 and 0.159.3 skill discovery from native prompt input with a disposable home. Claude Code 2.1.296 and both Codex versions also record the `workspace_session` catalog of a session started in the checkout, including which copy holds each packaged skill's name. Observations carry an explicit scope; they do not prove user-level configuration or model use. Writes a receipt under `$AGENTPACK_HOME/projects/<hash>/probe-receipts/`.
 
 ```sh
 agentpack sync

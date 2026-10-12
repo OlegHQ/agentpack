@@ -106,7 +106,7 @@ func ValidateContract(contract Contract) error {
 		}
 		name, _ := req.Selector["name"].(string)
 		scope, _ := req.Selector["scope"].(string)
-		if scope != "" && scope != "native_catalog" && scope != "controlled_projection" {
+		if scope != "" && scope != "native_catalog" && scope != "controlled_projection" && scope != "workspace_session" {
 			return fmt.Errorf("requirement %q: unsupported observation scope %q", req.ID, scope)
 		}
 		if strings.ContainsAny(name, "*?") {

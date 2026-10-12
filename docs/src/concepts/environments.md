@@ -46,7 +46,7 @@ agentpack --strict-external probe --agent claude --policy ci
 agentpack --strict-external preflight --agent claude --policy ci --receipt latest
 ```
 
-Probes are explicit (never inside pure preflight). Receipts land under `$AGENTPACK_HOME/projects/<hash>/probe-receipts/`. Claude plugin/skill presence and Codex 0.159.2 positive skill discovery can be observed in isolated `controlled_projection` scope. Require that scope explicitly in a contract. Full interactive configuration, source digests, model use and complete ambient absence remain unknown; Codex 0.159.3 has version-only coverage. `--policy` and `--strict-external` on a probe bind receipt freshness to the later preflight policy, and `--receipt latest` selects the latest successful current-format record.
+Probes are explicit (never inside pure preflight). Receipts land under `$AGENTPACK_HOME/projects/<hash>/probe-receipts/`. Claude plugin/skill presence and Codex 0.159.2 positive skill discovery can be observed in isolated `controlled_projection` scope. Require that scope explicitly in a contract. Claude Code 2.1.296 and Codex 0.159.2/0.159.3 additionally record the `workspace_session` scope: the catalog of a session started in the checkout, with an observed `winner` per packaged skill (see [contracts](../reference/contracts.md)). User-level configuration, source digests, model use and complete ambient absence remain unknown. `--policy` and `--strict-external` on a probe bind receipt freshness to the later preflight policy, and `--receipt latest` selects the latest successful current-format record.
 
 ```sh
 agentpack support export RECEIPT_ID --output ./support-capsule.json

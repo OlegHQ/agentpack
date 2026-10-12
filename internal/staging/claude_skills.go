@@ -27,6 +27,20 @@ func ProjectClaudeSkillNames(projectRoot string) (map[string]struct{}, error) {
 	return names, nil
 }
 
+// ProjectSkillNames returns the case-insensitive names of skills under a
+// project-relative skill root such as .agents/skills.
+func ProjectSkillNames(projectRoot, root string) (map[string]struct{}, error) {
+	dirs, err := localSkillNames(filepath.Join(projectRoot, filepath.FromSlash(root)))
+	if err != nil {
+		return nil, err
+	}
+	names := make(map[string]struct{}, len(dirs))
+	for name := range dirs {
+		names[strings.ToLower(name)] = struct{}{}
+	}
+	return names, nil
+}
+
 // OmitProjectClaudeSkillDuplicates removes staged plugin skills whose names
 // are already provided by project .claude/skills. Claude Code discovers both
 // locations, and the project definition wins on a name collision. Full-tree

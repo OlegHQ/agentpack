@@ -99,10 +99,18 @@ func (runner Runner) runProbe(ctx context.Context, definitionRoot, workspaceRoot
 			return 5, err
 		}
 		bundle := filepath.Join(plugins, paths.StagedAgentpackBundleName)
-		if _, err := os.Stat(filepath.Join(bundle, ".claude-plugin", "plugin.json")); err != nil {
+		// A bundle without a plugin manifest is still probed: staging removes the manifest when a
+		// project skill replaces every packaged one, and the session shows who holds the names.
+		if _, err := os.Stat(bundle); err != nil {
 			return 5, fmt.Errorf("staged Claude bundle missing; run agentpack sync first: %w", err)
 		}
-		receipt, err = claude.ProbeBundle(ctx, bundle, workspaceRoot, report.SourceIdentity, report.LockDigest, mode)
+		var packaged []string
+		for _, artifact := range report.Artifacts {
+			if artifact.Kind == "skill" && artifact.Module != "user" && artifact.Module != "project" {
+				packaged = append(packaged, artifact.Name)
+			}
+		}
+		receipt, err = claude.ProbeBundle(ctx, bundle, workspaceRoot, report.SourceIdentity, report.LockDigest, mode, packaged...)
 		if err != nil {
 			return 5, err
 		}

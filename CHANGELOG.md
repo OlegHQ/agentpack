@@ -7,6 +7,23 @@ window.
 
 ## Unreleased
 
+## [0.4.3] - 2026-10-12
+
+### Added
+
+- Session observation (`scope: "workspace_session"`). `probe` now also records what a session started in the checkout lists, with the staged configuration and an empty user home, and no model request. Claude Code 2.1.296 is read from the print-mode init event; Codex 0.159.2 and 0.159.3 from `debug prompt-input`. For every packaged skill the receipt holds an observed `presence` and an observed `winner`: `package` when the staged copy alone carries the name, `ambient` when another skill holds the bare name in Claude Code, `ambiguous` when Codex lists several entries with that name.
+- Codex 0.159.3 skill discovery is validated; it was version-only before.
+- Preflight reports a project skill that has a packaged skill's name in `.agents/skills`, and in `.codex/skills` or `.opencode/skills` for those agents, as `AMBIENT_ARTIFACT`, and marks the planned winner `project`. Before, only `.claude/skills` was scanned, so a same-named `.agents/skills` entry replaced the packaged copy in the Claude bundle without a finding.
+
+### Fixed
+
+- `preflight --receipt latest` in a workspace that has never been probed reports `RECEIPT_MISSING` and leaves required observations unknown (exit 4). It returned an operational error (exit 5).
+- The Claude probe accepts a bundle whose skill inventory is empty and a bundle that staging left without a plugin manifest, so a session is still observed after a project skill replaced every packaged one.
+
+### Compatibility
+
+- Probe capability revisions changed; run `probe` again for fresh receipts.
+
 ## [0.4.2] - 2026-10-10
 
 ### Fixed
