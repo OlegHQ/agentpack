@@ -34,7 +34,9 @@ projects/<project-hash>/grok-homes/<mode>/
 
 Pack content is rendered into `grok/agentpack-bundle/` with a root `plugin.json`. The staged home links that bundle at `plugins/agentpack-bundle` and lists `agentpack-bundle` in `[plugins].enabled`. Grok trusts plugins in its home `plugins/` directory, but it only registers their skills when the plugin is named in `[plugins].enabled`. A `[plugins].paths` entry stays disabled and does not register skills. MCP servers are written as Grok-native `[mcp_servers]` TOML in `config.toml`.
 
-## Hooks are not staged
+## Hooks are not translated
+
+Observed on 2026-10-12 with Grok 1.0.44: a package's `hooks/hooks.json` is copied unchanged into the staged bundle, and a `UserPromptSubmit` command hook in it fired in non-interactive mode. agentpack does not translate or wrap hooks for Grok, so the notes below, written for Grok 0.2.14, describe what it cannot guarantee.
 
 This is a deliberate limitation, not an omission. Grok's `hooks.json` format is Claude-compatible, but `grok inspect --json` confirms it reads hooks only from the **real** `~/.grok/hooks` — a redirected `GROK_HOME` is honored for `config.toml` and MCP but **not** for hook discovery. Bundle hooks loaded via `[plugins].paths` come up disabled (they need interactive trust), and `grok plugin install --trust` writes into the real `~/.grok` (pollution). With no isolated, headless path available, Grok's hook support stays unsupported.
 

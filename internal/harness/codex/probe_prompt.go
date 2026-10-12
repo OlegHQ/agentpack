@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -147,7 +148,7 @@ func parsePromptEntries(output string) ([]promptSkill, error) {
 	return skills, nil
 }
 
-func observePromptSkills(ctx context.Context, exe, sourceHome, workspace string, receipt *environment.Receipt) {
+func observePromptSkills(ctx context.Context, exe, sourceHome, workspace string, plan base.PackagedNames, receipt *environment.Receipt) {
 	result, skills, err := probePromptSkills(ctx, exe, sourceHome, workspace)
 	evidencePath, saveErr := base.SaveProbeEvidence(workspace, receipt.ReceiptID, "prompt-input", result)
 	if saveErr != nil {
@@ -190,9 +191,27 @@ func observePromptSkills(ctx context.Context, exe, sourceHome, workspace string,
 		if count[name] > 1 {
 			winner = "ambiguous"
 		}
-		receipt.Properties = append(receipt.Properties,
-			environment.ObservedProperty{Scope: "workspace_session", Category: "skill", ArtifactID: id, Property: "presence", Value: true, Evidence: environment.EvidenceObserved, Method: "native_catalog", EvidenceRef: evidencePath},
-			environment.ObservedProperty{Scope: "workspace_session", Category: "skill", ArtifactID: id, Property: "winner", Value: winner, Evidence: environment.EvidenceObserved, Method: "native_catalog", EvidenceRef: evidencePath})
+		// A packaged command or subagent reaches Codex as a skill; report it under its own kind too.
+		categories := []string{"skill"}
+		if slices.Contains(plan.Commands, name) {
+			categories = append(categories, "command")
+		}
+		if slices.Contains(plan.Agents, name) {
+			categories = append(categories, "agent")
+		}
+		for _, category := range categories {
+			receipt.Properties = append(receipt.Properties,
+				environment.ObservedProperty{Scope: "workspace_session", Category: category, ArtifactID: id, Property: "presence", Value: true, Evidence: environment.EvidenceObserved, Method: "native_catalog", EvidenceRef: evidencePath},
+				environment.ObservedProperty{Scope: "workspace_session", Category: category, ArtifactID: id, Property: "winner", Value: winner, Evidence: environment.EvidenceObserved, Method: "native_catalog", EvidenceRef: evidencePath})
+		}
+	}
+	for _, kind := range []struct {
+		category string
+		names    []string
+	}{{"command", plan.Commands}, {"agent", plan.Agents}} {
+		if len(kind.names) > 0 {
+			receipt.Coverage = append(receipt.Coverage, environment.CoverageNote{Category: kind.category, Scope: "workspace_session", Completeness: "partial", Reason: "rendered as skills for Codex and observed in the skill listing of the prompt input"})
+		}
 	}
 	receipt.OverallStatus = "ready_with_warnings"
 }

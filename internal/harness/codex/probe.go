@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	capabilityRevision = "codex-probe-v3"
+	capabilityRevision = "codex-probe-v4"
 	adapterRevision    = "codex-observe-2026-10"
 )
 
@@ -25,14 +25,21 @@ func Capability() map[string]string {
 		"validated_versions":  "0.159.2, 0.159.3",
 		"native_version":      "observed via `codex --version`",
 		"skill_presence":      "positive names via controlled debug prompt-input in 0.159.2 and 0.159.3; partial, no absence or model use proof",
+		"command_agent":       "slash commands and subagents are rendered as skills for Codex and observed in the same listing, reported under their own category",
 		"skill_winner":        "observed in scope workspace_session: package when the staged copy is the only prompt entry with that name, ambiguous when the checkout contributes another entry with the same name",
 		"skill_source_digest": "unknown",
 		"effects":             "controlled static config clone; no auth/history/hooks copied, no model inference requested; native network/global effects unmeasured",
 	}
 }
 
-// ProbeHome records Codex version observations. Skill catalogs stay unknown.
-func ProbeHome(ctx context.Context, codexHome, workspace, sourceID, lockDigest, mode string) (environment.Receipt, error) {
+// ProbeHome records what Codex lists for the staged home. packaged names the commands and
+// subagents of the plan: Agentpack renders them as skills for Codex, so they are observed in the
+// same listing and reported under their own category.
+func ProbeHome(ctx context.Context, codexHome, workspace, sourceID, lockDigest, mode string, packaged ...base.PackagedNames) (environment.Receipt, error) {
+	var plan base.PackagedNames
+	if len(packaged) > 0 {
+		plan = packaged[0]
+	}
 	exe, err := base.LookPathEnv("CODEX_PATH", "codex")
 	if err != nil {
 		return environment.Receipt{}, err
@@ -105,7 +112,7 @@ func ProbeHome(ctx context.Context, codexHome, workspace, sourceID, lockDigest, 
 	})
 	switch strings.TrimPrefix(receipt.Target.NativeVersion, "codex-cli ") {
 	case "0.159.2", "0.159.3":
-		observePromptSkills(ctx, exe, codexHome, workspace, &receipt)
+		observePromptSkills(ctx, exe, codexHome, workspace, plan, &receipt)
 		return receipt, nil
 	}
 	receipt.Findings = append(receipt.Findings, environment.Finding{

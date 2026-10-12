@@ -76,6 +76,8 @@ For each packaged skill the receipt carries an observed `winner`:
 }
 ```
 
+Slash commands and subagents are observed the same way: use `"category": "command"` or `"agent"` in the selector. Claude Code lists them in the same init event. For Codex, which has neither, Agentpack renders them as skills and reports the observation under their own category. Hooks are not observed: no agent lists them without running them.
+
 The same requirement without a scope and with `minimum_evidence: "generated"` checks the planned winner from the workspace scan instead. The two grades disagree in useful ways. The scan flags `.claude/skills/<name>` for every target although Codex does not read that directory, and the observation shows Codex unaffected. A same-named `.agents/skills/<name>` replaces the packaged bytes inside the Claude bundle, which the Claude catalog cannot show because it lists names, not bytes; the scan reports it.
 
 ## Receipt freshness

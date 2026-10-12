@@ -7,6 +7,12 @@ window.
 
 ## Unreleased
 
+## [0.4.8] - 2026-10-12
+
+### Added
+
+- Session observation covers slash commands and subagents, not only skills. Claude Code 2.1.296 lists them in the same init event (`slash_commands`, `agents`); a packaged one is listed as `agentpack-bundle:<name>` and a project one under the bare name. For Codex, where commands and subagents are rendered as skills, they are observed in the skill listing and reported under their own category. A contract can now require `"category": "command"` or `"agent"` with `"scope": "workspace_session"`.
+
 ## [0.4.7] - 2026-10-12
 
 ### Fixed

@@ -3,6 +3,7 @@ package claude
 import (
 	"context"
 	"github.com/OlegHQ/agentpack/internal/environment"
+	base "github.com/OlegHQ/agentpack/internal/harness"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -109,12 +110,12 @@ func TestNativeClaudeSentinel(t *testing.T) {
 }
 
 func TestParseSessionInit(t *testing.T) {
-	skills, credentials, err := parseSessionInit(`{"type":"system","subtype":"init","apiKeySource":"none","skills":["review","agentpack-bundle:review"]}` + "\n" + `{"type":"result"}`)
-	if err != nil || credentials || len(skills) != 2 {
-		t.Fatalf("skills=%v credentials=%v err=%v", skills, credentials, err)
+	init, err := parseSessionInit(`{"type":"system","subtype":"init","apiKeySource":"none","skills":["review","agentpack-bundle:review"],"slash_commands":["ship"],"agents":["helper"]}` + "\n" + `{"type":"result"}`)
+	if err != nil || init.credentials || len(init.skills) != 2 || len(init.commands) != 1 || len(init.agents) != 1 {
+		t.Fatalf("init=%+v err=%v", init, err)
 	}
-	for _, output := range []string{"", "not json", `{"type":"assistant"}`, `{"type":"system","subtype":"init"}`, `{"type":"system","subtype":"init","skills":["a","a"]}`} {
-		if _, _, err := parseSessionInit(output); err == nil {
+	for _, output := range []string{"", "not json", `{"type":"assistant"}`, `{"type":"system","subtype":"init"}`, `{"type":"system","subtype":"init","skills":["a","a"]}`, `{"type":"system","subtype":"init","skills":[],"agents":["x","x"]}`} {
+		if _, err := parseSessionInit(output); err == nil {
 			t.Fatalf("accepted %q", output)
 		}
 	}
@@ -126,7 +127,7 @@ func TestSessionObservationNamesAmbientWinner(t *testing.T) {
 	}
 	exe := filepath.Join(t.TempDir(), "claude-fixture")
 	script := `#!/bin/sh
-printf '{"type":"system","subtype":"init","apiKeySource":"none","skills":["review","agentpack-bundle:review","agentpack-bundle:lint"]}\n'
+printf '{"type":"system","subtype":"init","apiKeySource":"none","skills":["review","agentpack-bundle:review","agentpack-bundle:lint"],"slash_commands":["ship","agentpack-bundle:ship","agentpack-bundle:tidy"],"agents":["agentpack-bundle:helper"]}\n'
 exit 1
 `
 	if err := os.WriteFile(exe, []byte(script), 0700); err != nil {
@@ -134,15 +135,19 @@ exit 1
 	}
 	t.Setenv("AGENTPACK_HOME", t.TempDir())
 	receipt := environment.Receipt{ReceiptID: "claude-test"}
-	observeSession(context.Background(), exe, t.TempDir(), t.TempDir(), nil, []string{"review", "lint", "dropped"}, &receipt)
+	observeSession(context.Background(), exe, t.TempDir(), t.TempDir(), nil, base.PackagedNames{Skills: []string{"review", "lint", "dropped"}, Commands: []string{"ship", "tidy"}, Agents: []string{"helper"}}, &receipt)
 	got := map[string]any{}
 	for _, property := range receipt.Properties {
 		if property.Scope != "workspace_session" || property.Evidence != environment.EvidenceObserved {
 			t.Fatalf("unexpected property %+v", property)
 		}
-		got[filepath.Base(property.ArtifactID)+"."+property.Property] = property.Value
+		got[property.Category+":"+filepath.Base(property.ArtifactID)+"."+property.Property] = property.Value
 	}
-	want := map[string]any{"review.presence": true, "review.winner": "ambient", "lint.presence": true, "lint.winner": "package", "dropped.presence": false}
+	want := map[string]any{
+		"skill:review.presence": true, "skill:review.winner": "ambient", "skill:lint.presence": true, "skill:lint.winner": "package", "skill:dropped.presence": false,
+		"command:ship.presence": true, "command:ship.winner": "ambient", "command:tidy.presence": true, "command:tidy.winner": "package",
+		"agent:helper.presence": true, "agent:helper.winner": "package",
+	}
 	if len(got) != len(want) {
 		t.Fatalf("got %v", got)
 	}

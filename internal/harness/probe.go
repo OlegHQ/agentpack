@@ -15,6 +15,13 @@ import (
 	"time"
 )
 
+// PackagedNames lists the artifacts of the plan that a probe should look for, by kind.
+type PackagedNames struct {
+	Skills   []string
+	Commands []string
+	Agents   []string
+}
+
 // ProbePlan is a fixed, non-shell native diagnostic invocation.
 type ProbePlan struct {
 	Executable string

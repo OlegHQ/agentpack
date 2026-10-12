@@ -93,9 +93,26 @@ func (runner Runner) runProbe(ctx context.Context, definitionRoot, workspaceRoot
 		}
 	}
 	var packaged []string
+	var plan base.PackagedNames
 	for _, artifact := range report.Artifacts {
-		if artifact.Kind == "skill" && artifact.Module != "user" && artifact.Module != "project" {
+		if artifact.Module == "user" || artifact.Module == "project" {
+			continue
+		}
+		switch artifact.Kind {
+		case "skill":
 			packaged = append(packaged, artifact.Name)
+			plan.Skills = append(plan.Skills, artifact.Name)
+			// Where an agent has no commands or subagents, they are rendered as skills; keep their kind.
+			switch artifact.Properties["source_kind"] {
+			case "command":
+				plan.Commands = append(plan.Commands, artifact.Name)
+			case "agent":
+				plan.Agents = append(plan.Agents, artifact.Name)
+			}
+		case "command":
+			plan.Commands = append(plan.Commands, artifact.Name)
+		case "agent":
+			plan.Agents = append(plan.Agents, artifact.Name)
 		}
 	}
 	var receipt environment.Receipt
@@ -120,7 +137,7 @@ func (runner Runner) runProbe(ctx context.Context, definitionRoot, workspaceRoot
 		if _, err := os.Stat(bundle); err != nil {
 			return 5, fmt.Errorf("staged Claude bundle missing; run agentpack sync first: %w", err)
 		}
-		receipt, err = claude.ProbeBundle(ctx, bundle, workspaceRoot, report.SourceIdentity, report.LockDigest, mode, packaged...)
+		receipt, err = claude.ProbeBundle(ctx, bundle, workspaceRoot, report.SourceIdentity, report.LockDigest, mode, plan)
 		if err != nil {
 			return 5, err
 		}
@@ -129,7 +146,7 @@ func (runner Runner) runProbe(ctx context.Context, definitionRoot, workspaceRoot
 		if homeErr != nil {
 			return 5, homeErr
 		}
-		receipt, err = codex.ProbeHome(ctx, codexHome, workspaceRoot, report.SourceIdentity, report.LockDigest, mode)
+		receipt, err = codex.ProbeHome(ctx, codexHome, workspaceRoot, report.SourceIdentity, report.LockDigest, mode, plan)
 		if err != nil {
 			return 5, err
 		}
