@@ -8,7 +8,7 @@ Scripts and recorded results for every experiment in the paper's evaluation sect
 | Same-named skills in public repositories | `prevalence.py` | `prevalence-results.json` | no | `gh` (signed in), `git` |
 | What three agents list for a same-named skill | `collision.py` | `collision-results.json` | no | Claude Code 2.1.296, Codex 0.159.3, OpenCode 1.17.11 |
 | Which copy the agent follows | `behaviour.py` | `behaviour-results.json` | yes | Claude Code and Codex, signed in |
-| Thirty real repositories | `realrepos.py` | `realrepos-results.json` | no | Claude Code 2.1.296, Codex 0.159.3 |
+| Thirty skill directories in 26 real repositories | `realrepos.py` | `realrepos-results.json` | no | Claude Code 2.1.296, Codex 0.159.3 |
 | CI gate on three operating systems | `ci_gate.py` | `ci-results/` | no | nothing: it runs in GitHub Actions |
 | Receipts over 16 states | `scenario.py` | `scenario-results.json` | no | Claude Code 2.1.296 |
 | Eight fault classes | `faults.py` | `fault-results.json` | no | nothing for five classes; Claude Code for three |
@@ -63,7 +63,7 @@ A package with a skill, a slash command, a subagent, a rule and a hook is pinned
 
 ## Same-named skills
 
-**`prevalence.py`.** For the 19 skills of `anthropics/skills` at commit `dbd4588`: the first 100 hits of each of 57 code-search queries (35 had more) give 3,816 files in 1,731 repositories; 1,193 equal the pinned upstream file, 304 equal an older upstream version and 2,319 differ from every upstream version (renames followed). Repository and blob hash of every file are in the results. There is no denominator: this shows the situation exists at scale, not how frequent it is.
+**`prevalence.py`.** For the 19 skills of `anthropics/skills` at commit `dbd4588`: the first 100 hits of each of 57 code-search queries (35 had more) give 3,816 files in 1,731 repositories; 1,193 equal the pinned upstream file, 304 equal an older upstream version and 2,319 differ from every upstream version (renames followed). Repository and blob hash of every file are in the results. There is no denominator, and we did not check whether any of these repositories also pins the upstream skill: this shows that project skills with these names are common (1,284 repositories hold a differing copy), not how often a clash occurs.
 
 **`collision.py`.** Part A does not use Agentpack: three skills are fetched with git and installed the way each agent documents, project skills with the same names are placed in one project root at a time in a checkout no Agentpack command touches, and each agent is asked 100 times what a session lists. Codex and OpenCode print descriptions, so copies are told apart by their text; Claude Code prints names, where a plugin skill carries its plugin prefix. Part B restores the same pins with Agentpack and runs the planned and the observed check; the expected observed result follows from part A by one rule in the script. It also takes a receipt in the clean checkout first and checks that the project copy retires it.
 
@@ -119,7 +119,7 @@ The observed check matches part A in 45 of 45 cells, and the earlier receipt is 
 
 **`behaviour.py`.** Two tiny skills with one name answer differently. Claude Code 2.1.296 and Codex 0.159.3 each followed the pinned one in 20 of 20 runs when it was alone and the project copy in 20 of 20 runs when both existed (project copy in `.claude/skills` for Claude Code, `.agents/skills` for Codex; one prompt, one model per agent). Codex ran without its sandbox, which needs user namespaces this host lacks. A first run with 5 runs on Claude Code only is in `history/`.
 
-**`realrepos.py`.** Thirty repositories from the search results, ten per project root, each with a differing copy of an upstream skill; only the skill root is checked out. Agentpack reported the clash in 30 of 30; the observed verdict was the one predicted for the root in 55 of 60 agent runs. The five exceptions are violated or unknown where satisfied or violated was predicted, never the reverse: `claude-api` is also a built-in Claude Code skill (two runs), one project copy is marked `user-invocable: false` and so disappears from the session list, and one repository has 1,467 project skills, for which neither agent's catalog was complete.
+**`realrepos.py`.** Thirty project skill directories in 26 repositories from the search results, ten per project root, each with a differing copy of an upstream skill; only the skill root is checked out. Agentpack reported the clash in 30 of 30 by at least one check; the observed check reported it for the agent that reads the root in 29 and was unknown in one; the observed verdict was the one predicted for the root in 55 of 60 agent runs. The five exceptions are violated or unknown where satisfied or violated was predicted, never the reverse: `claude-api` is also a built-in Claude Code skill (two runs), one project copy is marked `user-invocable: false` and so disappears from the session list, and one repository has 1,467 project skills, for which neither agent's catalog was complete.
 
 ## CI gate (`ci_gate.py`, `ci-results/`)
 
