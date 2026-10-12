@@ -65,7 +65,8 @@ with tempfile.TemporaryDirectory(prefix='agentpack-ci-') as td:
         print(f"{agent:9} {label:38} exit {code} (expected {expected}) {results}", flush=True)
 
     for agent in agents:
-        version = subprocess.run([agent, '--version'], capture_output=True, text=True).stdout.strip().splitlines()[:1]
+        # Resolve the launcher explicitly: on Windows the agents are .cmd shims.
+        version = subprocess.run([shutil.which(agent), '--version'], capture_output=True, text=True).stdout.strip().splitlines()[:1]
         print(f'== {agent} {version[0] if version else ""}', flush=True)
         for d in ('.claude', '.agents', '.codex', '.opencode'):
             shutil.rmtree(ws / d, ignore_errors=True)
