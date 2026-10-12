@@ -1,0 +1,2334 @@
+{
+  "date": "2026-10-11",
+  "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "machine": "arm64",
+  "node": "v24.19.0",
+  "agentpack_sha256": "7f08b4b33ed641bc6163536be7b1ba152477befa49746fdb5c983603a53f33b3",
+  "skills_sha": "13e4063a1cf913f5606d57d42ab83a86f5001e04",
+  "ruler_sha": "0fa2caeef4efaef4c5f8ffbedee8feca4b0b00e2",
+  "native_version": "codex-cli 0.159.2",
+  "source_identity_equal_across_7_relocations": true,
+  "summary": [
+    {
+      "tool": "agentpack",
+      "task": "external_restore",
+      "n": 7,
+      "median_ms": 96.1480000114534,
+      "q1_ms": 92.22977049648762,
+      "q3_ms": 98.52008298912551,
+      "successes": 7,
+      "checkout_writes_runs": 0
+    },
+    {
+      "tool": "skills",
+      "task": "skill_install",
+      "n": 7,
+      "median_ms": 147.96070801094174,
+      "q1_ms": 144.37856251606718,
+      "q3_ms": 154.11085401137825,
+      "successes": 7,
+      "checkout_writes_runs": 7
+    },
+    {
+      "tool": "ruler",
+      "task": "external_rule_apply",
+      "n": 7,
+      "median_ms": 249.45337499957532,
+      "q1_ms": 235.50843700650148,
+      "q3_ms": 256.79875000787433,
+      "successes": 7,
+      "checkout_writes_runs": 7
+    },
+    {
+      "tool": "skills",
+      "task": "global_skill_install",
+      "n": 7,
+      "median_ms": 142.9798750032205,
+      "q1_ms": 141.88166699022986,
+      "q3_ms": 147.19414598948788,
+      "successes": 7,
+      "checkout_writes_runs": 0
+    },
+    {
+      "tool": "skills",
+      "task": "temporary_prompt_use",
+      "n": 7,
+      "median_ms": 133.41558299725875,
+      "q1_ms": 132.29958350711968,
+      "q3_ms": 134.49097899137996,
+      "successes": 7,
+      "checkout_writes_runs": 0
+    },
+    {
+      "tool": "agentpack",
+      "task": "pure_preflight",
+      "n": 7,
+      "median_ms": 30.561457999283448,
+      "q1_ms": 30.438979010796174,
+      "q3_ms": 30.56929149897769,
+      "successes": 7,
+      "checkout_writes_runs": 0
+    },
+    {
+      "tool": "native_wrapper",
+      "task": "positive_skill_discovery",
+      "n": 7,
+      "median_ms": 271.23325000866316,
+      "q1_ms": 268.22943800652865,
+      "q3_ms": 274.61316650442313,
+      "successes": 7,
+      "checkout_writes_runs": 0
+    }
+  ],
+  "rows": [
+    {
+      "tool": "agentpack",
+      "case": "prepare_init",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "env",
+        "init",
+        "--dir",
+        "<FIXTURE_ROOT>/definition",
+        "--name",
+        "comparison"
+      ],
+      "exit": 0,
+      "elapsed_ms": 87.27237500716001,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "stdout_sha256": "91ed6f3c53c7570d91ebd19f622d823fd6cf72853f9cd2943ad2bfc1a11a5483",
+      "stdout_bytes": 119,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "prepare_add",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/workspace",
+        "add",
+        "<FIXTURE_ROOT>/skill",
+        "--no-sync"
+      ],
+      "exit": 0,
+      "elapsed_ms": 47.3902499943506,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "stdout_sha256": "0f9d181708da8190411fc982c3f23543d367ed4b487985125391276fa06fc5cd",
+      "stdout_bytes": 175,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "external_restore_0",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/ap-0",
+        "env",
+        "restore",
+        "--strict-external"
+      ],
+      "exit": 0,
+      "elapsed_ms": 110.1665000023786,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "13119810ad18351692c39eb9dadb60cd2a808423f3703d40e08cc72275bcc3b4",
+      "stdout_bytes": 153,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "skills",
+      "case": "skill_install_0",
+      "argv": [
+        "<NODE_EXECUTABLE>",
+        "<WORKSPACE_ROOT>/work/icse-submission/measurement/skills/bin/cli.mjs",
+        "add",
+        "<FIXTURE_ROOT>/skill",
+        "--agent",
+        "claude-code",
+        "--yes"
+      ],
+      "exit": 0,
+      "elapsed_ms": 387.0742080034688,
+      "checkout_changed": [
+        ".claude",
+        ".claude/skills",
+        ".claude/skills/held-out-review",
+        ".claude/skills/held-out-review/SKILL.md",
+        "skills-lock.json"
+      ],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "899509c4f2566485dfbe8c5bd9392b9064e58e01dc828fb350a0f6df911946ac",
+      "stdout_bytes": 1240,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "ruler",
+      "case": "external_rule_apply_0",
+      "argv": [
+        "<NODE_EXECUTABLE>",
+        "<WORKSPACE_ROOT>/work/icse-submission/measurement/ruler/dist/cli/index.js",
+        "apply",
+        "--project-root",
+        "<FIXTURE_ROOT>/ruler-0",
+        "--agents",
+        "claude",
+        "--no-mcp",
+        "--no-gitignore",
+        "--no-backup"
+      ],
+      "exit": 0,
+      "elapsed_ms": 303.43333299970254,
+      "checkout_changed": [
+        "CLAUDE.md"
+      ],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "ed159da6b94cc19dbddaf501e4ea8bf5962987860d0ecdcc03cac49abad2199d",
+      "stdout_bytes": 78,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "external_restore_1",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/ap-1",
+        "env",
+        "restore",
+        "--strict-external"
+      ],
+      "exit": 0,
+      "elapsed_ms": 92.86020798026584,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "13119810ad18351692c39eb9dadb60cd2a808423f3703d40e08cc72275bcc3b4",
+      "stdout_bytes": 153,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "skills",
+      "case": "skill_install_1",
+      "argv": [
+        "<NODE_EXECUTABLE>",
+        "<WORKSPACE_ROOT>/work/icse-submission/measurement/skills/bin/cli.mjs",
+        "add",
+        "<FIXTURE_ROOT>/skill",
+        "--agent",
+        "claude-code",
+        "--yes"
+      ],
+      "exit": 0,
+      "elapsed_ms": 142.54662502207793,
+      "checkout_changed": [
+        ".claude",
+        ".claude/skills",
+        ".claude/skills/held-out-review",
+        ".claude/skills/held-out-review/SKILL.md",
+        "skills-lock.json"
+      ],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "899509c4f2566485dfbe8c5bd9392b9064e58e01dc828fb350a0f6df911946ac",
+      "stdout_bytes": 1240,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "ruler",
+      "case": "external_rule_apply_1",
+      "argv": [
+        "<NODE_EXECUTABLE>",
+        "<WORKSPACE_ROOT>/work/icse-submission/measurement/ruler/dist/cli/index.js",
+        "apply",
+        "--project-root",
+        "<FIXTURE_ROOT>/ruler-1",
+        "--agents",
+        "claude",
+        "--no-mcp",
+        "--no-gitignore",
+        "--no-backup"
+      ],
+      "exit": 0,
+      "elapsed_ms": 233.00091599230655,
+      "checkout_changed": [
+        "CLAUDE.md"
+      ],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "ed159da6b94cc19dbddaf501e4ea8bf5962987860d0ecdcc03cac49abad2199d",
+      "stdout_bytes": 78,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "external_restore_2",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/ap-2",
+        "env",
+        "restore",
+        "--strict-external"
+      ],
+      "exit": 0,
+      "elapsed_ms": 96.1480000114534,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "13119810ad18351692c39eb9dadb60cd2a808423f3703d40e08cc72275bcc3b4",
+      "stdout_bytes": 153,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "skills",
+      "case": "skill_install_2",
+      "argv": [
+        "<NODE_EXECUTABLE>",
+        "<WORKSPACE_ROOT>/work/icse-submission/measurement/skills/bin/cli.mjs",
+        "add",
+        "<FIXTURE_ROOT>/skill",
+        "--agent",
+        "claude-code",
+        "--yes"
+      ],
+      "exit": 0,
+      "elapsed_ms": 146.21050001005642,
+      "checkout_changed": [
+        ".claude",
+        ".claude/skills",
+        ".claude/skills/held-out-review",
+        ".claude/skills/held-out-review/SKILL.md",
+        "skills-lock.json"
+      ],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "899509c4f2566485dfbe8c5bd9392b9064e58e01dc828fb350a0f6df911946ac",
+      "stdout_bytes": 1240,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "ruler",
+      "case": "external_rule_apply_2",
+      "argv": [
+        "<NODE_EXECUTABLE>",
+        "<WORKSPACE_ROOT>/work/icse-submission/measurement/ruler/dist/cli/index.js",
+        "apply",
+        "--project-root",
+        "<FIXTURE_ROOT>/ruler-2",
+        "--agents",
+        "claude",
+        "--no-mcp",
+        "--no-gitignore",
+        "--no-backup"
+      ],
+      "exit": 0,
+      "elapsed_ms": 230.2516670024488,
+      "checkout_changed": [
+        "CLAUDE.md"
+      ],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "ed159da6b94cc19dbddaf501e4ea8bf5962987860d0ecdcc03cac49abad2199d",
+      "stdout_bytes": 78,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "external_restore_3",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/ap-3",
+        "env",
+        "restore",
+        "--strict-external"
+      ],
+      "exit": 0,
+      "elapsed_ms": 91.5993330127094,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "13119810ad18351692c39eb9dadb60cd2a808423f3703d40e08cc72275bcc3b4",
+      "stdout_bytes": 153,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "skills",
+      "case": "skill_install_3",
+      "argv": [
+        "<NODE_EXECUTABLE>",
+        "<WORKSPACE_ROOT>/work/icse-submission/measurement/skills/bin/cli.mjs",
+        "add",
+        "<FIXTURE_ROOT>/skill",
+        "--agent",
+        "claude-code",
+        "--yes"
+      ],
+      "exit": 0,
+      "elapsed_ms": 141.33099999162368,
+      "checkout_changed": [
+        ".claude",
+        ".claude/skills",
+        ".claude/skills/held-out-review",
+        ".claude/skills/held-out-review/SKILL.md",
+        "skills-lock.json"
+      ],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "899509c4f2566485dfbe8c5bd9392b9064e58e01dc828fb350a0f6df911946ac",
+      "stdout_bytes": 1240,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "ruler",
+      "case": "external_rule_apply_3",
+      "argv": [
+        "<NODE_EXECUTABLE>",
+        "<WORKSPACE_ROOT>/work/icse-submission/measurement/ruler/dist/cli/index.js",
+        "apply",
+        "--project-root",
+        "<FIXTURE_ROOT>/ruler-3",
+        "--agents",
+        "claude",
+        "--no-mcp",
+        "--no-gitignore",
+        "--no-backup"
+      ],
+      "exit": 0,
+      "elapsed_ms": 249.45337499957532,
+      "checkout_changed": [
+        "CLAUDE.md"
+      ],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "ed159da6b94cc19dbddaf501e4ea8bf5962987860d0ecdcc03cac49abad2199d",
+      "stdout_bytes": 78,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "external_restore_4",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/ap-4",
+        "env",
+        "restore",
+        "--strict-external"
+      ],
+      "exit": 0,
+      "elapsed_ms": 88.17795797949657,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "13119810ad18351692c39eb9dadb60cd2a808423f3703d40e08cc72275bcc3b4",
+      "stdout_bytes": 153,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "skills",
+      "case": "skill_install_4",
+      "argv": [
+        "<NODE_EXECUTABLE>",
+        "<WORKSPACE_ROOT>/work/icse-submission/measurement/skills/bin/cli.mjs",
+        "add",
+        "<FIXTURE_ROOT>/skill",
+        "--agent",
+        "claude-code",
+        "--yes"
+      ],
+      "exit": 0,
+      "elapsed_ms": 147.96070801094174,
+      "checkout_changed": [
+        ".claude",
+        ".claude/skills",
+        ".claude/skills/held-out-review",
+        ".claude/skills/held-out-review/SKILL.md",
+        "skills-lock.json"
+      ],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "899509c4f2566485dfbe8c5bd9392b9064e58e01dc828fb350a0f6df911946ac",
+      "stdout_bytes": 1240,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "ruler",
+      "case": "external_rule_apply_4",
+      "argv": [
+        "<NODE_EXECUTABLE>",
+        "<WORKSPACE_ROOT>/work/icse-submission/measurement/ruler/dist/cli/index.js",
+        "apply",
+        "--project-root",
+        "<FIXTURE_ROOT>/ruler-4",
+        "--agents",
+        "claude",
+        "--no-mcp",
+        "--no-gitignore",
+        "--no-backup"
+      ],
+      "exit": 0,
+      "elapsed_ms": 238.01595802069642,
+      "checkout_changed": [
+        "CLAUDE.md"
+      ],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "ed159da6b94cc19dbddaf501e4ea8bf5962987860d0ecdcc03cac49abad2199d",
+      "stdout_bytes": 78,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "external_restore_5",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/ap-5",
+        "env",
+        "restore",
+        "--strict-external"
+      ],
+      "exit": 0,
+      "elapsed_ms": 96.73704099259339,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "13119810ad18351692c39eb9dadb60cd2a808423f3703d40e08cc72275bcc3b4",
+      "stdout_bytes": 153,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "skills",
+      "case": "skill_install_5",
+      "argv": [
+        "<NODE_EXECUTABLE>",
+        "<WORKSPACE_ROOT>/work/icse-submission/measurement/skills/bin/cli.mjs",
+        "add",
+        "<FIXTURE_ROOT>/skill",
+        "--agent",
+        "claude-code",
+        "--yes"
+      ],
+      "exit": 0,
+      "elapsed_ms": 148.94616600940935,
+      "checkout_changed": [
+        ".claude",
+        ".claude/skills",
+        ".claude/skills/held-out-review",
+        ".claude/skills/held-out-review/SKILL.md",
+        "skills-lock.json"
+      ],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "899509c4f2566485dfbe8c5bd9392b9064e58e01dc828fb350a0f6df911946ac",
+      "stdout_bytes": 1240,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "ruler",
+      "case": "external_rule_apply_5",
+      "argv": [
+        "<NODE_EXECUTABLE>",
+        "<WORKSPACE_ROOT>/work/icse-submission/measurement/ruler/dist/cli/index.js",
+        "apply",
+        "--project-root",
+        "<FIXTURE_ROOT>/ruler-5",
+        "--agents",
+        "claude",
+        "--no-mcp",
+        "--no-gitignore",
+        "--no-backup"
+      ],
+      "exit": 0,
+      "elapsed_ms": 249.49004099471495,
+      "checkout_changed": [
+        "CLAUDE.md"
+      ],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "ed159da6b94cc19dbddaf501e4ea8bf5962987860d0ecdcc03cac49abad2199d",
+      "stdout_bytes": 78,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "external_restore_6",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/ap-6",
+        "env",
+        "restore",
+        "--strict-external"
+      ],
+      "exit": 0,
+      "elapsed_ms": 100.30312498565763,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "13119810ad18351692c39eb9dadb60cd2a808423f3703d40e08cc72275bcc3b4",
+      "stdout_bytes": 153,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "skills",
+      "case": "skill_install_6",
+      "argv": [
+        "<NODE_EXECUTABLE>",
+        "<WORKSPACE_ROOT>/work/icse-submission/measurement/skills/bin/cli.mjs",
+        "add",
+        "<FIXTURE_ROOT>/skill",
+        "--agent",
+        "claude-code",
+        "--yes"
+      ],
+      "exit": 0,
+      "elapsed_ms": 159.27554201334715,
+      "checkout_changed": [
+        ".claude",
+        ".claude/skills",
+        ".claude/skills/held-out-review",
+        ".claude/skills/held-out-review/SKILL.md",
+        "skills-lock.json"
+      ],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "899509c4f2566485dfbe8c5bd9392b9064e58e01dc828fb350a0f6df911946ac",
+      "stdout_bytes": 1240,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "ruler",
+      "case": "external_rule_apply_6",
+      "argv": [
+        "<NODE_EXECUTABLE>",
+        "<WORKSPACE_ROOT>/work/icse-submission/measurement/ruler/dist/cli/index.js",
+        "apply",
+        "--project-root",
+        "<FIXTURE_ROOT>/ruler-6",
+        "--agents",
+        "claude",
+        "--no-mcp",
+        "--no-gitignore",
+        "--no-backup"
+      ],
+      "exit": 0,
+      "elapsed_ms": 264.1074590210337,
+      "checkout_changed": [
+        "CLAUDE.md"
+      ],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "ed159da6b94cc19dbddaf501e4ea8bf5962987860d0ecdcc03cac49abad2199d",
+      "stdout_bytes": 78,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "prepare_original_restore",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/workspace",
+        "env",
+        "restore",
+        "--strict-external"
+      ],
+      "exit": 0,
+      "elapsed_ms": 114.48983300942928,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "stdout_sha256": "13119810ad18351692c39eb9dadb60cd2a808423f3703d40e08cc72275bcc3b4",
+      "stdout_bytes": 153,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "skills",
+      "case": "global_skill_install_0",
+      "argv": [
+        "<NODE_EXECUTABLE>",
+        "<WORKSPACE_ROOT>/work/icse-submission/measurement/skills/bin/cli.mjs",
+        "add",
+        "<FIXTURE_ROOT>/skill",
+        "--agent",
+        "claude-code",
+        "--yes",
+        "--global"
+      ],
+      "exit": 0,
+      "elapsed_ms": 152.87312501459382,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "bb9b835254c48bee6c333a4db5e1026de0e52936eac8f82a0be4fce9753d130c",
+      "stdout_bytes": 1240,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "skills",
+      "case": "temporary_prompt_use_0",
+      "argv": [
+        "<NODE_EXECUTABLE>",
+        "<WORKSPACE_ROOT>/work/icse-submission/measurement/skills/bin/cli.mjs",
+        "use",
+        "<FIXTURE_ROOT>/skill",
+        "--skill",
+        "held-out-review"
+      ],
+      "exit": 0,
+      "elapsed_ms": 132.8052090248093,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "bcd2158b494e9f4e3532da441ca9f8565c14829de1549f12231a3f42050a6dae",
+      "stdout_bytes": 272,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "skills",
+      "case": "global_skill_install_1",
+      "argv": [
+        "<NODE_EXECUTABLE>",
+        "<WORKSPACE_ROOT>/work/icse-submission/measurement/skills/bin/cli.mjs",
+        "add",
+        "<FIXTURE_ROOT>/skill",
+        "--agent",
+        "claude-code",
+        "--yes",
+        "--global"
+      ],
+      "exit": 0,
+      "elapsed_ms": 150.27258297777735,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "f7957f14ac9970acfc694b4c79f72e53374a550ef4cda4c9987a9592fa66517c",
+      "stdout_bytes": 1283,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "skills",
+      "case": "temporary_prompt_use_1",
+      "argv": [
+        "<NODE_EXECUTABLE>",
+        "<WORKSPACE_ROOT>/work/icse-submission/measurement/skills/bin/cli.mjs",
+        "use",
+        "<FIXTURE_ROOT>/skill",
+        "--skill",
+        "held-out-review"
+      ],
+      "exit": 0,
+      "elapsed_ms": 137.37116698757745,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "bcd2158b494e9f4e3532da441ca9f8565c14829de1549f12231a3f42050a6dae",
+      "stdout_bytes": 272,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "skills",
+      "case": "global_skill_install_2",
+      "argv": [
+        "<NODE_EXECUTABLE>",
+        "<WORKSPACE_ROOT>/work/icse-submission/measurement/skills/bin/cli.mjs",
+        "add",
+        "<FIXTURE_ROOT>/skill",
+        "--agent",
+        "claude-code",
+        "--yes",
+        "--global"
+      ],
+      "exit": 0,
+      "elapsed_ms": 142.6463339885231,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "f7957f14ac9970acfc694b4c79f72e53374a550ef4cda4c9987a9592fa66517c",
+      "stdout_bytes": 1283,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "skills",
+      "case": "temporary_prompt_use_2",
+      "argv": [
+        "<NODE_EXECUTABLE>",
+        "<WORKSPACE_ROOT>/work/icse-submission/measurement/skills/bin/cli.mjs",
+        "use",
+        "<FIXTURE_ROOT>/skill",
+        "--skill",
+        "held-out-review"
+      ],
+      "exit": 0,
+      "elapsed_ms": 133.41558299725875,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "bcd2158b494e9f4e3532da441ca9f8565c14829de1549f12231a3f42050a6dae",
+      "stdout_bytes": 272,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "skills",
+      "case": "global_skill_install_3",
+      "argv": [
+        "<NODE_EXECUTABLE>",
+        "<WORKSPACE_ROOT>/work/icse-submission/measurement/skills/bin/cli.mjs",
+        "add",
+        "<FIXTURE_ROOT>/skill",
+        "--agent",
+        "claude-code",
+        "--yes",
+        "--global"
+      ],
+      "exit": 0,
+      "elapsed_ms": 141.1169999919366,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "f7957f14ac9970acfc694b4c79f72e53374a550ef4cda4c9987a9592fa66517c",
+      "stdout_bytes": 1283,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "skills",
+      "case": "temporary_prompt_use_3",
+      "argv": [
+        "<NODE_EXECUTABLE>",
+        "<WORKSPACE_ROOT>/work/icse-submission/measurement/skills/bin/cli.mjs",
+        "use",
+        "<FIXTURE_ROOT>/skill",
+        "--skill",
+        "held-out-review"
+      ],
+      "exit": 0,
+      "elapsed_ms": 131.79395798943006,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "bcd2158b494e9f4e3532da441ca9f8565c14829de1549f12231a3f42050a6dae",
+      "stdout_bytes": 272,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "skills",
+      "case": "global_skill_install_4",
+      "argv": [
+        "<NODE_EXECUTABLE>",
+        "<WORKSPACE_ROOT>/work/icse-submission/measurement/skills/bin/cli.mjs",
+        "add",
+        "<FIXTURE_ROOT>/skill",
+        "--agent",
+        "claude-code",
+        "--yes",
+        "--global"
+      ],
+      "exit": 0,
+      "elapsed_ms": 144.1157090011984,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "f7957f14ac9970acfc694b4c79f72e53374a550ef4cda4c9987a9592fa66517c",
+      "stdout_bytes": 1283,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "skills",
+      "case": "temporary_prompt_use_4",
+      "argv": [
+        "<NODE_EXECUTABLE>",
+        "<WORKSPACE_ROOT>/work/icse-submission/measurement/skills/bin/cli.mjs",
+        "use",
+        "<FIXTURE_ROOT>/skill",
+        "--skill",
+        "held-out-review"
+      ],
+      "exit": 0,
+      "elapsed_ms": 130.28750001103617,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "bcd2158b494e9f4e3532da441ca9f8565c14829de1549f12231a3f42050a6dae",
+      "stdout_bytes": 272,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "skills",
+      "case": "global_skill_install_5",
+      "argv": [
+        "<NODE_EXECUTABLE>",
+        "<WORKSPACE_ROOT>/work/icse-submission/measurement/skills/bin/cli.mjs",
+        "add",
+        "<FIXTURE_ROOT>/skill",
+        "--agent",
+        "claude-code",
+        "--yes",
+        "--global"
+      ],
+      "exit": 0,
+      "elapsed_ms": 139.32166597805917,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "f7957f14ac9970acfc694b4c79f72e53374a550ef4cda4c9987a9592fa66517c",
+      "stdout_bytes": 1283,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "skills",
+      "case": "temporary_prompt_use_5",
+      "argv": [
+        "<NODE_EXECUTABLE>",
+        "<WORKSPACE_ROOT>/work/icse-submission/measurement/skills/bin/cli.mjs",
+        "use",
+        "<FIXTURE_ROOT>/skill",
+        "--skill",
+        "held-out-review"
+      ],
+      "exit": 0,
+      "elapsed_ms": 134.05120800598525,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "bcd2158b494e9f4e3532da441ca9f8565c14829de1549f12231a3f42050a6dae",
+      "stdout_bytes": 272,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "skills",
+      "case": "global_skill_install_6",
+      "argv": [
+        "<NODE_EXECUTABLE>",
+        "<WORKSPACE_ROOT>/work/icse-submission/measurement/skills/bin/cli.mjs",
+        "add",
+        "<FIXTURE_ROOT>/skill",
+        "--agent",
+        "claude-code",
+        "--yes",
+        "--global"
+      ],
+      "exit": 0,
+      "elapsed_ms": 142.9798750032205,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "f7957f14ac9970acfc694b4c79f72e53374a550ef4cda4c9987a9592fa66517c",
+      "stdout_bytes": 1283,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "skills",
+      "case": "temporary_prompt_use_6",
+      "argv": [
+        "<NODE_EXECUTABLE>",
+        "<WORKSPACE_ROOT>/work/icse-submission/measurement/skills/bin/cli.mjs",
+        "use",
+        "<FIXTURE_ROOT>/skill",
+        "--skill",
+        "held-out-review"
+      ],
+      "exit": 0,
+      "elapsed_ms": 134.93074997677468,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "bcd2158b494e9f4e3532da441ca9f8565c14829de1549f12231a3f42050a6dae",
+      "stdout_bytes": 272,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "prepare_original_restore",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/workspace",
+        "env",
+        "restore",
+        "--strict-external"
+      ],
+      "exit": 0,
+      "elapsed_ms": 90.17974999733269,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "stdout_sha256": "13119810ad18351692c39eb9dadb60cd2a808423f3703d40e08cc72275bcc3b4",
+      "stdout_bytes": 153,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "clean_no_checkout_write",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/workspace",
+        "preflight",
+        "--json",
+        "--agent",
+        "claude",
+        "--strict-external",
+        "--contract",
+        "<WORKSPACE_ROOT>/work/release-audit/agentpack-0.4.1/evaluation/icse/clean.json"
+      ],
+      "exit": 0,
+      "elapsed_ms": 33.900125010404736,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "finding_codes": [
+        "INHERITANCE_BOUNDARY",
+        "INHERITANCE_BOUNDARY",
+        "STRICT_EXTERNAL",
+        "BINARY_FOUND"
+      ],
+      "contract_results": [
+        {
+          "id": "no-checkout-config",
+          "result": "satisfied"
+        }
+      ],
+      "stdout_sha256": "f1c40c003031cc682ad1c37c1ec9b31ab5af18ab5d9cfb53b288886f0949f5b7",
+      "stdout_bytes": 3275,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "package_hash_control",
+      "case": "clean_no_checkout_write",
+      "lock_changed": false,
+      "detected": false,
+      "applicable": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "missing_native_receipt",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/workspace",
+        "preflight",
+        "--json",
+        "--agent",
+        "claude",
+        "--strict-external",
+        "--contract",
+        "<WORKSPACE_ROOT>/work/release-audit/agentpack-0.4.1/evaluation/icse/unknown.json"
+      ],
+      "exit": 4,
+      "elapsed_ms": 29.917042003944516,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "finding_codes": [
+        "INHERITANCE_BOUNDARY",
+        "INHERITANCE_BOUNDARY",
+        "STRICT_EXTERNAL",
+        "BINARY_FOUND",
+        "OBSERVATION_UNAVAILABLE"
+      ],
+      "contract_results": [
+        {
+          "id": "native-sentinel",
+          "result": "unknown"
+        }
+      ],
+      "stdout_sha256": "5d0eda3ba533b68112d2afdecd63eefd54d502621aafb7c9e71981f3d2bae8e5",
+      "stdout_bytes": 3615,
+      "stderr_sha256": "808253f79e0452da7d4b2895d4552413f325cfa8f4c53cac0977315915376dee",
+      "stderr_bytes": 153
+    },
+    {
+      "tool": "package_hash_control",
+      "case": "missing_native_receipt",
+      "lock_changed": false,
+      "detected": false,
+      "applicable": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "unsupported_workspace_overlay",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/workspace",
+        "preflight",
+        "--json",
+        "--agent",
+        "cursor",
+        "--strict-external",
+        "--contract",
+        "<WORKSPACE_ROOT>/work/release-audit/agentpack-0.4.1/evaluation/icse/clean.json"
+      ],
+      "exit": 3,
+      "elapsed_ms": 29.48187498259358,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "finding_codes": [
+        "INHERITANCE_BOUNDARY",
+        "INHERITANCE_BOUNDARY",
+        "STRICT_EXTERNAL",
+        "WORKSPACE_WRITE_REQUIRED",
+        "BINARY_FOUND",
+        "WORKSPACE_WRITE_REQUIRED"
+      ],
+      "contract_results": [
+        {
+          "id": "no-checkout-config",
+          "result": "violated"
+        }
+      ],
+      "stdout_sha256": "2c0ba93bef0a5fead96d17f071ac7d6ab9884a01f5ddcd7d3829527677473091",
+      "stdout_bytes": 4065,
+      "stderr_sha256": "bf32e3c4803ed3275d1f5306b0857803f625a408290c1ace6e5c3259ce12890a",
+      "stderr_bytes": 153
+    },
+    {
+      "tool": "package_hash_control",
+      "case": "unsupported_workspace_overlay",
+      "lock_changed": false,
+      "detected": false,
+      "applicable": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "inherited_user_config",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/workspace",
+        "preflight",
+        "--json",
+        "--agent",
+        "claude",
+        "--strict-external",
+        "--policy",
+        "ci"
+      ],
+      "exit": 3,
+      "elapsed_ms": 30.00358399003744,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "finding_codes": [
+        "INHERITANCE_BOUNDARY",
+        "INHERITANCE_BOUNDARY",
+        "INHERITANCE_BOUNDARY",
+        "INHERITED_CONFIG",
+        "STRICT_EXTERNAL",
+        "BINARY_FOUND",
+        "STAGING_INPUTS_STALE"
+      ],
+      "contract_results": [],
+      "stdout_sha256": "db252bc2975396335e73aaae4a8766fbf95da1bbecbebd12d0f3461408320f13",
+      "stdout_bytes": 3980,
+      "stderr_sha256": "bf32e3c4803ed3275d1f5306b0857803f625a408290c1ace6e5c3259ce12890a",
+      "stderr_bytes": 153
+    },
+    {
+      "tool": "package_hash_control",
+      "case": "inherited_user_config",
+      "lock_changed": false,
+      "detected": false,
+      "applicable": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "named_artifact_mismatch",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/workspace",
+        "preflight",
+        "--json",
+        "--agent",
+        "claude",
+        "--contract",
+        "<FIXTURE_ROOT>/named.json"
+      ],
+      "exit": 3,
+      "elapsed_ms": 29.76016598404385,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "finding_codes": [
+        "INHERITANCE_BOUNDARY",
+        "INHERITANCE_BOUNDARY",
+        "BINARY_FOUND",
+        "CONTRACT_MISMATCH"
+      ],
+      "contract_results": [
+        {
+          "id": "named",
+          "result": "violated"
+        }
+      ],
+      "stdout_sha256": "c97b05175e061f042547afb1229b82c62e61df7310b1a968891ef1ae05573315",
+      "stdout_bytes": 3387,
+      "stderr_sha256": "bf32e3c4803ed3275d1f5306b0857803f625a408290c1ace6e5c3259ce12890a",
+      "stderr_bytes": 153
+    },
+    {
+      "tool": "package_hash_control",
+      "case": "named_artifact_mismatch",
+      "lock_changed": false,
+      "detected": false,
+      "applicable": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "malformed_complete_receipt",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/workspace",
+        "preflight",
+        "--json",
+        "--agent",
+        "claude",
+        "--receipt",
+        "<FIXTURE_ROOT>/receipt.json",
+        "--contract",
+        "<WORKSPACE_ROOT>/work/release-audit/agentpack-0.4.1/evaluation/icse/unknown.json"
+      ],
+      "exit": 5,
+      "elapsed_ms": 30.246209003962576,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "finding_codes": [
+        "INHERITANCE_BOUNDARY",
+        "INHERITANCE_BOUNDARY",
+        "BINARY_FOUND",
+        "RECEIPT_STALE",
+        "OBSERVATION_UNAVAILABLE"
+      ],
+      "contract_results": [
+        {
+          "id": "native-sentinel",
+          "result": "unknown"
+        }
+      ],
+      "stdout_sha256": "55dd14ec268edc95deebc64919c2c66dbbcbefcd7235f648ab00a127793328e7",
+      "stdout_bytes": 3631,
+      "stderr_sha256": "98d05a0192f02437a3b4e3857c392965eb86681eb6ca88c77dd7469e9f2da966",
+      "stderr_bytes": 153
+    },
+    {
+      "tool": "package_hash_control",
+      "case": "malformed_complete_receipt",
+      "lock_changed": false,
+      "detected": false,
+      "applicable": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "prepare_preflight_0",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/pre-0",
+        "env",
+        "restore",
+        "--strict-external"
+      ],
+      "exit": 0,
+      "elapsed_ms": 94.9781250092201,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "stdout_sha256": "13119810ad18351692c39eb9dadb60cd2a808423f3703d40e08cc72275bcc3b4",
+      "stdout_bytes": 153,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "pure_preflight_0",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/pre-0",
+        "preflight",
+        "--agent",
+        "claude",
+        "--strict-external",
+        "--contract",
+        "<WORKSPACE_ROOT>/work/release-audit/agentpack-0.4.1/evaluation/icse/clean.json",
+        "--json"
+      ],
+      "exit": 0,
+      "elapsed_ms": 30.56454099714756,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "finding_codes": [
+        "INHERITANCE_BOUNDARY",
+        "INHERITANCE_BOUNDARY",
+        "STRICT_EXTERNAL",
+        "BINARY_FOUND"
+      ],
+      "contract_results": [
+        {
+          "id": "no-checkout-config",
+          "result": "satisfied"
+        }
+      ],
+      "stdout_sha256": "0f77270da90accdfda020b2cfe3488d30722b734731ca51b637bf75982b0033d",
+      "stdout_bytes": 3271,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "prepare_preflight_1",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/pre-1",
+        "env",
+        "restore",
+        "--strict-external"
+      ],
+      "exit": 0,
+      "elapsed_ms": 107.89329200633802,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "stdout_sha256": "13119810ad18351692c39eb9dadb60cd2a808423f3703d40e08cc72275bcc3b4",
+      "stdout_bytes": 153,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "pure_preflight_1",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/pre-1",
+        "preflight",
+        "--agent",
+        "claude",
+        "--strict-external",
+        "--contract",
+        "<WORKSPACE_ROOT>/work/release-audit/agentpack-0.4.1/evaluation/icse/clean.json",
+        "--json"
+      ],
+      "exit": 0,
+      "elapsed_ms": 30.832584016025066,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "finding_codes": [
+        "INHERITANCE_BOUNDARY",
+        "INHERITANCE_BOUNDARY",
+        "STRICT_EXTERNAL",
+        "BINARY_FOUND"
+      ],
+      "contract_results": [
+        {
+          "id": "no-checkout-config",
+          "result": "satisfied"
+        }
+      ],
+      "stdout_sha256": "09a7fad0e6dcf5ca921cfe624a4a40997217235317fcd037299c9b3d6d72eb11",
+      "stdout_bytes": 3271,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "prepare_preflight_2",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/pre-2",
+        "env",
+        "restore",
+        "--strict-external"
+      ],
+      "exit": 0,
+      "elapsed_ms": 106.5785419777967,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "stdout_sha256": "13119810ad18351692c39eb9dadb60cd2a808423f3703d40e08cc72275bcc3b4",
+      "stdout_bytes": 153,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "pure_preflight_2",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/pre-2",
+        "preflight",
+        "--agent",
+        "claude",
+        "--strict-external",
+        "--contract",
+        "<WORKSPACE_ROOT>/work/release-audit/agentpack-0.4.1/evaluation/icse/clean.json",
+        "--json"
+      ],
+      "exit": 0,
+      "elapsed_ms": 30.358165997313336,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "finding_codes": [
+        "INHERITANCE_BOUNDARY",
+        "INHERITANCE_BOUNDARY",
+        "STRICT_EXTERNAL",
+        "BINARY_FOUND"
+      ],
+      "contract_results": [
+        {
+          "id": "no-checkout-config",
+          "result": "satisfied"
+        }
+      ],
+      "stdout_sha256": "b01e7b70b2d8b91d676890f66f0f278795fb318bb74f2a984b24326bd1e1cf30",
+      "stdout_bytes": 3271,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "prepare_preflight_3",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/pre-3",
+        "env",
+        "restore",
+        "--strict-external"
+      ],
+      "exit": 0,
+      "elapsed_ms": 99.52945800614543,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "stdout_sha256": "13119810ad18351692c39eb9dadb60cd2a808423f3703d40e08cc72275bcc3b4",
+      "stdout_bytes": 153,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "pure_preflight_3",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/pre-3",
+        "preflight",
+        "--agent",
+        "claude",
+        "--strict-external",
+        "--contract",
+        "<WORKSPACE_ROOT>/work/release-audit/agentpack-0.4.1/evaluation/icse/clean.json",
+        "--json"
+      ],
+      "exit": 0,
+      "elapsed_ms": 30.519792024279013,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "finding_codes": [
+        "INHERITANCE_BOUNDARY",
+        "INHERITANCE_BOUNDARY",
+        "STRICT_EXTERNAL",
+        "BINARY_FOUND"
+      ],
+      "contract_results": [
+        {
+          "id": "no-checkout-config",
+          "result": "satisfied"
+        }
+      ],
+      "stdout_sha256": "d39b53cba89681a03e5050637a835989d23cc285d1df2833ba084e7fcc31f85c",
+      "stdout_bytes": 3271,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "prepare_preflight_4",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/pre-4",
+        "env",
+        "restore",
+        "--strict-external"
+      ],
+      "exit": 0,
+      "elapsed_ms": 92.30741701321676,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "stdout_sha256": "13119810ad18351692c39eb9dadb60cd2a808423f3703d40e08cc72275bcc3b4",
+      "stdout_bytes": 153,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "pure_preflight_4",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/pre-4",
+        "preflight",
+        "--agent",
+        "claude",
+        "--strict-external",
+        "--contract",
+        "<WORKSPACE_ROOT>/work/release-audit/agentpack-0.4.1/evaluation/icse/clean.json",
+        "--json"
+      ],
+      "exit": 0,
+      "elapsed_ms": 30.561457999283448,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "finding_codes": [
+        "INHERITANCE_BOUNDARY",
+        "INHERITANCE_BOUNDARY",
+        "STRICT_EXTERNAL",
+        "BINARY_FOUND"
+      ],
+      "contract_results": [
+        {
+          "id": "no-checkout-config",
+          "result": "satisfied"
+        }
+      ],
+      "stdout_sha256": "8fe5f40c23eed693ed9ccd86f069447c291115e16729976439f70937c6260bc3",
+      "stdout_bytes": 3271,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "prepare_preflight_5",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/pre-5",
+        "env",
+        "restore",
+        "--strict-external"
+      ],
+      "exit": 0,
+      "elapsed_ms": 87.356332980562,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "stdout_sha256": "13119810ad18351692c39eb9dadb60cd2a808423f3703d40e08cc72275bcc3b4",
+      "stdout_bytes": 153,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "pure_preflight_5",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/pre-5",
+        "preflight",
+        "--agent",
+        "claude",
+        "--strict-external",
+        "--contract",
+        "<WORKSPACE_ROOT>/work/release-audit/agentpack-0.4.1/evaluation/icse/clean.json",
+        "--json"
+      ],
+      "exit": 0,
+      "elapsed_ms": 30.57404200080782,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "finding_codes": [
+        "INHERITANCE_BOUNDARY",
+        "INHERITANCE_BOUNDARY",
+        "STRICT_EXTERNAL",
+        "BINARY_FOUND"
+      ],
+      "contract_results": [
+        {
+          "id": "no-checkout-config",
+          "result": "satisfied"
+        }
+      ],
+      "stdout_sha256": "36f2e4def45e4b4c8061fc9794774ad67bc6cff7066de7604b25585a107441f5",
+      "stdout_bytes": 3271,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "prepare_preflight_6",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/pre-6",
+        "env",
+        "restore",
+        "--strict-external"
+      ],
+      "exit": 0,
+      "elapsed_ms": 87.77737501077354,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "stdout_sha256": "13119810ad18351692c39eb9dadb60cd2a808423f3703d40e08cc72275bcc3b4",
+      "stdout_bytes": 153,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "pure_preflight_6",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/pre-6",
+        "preflight",
+        "--agent",
+        "claude",
+        "--strict-external",
+        "--contract",
+        "<WORKSPACE_ROOT>/work/release-audit/agentpack-0.4.1/evaluation/icse/clean.json",
+        "--json"
+      ],
+      "exit": 0,
+      "elapsed_ms": 30.23958398262039,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "finding_codes": [
+        "INHERITANCE_BOUNDARY",
+        "INHERITANCE_BOUNDARY",
+        "STRICT_EXTERNAL",
+        "BINARY_FOUND"
+      ],
+      "contract_results": [
+        {
+          "id": "no-checkout-config",
+          "result": "satisfied"
+        }
+      ],
+      "stdout_sha256": "b18bc6e1b7ae669a80adf72d44074a88c144b8645e151f571dc1d961adbcf23c",
+      "stdout_bytes": 3271,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "native_wrapper",
+      "case": "positive_skill_discovery_0",
+      "argv": [
+        "<CODEX_EXECUTABLE>",
+        "-c",
+        "features.cloud_skills=false",
+        "-c",
+        "cli_auth_credentials_store=\"file\"",
+        "--no-daemon",
+        "debug",
+        "prompt-input",
+        "benign metadata probe"
+      ],
+      "exit": 0,
+      "elapsed_ms": 285.7787910033949,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "sentinel_observed": true,
+      "stdout_sha256": "41ee83721946a8e2c860da1a4723444dd0fa7a3f21d432491d38d3ddefdc0535",
+      "stdout_bytes": 12758,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "native_wrapper",
+      "case": "positive_skill_discovery_1",
+      "argv": [
+        "<CODEX_EXECUTABLE>",
+        "-c",
+        "features.cloud_skills=false",
+        "-c",
+        "cli_auth_credentials_store=\"file\"",
+        "--no-daemon",
+        "debug",
+        "prompt-input",
+        "benign metadata probe"
+      ],
+      "exit": 0,
+      "elapsed_ms": 271.23325000866316,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "sentinel_observed": true,
+      "stdout_sha256": "96361a791109e56bafad71050bb18ed3754ee4c95975759191311cebfce52e54",
+      "stdout_bytes": 12758,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "native_wrapper",
+      "case": "positive_skill_discovery_2",
+      "argv": [
+        "<CODEX_EXECUTABLE>",
+        "-c",
+        "features.cloud_skills=false",
+        "-c",
+        "cli_auth_credentials_store=\"file\"",
+        "--no-daemon",
+        "debug",
+        "prompt-input",
+        "benign metadata probe"
+      ],
+      "exit": 0,
+      "elapsed_ms": 266.9160420191474,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "sentinel_observed": true,
+      "stdout_sha256": "d1b7eb1d8f59f495bb44a529f72de6b5031a228bbd8214711cf65ed79c269768",
+      "stdout_bytes": 12755,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "native_wrapper",
+      "case": "positive_skill_discovery_3",
+      "argv": [
+        "<CODEX_EXECUTABLE>",
+        "-c",
+        "features.cloud_skills=false",
+        "-c",
+        "cli_auth_credentials_store=\"file\"",
+        "--no-daemon",
+        "debug",
+        "prompt-input",
+        "benign metadata probe"
+      ],
+      "exit": 0,
+      "elapsed_ms": 276.314957998693,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "sentinel_observed": true,
+      "stdout_sha256": "fbaf7389c9e798f6bb46d9443c4407774f409a65173e8dc961ce2b9587bca1d4",
+      "stdout_bytes": 12756,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "native_wrapper",
+      "case": "positive_skill_discovery_4",
+      "argv": [
+        "<CODEX_EXECUTABLE>",
+        "-c",
+        "features.cloud_skills=false",
+        "-c",
+        "cli_auth_credentials_store=\"file\"",
+        "--no-daemon",
+        "debug",
+        "prompt-input",
+        "benign metadata probe"
+      ],
+      "exit": 0,
+      "elapsed_ms": 259.4491670024581,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "sentinel_observed": true,
+      "stdout_sha256": "bbc217e5010d6f0ed962142eda5b163c7a49b89064d75b61bf1a3ed7c83657f4",
+      "stdout_bytes": 12758,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "native_wrapper",
+      "case": "positive_skill_discovery_5",
+      "argv": [
+        "<CODEX_EXECUTABLE>",
+        "-c",
+        "features.cloud_skills=false",
+        "-c",
+        "cli_auth_credentials_store=\"file\"",
+        "--no-daemon",
+        "debug",
+        "prompt-input",
+        "benign metadata probe"
+      ],
+      "exit": 0,
+      "elapsed_ms": 269.5428339939099,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "sentinel_observed": true,
+      "stdout_sha256": "75a38aab91458fa79668cb82946cf39f28acdb9093ae41ad33eeb0c7097928c4",
+      "stdout_bytes": 12758,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "native_wrapper",
+      "case": "positive_skill_discovery_6",
+      "argv": [
+        "<CODEX_EXECUTABLE>",
+        "-c",
+        "features.cloud_skills=false",
+        "-c",
+        "cli_auth_credentials_store=\"file\"",
+        "--no-daemon",
+        "debug",
+        "prompt-input",
+        "benign metadata probe"
+      ],
+      "exit": 0,
+      "elapsed_ms": 272.9113750101533,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "sentinel_observed": true,
+      "stdout_sha256": "3c512bb2727727a8bb939dbc4daf8490adeada37a28ecc3ba01ad9f6707e8e77",
+      "stdout_bytes": 12758,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "prepare_receipt_restore",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/workspace",
+        "env",
+        "restore",
+        "--strict-external"
+      ],
+      "exit": 0,
+      "elapsed_ms": 93.33466598764062,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "stdout_sha256": "13119810ad18351692c39eb9dadb60cd2a808423f3703d40e08cc72275bcc3b4",
+      "stdout_bytes": 153,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "native_receipt_clean",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/workspace",
+        "probe",
+        "--agent",
+        "codex",
+        "--strict-external",
+        "--json"
+      ],
+      "exit": 0,
+      "elapsed_ms": 1183.112207974773,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "finding_codes": [],
+      "contract_results": [],
+      "stdout_sha256": "ee18e501da9a1197f89f980aae8d49e2eec2a20b7db2497a28c830aee7ed4cfb",
+      "stdout_bytes": 4402,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "valid_native_receipt_clean",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/workspace",
+        "preflight",
+        "--json",
+        "--agent",
+        "codex",
+        "--strict-external",
+        "--receipt",
+        "latest"
+      ],
+      "exit": 0,
+      "elapsed_ms": 216.7435419978574,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "finding_codes": [
+        "INHERITANCE_BOUNDARY",
+        "INHERITANCE_BOUNDARY",
+        "STRICT_EXTERNAL",
+        "BINARY_FOUND",
+        "NATIVE_OBSERVED",
+        "NATIVE_OBSERVED",
+        "NATIVE_OBSERVED",
+        "NATIVE_OBSERVED",
+        "NATIVE_OBSERVED",
+        "NATIVE_OBSERVED"
+      ],
+      "contract_results": [
+        {
+          "id": "controlled-skill",
+          "result": "satisfied"
+        }
+      ],
+      "stdout_sha256": "4f229719bb9cbd007cf34d0760086568aa1f6abaeaef36cf8bdfcfd7af7576de",
+      "stdout_bytes": 6808,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "package_hash_control",
+      "case": "valid_native_receipt_clean",
+      "lock_changed": false,
+      "detected": false,
+      "applicable": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "stale_receipt_workspace_edit",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/workspace",
+        "preflight",
+        "--json",
+        "--agent",
+        "codex",
+        "--strict-external",
+        "--receipt",
+        "latest"
+      ],
+      "exit": 4,
+      "elapsed_ms": 217.2233330202289,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "finding_codes": [
+        "INHERITANCE_BOUNDARY",
+        "INHERITANCE_BOUNDARY",
+        "STRICT_EXTERNAL",
+        "BINARY_FOUND",
+        "STAGING_INPUTS_STALE",
+        "RECEIPT_STALE",
+        "OBSERVATION_UNAVAILABLE"
+      ],
+      "contract_results": [
+        {
+          "id": "controlled-skill",
+          "result": "unknown"
+        }
+      ],
+      "stdout_sha256": "fb158835e4a5b4ef2142bc1f3c99e99586f3c3e4d9e66de90be3a43af2c0857c",
+      "stdout_bytes": 4397,
+      "stderr_sha256": "808253f79e0452da7d4b2895d4552413f325cfa8f4c53cac0977315915376dee",
+      "stderr_bytes": 153
+    },
+    {
+      "tool": "package_hash_control",
+      "case": "stale_receipt_workspace_edit",
+      "lock_changed": false,
+      "detected": false,
+      "applicable": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "restored_receipt_clean",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/workspace",
+        "preflight",
+        "--json",
+        "--agent",
+        "codex",
+        "--strict-external",
+        "--receipt",
+        "latest"
+      ],
+      "exit": 0,
+      "elapsed_ms": 226.22712500742637,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "finding_codes": [
+        "INHERITANCE_BOUNDARY",
+        "INHERITANCE_BOUNDARY",
+        "STRICT_EXTERNAL",
+        "BINARY_FOUND",
+        "NATIVE_OBSERVED",
+        "NATIVE_OBSERVED",
+        "NATIVE_OBSERVED",
+        "NATIVE_OBSERVED",
+        "NATIVE_OBSERVED",
+        "NATIVE_OBSERVED"
+      ],
+      "contract_results": [
+        {
+          "id": "controlled-skill",
+          "result": "satisfied"
+        }
+      ],
+      "stdout_sha256": "4f229719bb9cbd007cf34d0760086568aa1f6abaeaef36cf8bdfcfd7af7576de",
+      "stdout_bytes": 6808,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "package_hash_control",
+      "case": "restored_receipt_clean",
+      "lock_changed": false,
+      "detected": false,
+      "applicable": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "observed_contract_clean",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/workspace",
+        "preflight",
+        "--json",
+        "--agent",
+        "codex",
+        "--strict-external",
+        "--receipt",
+        "latest",
+        "--contract",
+        "<FIXTURE_ROOT>/definition/contract.json"
+      ],
+      "exit": 0,
+      "elapsed_ms": 212.48241601279005,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "finding_codes": [
+        "INHERITANCE_BOUNDARY",
+        "INHERITANCE_BOUNDARY",
+        "STRICT_EXTERNAL",
+        "BINARY_FOUND",
+        "NATIVE_OBSERVED",
+        "NATIVE_OBSERVED",
+        "NATIVE_OBSERVED",
+        "NATIVE_OBSERVED",
+        "NATIVE_OBSERVED",
+        "NATIVE_OBSERVED"
+      ],
+      "contract_results": [
+        {
+          "id": "controlled-skill",
+          "result": "satisfied"
+        }
+      ],
+      "stdout_sha256": "4f229719bb9cbd007cf34d0760086568aa1f6abaeaef36cf8bdfcfd7af7576de",
+      "stdout_bytes": 6808,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "package_hash_control",
+      "case": "observed_contract_clean",
+      "lock_changed": false,
+      "detected": false,
+      "applicable": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "missing_diagnostic_evidence",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "--workspace",
+        "<FIXTURE_ROOT>/workspace",
+        "preflight",
+        "--json",
+        "--agent",
+        "codex",
+        "--strict-external",
+        "--receipt",
+        "latest",
+        "--contract",
+        "<FIXTURE_ROOT>/definition/contract.json"
+      ],
+      "exit": 5,
+      "elapsed_ms": 211.8767499923706,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "finding_codes": [
+        "INHERITANCE_BOUNDARY",
+        "INHERITANCE_BOUNDARY",
+        "STRICT_EXTERNAL",
+        "BINARY_FOUND",
+        "OBSERVATION_UNAVAILABLE",
+        "OBSERVATION_UNAVAILABLE"
+      ],
+      "contract_results": [
+        {
+          "id": "controlled-skill",
+          "result": "unknown"
+        }
+      ],
+      "stdout_sha256": "0074d05d04dfbadf9c026ffb98c277d090ddd0a28ed101a6cce69aaccfcadb34",
+      "stdout_bytes": 3631,
+      "stderr_sha256": "98d05a0192f02437a3b4e3857c392965eb86681eb6ca88c77dd7469e9f2da966",
+      "stderr_bytes": 153
+    },
+    {
+      "tool": "package_hash_control",
+      "case": "missing_diagnostic_evidence",
+      "lock_changed": false,
+      "detected": false,
+      "applicable": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "local_payload_export_refused",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/definition",
+        "env",
+        "export",
+        "<FIXTURE_ROOT>/local.bundle"
+      ],
+      "exit": 1,
+      "elapsed_ms": 13.5367079928983,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_bytes": 0,
+      "stderr_sha256": "88e8bad99e29b293fe4c89a230a1159884ad1ec92c4acdb6f318254ffb9146cb",
+      "stderr_bytes": 153
+    },
+    {
+      "tool": "agentpack",
+      "case": "prepare_bundle_init",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "env",
+        "init",
+        "--dir",
+        "<FIXTURE_ROOT>/empty-definition",
+        "--name",
+        "empty-bundle"
+      ],
+      "exit": 0,
+      "elapsed_ms": 19.549166987417266,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "stdout_sha256": "a8b26d81bdce5a04713ead687a1d6293f5c7618c0c289c316215de6ed6e5178f",
+      "stdout_bytes": 125,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "safe_bundle_export",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "--env",
+        "<FIXTURE_ROOT>/empty-definition",
+        "env",
+        "export",
+        "<FIXTURE_ROOT>/empty.bundle"
+      ],
+      "exit": 0,
+      "elapsed_ms": 14.991083997301757,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "stdout_sha256": "7933ca587aef42d0f40579d569efe671eda3219451889ae95c3a89b143ea9ec5",
+      "stdout_bytes": 359,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "safe_bundle_import",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "env",
+        "import",
+        "<FIXTURE_ROOT>/empty.bundle",
+        "--dir",
+        "<FIXTURE_ROOT>/imported"
+      ],
+      "exit": 0,
+      "elapsed_ms": 15.305040986277163,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "4867c18dd23e54d4d642ae50a5f6cd5e24ee5e6752227aeb4ea3ea8aaaee3ad2",
+      "stdout_bytes": 106,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "tool": "agentpack",
+      "case": "traversal_bundle_refused",
+      "argv": [
+        "<WORKSPACE_ROOT>/work/release-audit/published-v0.4.2/macos-arm64/agentpack",
+        "env",
+        "import",
+        "<FIXTURE_ROOT>/malicious.bundle",
+        "--dir",
+        "<FIXTURE_ROOT>/rejected"
+      ],
+      "exit": 1,
+      "elapsed_ms": 13.664166996022686,
+      "checkout_changed": [],
+      "oracle_pass": true,
+      "artifact_oracle_pass": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_bytes": 0,
+      "stderr_sha256": "126e4ee1f42e0a04ab9a5fe83ec7caa16bd4987801b1d232643476839499f267",
+      "stderr_bytes": 153
+    }
+  ]
+}

@@ -1,0 +1,642 @@
+{
+ "date": "2026-10-12",
+ "upstream": "anthropics/skills",
+ "pin": "dbd4588f9e1033efb41dad4bef2f7947c8993d44",
+ "skills": [
+  "academy-guide",
+  "algorithmic-art",
+  "brand-guidelines",
+  "canvas-design",
+  "claude-api",
+  "discernment-nudge",
+  "doc-coauthoring",
+  "docx",
+  "frontend-design",
+  "internal-comms",
+  "mcp-builder",
+  "pdf",
+  "pptx",
+  "skill-creator",
+  "slack-gif-creator",
+  "theme-factory",
+  "web-artifacts-builder",
+  "webapp-testing",
+  "xlsx"
+ ],
+ "upstream_versions_per_skill": {
+  "academy-guide": 1,
+  "algorithmic-art": 1,
+  "brand-guidelines": 1,
+  "canvas-design": 1,
+  "claude-api": 26,
+  "discernment-nudge": 1,
+  "doc-coauthoring": 1,
+  "docx": 4,
+  "frontend-design": 4,
+  "internal-comms": 1,
+  "mcp-builder": 1,
+  "pdf": 2,
+  "pptx": 3,
+  "skill-creator": 4,
+  "slack-gif-creator": 1,
+  "theme-factory": 1,
+  "web-artifacts-builder": 1,
+  "webapp-testing": 1,
+  "xlsx": 3
+ },
+ "totals": {
+  ".claude/skills": {
+   "exact_path_hits_in_first_100": 1697,
+   "equal_to_pinned": 477,
+   "equal_to_older_upstream": 162,
+   "differs_from_every_upstream_version": 1058,
+   "skills_with_at_least_one_hit": 19
+  },
+  ".agents/skills": {
+   "exact_path_hits_in_first_100": 1743,
+   "equal_to_pinned": 627,
+   "equal_to_older_upstream": 38,
+   "differs_from_every_upstream_version": 1078,
+   "skills_with_at_least_one_hit": 19
+  },
+  ".codex/skills": {
+   "exact_path_hits_in_first_100": 376,
+   "equal_to_pinned": 89,
+   "equal_to_older_upstream": 67,
+   "differs_from_every_upstream_version": 220,
+   "skills_with_at_least_one_hit": 17
+  }
+ },
+ "rows": [
+  {
+   "root": ".claude/skills",
+   "skill": "academy-guide",
+   "github_total_count": 17,
+   "exact_path_hits_in_first_100": 17,
+   "repositories": 17,
+   "equal_to_pinned": 16,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 1
+  },
+  {
+   "root": ".claude/skills",
+   "skill": "algorithmic-art",
+   "github_total_count": 151,
+   "exact_path_hits_in_first_100": 98,
+   "repositories": 98,
+   "equal_to_pinned": 65,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 33
+  },
+  {
+   "root": ".claude/skills",
+   "skill": "brand-guidelines",
+   "github_total_count": 207,
+   "exact_path_hits_in_first_100": 95,
+   "repositories": 95,
+   "equal_to_pinned": 18,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 77
+  },
+  {
+   "root": ".claude/skills",
+   "skill": "canvas-design",
+   "github_total_count": 172,
+   "exact_path_hits_in_first_100": 98,
+   "repositories": 98,
+   "equal_to_pinned": 58,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 40
+  },
+  {
+   "root": ".claude/skills",
+   "skill": "claude-api",
+   "github_total_count": 191,
+   "exact_path_hits_in_first_100": 100,
+   "repositories": 100,
+   "equal_to_pinned": 0,
+   "equal_to_older_upstream": 59,
+   "differs_from_every_upstream_version": 41
+  },
+  {
+   "root": ".claude/skills",
+   "skill": "discernment-nudge",
+   "github_total_count": 19,
+   "exact_path_hits_in_first_100": 19,
+   "repositories": 19,
+   "equal_to_pinned": 18,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 1
+  },
+  {
+   "root": ".claude/skills",
+   "skill": "doc-coauthoring",
+   "github_total_count": 169,
+   "exact_path_hits_in_first_100": 99,
+   "repositories": 99,
+   "equal_to_pinned": 53,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 46
+  },
+  {
+   "root": ".claude/skills",
+   "skill": "docx",
+   "github_total_count": 356,
+   "exact_path_hits_in_first_100": 98,
+   "repositories": 98,
+   "equal_to_pinned": 1,
+   "equal_to_older_upstream": 28,
+   "differs_from_every_upstream_version": 69
+  },
+  {
+   "root": ".claude/skills",
+   "skill": "frontend-design",
+   "github_total_count": 938,
+   "exact_path_hits_in_first_100": 97,
+   "repositories": 97,
+   "equal_to_pinned": 0,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 97
+  },
+  {
+   "root": ".claude/skills",
+   "skill": "internal-comms",
+   "github_total_count": 142,
+   "exact_path_hits_in_first_100": 99,
+   "repositories": 99,
+   "equal_to_pinned": 70,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 29
+  },
+  {
+   "root": ".claude/skills",
+   "skill": "mcp-builder",
+   "github_total_count": 180,
+   "exact_path_hits_in_first_100": 96,
+   "repositories": 96,
+   "equal_to_pinned": 1,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 95
+  },
+  {
+   "root": ".claude/skills",
+   "skill": "pdf",
+   "github_total_count": 339,
+   "exact_path_hits_in_first_100": 96,
+   "repositories": 96,
+   "equal_to_pinned": 1,
+   "equal_to_older_upstream": 1,
+   "differs_from_every_upstream_version": 94
+  },
+  {
+   "root": ".claude/skills",
+   "skill": "pptx",
+   "github_total_count": 312,
+   "exact_path_hits_in_first_100": 97,
+   "repositories": 97,
+   "equal_to_pinned": 1,
+   "equal_to_older_upstream": 35,
+   "differs_from_every_upstream_version": 61
+  },
+  {
+   "root": ".claude/skills",
+   "skill": "skill-creator",
+   "github_total_count": 603,
+   "exact_path_hits_in_first_100": 99,
+   "repositories": 99,
+   "equal_to_pinned": 0,
+   "equal_to_older_upstream": 1,
+   "differs_from_every_upstream_version": 98
+  },
+  {
+   "root": ".claude/skills",
+   "skill": "slack-gif-creator",
+   "github_total_count": 158,
+   "exact_path_hits_in_first_100": 98,
+   "repositories": 98,
+   "equal_to_pinned": 51,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 47
+  },
+  {
+   "root": ".claude/skills",
+   "skill": "theme-factory",
+   "github_total_count": 163,
+   "exact_path_hits_in_first_100": 97,
+   "repositories": 97,
+   "equal_to_pinned": 57,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 40
+  },
+  {
+   "root": ".claude/skills",
+   "skill": "web-artifacts-builder",
+   "github_total_count": 152,
+   "exact_path_hits_in_first_100": 99,
+   "repositories": 99,
+   "equal_to_pinned": 65,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 34
+  },
+  {
+   "root": ".claude/skills",
+   "skill": "webapp-testing",
+   "github_total_count": 147,
+   "exact_path_hits_in_first_100": 97,
+   "repositories": 97,
+   "equal_to_pinned": 1,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 96
+  },
+  {
+   "root": ".claude/skills",
+   "skill": "xlsx",
+   "github_total_count": 314,
+   "exact_path_hits_in_first_100": 98,
+   "repositories": 98,
+   "equal_to_pinned": 1,
+   "equal_to_older_upstream": 38,
+   "differs_from_every_upstream_version": 59
+  },
+  {
+   "root": ".agents/skills",
+   "skill": "academy-guide",
+   "github_total_count": 24,
+   "exact_path_hits_in_first_100": 24,
+   "repositories": 24,
+   "equal_to_pinned": 22,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 2
+  },
+  {
+   "root": ".agents/skills",
+   "skill": "algorithmic-art",
+   "github_total_count": 207,
+   "exact_path_hits_in_first_100": 100,
+   "repositories": 100,
+   "equal_to_pinned": 52,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 48
+  },
+  {
+   "root": ".agents/skills",
+   "skill": "brand-guidelines",
+   "github_total_count": 216,
+   "exact_path_hits_in_first_100": 99,
+   "repositories": 99,
+   "equal_to_pinned": 46,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 53
+  },
+  {
+   "root": ".agents/skills",
+   "skill": "canvas-design",
+   "github_total_count": 231,
+   "exact_path_hits_in_first_100": 99,
+   "repositories": 99,
+   "equal_to_pinned": 44,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 55
+  },
+  {
+   "root": ".agents/skills",
+   "skill": "claude-api",
+   "github_total_count": 280,
+   "exact_path_hits_in_first_100": 100,
+   "repositories": 100,
+   "equal_to_pinned": 1,
+   "equal_to_older_upstream": 26,
+   "differs_from_every_upstream_version": 73
+  },
+  {
+   "root": ".agents/skills",
+   "skill": "discernment-nudge",
+   "github_total_count": 26,
+   "exact_path_hits_in_first_100": 26,
+   "repositories": 26,
+   "equal_to_pinned": 24,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 2
+  },
+  {
+   "root": ".agents/skills",
+   "skill": "doc-coauthoring",
+   "github_total_count": 228,
+   "exact_path_hits_in_first_100": 100,
+   "repositories": 100,
+   "equal_to_pinned": 31,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 69
+  },
+  {
+   "root": ".agents/skills",
+   "skill": "docx",
+   "github_total_count": 323,
+   "exact_path_hits_in_first_100": 100,
+   "repositories": 100,
+   "equal_to_pinned": 30,
+   "equal_to_older_upstream": 3,
+   "differs_from_every_upstream_version": 67
+  },
+  {
+   "root": ".agents/skills",
+   "skill": "frontend-design",
+   "github_total_count": 864,
+   "exact_path_hits_in_first_100": 99,
+   "repositories": 99,
+   "equal_to_pinned": 0,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 99
+  },
+  {
+   "root": ".agents/skills",
+   "skill": "internal-comms",
+   "github_total_count": 165,
+   "exact_path_hits_in_first_100": 100,
+   "repositories": 100,
+   "equal_to_pinned": 71,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 29
+  },
+  {
+   "root": ".agents/skills",
+   "skill": "mcp-builder",
+   "github_total_count": 194,
+   "exact_path_hits_in_first_100": 99,
+   "repositories": 99,
+   "equal_to_pinned": 1,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 98
+  },
+  {
+   "root": ".agents/skills",
+   "skill": "pdf",
+   "github_total_count": 250,
+   "exact_path_hits_in_first_100": 100,
+   "repositories": 100,
+   "equal_to_pinned": 1,
+   "equal_to_older_upstream": 5,
+   "differs_from_every_upstream_version": 94
+  },
+  {
+   "root": ".agents/skills",
+   "skill": "pptx",
+   "github_total_count": 277,
+   "exact_path_hits_in_first_100": 100,
+   "repositories": 100,
+   "equal_to_pinned": 60,
+   "equal_to_older_upstream": 2,
+   "differs_from_every_upstream_version": 38
+  },
+  {
+   "root": ".agents/skills",
+   "skill": "skill-creator",
+   "github_total_count": 493,
+   "exact_path_hits_in_first_100": 99,
+   "repositories": 99,
+   "equal_to_pinned": 0,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 99
+  },
+  {
+   "root": ".agents/skills",
+   "skill": "slack-gif-creator",
+   "github_total_count": 181,
+   "exact_path_hits_in_first_100": 99,
+   "repositories": 99,
+   "equal_to_pinned": 72,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 27
+  },
+  {
+   "root": ".agents/skills",
+   "skill": "theme-factory",
+   "github_total_count": 200,
+   "exact_path_hits_in_first_100": 100,
+   "repositories": 100,
+   "equal_to_pinned": 69,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 31
+  },
+  {
+   "root": ".agents/skills",
+   "skill": "web-artifacts-builder",
+   "github_total_count": 211,
+   "exact_path_hits_in_first_100": 99,
+   "repositories": 99,
+   "equal_to_pinned": 44,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 55
+  },
+  {
+   "root": ".agents/skills",
+   "skill": "webapp-testing",
+   "github_total_count": 175,
+   "exact_path_hits_in_first_100": 100,
+   "repositories": 100,
+   "equal_to_pinned": 1,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 99
+  },
+  {
+   "root": ".agents/skills",
+   "skill": "xlsx",
+   "github_total_count": 253,
+   "exact_path_hits_in_first_100": 100,
+   "repositories": 100,
+   "equal_to_pinned": 58,
+   "equal_to_older_upstream": 2,
+   "differs_from_every_upstream_version": 40
+  },
+  {
+   "root": ".codex/skills",
+   "skill": "academy-guide",
+   "github_total_count": 0,
+   "exact_path_hits_in_first_100": 0,
+   "repositories": 0,
+   "equal_to_pinned": 0,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 0
+  },
+  {
+   "root": ".codex/skills",
+   "skill": "algorithmic-art",
+   "github_total_count": 10,
+   "exact_path_hits_in_first_100": 10,
+   "repositories": 10,
+   "equal_to_pinned": 5,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 5
+  },
+  {
+   "root": ".codex/skills",
+   "skill": "brand-guidelines",
+   "github_total_count": 10,
+   "exact_path_hits_in_first_100": 10,
+   "repositories": 10,
+   "equal_to_pinned": 5,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 5
+  },
+  {
+   "root": ".codex/skills",
+   "skill": "canvas-design",
+   "github_total_count": 12,
+   "exact_path_hits_in_first_100": 12,
+   "repositories": 12,
+   "equal_to_pinned": 8,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 4
+  },
+  {
+   "root": ".codex/skills",
+   "skill": "claude-api",
+   "github_total_count": 4,
+   "exact_path_hits_in_first_100": 4,
+   "repositories": 4,
+   "equal_to_pinned": 0,
+   "equal_to_older_upstream": 1,
+   "differs_from_every_upstream_version": 3
+  },
+  {
+   "root": ".codex/skills",
+   "skill": "discernment-nudge",
+   "github_total_count": 0,
+   "exact_path_hits_in_first_100": 0,
+   "repositories": 0,
+   "equal_to_pinned": 0,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 0
+  },
+  {
+   "root": ".codex/skills",
+   "skill": "doc-coauthoring",
+   "github_total_count": 9,
+   "exact_path_hits_in_first_100": 9,
+   "repositories": 9,
+   "equal_to_pinned": 6,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 3
+  },
+  {
+   "root": ".codex/skills",
+   "skill": "docx",
+   "github_total_count": 13,
+   "exact_path_hits_in_first_100": 13,
+   "repositories": 13,
+   "equal_to_pinned": 0,
+   "equal_to_older_upstream": 10,
+   "differs_from_every_upstream_version": 3
+  },
+  {
+   "root": ".codex/skills",
+   "skill": "frontend-design",
+   "github_total_count": 208,
+   "exact_path_hits_in_first_100": 98,
+   "repositories": 98,
+   "equal_to_pinned": 1,
+   "equal_to_older_upstream": 12,
+   "differs_from_every_upstream_version": 85
+  },
+  {
+   "root": ".codex/skills",
+   "skill": "internal-comms",
+   "github_total_count": 5,
+   "exact_path_hits_in_first_100": 5,
+   "repositories": 5,
+   "equal_to_pinned": 4,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 1
+  },
+  {
+   "root": ".codex/skills",
+   "skill": "mcp-builder",
+   "github_total_count": 24,
+   "exact_path_hits_in_first_100": 24,
+   "repositories": 24,
+   "equal_to_pinned": 12,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 12
+  },
+  {
+   "root": ".codex/skills",
+   "skill": "pdf",
+   "github_total_count": 31,
+   "exact_path_hits_in_first_100": 31,
+   "repositories": 31,
+   "equal_to_pinned": 8,
+   "equal_to_older_upstream": 2,
+   "differs_from_every_upstream_version": 21
+  },
+  {
+   "root": ".codex/skills",
+   "skill": "pptx",
+   "github_total_count": 12,
+   "exact_path_hits_in_first_100": 12,
+   "repositories": 12,
+   "equal_to_pinned": 0,
+   "equal_to_older_upstream": 9,
+   "differs_from_every_upstream_version": 3
+  },
+  {
+   "root": ".codex/skills",
+   "skill": "skill-creator",
+   "github_total_count": 83,
+   "exact_path_hits_in_first_100": 83,
+   "repositories": 83,
+   "equal_to_pinned": 6,
+   "equal_to_older_upstream": 24,
+   "differs_from_every_upstream_version": 53
+  },
+  {
+   "root": ".codex/skills",
+   "skill": "slack-gif-creator",
+   "github_total_count": 5,
+   "exact_path_hits_in_first_100": 5,
+   "repositories": 5,
+   "equal_to_pinned": 4,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 1
+  },
+  {
+   "root": ".codex/skills",
+   "skill": "theme-factory",
+   "github_total_count": 11,
+   "exact_path_hits_in_first_100": 11,
+   "repositories": 11,
+   "equal_to_pinned": 7,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 4
+  },
+  {
+   "root": ".codex/skills",
+   "skill": "web-artifacts-builder",
+   "github_total_count": 6,
+   "exact_path_hits_in_first_100": 6,
+   "repositories": 6,
+   "equal_to_pinned": 4,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 2
+  },
+  {
+   "root": ".codex/skills",
+   "skill": "webapp-testing",
+   "github_total_count": 28,
+   "exact_path_hits_in_first_100": 28,
+   "repositories": 28,
+   "equal_to_pinned": 18,
+   "equal_to_older_upstream": 0,
+   "differs_from_every_upstream_version": 10
+  },
+  {
+   "root": ".codex/skills",
+   "skill": "xlsx",
+   "github_total_count": 15,
+   "exact_path_hits_in_first_100": 15,
+   "repositories": 15,
+   "equal_to_pinned": 1,
+   "equal_to_older_upstream": 9,
+   "differs_from_every_upstream_version": 5
+  }
+ ]
+}

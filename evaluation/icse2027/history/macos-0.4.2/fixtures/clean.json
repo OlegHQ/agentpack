@@ -1,0 +1,1 @@
+{"schema_version":1,"unknown_required":"fail","requirements":[{"id":"no-checkout-config","selector":{"category":"planned_write"},"predicate":"no_workspace_write","minimum_evidence":"generated","severity":"error"}]}
