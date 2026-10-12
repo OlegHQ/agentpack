@@ -21,7 +21,7 @@ import (
 	packSync "github.com/OlegHQ/agentpack/internal/sync"
 )
 
-var Version = "0.4.5"
+var Version = "0.4.6"
 
 type Runner struct {
 	Stdout, Stderr io.Writer
