@@ -1,12 +1,13 @@
 # Agentpack ICSE 2027 evaluation artifact
 
-Scripts and recorded results for every experiment in the paper's evaluation section. All results were recorded on 2026-10-12 with the released Agentpack 0.4.7 binary, on Linux 6.8 aarch64 unless a CI runner is named.
+Scripts and recorded results for every experiment in the paper's evaluation section. All results were recorded on 2026-10-12 with the released Agentpack 0.4.8 binary, on Linux 6.8 aarch64 unless a CI runner is named.
 
 | Experiment | Script | Results | Calls a model | Needs |
 |---|---|---|---|---|
 | One pinned package on six agents | `delivery.py` | `delivery-results.json` | yes | the six agents, signed in |
 | Same-named skills in public repositories | `prevalence.py` | `prevalence-results.json` | no | `gh` (signed in), `git` |
 | What three agents list for a same-named skill | `collision.py` | `collision-results.json` | no | Claude Code 2.1.296, Codex 0.159.3, OpenCode 1.17.11 |
+| Same-named commands and subagents | `kinds.py` | `kinds-results.json` | no | Claude Code 2.1.296, Codex 0.159.3 |
 | Which copy the agent follows | `behaviour.py` | `behaviour-results.json` | yes | Claude Code and Codex, signed in |
 | Thirty skill directories in 26 real repositories | `realrepos.py` | `realrepos-results.json` | no | Claude Code 2.1.296, Codex 0.159.3 |
 | CI gate on three operating systems | `ci_gate.py` | `ci-results/` | no | nothing: it runs in GitHub Actions |
@@ -16,16 +17,16 @@ Scripts and recorded results for every experiment in the paper's evaluation sect
 ## Quickstart: released binary and Python 3 only
 
 ```sh
-curl -LO https://github.com/OlegHQ/agentpack/releases/download/v0.4.7/agentpack_0.4.7_linux_arm64.tar.gz
-curl -LO https://github.com/OlegHQ/agentpack/releases/download/v0.4.7/checksums.txt
+curl -LO https://github.com/OlegHQ/agentpack/releases/download/v0.4.8/agentpack_0.4.8_linux_arm64.tar.gz
+curl -LO https://github.com/OlegHQ/agentpack/releases/download/v0.4.8/checksums.txt
 sha256sum -c checksums.txt --ignore-missing
-mkdir bin && tar -xzf agentpack_0.4.7_linux_arm64.tar.gz -C bin
+mkdir bin && tar -xzf agentpack_0.4.8_linux_arm64.tar.gz -C bin
 
 # five offline fault classes and three ready controls, about one second, no agent needed
 python3 faults.py --agentpack bin/agentpack --output /tmp/fault-results.json
 ```
 
-Archives for `linux_amd64`, `darwin_arm64`, `darwin_amd64` and `windows_amd64` are in the same release. The CI experiment needs nothing local at all: see [the workflow](../../.github/workflows/agent-config-gate.yml) and [its run](https://github.com/OlegHQ/agentpack/actions/runs/38262489514).
+Archives for `linux_amd64`, `darwin_arm64`, `darwin_amd64` and `windows_amd64` are in the same release. The CI experiment needs nothing local at all: see [the workflow](../../.github/workflows/agent-config-gate.yml) and [its run](https://github.com/OlegHQ/agentpack/actions/runs/38275520826).
 
 With the agents installed (the scripts refuse other agent versions, because the probes are validated for these versions only):
 
@@ -84,18 +85,18 @@ A package with a skill, a slash command, a subagent, a rule and a hook is pinned
 | .claude/skills | codex | webapp-testing | pinned 100 | violated | satisfied | True |
 | .claude/skills | codex | mcp-builder | pinned 100 | violated | satisfied | True |
 | .claude/skills | codex | internal-comms | pinned 100 | violated | satisfied | True |
-| .claude/skills | opencode | webapp-testing | pinned 92, project 8 | violated | violated | True |
-| .claude/skills | opencode | mcp-builder | pinned 90, project 10 | violated | violated | True |
-| .claude/skills | opencode | internal-comms | pinned 94, project 6 | violated | violated | True |
+| .claude/skills | opencode | webapp-testing | pinned 96, project 4 | violated | violated | True |
+| .claude/skills | opencode | mcp-builder | pinned 96, project 4 | violated | violated | True |
+| .claude/skills | opencode | internal-comms | pinned 95, project 5 | violated | violated | True |
 | .agents/skills | claude | webapp-testing | pinned 100 | violated | satisfied | True |
 | .agents/skills | claude | mcp-builder | pinned 100 | violated | satisfied | True |
 | .agents/skills | claude | internal-comms | pinned 100 | violated | satisfied | True |
 | .agents/skills | codex | webapp-testing | pinned and project 100 | violated | violated | True |
 | .agents/skills | codex | mcp-builder | pinned and project 100 | violated | violated | True |
 | .agents/skills | codex | internal-comms | pinned and project 100 | violated | violated | True |
-| .agents/skills | opencode | webapp-testing | pinned 92, project 8 | violated | violated | True |
-| .agents/skills | opencode | mcp-builder | pinned 89, project 11 | violated | violated | True |
-| .agents/skills | opencode | internal-comms | pinned 91, project 9 | violated | violated | True |
+| .agents/skills | opencode | webapp-testing | pinned 91, project 9 | violated | violated | True |
+| .agents/skills | opencode | mcp-builder | pinned 93, project 7 | violated | violated | True |
+| .agents/skills | opencode | internal-comms | pinned 95, project 5 | violated | violated | True |
 | .codex/skills | claude | webapp-testing | pinned 100 | satisfied | satisfied | True |
 | .codex/skills | claude | mcp-builder | pinned 100 | satisfied | satisfied | True |
 | .codex/skills | claude | internal-comms | pinned 100 | satisfied | satisfied | True |
@@ -111,11 +112,13 @@ A package with a skill, a slash command, a subagent, a rule and a hook is pinned
 | .opencode/skills | codex | webapp-testing | pinned 100 | satisfied | satisfied | True |
 | .opencode/skills | codex | mcp-builder | pinned 100 | satisfied | satisfied | True |
 | .opencode/skills | codex | internal-comms | pinned 100 | satisfied | satisfied | True |
-| .opencode/skills | opencode | webapp-testing | pinned 89, project 11 | violated | violated | True |
-| .opencode/skills | opencode | mcp-builder | pinned 88, project 12 | violated | violated | True |
-| .opencode/skills | opencode | internal-comms | pinned 94, project 6 | violated | violated | True |
+| .opencode/skills | opencode | webapp-testing | project 22, pinned 78 | violated | violated | True |
+| .opencode/skills | opencode | mcp-builder | pinned 90, project 10 | violated | violated | True |
+| .opencode/skills | opencode | internal-comms | pinned 92, project 8 | violated | violated | True |
 
 The observed check matches part A in 45 of 45 cells, and the earlier receipt is retired in 36 of 36. For OpenCode the probe samples 60 listings, because a single listing cannot show that its answer varies.
+
+**`kinds.py`.** The same question for a pinned slash command and a pinned subagent. Installed natively as a Claude Code plugin, with a same-named project command or subagent next to it, Claude Code listed both and gave the bare name to the project's in 20 of 20 listings each. With Agentpack, the observed check gave the expected verdict in 12 of 12 cells (two kinds, three situations, Claude Code and Codex). For Codex, Agentpack renders commands and subagents as skills, so the project copy there is a skill in `.agents/skills`.
 
 **`behaviour.py`.** Two tiny skills with one name answer differently. Claude Code 2.1.296 and Codex 0.159.3 each followed the pinned one in 20 of 20 runs when it was alone and the project copy in 20 of 20 runs when both existed (project copy in `.claude/skills` for Claude Code, `.agents/skills` for Codex; one prompt, one model per agent). Codex ran without its sandbox, which needs user namespaces this host lacks. A first run with 5 runs on Claude Code only is in `history/`.
 
@@ -131,12 +134,12 @@ On GitHub's `ubuntu-latest`, `macos-latest` and `windows-latest` runners the wor
 
 ## History
 
-`history/` keeps earlier results, including runs that went wrong: the scenario against 0.4.2 (two expectations failed, which led to a tool change), the false alarms of 0.4.3, the first three-agent runs whose direct reading was not yet independent of Agentpack's staging, the missing receipt expiry for `.codex/skills` in 0.4.4, and the first delivery run. `history/macos-0.4.2/` is the first evaluation on macOS with Codex 0.159.2.
+`history/` keeps earlier results, including runs that went wrong. `history/0.4.7/` is the complete result set recorded with release 0.4.7, before commands and subagents were observed; every headline number is the same. Also kept: the scenario against 0.4.2 (two expectations failed, which led to a tool change), the false alarms of 0.4.3, the first three-agent runs whose direct reading was not yet independent of Agentpack's staging, the missing receipt expiry for `.codex/skills` in 0.4.4, and the first delivery run. `history/macos-0.4.2/` is the first evaluation on macOS with Codex 0.159.2.
 
 ## Limits
 
 - One author wrote the tool, the fixtures and the expectations, with AI assistance (OpenAI Codex for release 0.4.2 and the first runner; Anthropic Claude for the session observation, later fixes and the scripts here). This is not an independent replication.
 - One version of each agent. Agents change their discovery rules between releases.
 - Model-call experiments use 3 runs per cell (delivery) or 20 (behaviour), one prompt, and one model per agent.
-- Probes run with an empty user home, so user-level skills are outside the observation. Observation covers skills, not subagents, commands or hooks.
+- Probes run with an empty user home, so user-level configuration is outside the observation. Observation covers skills, commands and subagents on Claude Code and Codex and skills on OpenCode; hooks are not observed.
 - Search counts are GitHub's on the day of the run, capped at 100 files per query.

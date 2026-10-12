@@ -2,12 +2,12 @@
  "date": "2026-10-12",
  "platform": "Linux-6.8.0-142-generic-aarch64-with-glibc2.42",
  "machine": "aarch64",
- "agentpack_version": "agentpack 0.4.7",
- "agentpack_sha256": "de095e22917502a0a8441b93ade9f69f8f1b7b8db9dcf1fa5a5a48c70e6599a4",
+ "agentpack_version": "agentpack 0.4.8",
+ "agentpack_sha256": "d71209115d8188cdd4301c2da1bc2a3a228e71803097e4f65bdc077f151863b7",
  "claude_version": "2.1.296 (Claude Code)",
  "claude_sha256": "f1f6e96e0d8342b9dbf41d7e88255397a6a52ce3d8736ad6a4c6b59c9b62fefa",
  "skill_pin": "anthropics/skills/skills/webapp-testing@dbd4588f9e1033efb41dad4bef2f7947c8993d44",
- "checkout": "https://github.com/OlegHQ/agentpack.git@v0.4.7",
+ "checkout": "https://github.com/OlegHQ/agentpack.git@v0.4.8",
  "contract": {
   "schema_version": 1,
   "unknown_required": "fail",
@@ -111,7 +111,7 @@
      "agentpack-bundle:webapp-testing"
     ],
     "native_runs": 1,
-    "elapsed_ms": 946.1
+    "elapsed_ms": 857.2
    }
   },
   {
@@ -154,7 +154,7 @@
      "agentpack-bundle:webapp-testing"
     ],
     "native_runs": 1,
-    "elapsed_ms": 974.2
+    "elapsed_ms": 828.9
    }
   },
   {
@@ -197,7 +197,7 @@
      "agentpack-bundle:webapp-testing"
     ],
     "native_runs": 1,
-    "elapsed_ms": 913.8
+    "elapsed_ms": 867.7
    }
   },
   {
@@ -243,7 +243,7 @@
      "webapp-testing"
     ],
     "native_runs": 1,
-    "elapsed_ms": 962.1
+    "elapsed_ms": 858.1
    }
   },
   {
@@ -281,7 +281,7 @@
      "webapp-testing"
     ],
     "native_runs": 1,
-    "elapsed_ms": 959.3
+    "elapsed_ms": 836.4
    }
   },
   {
@@ -324,7 +324,7 @@
      "agentpack-bundle:webapp-testing"
     ],
     "native_runs": 1,
-    "elapsed_ms": 983.5
+    "elapsed_ms": 1044.4
    }
   },
   {
@@ -367,7 +367,7 @@
      "agentpack-bundle:webapp-testing"
     ],
     "native_runs": 1,
-    "elapsed_ms": 1256.8
+    "elapsed_ms": 991.8
    }
   },
   {
@@ -406,7 +406,7 @@
      "agentpack-bundle:webapp-testing"
     ],
     "native_runs": 1,
-    "elapsed_ms": 1090.2
+    "elapsed_ms": 817.8
    }
   },
   {
@@ -449,7 +449,7 @@
      "agentpack-bundle:webapp-testing"
     ],
     "native_runs": 1,
-    "elapsed_ms": 950.5
+    "elapsed_ms": 917.8
    }
   },
   {
@@ -492,7 +492,7 @@
      "agentpack-bundle:webapp-testing"
     ],
     "native_runs": 1,
-    "elapsed_ms": 935.2
+    "elapsed_ms": 922.6
    }
   },
   {
@@ -533,7 +533,7 @@
     "verdict": "fail",
     "entries": [],
     "native_runs": 1,
-    "elapsed_ms": 997.9
+    "elapsed_ms": 837.7
    }
   },
   {
@@ -576,7 +576,7 @@
      "agentpack-bundle:webapp-testing"
     ],
     "native_runs": 1,
-    "elapsed_ms": 969.3
+    "elapsed_ms": 889.0
    }
   },
   {
@@ -612,7 +612,7 @@
      "webapp-testing"
     ],
     "native_runs": 1,
-    "elapsed_ms": 970.0
+    "elapsed_ms": 958.2
    }
   },
   {
@@ -655,7 +655,7 @@
      "agentpack-bundle:webapp-testing"
     ],
     "native_runs": 1,
-    "elapsed_ms": 1343.7
+    "elapsed_ms": 821.0
    }
   },
   {
@@ -698,7 +698,7 @@
      "agentpack-bundle:webapp-testing"
     ],
     "native_runs": 1,
-    "elapsed_ms": 974.7
+    "elapsed_ms": 859.2
    }
   },
   {
@@ -741,7 +741,7 @@
      "agentpack-bundle:webapp-testing"
     ],
     "native_runs": 1,
-    "elapsed_ms": 1053.8
+    "elapsed_ms": 872.0
    }
   }
  ],
@@ -758,9 +758,9 @@
     "team-review"
    ],
    "exit": 0,
-   "elapsed_ms": 7.7,
+   "elapsed_ms": 9.6,
    "checkout_changed": [],
-   "stdout_sha256": "2b213d3a022e735c2fd2fe1cdabc697d329546b23e8ce4b50c48f334962811bd"
+   "stdout_sha256": "9022a2b35fded67ed8c3ffe30ca5a3d37256708f0473546e99b75b8a448c89b4"
   },
   {
    "case": "add_pinned_public_skill",
@@ -775,7 +775,7 @@
     "--no-sync"
    ],
    "exit": 0,
-   "elapsed_ms": 731.7,
+   "elapsed_ms": 952.4,
    "checkout_changed": [],
    "stdout_sha256": "4761b944699108aa8ebbd369f174ac949d904dd9c452cde617844f634dc3c08f"
   },
@@ -790,9 +790,9 @@
     "<ROOT>/checkout-a"
    ],
    "exit": 0,
-   "elapsed_ms": 4.1,
+   "elapsed_ms": 3.3,
    "checkout_changed": [],
-   "stdout_sha256": "a9df572ff11f9fa0dec97a72ab55cd9eb850b9da6a2ef5a74bd66ca425aacf09"
+   "stdout_sha256": "eacc9a699f9982483635aca386f6c026efcdead3db67aa96325f92fd17a0d51d"
   },
   {
    "case": "restore",
@@ -807,9 +807,9 @@
     "--strict-external"
    ],
    "exit": 0,
-   "elapsed_ms": 47.2,
+   "elapsed_ms": 27.4,
    "checkout_changed": [],
-   "stdout_sha256": "068af150d53d06dee4471d700d08f0064615abd6e9a71f513dec35c582e9272c"
+   "stdout_sha256": "a69cfa1295e721524b96047ec28bd9d69cebdd8cc32e949b758916fc25066a69"
   },
   {
    "case": "state:restored_no_receipt",
@@ -828,7 +828,7 @@
     "--json"
    ],
    "exit": 4,
-   "elapsed_ms": 181.3,
+   "elapsed_ms": 162.1,
    "checkout_changed": [],
    "report": {
     "schema_version": 1,
@@ -841,13 +841,13 @@
     "policy": "ci",
     "strict_external": true,
     "workspace_digest": "sha256:048ac7113ba64ec154c56aaa588c7f2a26de315772811e67334dbe60919e2582",
-    "generation_id": "sha256:70548d32398b4ff9e263c85f73ba9f7fe6759f878aa012ecd458afb67949828a",
+    "generation_id": "sha256:e65e384830ac8576ec43eb262c6d10bbb29bf50b723b464b2d969261009e033e",
     "policy_digest": "sha256:0b733559470deb6d6af018bb02b114d440bfeb332a57fcf4f5aad1c04329fbd0",
     "expected_target": {
      "adapter": "claude",
      "adapter_revision": "claude-observe-2026-10",
      "executable_identity": "sha256:f1f6e96e0d8342b9dbf41d7e88255397a6a52ce3d8736ad6a4c6b59c9b62fefa",
-     "capability_revision": "claude-probe-v3"
+     "capability_revision": "claude-probe-v4"
     },
     "source_identity": "f59dc8acc436cec70261dd41c7d90189bfaea579bf82a952583e152fd203edc9",
     "lock_digest": "sha256:bd382cd39d0afa36a75528b92d2852cb9051c511f12f91bb4306eca4b0bb286c",
@@ -999,22 +999,22 @@
     "--json"
    ],
    "exit": 0,
-   "elapsed_ms": 2678.4,
+   "elapsed_ms": 2523.3,
    "checkout_changed": [],
    "report": {
     "diagnostic_refs": [
-     "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/version.json",
-     "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/plugin-list.json",
-     "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/plugin-details.json",
-     "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/session-init.json"
+     "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/version.json",
+     "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/plugin-list.json",
+     "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/plugin-details.json",
+     "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/session-init.json"
     ],
     "schema_version": 1,
     "phase": "probe",
-    "receipt_id": "claude-1791814800709854248",
+    "receipt_id": "claude-1791821441819539635",
     "source_id": "f59dc8acc436cec70261dd41c7d90189bfaea579bf82a952583e152fd203edc9",
     "lock_digest": "sha256:bd382cd39d0afa36a75528b92d2852cb9051c511f12f91bb4306eca4b0bb286c",
     "workspace_digest": "sha256:048ac7113ba64ec154c56aaa588c7f2a26de315772811e67334dbe60919e2582",
-    "generation_id": "sha256:70548d32398b4ff9e263c85f73ba9f7fe6759f878aa012ecd458afb67949828a",
+    "generation_id": "sha256:e65e384830ac8576ec43eb262c6d10bbb29bf50b723b464b2d969261009e033e",
     "mode": "default",
     "policy_digest": "sha256:0b733559470deb6d6af018bb02b114d440bfeb332a57fcf4f5aad1c04329fbd0",
     "target": {
@@ -1022,9 +1022,9 @@
      "adapter_revision": "claude-observe-2026-10",
      "executable_identity": "sha256:f1f6e96e0d8342b9dbf41d7e88255397a6a52ce3d8736ad6a4c6b59c9b62fefa",
      "native_version": "2.1.296 (Claude Code)",
-     "capability_revision": "claude-probe-v3"
+     "capability_revision": "claude-probe-v4"
     },
-    "created_at": "2026-10-12T14:20:00.709859665Z",
+    "created_at": "2026-10-12T16:10:41.81954801Z",
     "coverage": [
      {
       "category": "plugin",
@@ -1041,22 +1041,22 @@
       "category": "skill",
       "scope": "workspace_session",
       "completeness": "partial",
-      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level skills and plugins excluded"
+      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level configuration excluded"
      }
     ],
     "properties": [
      {
-      "evidence_digest": "sha256:332e5859ad6c52ca3f2c819306bb270cc148d7cc4dc3e0848bfcbe1a1654c46f",
+      "evidence_digest": "sha256:d9dffb32d559d3139b6146143186b2df412bab1ab24606b9a3e4bf24abf1495e",
       "scope": "controlled_projection",
       "category": "plugin",
       "property": "catalog_complete",
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:332e5859ad6c52ca3f2c819306bb270cc148d7cc4dc3e0848bfcbe1a1654c46f",
+      "evidence_digest": "sha256:d9dffb32d559d3139b6146143186b2df412bab1ab24606b9a3e4bf24abf1495e",
       "scope": "controlled_projection",
       "category": "plugin",
       "artifact_id": "agentpack-bundle",
@@ -1064,10 +1064,10 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:cbb4e1f7d5000c08caacb53e907f5c9499d295b32ed89c63d8d56d9545572d91",
+      "evidence_digest": "sha256:2b83a7271bf72b8516b77f427540d644e9dd387dd2d3d05014358dd82c85afd6",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -1075,7 +1075,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -1087,7 +1087,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:cbb4e1f7d5000c08caacb53e907f5c9499d295b32ed89c63d8d56d9545572d91",
+      "evidence_digest": "sha256:2b83a7271bf72b8516b77f427540d644e9dd387dd2d3d05014358dd82c85afd6",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -1095,7 +1095,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -1107,7 +1107,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:cbb4e1f7d5000c08caacb53e907f5c9499d295b32ed89c63d8d56d9545572d91",
+      "evidence_digest": "sha256:2b83a7271bf72b8516b77f427540d644e9dd387dd2d3d05014358dd82c85afd6",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -1115,7 +1115,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -1127,7 +1127,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:a4547ee76698371c94d5666db281254dba2352a0be0e52248417cc1f36707ed2",
+      "evidence_digest": "sha256:49dd254c23f79fbf717547bd155805500cd95e72dd6b3b052e6e8f64d4cdf256",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -1135,10 +1135,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/session-init.json"
      },
      {
-      "evidence_digest": "sha256:a4547ee76698371c94d5666db281254dba2352a0be0e52248417cc1f36707ed2",
+      "evidence_digest": "sha256:49dd254c23f79fbf717547bd155805500cd95e72dd6b3b052e6e8f64d4cdf256",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -1146,10 +1146,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/session-init.json"
      },
      {
-      "evidence_digest": "sha256:a4547ee76698371c94d5666db281254dba2352a0be0e52248417cc1f36707ed2",
+      "evidence_digest": "sha256:49dd254c23f79fbf717547bd155805500cd95e72dd6b3b052e6e8f64d4cdf256",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -1157,10 +1157,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/session-init.json"
      },
      {
-      "evidence_digest": "sha256:a4547ee76698371c94d5666db281254dba2352a0be0e52248417cc1f36707ed2",
+      "evidence_digest": "sha256:49dd254c23f79fbf717547bd155805500cd95e72dd6b3b052e6e8f64d4cdf256",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -1168,10 +1168,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/session-init.json"
      },
      {
-      "evidence_digest": "sha256:a4547ee76698371c94d5666db281254dba2352a0be0e52248417cc1f36707ed2",
+      "evidence_digest": "sha256:49dd254c23f79fbf717547bd155805500cd95e72dd6b3b052e6e8f64d4cdf256",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -1179,10 +1179,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/session-init.json"
      },
      {
-      "evidence_digest": "sha256:a4547ee76698371c94d5666db281254dba2352a0be0e52248417cc1f36707ed2",
+      "evidence_digest": "sha256:49dd254c23f79fbf717547bd155805500cd95e72dd6b3b052e6e8f64d4cdf256",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -1190,7 +1190,7 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/session-init.json"
      }
     ],
     "findings": [],
@@ -1226,7 +1226,7 @@
     "latest"
    ],
    "exit": 0,
-   "elapsed_ms": 172.2,
+   "elapsed_ms": 156.9,
    "checkout_changed": [],
    "report": {
     "schema_version": 1,
@@ -1239,27 +1239,27 @@
     "policy": "ci",
     "strict_external": true,
     "workspace_digest": "sha256:048ac7113ba64ec154c56aaa588c7f2a26de315772811e67334dbe60919e2582",
-    "generation_id": "sha256:70548d32398b4ff9e263c85f73ba9f7fe6759f878aa012ecd458afb67949828a",
+    "generation_id": "sha256:e65e384830ac8576ec43eb262c6d10bbb29bf50b723b464b2d969261009e033e",
     "policy_digest": "sha256:0b733559470deb6d6af018bb02b114d440bfeb332a57fcf4f5aad1c04329fbd0",
     "expected_target": {
      "adapter": "claude",
      "adapter_revision": "claude-observe-2026-10",
      "executable_identity": "sha256:f1f6e96e0d8342b9dbf41d7e88255397a6a52ce3d8736ad6a4c6b59c9b62fefa",
-     "capability_revision": "claude-probe-v3"
+     "capability_revision": "claude-probe-v4"
     },
     "properties": [
      {
-      "evidence_digest": "sha256:332e5859ad6c52ca3f2c819306bb270cc148d7cc4dc3e0848bfcbe1a1654c46f",
+      "evidence_digest": "sha256:d9dffb32d559d3139b6146143186b2df412bab1ab24606b9a3e4bf24abf1495e",
       "scope": "controlled_projection",
       "category": "plugin",
       "property": "catalog_complete",
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:332e5859ad6c52ca3f2c819306bb270cc148d7cc4dc3e0848bfcbe1a1654c46f",
+      "evidence_digest": "sha256:d9dffb32d559d3139b6146143186b2df412bab1ab24606b9a3e4bf24abf1495e",
       "scope": "controlled_projection",
       "category": "plugin",
       "artifact_id": "agentpack-bundle",
@@ -1267,10 +1267,10 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:cbb4e1f7d5000c08caacb53e907f5c9499d295b32ed89c63d8d56d9545572d91",
+      "evidence_digest": "sha256:2b83a7271bf72b8516b77f427540d644e9dd387dd2d3d05014358dd82c85afd6",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -1278,7 +1278,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -1290,7 +1290,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:cbb4e1f7d5000c08caacb53e907f5c9499d295b32ed89c63d8d56d9545572d91",
+      "evidence_digest": "sha256:2b83a7271bf72b8516b77f427540d644e9dd387dd2d3d05014358dd82c85afd6",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -1298,7 +1298,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -1310,7 +1310,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:cbb4e1f7d5000c08caacb53e907f5c9499d295b32ed89c63d8d56d9545572d91",
+      "evidence_digest": "sha256:2b83a7271bf72b8516b77f427540d644e9dd387dd2d3d05014358dd82c85afd6",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -1318,7 +1318,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -1330,7 +1330,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:a4547ee76698371c94d5666db281254dba2352a0be0e52248417cc1f36707ed2",
+      "evidence_digest": "sha256:49dd254c23f79fbf717547bd155805500cd95e72dd6b3b052e6e8f64d4cdf256",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -1338,10 +1338,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/session-init.json"
      },
      {
-      "evidence_digest": "sha256:a4547ee76698371c94d5666db281254dba2352a0be0e52248417cc1f36707ed2",
+      "evidence_digest": "sha256:49dd254c23f79fbf717547bd155805500cd95e72dd6b3b052e6e8f64d4cdf256",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -1349,10 +1349,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/session-init.json"
      },
      {
-      "evidence_digest": "sha256:a4547ee76698371c94d5666db281254dba2352a0be0e52248417cc1f36707ed2",
+      "evidence_digest": "sha256:49dd254c23f79fbf717547bd155805500cd95e72dd6b3b052e6e8f64d4cdf256",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -1360,10 +1360,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/session-init.json"
      },
      {
-      "evidence_digest": "sha256:a4547ee76698371c94d5666db281254dba2352a0be0e52248417cc1f36707ed2",
+      "evidence_digest": "sha256:49dd254c23f79fbf717547bd155805500cd95e72dd6b3b052e6e8f64d4cdf256",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -1371,10 +1371,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/session-init.json"
      },
      {
-      "evidence_digest": "sha256:a4547ee76698371c94d5666db281254dba2352a0be0e52248417cc1f36707ed2",
+      "evidence_digest": "sha256:49dd254c23f79fbf717547bd155805500cd95e72dd6b3b052e6e8f64d4cdf256",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -1382,10 +1382,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/session-init.json"
      },
      {
-      "evidence_digest": "sha256:a4547ee76698371c94d5666db281254dba2352a0be0e52248417cc1f36707ed2",
+      "evidence_digest": "sha256:49dd254c23f79fbf717547bd155805500cd95e72dd6b3b052e6e8f64d4cdf256",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -1393,7 +1393,7 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/session-init.json"
      }
     ],
     "source_identity": "f59dc8acc436cec70261dd41c7d90189bfaea579bf82a952583e152fd203edc9",
@@ -1477,7 +1477,7 @@
       "category": "skill",
       "scope": "workspace_session",
       "completeness": "partial",
-      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level skills and plugins excluded"
+      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level configuration excluded"
      }
     ],
     "contract_results": [
@@ -1626,7 +1626,7 @@
     "latest"
    ],
    "exit": 0,
-   "elapsed_ms": 174.6,
+   "elapsed_ms": 171.0,
    "checkout_changed": [],
    "report": {
     "schema_version": 1,
@@ -1639,27 +1639,27 @@
     "policy": "ci",
     "strict_external": true,
     "workspace_digest": "sha256:048ac7113ba64ec154c56aaa588c7f2a26de315772811e67334dbe60919e2582",
-    "generation_id": "sha256:70548d32398b4ff9e263c85f73ba9f7fe6759f878aa012ecd458afb67949828a",
+    "generation_id": "sha256:e65e384830ac8576ec43eb262c6d10bbb29bf50b723b464b2d969261009e033e",
     "policy_digest": "sha256:0b733559470deb6d6af018bb02b114d440bfeb332a57fcf4f5aad1c04329fbd0",
     "expected_target": {
      "adapter": "claude",
      "adapter_revision": "claude-observe-2026-10",
      "executable_identity": "sha256:f1f6e96e0d8342b9dbf41d7e88255397a6a52ce3d8736ad6a4c6b59c9b62fefa",
-     "capability_revision": "claude-probe-v3"
+     "capability_revision": "claude-probe-v4"
     },
     "properties": [
      {
-      "evidence_digest": "sha256:332e5859ad6c52ca3f2c819306bb270cc148d7cc4dc3e0848bfcbe1a1654c46f",
+      "evidence_digest": "sha256:d9dffb32d559d3139b6146143186b2df412bab1ab24606b9a3e4bf24abf1495e",
       "scope": "controlled_projection",
       "category": "plugin",
       "property": "catalog_complete",
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:332e5859ad6c52ca3f2c819306bb270cc148d7cc4dc3e0848bfcbe1a1654c46f",
+      "evidence_digest": "sha256:d9dffb32d559d3139b6146143186b2df412bab1ab24606b9a3e4bf24abf1495e",
       "scope": "controlled_projection",
       "category": "plugin",
       "artifact_id": "agentpack-bundle",
@@ -1667,10 +1667,10 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:cbb4e1f7d5000c08caacb53e907f5c9499d295b32ed89c63d8d56d9545572d91",
+      "evidence_digest": "sha256:2b83a7271bf72b8516b77f427540d644e9dd387dd2d3d05014358dd82c85afd6",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -1678,7 +1678,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -1690,7 +1690,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:cbb4e1f7d5000c08caacb53e907f5c9499d295b32ed89c63d8d56d9545572d91",
+      "evidence_digest": "sha256:2b83a7271bf72b8516b77f427540d644e9dd387dd2d3d05014358dd82c85afd6",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -1698,7 +1698,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -1710,7 +1710,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:cbb4e1f7d5000c08caacb53e907f5c9499d295b32ed89c63d8d56d9545572d91",
+      "evidence_digest": "sha256:2b83a7271bf72b8516b77f427540d644e9dd387dd2d3d05014358dd82c85afd6",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -1718,7 +1718,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -1730,7 +1730,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:a4547ee76698371c94d5666db281254dba2352a0be0e52248417cc1f36707ed2",
+      "evidence_digest": "sha256:49dd254c23f79fbf717547bd155805500cd95e72dd6b3b052e6e8f64d4cdf256",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -1738,10 +1738,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/session-init.json"
      },
      {
-      "evidence_digest": "sha256:a4547ee76698371c94d5666db281254dba2352a0be0e52248417cc1f36707ed2",
+      "evidence_digest": "sha256:49dd254c23f79fbf717547bd155805500cd95e72dd6b3b052e6e8f64d4cdf256",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -1749,10 +1749,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/session-init.json"
      },
      {
-      "evidence_digest": "sha256:a4547ee76698371c94d5666db281254dba2352a0be0e52248417cc1f36707ed2",
+      "evidence_digest": "sha256:49dd254c23f79fbf717547bd155805500cd95e72dd6b3b052e6e8f64d4cdf256",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -1760,10 +1760,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/session-init.json"
      },
      {
-      "evidence_digest": "sha256:a4547ee76698371c94d5666db281254dba2352a0be0e52248417cc1f36707ed2",
+      "evidence_digest": "sha256:49dd254c23f79fbf717547bd155805500cd95e72dd6b3b052e6e8f64d4cdf256",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -1771,10 +1771,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/session-init.json"
      },
      {
-      "evidence_digest": "sha256:a4547ee76698371c94d5666db281254dba2352a0be0e52248417cc1f36707ed2",
+      "evidence_digest": "sha256:49dd254c23f79fbf717547bd155805500cd95e72dd6b3b052e6e8f64d4cdf256",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -1782,10 +1782,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/session-init.json"
      },
      {
-      "evidence_digest": "sha256:a4547ee76698371c94d5666db281254dba2352a0be0e52248417cc1f36707ed2",
+      "evidence_digest": "sha256:49dd254c23f79fbf717547bd155805500cd95e72dd6b3b052e6e8f64d4cdf256",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -1793,7 +1793,7 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814800709854248/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821441819539635/session-init.json"
      }
     ],
     "source_identity": "f59dc8acc436cec70261dd41c7d90189bfaea579bf82a952583e152fd203edc9",
@@ -1877,7 +1877,7 @@
       "category": "skill",
       "scope": "workspace_session",
       "completeness": "partial",
-      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level skills and plugins excluded"
+      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level configuration excluded"
      }
     ],
     "contract_results": [
@@ -2026,7 +2026,7 @@
     "latest"
    ],
    "exit": 4,
-   "elapsed_ms": 173.8,
+   "elapsed_ms": 156.8,
    "checkout_changed": [],
    "report": {
     "schema_version": 1,
@@ -2039,13 +2039,13 @@
     "policy": "ci",
     "strict_external": true,
     "workspace_digest": "sha256:2f81562a6c152cc5107b59a288082d5074fcd32baf8c9c64f59042d36f7bc80d",
-    "generation_id": "sha256:abf582194fb7e66850e32843e4cd703cd59f2cd178dcc42596334860f3248858",
+    "generation_id": "sha256:f9706053164d1857553f76561c4fd1b9f301537892840a9e7af389c6354399c7",
     "policy_digest": "sha256:0b733559470deb6d6af018bb02b114d440bfeb332a57fcf4f5aad1c04329fbd0",
     "expected_target": {
      "adapter": "claude",
      "adapter_revision": "claude-observe-2026-10",
      "executable_identity": "sha256:f1f6e96e0d8342b9dbf41d7e88255397a6a52ce3d8736ad6a4c6b59c9b62fefa",
-     "capability_revision": "claude-probe-v3"
+     "capability_revision": "claude-probe-v4"
     },
     "source_identity": "f59dc8acc436cec70261dd41c7d90189bfaea579bf82a952583e152fd203edc9",
     "lock_digest": "sha256:bd382cd39d0afa36a75528b92d2852cb9051c511f12f91bb4306eca4b0bb286c",
@@ -2230,7 +2230,7 @@
     "--json"
    ],
    "exit": 5,
-   "elapsed_ms": 375.9,
+   "elapsed_ms": 307.4,
    "checkout_changed": [],
    "report": {
     "schema_version": 1,
@@ -2243,13 +2243,13 @@
     "policy": "ci",
     "strict_external": true,
     "workspace_digest": "sha256:2f81562a6c152cc5107b59a288082d5074fcd32baf8c9c64f59042d36f7bc80d",
-    "generation_id": "sha256:abf582194fb7e66850e32843e4cd703cd59f2cd178dcc42596334860f3248858",
+    "generation_id": "sha256:f9706053164d1857553f76561c4fd1b9f301537892840a9e7af389c6354399c7",
     "policy_digest": "sha256:0b733559470deb6d6af018bb02b114d440bfeb332a57fcf4f5aad1c04329fbd0",
     "expected_target": {
      "adapter": "claude",
      "adapter_revision": "claude-observe-2026-10",
      "executable_identity": "sha256:f1f6e96e0d8342b9dbf41d7e88255397a6a52ce3d8736ad6a4c6b59c9b62fefa",
-     "capability_revision": "claude-probe-v3"
+     "capability_revision": "claude-probe-v4"
     },
     "source_identity": "f59dc8acc436cec70261dd41c7d90189bfaea579bf82a952583e152fd203edc9",
     "lock_digest": "sha256:bd382cd39d0afa36a75528b92d2852cb9051c511f12f91bb4306eca4b0bb286c",
@@ -2429,7 +2429,7 @@
     "latest"
    ],
    "exit": 4,
-   "elapsed_ms": 191.7,
+   "elapsed_ms": 150.5,
    "checkout_changed": [],
    "report": {
     "schema_version": 1,
@@ -2442,13 +2442,13 @@
     "policy": "ci",
     "strict_external": true,
     "workspace_digest": "sha256:2f81562a6c152cc5107b59a288082d5074fcd32baf8c9c64f59042d36f7bc80d",
-    "generation_id": "sha256:abf582194fb7e66850e32843e4cd703cd59f2cd178dcc42596334860f3248858",
+    "generation_id": "sha256:f9706053164d1857553f76561c4fd1b9f301537892840a9e7af389c6354399c7",
     "policy_digest": "sha256:0b733559470deb6d6af018bb02b114d440bfeb332a57fcf4f5aad1c04329fbd0",
     "expected_target": {
      "adapter": "claude",
      "adapter_revision": "claude-observe-2026-10",
      "executable_identity": "sha256:f1f6e96e0d8342b9dbf41d7e88255397a6a52ce3d8736ad6a4c6b59c9b62fefa",
-     "capability_revision": "claude-probe-v3"
+     "capability_revision": "claude-probe-v4"
     },
     "source_identity": "f59dc8acc436cec70261dd41c7d90189bfaea579bf82a952583e152fd203edc9",
     "lock_digest": "sha256:bd382cd39d0afa36a75528b92d2852cb9051c511f12f91bb4306eca4b0bb286c",
@@ -2633,22 +2633,22 @@
     "--json"
    ],
    "exit": 0,
-   "elapsed_ms": 2710.0,
+   "elapsed_ms": 3254.4,
    "checkout_changed": [],
    "report": {
     "diagnostic_refs": [
-     "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814808645272040/version.json",
-     "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814808645272040/plugin-list.json",
-     "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814808645272040/plugin-details.json",
-     "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814808645272040/session-init.json"
+     "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821449159615498/version.json",
+     "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821449159615498/plugin-list.json",
+     "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821449159615498/plugin-details.json",
+     "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821449159615498/session-init.json"
     ],
     "schema_version": 1,
     "phase": "probe",
-    "receipt_id": "claude-1791814808645272040",
+    "receipt_id": "claude-1791821449159615498",
     "source_id": "f59dc8acc436cec70261dd41c7d90189bfaea579bf82a952583e152fd203edc9",
     "lock_digest": "sha256:bd382cd39d0afa36a75528b92d2852cb9051c511f12f91bb4306eca4b0bb286c",
     "workspace_digest": "sha256:048ac7113ba64ec154c56aaa588c7f2a26de315772811e67334dbe60919e2582",
-    "generation_id": "sha256:70548d32398b4ff9e263c85f73ba9f7fe6759f878aa012ecd458afb67949828a",
+    "generation_id": "sha256:e65e384830ac8576ec43eb262c6d10bbb29bf50b723b464b2d969261009e033e",
     "mode": "default",
     "policy_digest": "sha256:0b733559470deb6d6af018bb02b114d440bfeb332a57fcf4f5aad1c04329fbd0",
     "target": {
@@ -2656,9 +2656,9 @@
      "adapter_revision": "claude-observe-2026-10",
      "executable_identity": "sha256:f1f6e96e0d8342b9dbf41d7e88255397a6a52ce3d8736ad6a4c6b59c9b62fefa",
      "native_version": "2.1.296 (Claude Code)",
-     "capability_revision": "claude-probe-v3"
+     "capability_revision": "claude-probe-v4"
     },
-    "created_at": "2026-10-12T14:20:08.645282915Z",
+    "created_at": "2026-10-12T16:10:49.15962579Z",
     "coverage": [
      {
       "category": "plugin",
@@ -2675,22 +2675,22 @@
       "category": "skill",
       "scope": "workspace_session",
       "completeness": "partial",
-      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level skills and plugins excluded"
+      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level configuration excluded"
      }
     ],
     "properties": [
      {
-      "evidence_digest": "sha256:ffd5e8bfeb7f3c59d3662cfa4965cef57a35d222e82d94dc3d90de4827783019",
+      "evidence_digest": "sha256:4851037e0e263c37f186dc7b2aa6b45d1d09c7f7b0b33cb92688439d8ac96fca",
       "scope": "controlled_projection",
       "category": "plugin",
       "property": "catalog_complete",
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814808645272040/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821449159615498/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:ffd5e8bfeb7f3c59d3662cfa4965cef57a35d222e82d94dc3d90de4827783019",
+      "evidence_digest": "sha256:4851037e0e263c37f186dc7b2aa6b45d1d09c7f7b0b33cb92688439d8ac96fca",
       "scope": "controlled_projection",
       "category": "plugin",
       "artifact_id": "agentpack-bundle",
@@ -2698,10 +2698,10 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814808645272040/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821449159615498/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:e48cbee58f8344e81623bcd710b1253b2e6c02927bfcaa44199aaf582c17f662",
+      "evidence_digest": "sha256:2d843386ba97cb6fb5a62c756c25dd0a3874739f98a2ae2ffd028fcc5583a4b7",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -2709,7 +2709,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814808645272040/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821449159615498/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -2721,7 +2721,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:e48cbee58f8344e81623bcd710b1253b2e6c02927bfcaa44199aaf582c17f662",
+      "evidence_digest": "sha256:2d843386ba97cb6fb5a62c756c25dd0a3874739f98a2ae2ffd028fcc5583a4b7",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -2729,7 +2729,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814808645272040/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821449159615498/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -2741,7 +2741,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:e48cbee58f8344e81623bcd710b1253b2e6c02927bfcaa44199aaf582c17f662",
+      "evidence_digest": "sha256:2d843386ba97cb6fb5a62c756c25dd0a3874739f98a2ae2ffd028fcc5583a4b7",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -2749,7 +2749,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814808645272040/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821449159615498/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -2761,7 +2761,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:735cca1708a161eedf0d94dcd79f7a9d1d8f0ea1da744650de5edbc71b1d26b3",
+      "evidence_digest": "sha256:5669e6a873f0f4becc00cff855e8e91ed2fd207bcab9e029019821246461c0d4",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -2769,10 +2769,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814808645272040/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821449159615498/session-init.json"
      },
      {
-      "evidence_digest": "sha256:735cca1708a161eedf0d94dcd79f7a9d1d8f0ea1da744650de5edbc71b1d26b3",
+      "evidence_digest": "sha256:5669e6a873f0f4becc00cff855e8e91ed2fd207bcab9e029019821246461c0d4",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -2780,10 +2780,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814808645272040/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821449159615498/session-init.json"
      },
      {
-      "evidence_digest": "sha256:735cca1708a161eedf0d94dcd79f7a9d1d8f0ea1da744650de5edbc71b1d26b3",
+      "evidence_digest": "sha256:5669e6a873f0f4becc00cff855e8e91ed2fd207bcab9e029019821246461c0d4",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -2791,10 +2791,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814808645272040/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821449159615498/session-init.json"
      },
      {
-      "evidence_digest": "sha256:735cca1708a161eedf0d94dcd79f7a9d1d8f0ea1da744650de5edbc71b1d26b3",
+      "evidence_digest": "sha256:5669e6a873f0f4becc00cff855e8e91ed2fd207bcab9e029019821246461c0d4",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -2802,10 +2802,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814808645272040/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821449159615498/session-init.json"
      },
      {
-      "evidence_digest": "sha256:735cca1708a161eedf0d94dcd79f7a9d1d8f0ea1da744650de5edbc71b1d26b3",
+      "evidence_digest": "sha256:5669e6a873f0f4becc00cff855e8e91ed2fd207bcab9e029019821246461c0d4",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -2813,10 +2813,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814808645272040/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821449159615498/session-init.json"
      },
      {
-      "evidence_digest": "sha256:735cca1708a161eedf0d94dcd79f7a9d1d8f0ea1da744650de5edbc71b1d26b3",
+      "evidence_digest": "sha256:5669e6a873f0f4becc00cff855e8e91ed2fd207bcab9e029019821246461c0d4",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -2824,7 +2824,7 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814808645272040/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821449159615498/session-init.json"
      }
     ],
     "findings": [],
@@ -2859,7 +2859,7 @@
     "latest"
    ],
    "exit": 0,
-   "elapsed_ms": 172.6,
+   "elapsed_ms": 265.5,
    "checkout_changed": [],
    "report": {
     "schema_version": 1,
@@ -2872,27 +2872,27 @@
     "policy": "ci",
     "strict_external": true,
     "workspace_digest": "sha256:048ac7113ba64ec154c56aaa588c7f2a26de315772811e67334dbe60919e2582",
-    "generation_id": "sha256:70548d32398b4ff9e263c85f73ba9f7fe6759f878aa012ecd458afb67949828a",
+    "generation_id": "sha256:e65e384830ac8576ec43eb262c6d10bbb29bf50b723b464b2d969261009e033e",
     "policy_digest": "sha256:0b733559470deb6d6af018bb02b114d440bfeb332a57fcf4f5aad1c04329fbd0",
     "expected_target": {
      "adapter": "claude",
      "adapter_revision": "claude-observe-2026-10",
      "executable_identity": "sha256:f1f6e96e0d8342b9dbf41d7e88255397a6a52ce3d8736ad6a4c6b59c9b62fefa",
-     "capability_revision": "claude-probe-v3"
+     "capability_revision": "claude-probe-v4"
     },
     "properties": [
      {
-      "evidence_digest": "sha256:ffd5e8bfeb7f3c59d3662cfa4965cef57a35d222e82d94dc3d90de4827783019",
+      "evidence_digest": "sha256:4851037e0e263c37f186dc7b2aa6b45d1d09c7f7b0b33cb92688439d8ac96fca",
       "scope": "controlled_projection",
       "category": "plugin",
       "property": "catalog_complete",
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814808645272040/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821449159615498/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:ffd5e8bfeb7f3c59d3662cfa4965cef57a35d222e82d94dc3d90de4827783019",
+      "evidence_digest": "sha256:4851037e0e263c37f186dc7b2aa6b45d1d09c7f7b0b33cb92688439d8ac96fca",
       "scope": "controlled_projection",
       "category": "plugin",
       "artifact_id": "agentpack-bundle",
@@ -2900,10 +2900,10 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814808645272040/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821449159615498/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:e48cbee58f8344e81623bcd710b1253b2e6c02927bfcaa44199aaf582c17f662",
+      "evidence_digest": "sha256:2d843386ba97cb6fb5a62c756c25dd0a3874739f98a2ae2ffd028fcc5583a4b7",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -2911,7 +2911,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814808645272040/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821449159615498/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -2923,7 +2923,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:e48cbee58f8344e81623bcd710b1253b2e6c02927bfcaa44199aaf582c17f662",
+      "evidence_digest": "sha256:2d843386ba97cb6fb5a62c756c25dd0a3874739f98a2ae2ffd028fcc5583a4b7",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -2931,7 +2931,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814808645272040/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821449159615498/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -2943,7 +2943,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:e48cbee58f8344e81623bcd710b1253b2e6c02927bfcaa44199aaf582c17f662",
+      "evidence_digest": "sha256:2d843386ba97cb6fb5a62c756c25dd0a3874739f98a2ae2ffd028fcc5583a4b7",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -2951,7 +2951,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814808645272040/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821449159615498/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -2963,7 +2963,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:735cca1708a161eedf0d94dcd79f7a9d1d8f0ea1da744650de5edbc71b1d26b3",
+      "evidence_digest": "sha256:5669e6a873f0f4becc00cff855e8e91ed2fd207bcab9e029019821246461c0d4",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -2971,10 +2971,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814808645272040/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821449159615498/session-init.json"
      },
      {
-      "evidence_digest": "sha256:735cca1708a161eedf0d94dcd79f7a9d1d8f0ea1da744650de5edbc71b1d26b3",
+      "evidence_digest": "sha256:5669e6a873f0f4becc00cff855e8e91ed2fd207bcab9e029019821246461c0d4",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -2982,10 +2982,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814808645272040/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821449159615498/session-init.json"
      },
      {
-      "evidence_digest": "sha256:735cca1708a161eedf0d94dcd79f7a9d1d8f0ea1da744650de5edbc71b1d26b3",
+      "evidence_digest": "sha256:5669e6a873f0f4becc00cff855e8e91ed2fd207bcab9e029019821246461c0d4",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -2993,10 +2993,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814808645272040/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821449159615498/session-init.json"
      },
      {
-      "evidence_digest": "sha256:735cca1708a161eedf0d94dcd79f7a9d1d8f0ea1da744650de5edbc71b1d26b3",
+      "evidence_digest": "sha256:5669e6a873f0f4becc00cff855e8e91ed2fd207bcab9e029019821246461c0d4",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -3004,10 +3004,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814808645272040/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821449159615498/session-init.json"
      },
      {
-      "evidence_digest": "sha256:735cca1708a161eedf0d94dcd79f7a9d1d8f0ea1da744650de5edbc71b1d26b3",
+      "evidence_digest": "sha256:5669e6a873f0f4becc00cff855e8e91ed2fd207bcab9e029019821246461c0d4",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -3015,10 +3015,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814808645272040/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821449159615498/session-init.json"
      },
      {
-      "evidence_digest": "sha256:735cca1708a161eedf0d94dcd79f7a9d1d8f0ea1da744650de5edbc71b1d26b3",
+      "evidence_digest": "sha256:5669e6a873f0f4becc00cff855e8e91ed2fd207bcab9e029019821246461c0d4",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -3026,7 +3026,7 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814808645272040/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821449159615498/session-init.json"
      }
     ],
     "source_identity": "f59dc8acc436cec70261dd41c7d90189bfaea579bf82a952583e152fd203edc9",
@@ -3110,7 +3110,7 @@
       "category": "skill",
       "scope": "workspace_session",
       "completeness": "partial",
-      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level skills and plugins excluded"
+      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level configuration excluded"
      }
     ],
     "contract_results": [
@@ -3259,7 +3259,7 @@
     "latest"
    ],
    "exit": 4,
-   "elapsed_ms": 232.5,
+   "elapsed_ms": 190.7,
    "checkout_changed": [],
    "report": {
     "schema_version": 1,
@@ -3272,13 +3272,13 @@
     "policy": "ci",
     "strict_external": true,
     "workspace_digest": "sha256:048ac7113ba64ec154c56aaa588c7f2a26de315772811e67334dbe60919e2582",
-    "generation_id": "sha256:70548d32398b4ff9e263c85f73ba9f7fe6759f878aa012ecd458afb67949828a",
+    "generation_id": "sha256:e65e384830ac8576ec43eb262c6d10bbb29bf50b723b464b2d969261009e033e",
     "policy_digest": "sha256:477e2967e65038916eca09d2d38d8a4faeb2e1c28daac918232e17d583a4881a",
     "expected_target": {
      "adapter": "claude",
      "adapter_revision": "claude-observe-2026-10",
      "executable_identity": "sha256:f1f6e96e0d8342b9dbf41d7e88255397a6a52ce3d8736ad6a4c6b59c9b62fefa",
-     "capability_revision": "claude-probe-v3"
+     "capability_revision": "claude-probe-v4"
     },
     "source_identity": "f59dc8acc436cec70261dd41c7d90189bfaea579bf82a952583e152fd203edc9",
     "lock_digest": "sha256:bd382cd39d0afa36a75528b92d2852cb9051c511f12f91bb4306eca4b0bb286c",
@@ -3450,22 +3450,22 @@
     "--json"
    ],
    "exit": 0,
-   "elapsed_ms": 3164.9,
+   "elapsed_ms": 2843.3,
    "checkout_changed": [],
    "report": {
     "diagnostic_refs": [
-     "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814814138508432/version.json",
-     "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814814138508432/plugin-list.json",
-     "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814814138508432/plugin-details.json",
-     "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814814138508432/session-init.json"
+     "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821454996198661/version.json",
+     "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821454996198661/plugin-list.json",
+     "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821454996198661/plugin-details.json",
+     "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821454996198661/session-init.json"
     ],
     "schema_version": 1,
     "phase": "probe",
-    "receipt_id": "claude-1791814814138508432",
+    "receipt_id": "claude-1791821454996198661",
     "source_id": "f59dc8acc436cec70261dd41c7d90189bfaea579bf82a952583e152fd203edc9",
     "lock_digest": "sha256:bd382cd39d0afa36a75528b92d2852cb9051c511f12f91bb4306eca4b0bb286c",
     "workspace_digest": "sha256:048ac7113ba64ec154c56aaa588c7f2a26de315772811e67334dbe60919e2582",
-    "generation_id": "sha256:70548d32398b4ff9e263c85f73ba9f7fe6759f878aa012ecd458afb67949828a",
+    "generation_id": "sha256:e65e384830ac8576ec43eb262c6d10bbb29bf50b723b464b2d969261009e033e",
     "mode": "default",
     "policy_digest": "sha256:477e2967e65038916eca09d2d38d8a4faeb2e1c28daac918232e17d583a4881a",
     "target": {
@@ -3473,9 +3473,9 @@
      "adapter_revision": "claude-observe-2026-10",
      "executable_identity": "sha256:f1f6e96e0d8342b9dbf41d7e88255397a6a52ce3d8736ad6a4c6b59c9b62fefa",
      "native_version": "2.1.296 (Claude Code)",
-     "capability_revision": "claude-probe-v3"
+     "capability_revision": "claude-probe-v4"
     },
-    "created_at": "2026-10-12T14:20:14.138522516Z",
+    "created_at": "2026-10-12T16:10:54.996209203Z",
     "coverage": [
      {
       "category": "plugin",
@@ -3492,22 +3492,22 @@
       "category": "skill",
       "scope": "workspace_session",
       "completeness": "partial",
-      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level skills and plugins excluded"
+      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level configuration excluded"
      }
     ],
     "properties": [
      {
-      "evidence_digest": "sha256:9b6934dafb5033ed624b17f3a5c3432d87296b2dae21184bd07d301ee4df3aa6",
+      "evidence_digest": "sha256:018f98061f47cba4b6ae7b90a45169e831fb284d0989fafcb0fdbf9d5590c74b",
       "scope": "controlled_projection",
       "category": "plugin",
       "property": "catalog_complete",
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814814138508432/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821454996198661/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:9b6934dafb5033ed624b17f3a5c3432d87296b2dae21184bd07d301ee4df3aa6",
+      "evidence_digest": "sha256:018f98061f47cba4b6ae7b90a45169e831fb284d0989fafcb0fdbf9d5590c74b",
       "scope": "controlled_projection",
       "category": "plugin",
       "artifact_id": "agentpack-bundle",
@@ -3515,10 +3515,10 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814814138508432/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821454996198661/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:113252240f5f00de0bdfa32263469ff240c761ea78a1d241e9f790a3a05800dd",
+      "evidence_digest": "sha256:d702f5bac63a3c201d8784a41c31d55834076823bc7a15262ab50fb9f43e037c",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -3526,7 +3526,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814814138508432/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821454996198661/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -3538,7 +3538,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:113252240f5f00de0bdfa32263469ff240c761ea78a1d241e9f790a3a05800dd",
+      "evidence_digest": "sha256:d702f5bac63a3c201d8784a41c31d55834076823bc7a15262ab50fb9f43e037c",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -3546,7 +3546,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814814138508432/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821454996198661/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -3558,7 +3558,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:113252240f5f00de0bdfa32263469ff240c761ea78a1d241e9f790a3a05800dd",
+      "evidence_digest": "sha256:d702f5bac63a3c201d8784a41c31d55834076823bc7a15262ab50fb9f43e037c",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -3566,7 +3566,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814814138508432/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821454996198661/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -3578,7 +3578,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:af7fef38b11920ae8bbef8402acaa6973cf1b0a2b5ca392d609ba555bb29d329",
+      "evidence_digest": "sha256:c39c68c4821c8db6a486355350ec13518d6ed8292dfe79095edb658b79cf2b15",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -3586,10 +3586,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814814138508432/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821454996198661/session-init.json"
      },
      {
-      "evidence_digest": "sha256:af7fef38b11920ae8bbef8402acaa6973cf1b0a2b5ca392d609ba555bb29d329",
+      "evidence_digest": "sha256:c39c68c4821c8db6a486355350ec13518d6ed8292dfe79095edb658b79cf2b15",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -3597,10 +3597,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814814138508432/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821454996198661/session-init.json"
      },
      {
-      "evidence_digest": "sha256:af7fef38b11920ae8bbef8402acaa6973cf1b0a2b5ca392d609ba555bb29d329",
+      "evidence_digest": "sha256:c39c68c4821c8db6a486355350ec13518d6ed8292dfe79095edb658b79cf2b15",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -3608,10 +3608,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814814138508432/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821454996198661/session-init.json"
      },
      {
-      "evidence_digest": "sha256:af7fef38b11920ae8bbef8402acaa6973cf1b0a2b5ca392d609ba555bb29d329",
+      "evidence_digest": "sha256:c39c68c4821c8db6a486355350ec13518d6ed8292dfe79095edb658b79cf2b15",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -3619,10 +3619,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814814138508432/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821454996198661/session-init.json"
      },
      {
-      "evidence_digest": "sha256:af7fef38b11920ae8bbef8402acaa6973cf1b0a2b5ca392d609ba555bb29d329",
+      "evidence_digest": "sha256:c39c68c4821c8db6a486355350ec13518d6ed8292dfe79095edb658b79cf2b15",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -3630,10 +3630,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814814138508432/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821454996198661/session-init.json"
      },
      {
-      "evidence_digest": "sha256:af7fef38b11920ae8bbef8402acaa6973cf1b0a2b5ca392d609ba555bb29d329",
+      "evidence_digest": "sha256:c39c68c4821c8db6a486355350ec13518d6ed8292dfe79095edb658b79cf2b15",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -3641,7 +3641,7 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814814138508432/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821454996198661/session-init.json"
      }
     ],
     "findings": [],
@@ -3676,7 +3676,7 @@
     "latest"
    ],
    "exit": 0,
-   "elapsed_ms": 188.8,
+   "elapsed_ms": 153.3,
    "checkout_changed": [],
    "report": {
     "schema_version": 1,
@@ -3689,27 +3689,27 @@
     "policy": "ci",
     "strict_external": true,
     "workspace_digest": "sha256:048ac7113ba64ec154c56aaa588c7f2a26de315772811e67334dbe60919e2582",
-    "generation_id": "sha256:70548d32398b4ff9e263c85f73ba9f7fe6759f878aa012ecd458afb67949828a",
+    "generation_id": "sha256:e65e384830ac8576ec43eb262c6d10bbb29bf50b723b464b2d969261009e033e",
     "policy_digest": "sha256:477e2967e65038916eca09d2d38d8a4faeb2e1c28daac918232e17d583a4881a",
     "expected_target": {
      "adapter": "claude",
      "adapter_revision": "claude-observe-2026-10",
      "executable_identity": "sha256:f1f6e96e0d8342b9dbf41d7e88255397a6a52ce3d8736ad6a4c6b59c9b62fefa",
-     "capability_revision": "claude-probe-v3"
+     "capability_revision": "claude-probe-v4"
     },
     "properties": [
      {
-      "evidence_digest": "sha256:9b6934dafb5033ed624b17f3a5c3432d87296b2dae21184bd07d301ee4df3aa6",
+      "evidence_digest": "sha256:018f98061f47cba4b6ae7b90a45169e831fb284d0989fafcb0fdbf9d5590c74b",
       "scope": "controlled_projection",
       "category": "plugin",
       "property": "catalog_complete",
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814814138508432/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821454996198661/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:9b6934dafb5033ed624b17f3a5c3432d87296b2dae21184bd07d301ee4df3aa6",
+      "evidence_digest": "sha256:018f98061f47cba4b6ae7b90a45169e831fb284d0989fafcb0fdbf9d5590c74b",
       "scope": "controlled_projection",
       "category": "plugin",
       "artifact_id": "agentpack-bundle",
@@ -3717,10 +3717,10 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814814138508432/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821454996198661/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:113252240f5f00de0bdfa32263469ff240c761ea78a1d241e9f790a3a05800dd",
+      "evidence_digest": "sha256:d702f5bac63a3c201d8784a41c31d55834076823bc7a15262ab50fb9f43e037c",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -3728,7 +3728,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814814138508432/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821454996198661/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -3740,7 +3740,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:113252240f5f00de0bdfa32263469ff240c761ea78a1d241e9f790a3a05800dd",
+      "evidence_digest": "sha256:d702f5bac63a3c201d8784a41c31d55834076823bc7a15262ab50fb9f43e037c",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -3748,7 +3748,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814814138508432/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821454996198661/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -3760,7 +3760,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:113252240f5f00de0bdfa32263469ff240c761ea78a1d241e9f790a3a05800dd",
+      "evidence_digest": "sha256:d702f5bac63a3c201d8784a41c31d55834076823bc7a15262ab50fb9f43e037c",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -3768,7 +3768,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814814138508432/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821454996198661/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -3780,7 +3780,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:af7fef38b11920ae8bbef8402acaa6973cf1b0a2b5ca392d609ba555bb29d329",
+      "evidence_digest": "sha256:c39c68c4821c8db6a486355350ec13518d6ed8292dfe79095edb658b79cf2b15",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -3788,10 +3788,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814814138508432/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821454996198661/session-init.json"
      },
      {
-      "evidence_digest": "sha256:af7fef38b11920ae8bbef8402acaa6973cf1b0a2b5ca392d609ba555bb29d329",
+      "evidence_digest": "sha256:c39c68c4821c8db6a486355350ec13518d6ed8292dfe79095edb658b79cf2b15",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -3799,10 +3799,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814814138508432/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821454996198661/session-init.json"
      },
      {
-      "evidence_digest": "sha256:af7fef38b11920ae8bbef8402acaa6973cf1b0a2b5ca392d609ba555bb29d329",
+      "evidence_digest": "sha256:c39c68c4821c8db6a486355350ec13518d6ed8292dfe79095edb658b79cf2b15",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -3810,10 +3810,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814814138508432/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821454996198661/session-init.json"
      },
      {
-      "evidence_digest": "sha256:af7fef38b11920ae8bbef8402acaa6973cf1b0a2b5ca392d609ba555bb29d329",
+      "evidence_digest": "sha256:c39c68c4821c8db6a486355350ec13518d6ed8292dfe79095edb658b79cf2b15",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -3821,10 +3821,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814814138508432/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821454996198661/session-init.json"
      },
      {
-      "evidence_digest": "sha256:af7fef38b11920ae8bbef8402acaa6973cf1b0a2b5ca392d609ba555bb29d329",
+      "evidence_digest": "sha256:c39c68c4821c8db6a486355350ec13518d6ed8292dfe79095edb658b79cf2b15",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -3832,10 +3832,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814814138508432/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821454996198661/session-init.json"
      },
      {
-      "evidence_digest": "sha256:af7fef38b11920ae8bbef8402acaa6973cf1b0a2b5ca392d609ba555bb29d329",
+      "evidence_digest": "sha256:c39c68c4821c8db6a486355350ec13518d6ed8292dfe79095edb658b79cf2b15",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -3843,7 +3843,7 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814814138508432/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821454996198661/session-init.json"
      }
     ],
     "source_identity": "f59dc8acc436cec70261dd41c7d90189bfaea579bf82a952583e152fd203edc9",
@@ -3927,7 +3927,7 @@
       "category": "skill",
       "scope": "workspace_session",
       "completeness": "partial",
-      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level skills and plugins excluded"
+      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level configuration excluded"
      }
     ],
     "contract_results": [
@@ -4078,22 +4078,22 @@
     "--json"
    ],
    "exit": 0,
-   "elapsed_ms": 2594.7,
+   "elapsed_ms": 2389.9,
    "checkout_changed": [],
    "report": {
     "diagnostic_refs": [
-     "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814818631116724/version.json",
-     "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814818631116724/plugin-list.json",
-     "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814818631116724/plugin-details.json",
-     "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814818631116724/session-init.json"
+     "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821458775662183/version.json",
+     "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821458775662183/plugin-list.json",
+     "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821458775662183/plugin-details.json",
+     "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821458775662183/session-init.json"
     ],
     "schema_version": 1,
     "phase": "probe",
-    "receipt_id": "claude-1791814818631116724",
+    "receipt_id": "claude-1791821458775662183",
     "source_id": "f59dc8acc436cec70261dd41c7d90189bfaea579bf82a952583e152fd203edc9",
     "lock_digest": "sha256:bd382cd39d0afa36a75528b92d2852cb9051c511f12f91bb4306eca4b0bb286c",
     "workspace_digest": "sha256:048ac7113ba64ec154c56aaa588c7f2a26de315772811e67334dbe60919e2582",
-    "generation_id": "sha256:70548d32398b4ff9e263c85f73ba9f7fe6759f878aa012ecd458afb67949828a",
+    "generation_id": "sha256:e65e384830ac8576ec43eb262c6d10bbb29bf50b723b464b2d969261009e033e",
     "mode": "default",
     "policy_digest": "sha256:0b733559470deb6d6af018bb02b114d440bfeb332a57fcf4f5aad1c04329fbd0",
     "target": {
@@ -4101,9 +4101,9 @@
      "adapter_revision": "claude-observe-2026-10",
      "executable_identity": "sha256:f1f6e96e0d8342b9dbf41d7e88255397a6a52ce3d8736ad6a4c6b59c9b62fefa",
      "native_version": "2.1.296 (Claude Code)",
-     "capability_revision": "claude-probe-v3"
+     "capability_revision": "claude-probe-v4"
     },
-    "created_at": "2026-10-12T14:20:18.631127683Z",
+    "created_at": "2026-10-12T16:10:58.775670183Z",
     "coverage": [
      {
       "category": "plugin",
@@ -4120,22 +4120,22 @@
       "category": "skill",
       "scope": "workspace_session",
       "completeness": "partial",
-      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level skills and plugins excluded"
+      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level configuration excluded"
      }
     ],
     "properties": [
      {
-      "evidence_digest": "sha256:bdb36652ceeb634af80c47c4a865a1a320bcc64a3b29048f5dfdc857438cc3a2",
+      "evidence_digest": "sha256:f26e2599f85a5c7bf4f36f8aed3f8ef29a9104075974060d3545a2e8ffc4d2b6",
       "scope": "controlled_projection",
       "category": "plugin",
       "property": "catalog_complete",
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814818631116724/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821458775662183/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:bdb36652ceeb634af80c47c4a865a1a320bcc64a3b29048f5dfdc857438cc3a2",
+      "evidence_digest": "sha256:f26e2599f85a5c7bf4f36f8aed3f8ef29a9104075974060d3545a2e8ffc4d2b6",
       "scope": "controlled_projection",
       "category": "plugin",
       "artifact_id": "agentpack-bundle",
@@ -4143,10 +4143,10 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814818631116724/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821458775662183/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:e414eb8d4e030d51499db62ab36733867c321e046fc3f6568266a9c2e44189ae",
+      "evidence_digest": "sha256:7bed8165c92c7168840d0de0c45897227cfcd45f2b051dda1b7ba671a8f63407",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -4154,7 +4154,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814818631116724/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821458775662183/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -4166,7 +4166,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:e414eb8d4e030d51499db62ab36733867c321e046fc3f6568266a9c2e44189ae",
+      "evidence_digest": "sha256:7bed8165c92c7168840d0de0c45897227cfcd45f2b051dda1b7ba671a8f63407",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -4174,7 +4174,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814818631116724/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821458775662183/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -4186,7 +4186,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:e414eb8d4e030d51499db62ab36733867c321e046fc3f6568266a9c2e44189ae",
+      "evidence_digest": "sha256:7bed8165c92c7168840d0de0c45897227cfcd45f2b051dda1b7ba671a8f63407",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -4194,7 +4194,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814818631116724/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821458775662183/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -4206,7 +4206,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:1f584169b4acca7d2fab667a2b1a16cc5aba2d08c1cae7ed9e2e4bdad060ba81",
+      "evidence_digest": "sha256:5323b5e2fb968f7295611b7d3bb853ebbacea8057c546dc3a5558a5c3183ebda",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -4214,10 +4214,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814818631116724/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821458775662183/session-init.json"
      },
      {
-      "evidence_digest": "sha256:1f584169b4acca7d2fab667a2b1a16cc5aba2d08c1cae7ed9e2e4bdad060ba81",
+      "evidence_digest": "sha256:5323b5e2fb968f7295611b7d3bb853ebbacea8057c546dc3a5558a5c3183ebda",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -4225,10 +4225,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814818631116724/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821458775662183/session-init.json"
      },
      {
-      "evidence_digest": "sha256:1f584169b4acca7d2fab667a2b1a16cc5aba2d08c1cae7ed9e2e4bdad060ba81",
+      "evidence_digest": "sha256:5323b5e2fb968f7295611b7d3bb853ebbacea8057c546dc3a5558a5c3183ebda",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -4236,10 +4236,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814818631116724/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821458775662183/session-init.json"
      },
      {
-      "evidence_digest": "sha256:1f584169b4acca7d2fab667a2b1a16cc5aba2d08c1cae7ed9e2e4bdad060ba81",
+      "evidence_digest": "sha256:5323b5e2fb968f7295611b7d3bb853ebbacea8057c546dc3a5558a5c3183ebda",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -4247,10 +4247,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814818631116724/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821458775662183/session-init.json"
      },
      {
-      "evidence_digest": "sha256:1f584169b4acca7d2fab667a2b1a16cc5aba2d08c1cae7ed9e2e4bdad060ba81",
+      "evidence_digest": "sha256:5323b5e2fb968f7295611b7d3bb853ebbacea8057c546dc3a5558a5c3183ebda",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -4258,10 +4258,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814818631116724/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821458775662183/session-init.json"
      },
      {
-      "evidence_digest": "sha256:1f584169b4acca7d2fab667a2b1a16cc5aba2d08c1cae7ed9e2e4bdad060ba81",
+      "evidence_digest": "sha256:5323b5e2fb968f7295611b7d3bb853ebbacea8057c546dc3a5558a5c3183ebda",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -4269,7 +4269,7 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814818631116724/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821458775662183/session-init.json"
      }
     ],
     "findings": [],
@@ -4296,9 +4296,9 @@
     "<ROOT>/checkout-b"
    ],
    "exit": 0,
-   "elapsed_ms": 4.3,
+   "elapsed_ms": 5.6,
    "checkout_changed": [],
-   "stdout_sha256": "a53b1a43f5ab968212cea1ef62caa894c9377c5384a5c45851409cafce73f0ba"
+   "stdout_sha256": "a3f020a8c90ef5b6597700d05dd1662dc761818853015fd52cf7fd57d633c9b5"
   },
   {
    "case": "restore_b",
@@ -4313,9 +4313,9 @@
     "--strict-external"
    ],
    "exit": 0,
-   "elapsed_ms": 54.2,
+   "elapsed_ms": 51.6,
    "checkout_changed": [],
-   "stdout_sha256": "068af150d53d06dee4471d700d08f0064615abd6e9a71f513dec35c582e9272c"
+   "stdout_sha256": "a69cfa1295e721524b96047ec28bd9d69cebdd8cc32e949b758916fc25066a69"
   },
   {
    "case": "state:second_checkout_no_receipt",
@@ -4336,7 +4336,7 @@
     "latest"
    ],
    "exit": 4,
-   "elapsed_ms": 176.7,
+   "elapsed_ms": 170.8,
    "checkout_changed": [],
    "report": {
     "schema_version": 1,
@@ -4349,13 +4349,13 @@
     "policy": "ci",
     "strict_external": true,
     "workspace_digest": "sha256:048ac7113ba64ec154c56aaa588c7f2a26de315772811e67334dbe60919e2582",
-    "generation_id": "sha256:da7ed2cfde9f4991a7daefc14e0d2f55bbecf372cb200e5327714287a4eab81f",
+    "generation_id": "sha256:b350568458f063cc1a1f020104a0160ade22df78a981fa120b5203ecef96be68",
     "policy_digest": "sha256:0b733559470deb6d6af018bb02b114d440bfeb332a57fcf4f5aad1c04329fbd0",
     "expected_target": {
      "adapter": "claude",
      "adapter_revision": "claude-observe-2026-10",
      "executable_identity": "sha256:f1f6e96e0d8342b9dbf41d7e88255397a6a52ce3d8736ad6a4c6b59c9b62fefa",
-     "capability_revision": "claude-probe-v3"
+     "capability_revision": "claude-probe-v4"
     },
     "source_identity": "f59dc8acc436cec70261dd41c7d90189bfaea579bf82a952583e152fd203edc9",
     "lock_digest": "sha256:bd382cd39d0afa36a75528b92d2852cb9051c511f12f91bb4306eca4b0bb286c",
@@ -4514,22 +4514,22 @@
     "--json"
    ],
    "exit": 0,
-   "elapsed_ms": 2725.1,
+   "elapsed_ms": 3093.0,
    "checkout_changed": [],
    "report": {
     "diagnostic_refs": [
-     "<ROOT>/machine-a/managed/projects/8207647fb423f4ac/probe-diagnostics/claude-1791814822648442748/version.json",
-     "<ROOT>/machine-a/managed/projects/8207647fb423f4ac/probe-diagnostics/claude-1791814822648442748/plugin-list.json",
-     "<ROOT>/machine-a/managed/projects/8207647fb423f4ac/probe-diagnostics/claude-1791814822648442748/plugin-details.json",
-     "<ROOT>/machine-a/managed/projects/8207647fb423f4ac/probe-diagnostics/claude-1791814822648442748/session-init.json"
+     "<ROOT>/machine-a/managed/projects/e73533aec4089cdf/probe-diagnostics/claude-1791821462781480757/version.json",
+     "<ROOT>/machine-a/managed/projects/e73533aec4089cdf/probe-diagnostics/claude-1791821462781480757/plugin-list.json",
+     "<ROOT>/machine-a/managed/projects/e73533aec4089cdf/probe-diagnostics/claude-1791821462781480757/plugin-details.json",
+     "<ROOT>/machine-a/managed/projects/e73533aec4089cdf/probe-diagnostics/claude-1791821462781480757/session-init.json"
     ],
     "schema_version": 1,
     "phase": "probe",
-    "receipt_id": "claude-1791814822648442748",
+    "receipt_id": "claude-1791821462781480757",
     "source_id": "f59dc8acc436cec70261dd41c7d90189bfaea579bf82a952583e152fd203edc9",
     "lock_digest": "sha256:bd382cd39d0afa36a75528b92d2852cb9051c511f12f91bb4306eca4b0bb286c",
     "workspace_digest": "sha256:048ac7113ba64ec154c56aaa588c7f2a26de315772811e67334dbe60919e2582",
-    "generation_id": "sha256:da7ed2cfde9f4991a7daefc14e0d2f55bbecf372cb200e5327714287a4eab81f",
+    "generation_id": "sha256:b350568458f063cc1a1f020104a0160ade22df78a981fa120b5203ecef96be68",
     "mode": "default",
     "policy_digest": "sha256:0b733559470deb6d6af018bb02b114d440bfeb332a57fcf4f5aad1c04329fbd0",
     "target": {
@@ -4537,9 +4537,9 @@
      "adapter_revision": "claude-observe-2026-10",
      "executable_identity": "sha256:f1f6e96e0d8342b9dbf41d7e88255397a6a52ce3d8736ad6a4c6b59c9b62fefa",
      "native_version": "2.1.296 (Claude Code)",
-     "capability_revision": "claude-probe-v3"
+     "capability_revision": "claude-probe-v4"
     },
-    "created_at": "2026-10-12T14:20:22.648463749Z",
+    "created_at": "2026-10-12T16:11:02.781484633Z",
     "coverage": [
      {
       "category": "plugin",
@@ -4556,22 +4556,22 @@
       "category": "skill",
       "scope": "workspace_session",
       "completeness": "partial",
-      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level skills and plugins excluded"
+      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level configuration excluded"
      }
     ],
     "properties": [
      {
-      "evidence_digest": "sha256:16181ab4cf4c32a2d123fada646731b86f1bbeb342d5cddba8178d0f7555ab39",
+      "evidence_digest": "sha256:347005e796b0d2ae7b8c7bb2e366edbeff8377382f2208c98028b4d5200884cc",
       "scope": "controlled_projection",
       "category": "plugin",
       "property": "catalog_complete",
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/8207647fb423f4ac/probe-diagnostics/claude-1791814822648442748/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/e73533aec4089cdf/probe-diagnostics/claude-1791821462781480757/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:16181ab4cf4c32a2d123fada646731b86f1bbeb342d5cddba8178d0f7555ab39",
+      "evidence_digest": "sha256:347005e796b0d2ae7b8c7bb2e366edbeff8377382f2208c98028b4d5200884cc",
       "scope": "controlled_projection",
       "category": "plugin",
       "artifact_id": "agentpack-bundle",
@@ -4579,10 +4579,10 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/8207647fb423f4ac/probe-diagnostics/claude-1791814822648442748/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/e73533aec4089cdf/probe-diagnostics/claude-1791821462781480757/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:61ca2f0a8e40551ac63eab04d5ee5689b024324eb311693aebbddae71d334fc0",
+      "evidence_digest": "sha256:15439a1f639e3a3fd4c7e52ddc7e644329b1bc6fd95b0dde12a83c30d404e98e",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -4590,7 +4590,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/8207647fb423f4ac/probe-diagnostics/claude-1791814822648442748/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/e73533aec4089cdf/probe-diagnostics/claude-1791821462781480757/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -4602,7 +4602,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:61ca2f0a8e40551ac63eab04d5ee5689b024324eb311693aebbddae71d334fc0",
+      "evidence_digest": "sha256:15439a1f639e3a3fd4c7e52ddc7e644329b1bc6fd95b0dde12a83c30d404e98e",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -4610,7 +4610,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/8207647fb423f4ac/probe-diagnostics/claude-1791814822648442748/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/e73533aec4089cdf/probe-diagnostics/claude-1791821462781480757/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -4622,7 +4622,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:61ca2f0a8e40551ac63eab04d5ee5689b024324eb311693aebbddae71d334fc0",
+      "evidence_digest": "sha256:15439a1f639e3a3fd4c7e52ddc7e644329b1bc6fd95b0dde12a83c30d404e98e",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -4630,7 +4630,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/8207647fb423f4ac/probe-diagnostics/claude-1791814822648442748/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/e73533aec4089cdf/probe-diagnostics/claude-1791821462781480757/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -4642,7 +4642,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:9bd4cbf22b3ed174bdf7ab6340c28b3fe9f36515e390fddb0ec74d367bd91326",
+      "evidence_digest": "sha256:f9243ad78b810c4eb6a7ded89543d6c7a60b1bc3bf101d5f9c7fc987c84effac",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -4650,10 +4650,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/8207647fb423f4ac/probe-diagnostics/claude-1791814822648442748/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/e73533aec4089cdf/probe-diagnostics/claude-1791821462781480757/session-init.json"
      },
      {
-      "evidence_digest": "sha256:9bd4cbf22b3ed174bdf7ab6340c28b3fe9f36515e390fddb0ec74d367bd91326",
+      "evidence_digest": "sha256:f9243ad78b810c4eb6a7ded89543d6c7a60b1bc3bf101d5f9c7fc987c84effac",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -4661,10 +4661,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/8207647fb423f4ac/probe-diagnostics/claude-1791814822648442748/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/e73533aec4089cdf/probe-diagnostics/claude-1791821462781480757/session-init.json"
      },
      {
-      "evidence_digest": "sha256:9bd4cbf22b3ed174bdf7ab6340c28b3fe9f36515e390fddb0ec74d367bd91326",
+      "evidence_digest": "sha256:f9243ad78b810c4eb6a7ded89543d6c7a60b1bc3bf101d5f9c7fc987c84effac",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -4672,10 +4672,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/8207647fb423f4ac/probe-diagnostics/claude-1791814822648442748/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/e73533aec4089cdf/probe-diagnostics/claude-1791821462781480757/session-init.json"
      },
      {
-      "evidence_digest": "sha256:9bd4cbf22b3ed174bdf7ab6340c28b3fe9f36515e390fddb0ec74d367bd91326",
+      "evidence_digest": "sha256:f9243ad78b810c4eb6a7ded89543d6c7a60b1bc3bf101d5f9c7fc987c84effac",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -4683,10 +4683,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/8207647fb423f4ac/probe-diagnostics/claude-1791814822648442748/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/e73533aec4089cdf/probe-diagnostics/claude-1791821462781480757/session-init.json"
      },
      {
-      "evidence_digest": "sha256:9bd4cbf22b3ed174bdf7ab6340c28b3fe9f36515e390fddb0ec74d367bd91326",
+      "evidence_digest": "sha256:f9243ad78b810c4eb6a7ded89543d6c7a60b1bc3bf101d5f9c7fc987c84effac",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -4694,10 +4694,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/8207647fb423f4ac/probe-diagnostics/claude-1791814822648442748/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/e73533aec4089cdf/probe-diagnostics/claude-1791821462781480757/session-init.json"
      },
      {
-      "evidence_digest": "sha256:9bd4cbf22b3ed174bdf7ab6340c28b3fe9f36515e390fddb0ec74d367bd91326",
+      "evidence_digest": "sha256:f9243ad78b810c4eb6a7ded89543d6c7a60b1bc3bf101d5f9c7fc987c84effac",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -4705,7 +4705,7 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/8207647fb423f4ac/probe-diagnostics/claude-1791814822648442748/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/e73533aec4089cdf/probe-diagnostics/claude-1791821462781480757/session-init.json"
      }
     ],
     "findings": [],
@@ -4740,7 +4740,7 @@
     "latest"
    ],
    "exit": 0,
-   "elapsed_ms": 175.0,
+   "elapsed_ms": 287.5,
    "checkout_changed": [],
    "report": {
     "schema_version": 1,
@@ -4753,27 +4753,27 @@
     "policy": "ci",
     "strict_external": true,
     "workspace_digest": "sha256:048ac7113ba64ec154c56aaa588c7f2a26de315772811e67334dbe60919e2582",
-    "generation_id": "sha256:da7ed2cfde9f4991a7daefc14e0d2f55bbecf372cb200e5327714287a4eab81f",
+    "generation_id": "sha256:b350568458f063cc1a1f020104a0160ade22df78a981fa120b5203ecef96be68",
     "policy_digest": "sha256:0b733559470deb6d6af018bb02b114d440bfeb332a57fcf4f5aad1c04329fbd0",
     "expected_target": {
      "adapter": "claude",
      "adapter_revision": "claude-observe-2026-10",
      "executable_identity": "sha256:f1f6e96e0d8342b9dbf41d7e88255397a6a52ce3d8736ad6a4c6b59c9b62fefa",
-     "capability_revision": "claude-probe-v3"
+     "capability_revision": "claude-probe-v4"
     },
     "properties": [
      {
-      "evidence_digest": "sha256:16181ab4cf4c32a2d123fada646731b86f1bbeb342d5cddba8178d0f7555ab39",
+      "evidence_digest": "sha256:347005e796b0d2ae7b8c7bb2e366edbeff8377382f2208c98028b4d5200884cc",
       "scope": "controlled_projection",
       "category": "plugin",
       "property": "catalog_complete",
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/8207647fb423f4ac/probe-diagnostics/claude-1791814822648442748/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/e73533aec4089cdf/probe-diagnostics/claude-1791821462781480757/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:16181ab4cf4c32a2d123fada646731b86f1bbeb342d5cddba8178d0f7555ab39",
+      "evidence_digest": "sha256:347005e796b0d2ae7b8c7bb2e366edbeff8377382f2208c98028b4d5200884cc",
       "scope": "controlled_projection",
       "category": "plugin",
       "artifact_id": "agentpack-bundle",
@@ -4781,10 +4781,10 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/8207647fb423f4ac/probe-diagnostics/claude-1791814822648442748/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/e73533aec4089cdf/probe-diagnostics/claude-1791821462781480757/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:61ca2f0a8e40551ac63eab04d5ee5689b024324eb311693aebbddae71d334fc0",
+      "evidence_digest": "sha256:15439a1f639e3a3fd4c7e52ddc7e644329b1bc6fd95b0dde12a83c30d404e98e",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -4792,7 +4792,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/8207647fb423f4ac/probe-diagnostics/claude-1791814822648442748/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/e73533aec4089cdf/probe-diagnostics/claude-1791821462781480757/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -4804,7 +4804,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:61ca2f0a8e40551ac63eab04d5ee5689b024324eb311693aebbddae71d334fc0",
+      "evidence_digest": "sha256:15439a1f639e3a3fd4c7e52ddc7e644329b1bc6fd95b0dde12a83c30d404e98e",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -4812,7 +4812,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/8207647fb423f4ac/probe-diagnostics/claude-1791814822648442748/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/e73533aec4089cdf/probe-diagnostics/claude-1791821462781480757/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -4824,7 +4824,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:61ca2f0a8e40551ac63eab04d5ee5689b024324eb311693aebbddae71d334fc0",
+      "evidence_digest": "sha256:15439a1f639e3a3fd4c7e52ddc7e644329b1bc6fd95b0dde12a83c30d404e98e",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -4832,7 +4832,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/8207647fb423f4ac/probe-diagnostics/claude-1791814822648442748/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/e73533aec4089cdf/probe-diagnostics/claude-1791821462781480757/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -4844,7 +4844,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:9bd4cbf22b3ed174bdf7ab6340c28b3fe9f36515e390fddb0ec74d367bd91326",
+      "evidence_digest": "sha256:f9243ad78b810c4eb6a7ded89543d6c7a60b1bc3bf101d5f9c7fc987c84effac",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -4852,10 +4852,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/8207647fb423f4ac/probe-diagnostics/claude-1791814822648442748/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/e73533aec4089cdf/probe-diagnostics/claude-1791821462781480757/session-init.json"
      },
      {
-      "evidence_digest": "sha256:9bd4cbf22b3ed174bdf7ab6340c28b3fe9f36515e390fddb0ec74d367bd91326",
+      "evidence_digest": "sha256:f9243ad78b810c4eb6a7ded89543d6c7a60b1bc3bf101d5f9c7fc987c84effac",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -4863,10 +4863,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/8207647fb423f4ac/probe-diagnostics/claude-1791814822648442748/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/e73533aec4089cdf/probe-diagnostics/claude-1791821462781480757/session-init.json"
      },
      {
-      "evidence_digest": "sha256:9bd4cbf22b3ed174bdf7ab6340c28b3fe9f36515e390fddb0ec74d367bd91326",
+      "evidence_digest": "sha256:f9243ad78b810c4eb6a7ded89543d6c7a60b1bc3bf101d5f9c7fc987c84effac",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -4874,10 +4874,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/8207647fb423f4ac/probe-diagnostics/claude-1791814822648442748/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/e73533aec4089cdf/probe-diagnostics/claude-1791821462781480757/session-init.json"
      },
      {
-      "evidence_digest": "sha256:9bd4cbf22b3ed174bdf7ab6340c28b3fe9f36515e390fddb0ec74d367bd91326",
+      "evidence_digest": "sha256:f9243ad78b810c4eb6a7ded89543d6c7a60b1bc3bf101d5f9c7fc987c84effac",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -4885,10 +4885,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/8207647fb423f4ac/probe-diagnostics/claude-1791814822648442748/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/e73533aec4089cdf/probe-diagnostics/claude-1791821462781480757/session-init.json"
      },
      {
-      "evidence_digest": "sha256:9bd4cbf22b3ed174bdf7ab6340c28b3fe9f36515e390fddb0ec74d367bd91326",
+      "evidence_digest": "sha256:f9243ad78b810c4eb6a7ded89543d6c7a60b1bc3bf101d5f9c7fc987c84effac",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -4896,10 +4896,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/8207647fb423f4ac/probe-diagnostics/claude-1791814822648442748/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/e73533aec4089cdf/probe-diagnostics/claude-1791821462781480757/session-init.json"
      },
      {
-      "evidence_digest": "sha256:9bd4cbf22b3ed174bdf7ab6340c28b3fe9f36515e390fddb0ec74d367bd91326",
+      "evidence_digest": "sha256:f9243ad78b810c4eb6a7ded89543d6c7a60b1bc3bf101d5f9c7fc987c84effac",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -4907,7 +4907,7 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/8207647fb423f4ac/probe-diagnostics/claude-1791814822648442748/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/e73533aec4089cdf/probe-diagnostics/claude-1791821462781480757/session-init.json"
      }
     ],
     "source_identity": "f59dc8acc436cec70261dd41c7d90189bfaea579bf82a952583e152fd203edc9",
@@ -4991,7 +4991,7 @@
       "category": "skill",
       "scope": "workspace_session",
       "completeness": "partial",
-      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level skills and plugins excluded"
+      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level configuration excluded"
      }
     ],
     "contract_results": [
@@ -5140,7 +5140,7 @@
     "latest"
    ],
    "exit": 5,
-   "elapsed_ms": 173.8,
+   "elapsed_ms": 156.7,
    "checkout_changed": [],
    "report": {
     "schema_version": 1,
@@ -5153,13 +5153,13 @@
     "policy": "ci",
     "strict_external": true,
     "workspace_digest": "sha256:048ac7113ba64ec154c56aaa588c7f2a26de315772811e67334dbe60919e2582",
-    "generation_id": "sha256:da7ed2cfde9f4991a7daefc14e0d2f55bbecf372cb200e5327714287a4eab81f",
+    "generation_id": "sha256:b350568458f063cc1a1f020104a0160ade22df78a981fa120b5203ecef96be68",
     "policy_digest": "sha256:0b733559470deb6d6af018bb02b114d440bfeb332a57fcf4f5aad1c04329fbd0",
     "expected_target": {
      "adapter": "claude",
      "adapter_revision": "claude-observe-2026-10",
      "executable_identity": "sha256:f1f6e96e0d8342b9dbf41d7e88255397a6a52ce3d8736ad6a4c6b59c9b62fefa",
-     "capability_revision": "claude-probe-v3"
+     "capability_revision": "claude-probe-v4"
     },
     "source_identity": "f59dc8acc436cec70261dd41c7d90189bfaea579bf82a952583e152fd203edc9",
     "lock_digest": "sha256:bd382cd39d0afa36a75528b92d2852cb9051c511f12f91bb4306eca4b0bb286c",
@@ -5292,7 +5292,7 @@
      {
       "code": "STAGING_DRIFT",
       "severity": "error",
-      "source": "missing   <ROOT>/machine-a/staging/projects/e546b674acd203b8/modes/default/plugins/agentpack-bundle/skills/webapp-testing/LICENSE.txt; missing   <ROOT>/machine-a/staging/projects/e546b674acd203b8/modes/default/plugins/agentpack-bundle/skills/webapp-testing/SKILL.md; missing   <ROOT>/machine-a/staging/projects/e546b674acd203b8/modes/default/plugins/agentpack-bundle/skills/webapp-testing/examples/console_logging.py; missing   <ROOT>/machine-a/staging/projects/e546b674acd203b8/modes/default/plugins/agentpack-bundle/skills/webapp-testing/examples/element_discovery.py; missing   <ROOT>/machine-a/staging/projects/e546b674acd203b8/modes/default/plugins/agentpack-bundle/skills/webapp-testing/examples/static_html_automation.py",
+      "source": "missing   <ROOT>/machine-a/staging/projects/8b2267a4c42a54a8/modes/default/plugins/agentpack-bundle/skills/webapp-testing/LICENSE.txt; missing   <ROOT>/machine-a/staging/projects/8b2267a4c42a54a8/modes/default/plugins/agentpack-bundle/skills/webapp-testing/SKILL.md; missing   <ROOT>/machine-a/staging/projects/8b2267a4c42a54a8/modes/default/plugins/agentpack-bundle/skills/webapp-testing/examples/console_logging.py; missing   <ROOT>/machine-a/staging/projects/8b2267a4c42a54a8/modes/default/plugins/agentpack-bundle/skills/webapp-testing/examples/element_discovery.py; missing   <ROOT>/machine-a/staging/projects/8b2267a4c42a54a8/modes/default/plugins/agentpack-bundle/skills/webapp-testing/examples/static_html_automation.py",
       "message": "6 staged file(s) differ from the last recorded sync",
       "remedy": "run `agentpack sync` to rebuild staging from the verified cache"
      },
@@ -5328,9 +5328,9 @@
     "--strict-external"
    ],
    "exit": 0,
-   "elapsed_ms": 45.8,
+   "elapsed_ms": 33.8,
    "checkout_changed": [],
-   "stdout_sha256": "068af150d53d06dee4471d700d08f0064615abd6e9a71f513dec35c582e9272c"
+   "stdout_sha256": "a69cfa1295e721524b96047ec28bd9d69cebdd8cc32e949b758916fc25066a69"
   },
   {
    "case": "probe_after_staging_loss",
@@ -5349,22 +5349,22 @@
     "--json"
    ],
    "exit": 0,
-   "elapsed_ms": 2684.7,
+   "elapsed_ms": 2413.6,
    "checkout_changed": [],
    "report": {
     "diagnostic_refs": [
-     "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814828013204003/version.json",
-     "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814828013204003/plugin-list.json",
-     "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814828013204003/plugin-details.json",
-     "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814828013204003/session-init.json"
+     "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821468123961066/version.json",
+     "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821468123961066/plugin-list.json",
+     "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821468123961066/plugin-details.json",
+     "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821468123961066/session-init.json"
     ],
     "schema_version": 1,
     "phase": "probe",
-    "receipt_id": "claude-1791814828013204003",
+    "receipt_id": "claude-1791821468123961066",
     "source_id": "f59dc8acc436cec70261dd41c7d90189bfaea579bf82a952583e152fd203edc9",
     "lock_digest": "sha256:bd382cd39d0afa36a75528b92d2852cb9051c511f12f91bb4306eca4b0bb286c",
     "workspace_digest": "sha256:048ac7113ba64ec154c56aaa588c7f2a26de315772811e67334dbe60919e2582",
-    "generation_id": "sha256:3541accb949b93683f7ec91a6e7a7fd48b9d0d941486ab92ba12288a336a6b80",
+    "generation_id": "sha256:b98b788b7b89df5790ed82df0935f82ce1fc8b61d0eb4a68c62f9b82006c7f28",
     "mode": "default",
     "policy_digest": "sha256:0b733559470deb6d6af018bb02b114d440bfeb332a57fcf4f5aad1c04329fbd0",
     "target": {
@@ -5372,9 +5372,9 @@
      "adapter_revision": "claude-observe-2026-10",
      "executable_identity": "sha256:f1f6e96e0d8342b9dbf41d7e88255397a6a52ce3d8736ad6a4c6b59c9b62fefa",
      "native_version": "2.1.296 (Claude Code)",
-     "capability_revision": "claude-probe-v3"
+     "capability_revision": "claude-probe-v4"
     },
-    "created_at": "2026-10-12T14:20:28.013213295Z",
+    "created_at": "2026-10-12T16:11:08.1239714Z",
     "coverage": [
      {
       "category": "plugin",
@@ -5391,22 +5391,22 @@
       "category": "skill",
       "scope": "workspace_session",
       "completeness": "partial",
-      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level skills and plugins excluded"
+      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level configuration excluded"
      }
     ],
     "properties": [
      {
-      "evidence_digest": "sha256:b3be6e3cb5374b9da54ae9a97fb19879b4eb55970fa82a4cd9cd6b9b1229bd27",
+      "evidence_digest": "sha256:f4f528922dc8a08472ce4bcbdc2a0d5735da33b45f9ffe7b2a12032ef255d4dd",
       "scope": "controlled_projection",
       "category": "plugin",
       "property": "catalog_complete",
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814828013204003/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821468123961066/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:b3be6e3cb5374b9da54ae9a97fb19879b4eb55970fa82a4cd9cd6b9b1229bd27",
+      "evidence_digest": "sha256:f4f528922dc8a08472ce4bcbdc2a0d5735da33b45f9ffe7b2a12032ef255d4dd",
       "scope": "controlled_projection",
       "category": "plugin",
       "artifact_id": "agentpack-bundle",
@@ -5414,10 +5414,10 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814828013204003/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821468123961066/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:414ff5391b0787d8641fad8dbc5b902d5b442b19fee459365b8ff70f68dbb96f",
+      "evidence_digest": "sha256:7a469d11fc03a0d13dd4246aba90e439102b067c111807c486920efd67b9c6ca",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -5425,7 +5425,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814828013204003/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821468123961066/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -5437,7 +5437,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:414ff5391b0787d8641fad8dbc5b902d5b442b19fee459365b8ff70f68dbb96f",
+      "evidence_digest": "sha256:7a469d11fc03a0d13dd4246aba90e439102b067c111807c486920efd67b9c6ca",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -5445,7 +5445,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814828013204003/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821468123961066/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -5457,7 +5457,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:414ff5391b0787d8641fad8dbc5b902d5b442b19fee459365b8ff70f68dbb96f",
+      "evidence_digest": "sha256:7a469d11fc03a0d13dd4246aba90e439102b067c111807c486920efd67b9c6ca",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -5465,7 +5465,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814828013204003/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821468123961066/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -5477,7 +5477,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:390ebf03bfc6d0ef3984059ec1b687375946c95e1bab7151f170f9052f84f2f5",
+      "evidence_digest": "sha256:5fbcd0c44f980d72eb3ac09316e67d85502f5bd7ff301347ce5f0909f180b645",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -5485,10 +5485,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814828013204003/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821468123961066/session-init.json"
      },
      {
-      "evidence_digest": "sha256:390ebf03bfc6d0ef3984059ec1b687375946c95e1bab7151f170f9052f84f2f5",
+      "evidence_digest": "sha256:5fbcd0c44f980d72eb3ac09316e67d85502f5bd7ff301347ce5f0909f180b645",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -5496,10 +5496,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814828013204003/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821468123961066/session-init.json"
      },
      {
-      "evidence_digest": "sha256:390ebf03bfc6d0ef3984059ec1b687375946c95e1bab7151f170f9052f84f2f5",
+      "evidence_digest": "sha256:5fbcd0c44f980d72eb3ac09316e67d85502f5bd7ff301347ce5f0909f180b645",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -5507,10 +5507,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814828013204003/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821468123961066/session-init.json"
      },
      {
-      "evidence_digest": "sha256:390ebf03bfc6d0ef3984059ec1b687375946c95e1bab7151f170f9052f84f2f5",
+      "evidence_digest": "sha256:5fbcd0c44f980d72eb3ac09316e67d85502f5bd7ff301347ce5f0909f180b645",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -5518,10 +5518,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814828013204003/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821468123961066/session-init.json"
      },
      {
-      "evidence_digest": "sha256:390ebf03bfc6d0ef3984059ec1b687375946c95e1bab7151f170f9052f84f2f5",
+      "evidence_digest": "sha256:5fbcd0c44f980d72eb3ac09316e67d85502f5bd7ff301347ce5f0909f180b645",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -5529,10 +5529,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814828013204003/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821468123961066/session-init.json"
      },
      {
-      "evidence_digest": "sha256:390ebf03bfc6d0ef3984059ec1b687375946c95e1bab7151f170f9052f84f2f5",
+      "evidence_digest": "sha256:5fbcd0c44f980d72eb3ac09316e67d85502f5bd7ff301347ce5f0909f180b645",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -5540,7 +5540,7 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814828013204003/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821468123961066/session-init.json"
      }
     ],
     "findings": [],
@@ -5575,7 +5575,7 @@
     "latest"
    ],
    "exit": 0,
-   "elapsed_ms": 187.2,
+   "elapsed_ms": 154.1,
    "checkout_changed": [],
    "report": {
     "schema_version": 1,
@@ -5588,27 +5588,27 @@
     "policy": "ci",
     "strict_external": true,
     "workspace_digest": "sha256:048ac7113ba64ec154c56aaa588c7f2a26de315772811e67334dbe60919e2582",
-    "generation_id": "sha256:3541accb949b93683f7ec91a6e7a7fd48b9d0d941486ab92ba12288a336a6b80",
+    "generation_id": "sha256:b98b788b7b89df5790ed82df0935f82ce1fc8b61d0eb4a68c62f9b82006c7f28",
     "policy_digest": "sha256:0b733559470deb6d6af018bb02b114d440bfeb332a57fcf4f5aad1c04329fbd0",
     "expected_target": {
      "adapter": "claude",
      "adapter_revision": "claude-observe-2026-10",
      "executable_identity": "sha256:f1f6e96e0d8342b9dbf41d7e88255397a6a52ce3d8736ad6a4c6b59c9b62fefa",
-     "capability_revision": "claude-probe-v3"
+     "capability_revision": "claude-probe-v4"
     },
     "properties": [
      {
-      "evidence_digest": "sha256:b3be6e3cb5374b9da54ae9a97fb19879b4eb55970fa82a4cd9cd6b9b1229bd27",
+      "evidence_digest": "sha256:f4f528922dc8a08472ce4bcbdc2a0d5735da33b45f9ffe7b2a12032ef255d4dd",
       "scope": "controlled_projection",
       "category": "plugin",
       "property": "catalog_complete",
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814828013204003/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821468123961066/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:b3be6e3cb5374b9da54ae9a97fb19879b4eb55970fa82a4cd9cd6b9b1229bd27",
+      "evidence_digest": "sha256:f4f528922dc8a08472ce4bcbdc2a0d5735da33b45f9ffe7b2a12032ef255d4dd",
       "scope": "controlled_projection",
       "category": "plugin",
       "artifact_id": "agentpack-bundle",
@@ -5616,10 +5616,10 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814828013204003/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821468123961066/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:414ff5391b0787d8641fad8dbc5b902d5b442b19fee459365b8ff70f68dbb96f",
+      "evidence_digest": "sha256:7a469d11fc03a0d13dd4246aba90e439102b067c111807c486920efd67b9c6ca",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -5627,7 +5627,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814828013204003/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821468123961066/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -5639,7 +5639,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:414ff5391b0787d8641fad8dbc5b902d5b442b19fee459365b8ff70f68dbb96f",
+      "evidence_digest": "sha256:7a469d11fc03a0d13dd4246aba90e439102b067c111807c486920efd67b9c6ca",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -5647,7 +5647,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814828013204003/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821468123961066/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -5659,7 +5659,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:414ff5391b0787d8641fad8dbc5b902d5b442b19fee459365b8ff70f68dbb96f",
+      "evidence_digest": "sha256:7a469d11fc03a0d13dd4246aba90e439102b067c111807c486920efd67b9c6ca",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -5667,7 +5667,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814828013204003/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821468123961066/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -5679,7 +5679,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:390ebf03bfc6d0ef3984059ec1b687375946c95e1bab7151f170f9052f84f2f5",
+      "evidence_digest": "sha256:5fbcd0c44f980d72eb3ac09316e67d85502f5bd7ff301347ce5f0909f180b645",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -5687,10 +5687,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814828013204003/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821468123961066/session-init.json"
      },
      {
-      "evidence_digest": "sha256:390ebf03bfc6d0ef3984059ec1b687375946c95e1bab7151f170f9052f84f2f5",
+      "evidence_digest": "sha256:5fbcd0c44f980d72eb3ac09316e67d85502f5bd7ff301347ce5f0909f180b645",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -5698,10 +5698,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814828013204003/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821468123961066/session-init.json"
      },
      {
-      "evidence_digest": "sha256:390ebf03bfc6d0ef3984059ec1b687375946c95e1bab7151f170f9052f84f2f5",
+      "evidence_digest": "sha256:5fbcd0c44f980d72eb3ac09316e67d85502f5bd7ff301347ce5f0909f180b645",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -5709,10 +5709,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814828013204003/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821468123961066/session-init.json"
      },
      {
-      "evidence_digest": "sha256:390ebf03bfc6d0ef3984059ec1b687375946c95e1bab7151f170f9052f84f2f5",
+      "evidence_digest": "sha256:5fbcd0c44f980d72eb3ac09316e67d85502f5bd7ff301347ce5f0909f180b645",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -5720,10 +5720,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814828013204003/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821468123961066/session-init.json"
      },
      {
-      "evidence_digest": "sha256:390ebf03bfc6d0ef3984059ec1b687375946c95e1bab7151f170f9052f84f2f5",
+      "evidence_digest": "sha256:5fbcd0c44f980d72eb3ac09316e67d85502f5bd7ff301347ce5f0909f180b645",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -5731,10 +5731,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814828013204003/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821468123961066/session-init.json"
      },
      {
-      "evidence_digest": "sha256:390ebf03bfc6d0ef3984059ec1b687375946c95e1bab7151f170f9052f84f2f5",
+      "evidence_digest": "sha256:5fbcd0c44f980d72eb3ac09316e67d85502f5bd7ff301347ce5f0909f180b645",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -5742,7 +5742,7 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814828013204003/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821468123961066/session-init.json"
      }
     ],
     "source_identity": "f59dc8acc436cec70261dd41c7d90189bfaea579bf82a952583e152fd203edc9",
@@ -5826,7 +5826,7 @@
       "category": "skill",
       "scope": "workspace_session",
       "completeness": "partial",
-      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level skills and plugins excluded"
+      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level configuration excluded"
      }
     ],
     "contract_results": [
@@ -5969,9 +5969,9 @@
     "--strict-external"
    ],
    "exit": 0,
-   "elapsed_ms": 39.0,
+   "elapsed_ms": 63.1,
    "checkout_changed": [],
-   "stdout_sha256": "068af150d53d06dee4471d700d08f0064615abd6e9a71f513dec35c582e9272c"
+   "stdout_sha256": "a69cfa1295e721524b96047ec28bd9d69cebdd8cc32e949b758916fc25066a69"
   },
   {
    "case": "probe_after_restore_with_shadow",
@@ -5990,7 +5990,7 @@
     "--json"
    ],
    "exit": 5,
-   "elapsed_ms": 344.4,
+   "elapsed_ms": 310.6,
    "checkout_changed": [],
    "report": {
     "schema_version": 1,
@@ -6003,13 +6003,13 @@
     "policy": "ci",
     "strict_external": true,
     "workspace_digest": "sha256:ae30ae30dcbc5deafc116f4921109a8ac887b4584c772d987583a4c6bb9e47e2",
-    "generation_id": "sha256:adbfd1873e81e375b4b385eb76908ce8ef06fbb58d47eadc3d77331733faa592",
+    "generation_id": "sha256:df89ece72498a5207455475081dcc1d6ec4155dae775d944b38fc4bb1aa3b31a",
     "policy_digest": "sha256:0b733559470deb6d6af018bb02b114d440bfeb332a57fcf4f5aad1c04329fbd0",
     "expected_target": {
      "adapter": "claude",
      "adapter_revision": "claude-observe-2026-10",
      "executable_identity": "sha256:f1f6e96e0d8342b9dbf41d7e88255397a6a52ce3d8736ad6a4c6b59c9b62fefa",
-     "capability_revision": "claude-probe-v3"
+     "capability_revision": "claude-probe-v4"
     },
     "source_identity": "f59dc8acc436cec70261dd41c7d90189bfaea579bf82a952583e152fd203edc9",
     "lock_digest": "sha256:bd382cd39d0afa36a75528b92d2852cb9051c511f12f91bb4306eca4b0bb286c",
@@ -6182,7 +6182,7 @@
     "latest"
    ],
    "exit": 4,
-   "elapsed_ms": 183.4,
+   "elapsed_ms": 156.2,
    "checkout_changed": [],
    "report": {
     "schema_version": 1,
@@ -6195,13 +6195,13 @@
     "policy": "ci",
     "strict_external": true,
     "workspace_digest": "sha256:ae30ae30dcbc5deafc116f4921109a8ac887b4584c772d987583a4c6bb9e47e2",
-    "generation_id": "sha256:adbfd1873e81e375b4b385eb76908ce8ef06fbb58d47eadc3d77331733faa592",
+    "generation_id": "sha256:df89ece72498a5207455475081dcc1d6ec4155dae775d944b38fc4bb1aa3b31a",
     "policy_digest": "sha256:0b733559470deb6d6af018bb02b114d440bfeb332a57fcf4f5aad1c04329fbd0",
     "expected_target": {
      "adapter": "claude",
      "adapter_revision": "claude-observe-2026-10",
      "executable_identity": "sha256:f1f6e96e0d8342b9dbf41d7e88255397a6a52ce3d8736ad6a4c6b59c9b62fefa",
-     "capability_revision": "claude-probe-v3"
+     "capability_revision": "claude-probe-v4"
     },
     "source_identity": "f59dc8acc436cec70261dd41c7d90189bfaea579bf82a952583e152fd203edc9",
     "lock_digest": "sha256:bd382cd39d0afa36a75528b92d2852cb9051c511f12f91bb4306eca4b0bb286c",
@@ -6375,9 +6375,9 @@
     "--strict-external"
    ],
    "exit": 0,
-   "elapsed_ms": 43.1,
+   "elapsed_ms": 37.5,
    "checkout_changed": [],
-   "stdout_sha256": "068af150d53d06dee4471d700d08f0064615abd6e9a71f513dec35c582e9272c"
+   "stdout_sha256": "a69cfa1295e721524b96047ec28bd9d69cebdd8cc32e949b758916fc25066a69"
   },
   {
    "case": "probe_after_restore_without_shadow",
@@ -6396,22 +6396,22 @@
     "--json"
    ],
    "exit": 0,
-   "elapsed_ms": 2745.9,
+   "elapsed_ms": 2378.1,
    "checkout_changed": [],
    "report": {
     "diagnostic_refs": [
-     "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814833696544392/version.json",
-     "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814833696544392/plugin-list.json",
-     "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814833696544392/plugin-details.json",
-     "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814833696544392/session-init.json"
+     "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821473407998327/version.json",
+     "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821473407998327/plugin-list.json",
+     "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821473407998327/plugin-details.json",
+     "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821473407998327/session-init.json"
     ],
     "schema_version": 1,
     "phase": "probe",
-    "receipt_id": "claude-1791814833696544392",
+    "receipt_id": "claude-1791821473407998327",
     "source_id": "f59dc8acc436cec70261dd41c7d90189bfaea579bf82a952583e152fd203edc9",
     "lock_digest": "sha256:bd382cd39d0afa36a75528b92d2852cb9051c511f12f91bb4306eca4b0bb286c",
     "workspace_digest": "sha256:048ac7113ba64ec154c56aaa588c7f2a26de315772811e67334dbe60919e2582",
-    "generation_id": "sha256:0c9903022d601c4611a723a243720ab9bf7659d9dc4e4d7140d8848fefafc5ac",
+    "generation_id": "sha256:3120c0d1a0a680b747e8eefa09f726d981f51cf2948669f7eba1a6470687f5f4",
     "mode": "default",
     "policy_digest": "sha256:0b733559470deb6d6af018bb02b114d440bfeb332a57fcf4f5aad1c04329fbd0",
     "target": {
@@ -6419,9 +6419,9 @@
      "adapter_revision": "claude-observe-2026-10",
      "executable_identity": "sha256:f1f6e96e0d8342b9dbf41d7e88255397a6a52ce3d8736ad6a4c6b59c9b62fefa",
      "native_version": "2.1.296 (Claude Code)",
-     "capability_revision": "claude-probe-v3"
+     "capability_revision": "claude-probe-v4"
     },
-    "created_at": "2026-10-12T14:20:33.696556226Z",
+    "created_at": "2026-10-12T16:11:13.408003619Z",
     "coverage": [
      {
       "category": "plugin",
@@ -6438,22 +6438,22 @@
       "category": "skill",
       "scope": "workspace_session",
       "completeness": "partial",
-      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level skills and plugins excluded"
+      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level configuration excluded"
      }
     ],
     "properties": [
      {
-      "evidence_digest": "sha256:3603019bca87e2ff8b6dd78bd4097190839799abb3251abb4ab207b737e573eb",
+      "evidence_digest": "sha256:835d8d24b8292b19bdbe56d67a88664ceab880bd9ec286c37d7f13072127f296",
       "scope": "controlled_projection",
       "category": "plugin",
       "property": "catalog_complete",
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814833696544392/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821473407998327/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:3603019bca87e2ff8b6dd78bd4097190839799abb3251abb4ab207b737e573eb",
+      "evidence_digest": "sha256:835d8d24b8292b19bdbe56d67a88664ceab880bd9ec286c37d7f13072127f296",
       "scope": "controlled_projection",
       "category": "plugin",
       "artifact_id": "agentpack-bundle",
@@ -6461,10 +6461,10 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814833696544392/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821473407998327/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:1db340fc8ac1a2e6273c676350a5a540dce14639303dbce6bac547ae377c176c",
+      "evidence_digest": "sha256:9a0f8ea5ac859dbf20a4595ff482219875ff47fad8145df824967c69b777c19f",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -6472,7 +6472,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814833696544392/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821473407998327/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -6484,7 +6484,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:1db340fc8ac1a2e6273c676350a5a540dce14639303dbce6bac547ae377c176c",
+      "evidence_digest": "sha256:9a0f8ea5ac859dbf20a4595ff482219875ff47fad8145df824967c69b777c19f",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -6492,7 +6492,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814833696544392/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821473407998327/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -6504,7 +6504,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:1db340fc8ac1a2e6273c676350a5a540dce14639303dbce6bac547ae377c176c",
+      "evidence_digest": "sha256:9a0f8ea5ac859dbf20a4595ff482219875ff47fad8145df824967c69b777c19f",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -6512,7 +6512,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814833696544392/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821473407998327/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -6524,7 +6524,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:ba1f9694485f6564330afa5528f650857734a579a19e596536c742595eeff979",
+      "evidence_digest": "sha256:887f33861080c0d0d29bbe68542607c853267c099e09901367901d7388a900a6",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -6532,10 +6532,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814833696544392/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821473407998327/session-init.json"
      },
      {
-      "evidence_digest": "sha256:ba1f9694485f6564330afa5528f650857734a579a19e596536c742595eeff979",
+      "evidence_digest": "sha256:887f33861080c0d0d29bbe68542607c853267c099e09901367901d7388a900a6",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -6543,10 +6543,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814833696544392/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821473407998327/session-init.json"
      },
      {
-      "evidence_digest": "sha256:ba1f9694485f6564330afa5528f650857734a579a19e596536c742595eeff979",
+      "evidence_digest": "sha256:887f33861080c0d0d29bbe68542607c853267c099e09901367901d7388a900a6",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -6554,10 +6554,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814833696544392/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821473407998327/session-init.json"
      },
      {
-      "evidence_digest": "sha256:ba1f9694485f6564330afa5528f650857734a579a19e596536c742595eeff979",
+      "evidence_digest": "sha256:887f33861080c0d0d29bbe68542607c853267c099e09901367901d7388a900a6",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -6565,10 +6565,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814833696544392/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821473407998327/session-init.json"
      },
      {
-      "evidence_digest": "sha256:ba1f9694485f6564330afa5528f650857734a579a19e596536c742595eeff979",
+      "evidence_digest": "sha256:887f33861080c0d0d29bbe68542607c853267c099e09901367901d7388a900a6",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -6576,10 +6576,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814833696544392/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821473407998327/session-init.json"
      },
      {
-      "evidence_digest": "sha256:ba1f9694485f6564330afa5528f650857734a579a19e596536c742595eeff979",
+      "evidence_digest": "sha256:887f33861080c0d0d29bbe68542607c853267c099e09901367901d7388a900a6",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -6587,7 +6587,7 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814833696544392/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821473407998327/session-init.json"
      }
     ],
     "findings": [],
@@ -6622,7 +6622,7 @@
     "latest"
    ],
    "exit": 0,
-   "elapsed_ms": 179.3,
+   "elapsed_ms": 149.7,
    "checkout_changed": [],
    "report": {
     "schema_version": 1,
@@ -6635,27 +6635,27 @@
     "policy": "ci",
     "strict_external": true,
     "workspace_digest": "sha256:048ac7113ba64ec154c56aaa588c7f2a26de315772811e67334dbe60919e2582",
-    "generation_id": "sha256:0c9903022d601c4611a723a243720ab9bf7659d9dc4e4d7140d8848fefafc5ac",
+    "generation_id": "sha256:3120c0d1a0a680b747e8eefa09f726d981f51cf2948669f7eba1a6470687f5f4",
     "policy_digest": "sha256:0b733559470deb6d6af018bb02b114d440bfeb332a57fcf4f5aad1c04329fbd0",
     "expected_target": {
      "adapter": "claude",
      "adapter_revision": "claude-observe-2026-10",
      "executable_identity": "sha256:f1f6e96e0d8342b9dbf41d7e88255397a6a52ce3d8736ad6a4c6b59c9b62fefa",
-     "capability_revision": "claude-probe-v3"
+     "capability_revision": "claude-probe-v4"
     },
     "properties": [
      {
-      "evidence_digest": "sha256:3603019bca87e2ff8b6dd78bd4097190839799abb3251abb4ab207b737e573eb",
+      "evidence_digest": "sha256:835d8d24b8292b19bdbe56d67a88664ceab880bd9ec286c37d7f13072127f296",
       "scope": "controlled_projection",
       "category": "plugin",
       "property": "catalog_complete",
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814833696544392/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821473407998327/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:3603019bca87e2ff8b6dd78bd4097190839799abb3251abb4ab207b737e573eb",
+      "evidence_digest": "sha256:835d8d24b8292b19bdbe56d67a88664ceab880bd9ec286c37d7f13072127f296",
       "scope": "controlled_projection",
       "category": "plugin",
       "artifact_id": "agentpack-bundle",
@@ -6663,10 +6663,10 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814833696544392/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821473407998327/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:1db340fc8ac1a2e6273c676350a5a540dce14639303dbce6bac547ae377c176c",
+      "evidence_digest": "sha256:9a0f8ea5ac859dbf20a4595ff482219875ff47fad8145df824967c69b777c19f",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -6674,7 +6674,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814833696544392/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821473407998327/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -6686,7 +6686,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:1db340fc8ac1a2e6273c676350a5a540dce14639303dbce6bac547ae377c176c",
+      "evidence_digest": "sha256:9a0f8ea5ac859dbf20a4595ff482219875ff47fad8145df824967c69b777c19f",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -6694,7 +6694,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814833696544392/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821473407998327/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -6706,7 +6706,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:1db340fc8ac1a2e6273c676350a5a540dce14639303dbce6bac547ae377c176c",
+      "evidence_digest": "sha256:9a0f8ea5ac859dbf20a4595ff482219875ff47fad8145df824967c69b777c19f",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -6714,7 +6714,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814833696544392/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821473407998327/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -6726,7 +6726,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:ba1f9694485f6564330afa5528f650857734a579a19e596536c742595eeff979",
+      "evidence_digest": "sha256:887f33861080c0d0d29bbe68542607c853267c099e09901367901d7388a900a6",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -6734,10 +6734,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814833696544392/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821473407998327/session-init.json"
      },
      {
-      "evidence_digest": "sha256:ba1f9694485f6564330afa5528f650857734a579a19e596536c742595eeff979",
+      "evidence_digest": "sha256:887f33861080c0d0d29bbe68542607c853267c099e09901367901d7388a900a6",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -6745,10 +6745,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814833696544392/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821473407998327/session-init.json"
      },
      {
-      "evidence_digest": "sha256:ba1f9694485f6564330afa5528f650857734a579a19e596536c742595eeff979",
+      "evidence_digest": "sha256:887f33861080c0d0d29bbe68542607c853267c099e09901367901d7388a900a6",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -6756,10 +6756,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814833696544392/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821473407998327/session-init.json"
      },
      {
-      "evidence_digest": "sha256:ba1f9694485f6564330afa5528f650857734a579a19e596536c742595eeff979",
+      "evidence_digest": "sha256:887f33861080c0d0d29bbe68542607c853267c099e09901367901d7388a900a6",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -6767,10 +6767,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814833696544392/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821473407998327/session-init.json"
      },
      {
-      "evidence_digest": "sha256:ba1f9694485f6564330afa5528f650857734a579a19e596536c742595eeff979",
+      "evidence_digest": "sha256:887f33861080c0d0d29bbe68542607c853267c099e09901367901d7388a900a6",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -6778,10 +6778,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814833696544392/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821473407998327/session-init.json"
      },
      {
-      "evidence_digest": "sha256:ba1f9694485f6564330afa5528f650857734a579a19e596536c742595eeff979",
+      "evidence_digest": "sha256:887f33861080c0d0d29bbe68542607c853267c099e09901367901d7388a900a6",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -6789,7 +6789,7 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-a/managed/projects/48df3af6c4fb2fb8/probe-diagnostics/claude-1791814833696544392/session-init.json"
+      "evidence_ref": "<ROOT>/machine-a/managed/projects/d66d04b8ae59876b/probe-diagnostics/claude-1791821473407998327/session-init.json"
      }
     ],
     "source_identity": "f59dc8acc436cec70261dd41c7d90189bfaea579bf82a952583e152fd203edc9",
@@ -6873,7 +6873,7 @@
       "category": "skill",
       "scope": "workspace_session",
       "completeness": "partial",
-      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level skills and plugins excluded"
+      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level configuration excluded"
      }
     ],
     "contract_results": [
@@ -7014,9 +7014,9 @@
     "<ROOT>/team-review-env"
    ],
    "exit": 0,
-   "elapsed_ms": 7.0,
+   "elapsed_ms": 4.5,
    "checkout_changed": [],
-   "stdout_sha256": "35b6a13d1df24c4cfb65dad4e6ced5743dd3fc432135278e3983c7c976275bfd"
+   "stdout_sha256": "35f24dfb03975f4fa5d8c6bdcb00a6c6dd76efa7e55d7c314b59bfcf5d70a5c0"
   },
   {
    "case": "import",
@@ -7029,9 +7029,9 @@
     "<ROOT>/machine-b/imported-env"
    ],
    "exit": 0,
-   "elapsed_ms": 7.4,
+   "elapsed_ms": 4.5,
    "checkout_changed": [],
-   "stdout_sha256": "af87177b4c2c684e0b83b1606f7c122e1c620d9df948ab7c6e42e577fd90d4bb"
+   "stdout_sha256": "1d18314b6343321764ddc83f164e1f1248ab17dc5be72596332d517e60cc9204"
   },
   {
    "case": "restore_imported",
@@ -7046,9 +7046,9 @@
     "--strict-external"
    ],
    "exit": 0,
-   "elapsed_ms": 854.5,
+   "elapsed_ms": 896.2,
    "checkout_changed": [],
-   "stdout_sha256": "edde74a90a86759c47ee98e30f3a6e9dc9805b0b794e67bcc7e22df09cc04f7d"
+   "stdout_sha256": "169b7245fe12f7d7fd5b06a1153a3aa8620a75deccefb76aa5a99e012b04f8e2"
   },
   {
    "case": "state:imported_no_receipt",
@@ -7069,7 +7069,7 @@
     "latest"
    ],
    "exit": 4,
-   "elapsed_ms": 194.9,
+   "elapsed_ms": 150.8,
    "checkout_changed": [],
    "report": {
     "schema_version": 1,
@@ -7081,13 +7081,13 @@
     "policy": "ci",
     "strict_external": true,
     "workspace_digest": "sha256:048ac7113ba64ec154c56aaa588c7f2a26de315772811e67334dbe60919e2582",
-    "generation_id": "sha256:991346e857e0eb59f4ff6e7f89d7ed08225f212ef6a62f079a13aa1d168cae57",
+    "generation_id": "sha256:54540950f04c6e77ed1edf291e47391604b10ee8a737fc4c86fdd3c3b2af708b",
     "policy_digest": "sha256:0b733559470deb6d6af018bb02b114d440bfeb332a57fcf4f5aad1c04329fbd0",
     "expected_target": {
      "adapter": "claude",
      "adapter_revision": "claude-observe-2026-10",
      "executable_identity": "sha256:f1f6e96e0d8342b9dbf41d7e88255397a6a52ce3d8736ad6a4c6b59c9b62fefa",
-     "capability_revision": "claude-probe-v3"
+     "capability_revision": "claude-probe-v4"
     },
     "source_identity": "f59dc8acc436cec70261dd41c7d90189bfaea579bf82a952583e152fd203edc9",
     "lock_digest": "sha256:bd382cd39d0afa36a75528b92d2852cb9051c511f12f91bb4306eca4b0bb286c",
@@ -7246,22 +7246,22 @@
     "--json"
    ],
    "exit": 0,
-   "elapsed_ms": 2658.6,
+   "elapsed_ms": 2586.2,
    "checkout_changed": [],
    "report": {
     "diagnostic_refs": [
-     "<ROOT>/machine-b/managed/projects/9e849bbbc37c1ef6/probe-diagnostics/claude-1791814840383585004/version.json",
-     "<ROOT>/machine-b/managed/projects/9e849bbbc37c1ef6/probe-diagnostics/claude-1791814840383585004/plugin-list.json",
-     "<ROOT>/machine-b/managed/projects/9e849bbbc37c1ef6/probe-diagnostics/claude-1791814840383585004/plugin-details.json",
-     "<ROOT>/machine-b/managed/projects/9e849bbbc37c1ef6/probe-diagnostics/claude-1791814840383585004/session-init.json"
+     "<ROOT>/machine-b/managed/projects/3a5303200dc99f33/probe-diagnostics/claude-1791821478989162445/version.json",
+     "<ROOT>/machine-b/managed/projects/3a5303200dc99f33/probe-diagnostics/claude-1791821478989162445/plugin-list.json",
+     "<ROOT>/machine-b/managed/projects/3a5303200dc99f33/probe-diagnostics/claude-1791821478989162445/plugin-details.json",
+     "<ROOT>/machine-b/managed/projects/3a5303200dc99f33/probe-diagnostics/claude-1791821478989162445/session-init.json"
     ],
     "schema_version": 1,
     "phase": "probe",
-    "receipt_id": "claude-1791814840383585004",
+    "receipt_id": "claude-1791821478989162445",
     "source_id": "f59dc8acc436cec70261dd41c7d90189bfaea579bf82a952583e152fd203edc9",
     "lock_digest": "sha256:bd382cd39d0afa36a75528b92d2852cb9051c511f12f91bb4306eca4b0bb286c",
     "workspace_digest": "sha256:048ac7113ba64ec154c56aaa588c7f2a26de315772811e67334dbe60919e2582",
-    "generation_id": "sha256:991346e857e0eb59f4ff6e7f89d7ed08225f212ef6a62f079a13aa1d168cae57",
+    "generation_id": "sha256:54540950f04c6e77ed1edf291e47391604b10ee8a737fc4c86fdd3c3b2af708b",
     "mode": "default",
     "policy_digest": "sha256:0b733559470deb6d6af018bb02b114d440bfeb332a57fcf4f5aad1c04329fbd0",
     "target": {
@@ -7269,9 +7269,9 @@
      "adapter_revision": "claude-observe-2026-10",
      "executable_identity": "sha256:f1f6e96e0d8342b9dbf41d7e88255397a6a52ce3d8736ad6a4c6b59c9b62fefa",
      "native_version": "2.1.296 (Claude Code)",
-     "capability_revision": "claude-probe-v3"
+     "capability_revision": "claude-probe-v4"
     },
-    "created_at": "2026-10-12T14:20:40.383588755Z",
+    "created_at": "2026-10-12T16:11:18.98916757Z",
     "coverage": [
      {
       "category": "plugin",
@@ -7288,22 +7288,22 @@
       "category": "skill",
       "scope": "workspace_session",
       "completeness": "partial",
-      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level skills and plugins excluded"
+      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level configuration excluded"
      }
     ],
     "properties": [
      {
-      "evidence_digest": "sha256:e98124ba6d194292f88e131c33baeaa013b9e6635b0e2c28c43bb04578d9fd31",
+      "evidence_digest": "sha256:72cb07ab8ce059dfaddb58ee8fe21652ed35ea7878ae5ef762fbf59234b099b4",
       "scope": "controlled_projection",
       "category": "plugin",
       "property": "catalog_complete",
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-b/managed/projects/9e849bbbc37c1ef6/probe-diagnostics/claude-1791814840383585004/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-b/managed/projects/3a5303200dc99f33/probe-diagnostics/claude-1791821478989162445/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:e98124ba6d194292f88e131c33baeaa013b9e6635b0e2c28c43bb04578d9fd31",
+      "evidence_digest": "sha256:72cb07ab8ce059dfaddb58ee8fe21652ed35ea7878ae5ef762fbf59234b099b4",
       "scope": "controlled_projection",
       "category": "plugin",
       "artifact_id": "agentpack-bundle",
@@ -7311,10 +7311,10 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-b/managed/projects/9e849bbbc37c1ef6/probe-diagnostics/claude-1791814840383585004/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-b/managed/projects/3a5303200dc99f33/probe-diagnostics/claude-1791821478989162445/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:23c57f31d2649b9e400a3b3f503925ae4cda6a79efc260689f75277d2d6427e4",
+      "evidence_digest": "sha256:4a66166fd767c68add03b4779cf67bd432a1691d4ac4e53898d52dc78f8db1d8",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -7322,7 +7322,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-b/managed/projects/9e849bbbc37c1ef6/probe-diagnostics/claude-1791814840383585004/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-b/managed/projects/3a5303200dc99f33/probe-diagnostics/claude-1791821478989162445/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -7334,7 +7334,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:23c57f31d2649b9e400a3b3f503925ae4cda6a79efc260689f75277d2d6427e4",
+      "evidence_digest": "sha256:4a66166fd767c68add03b4779cf67bd432a1691d4ac4e53898d52dc78f8db1d8",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -7342,7 +7342,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-b/managed/projects/9e849bbbc37c1ef6/probe-diagnostics/claude-1791814840383585004/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-b/managed/projects/3a5303200dc99f33/probe-diagnostics/claude-1791821478989162445/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -7354,7 +7354,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:23c57f31d2649b9e400a3b3f503925ae4cda6a79efc260689f75277d2d6427e4",
+      "evidence_digest": "sha256:4a66166fd767c68add03b4779cf67bd432a1691d4ac4e53898d52dc78f8db1d8",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -7362,7 +7362,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-b/managed/projects/9e849bbbc37c1ef6/probe-diagnostics/claude-1791814840383585004/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-b/managed/projects/3a5303200dc99f33/probe-diagnostics/claude-1791821478989162445/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -7374,7 +7374,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:7c56a24a047804cfd3f0b951b0f12f5b01700696e2a1ab2b11b7028fe09aa251",
+      "evidence_digest": "sha256:4ce459a04f582280097335ccb0899b437489131c1ed766d2ce4d371309ec7c09",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -7382,10 +7382,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-b/managed/projects/9e849bbbc37c1ef6/probe-diagnostics/claude-1791814840383585004/session-init.json"
+      "evidence_ref": "<ROOT>/machine-b/managed/projects/3a5303200dc99f33/probe-diagnostics/claude-1791821478989162445/session-init.json"
      },
      {
-      "evidence_digest": "sha256:7c56a24a047804cfd3f0b951b0f12f5b01700696e2a1ab2b11b7028fe09aa251",
+      "evidence_digest": "sha256:4ce459a04f582280097335ccb0899b437489131c1ed766d2ce4d371309ec7c09",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -7393,10 +7393,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-b/managed/projects/9e849bbbc37c1ef6/probe-diagnostics/claude-1791814840383585004/session-init.json"
+      "evidence_ref": "<ROOT>/machine-b/managed/projects/3a5303200dc99f33/probe-diagnostics/claude-1791821478989162445/session-init.json"
      },
      {
-      "evidence_digest": "sha256:7c56a24a047804cfd3f0b951b0f12f5b01700696e2a1ab2b11b7028fe09aa251",
+      "evidence_digest": "sha256:4ce459a04f582280097335ccb0899b437489131c1ed766d2ce4d371309ec7c09",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -7404,10 +7404,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-b/managed/projects/9e849bbbc37c1ef6/probe-diagnostics/claude-1791814840383585004/session-init.json"
+      "evidence_ref": "<ROOT>/machine-b/managed/projects/3a5303200dc99f33/probe-diagnostics/claude-1791821478989162445/session-init.json"
      },
      {
-      "evidence_digest": "sha256:7c56a24a047804cfd3f0b951b0f12f5b01700696e2a1ab2b11b7028fe09aa251",
+      "evidence_digest": "sha256:4ce459a04f582280097335ccb0899b437489131c1ed766d2ce4d371309ec7c09",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -7415,10 +7415,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-b/managed/projects/9e849bbbc37c1ef6/probe-diagnostics/claude-1791814840383585004/session-init.json"
+      "evidence_ref": "<ROOT>/machine-b/managed/projects/3a5303200dc99f33/probe-diagnostics/claude-1791821478989162445/session-init.json"
      },
      {
-      "evidence_digest": "sha256:7c56a24a047804cfd3f0b951b0f12f5b01700696e2a1ab2b11b7028fe09aa251",
+      "evidence_digest": "sha256:4ce459a04f582280097335ccb0899b437489131c1ed766d2ce4d371309ec7c09",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -7426,10 +7426,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-b/managed/projects/9e849bbbc37c1ef6/probe-diagnostics/claude-1791814840383585004/session-init.json"
+      "evidence_ref": "<ROOT>/machine-b/managed/projects/3a5303200dc99f33/probe-diagnostics/claude-1791821478989162445/session-init.json"
      },
      {
-      "evidence_digest": "sha256:7c56a24a047804cfd3f0b951b0f12f5b01700696e2a1ab2b11b7028fe09aa251",
+      "evidence_digest": "sha256:4ce459a04f582280097335ccb0899b437489131c1ed766d2ce4d371309ec7c09",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -7437,7 +7437,7 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-b/managed/projects/9e849bbbc37c1ef6/probe-diagnostics/claude-1791814840383585004/session-init.json"
+      "evidence_ref": "<ROOT>/machine-b/managed/projects/3a5303200dc99f33/probe-diagnostics/claude-1791821478989162445/session-init.json"
      }
     ],
     "findings": [],
@@ -7472,7 +7472,7 @@
     "latest"
    ],
    "exit": 0,
-   "elapsed_ms": 179.0,
+   "elapsed_ms": 151.0,
    "checkout_changed": [],
    "report": {
     "schema_version": 1,
@@ -7484,27 +7484,27 @@
     "policy": "ci",
     "strict_external": true,
     "workspace_digest": "sha256:048ac7113ba64ec154c56aaa588c7f2a26de315772811e67334dbe60919e2582",
-    "generation_id": "sha256:991346e857e0eb59f4ff6e7f89d7ed08225f212ef6a62f079a13aa1d168cae57",
+    "generation_id": "sha256:54540950f04c6e77ed1edf291e47391604b10ee8a737fc4c86fdd3c3b2af708b",
     "policy_digest": "sha256:0b733559470deb6d6af018bb02b114d440bfeb332a57fcf4f5aad1c04329fbd0",
     "expected_target": {
      "adapter": "claude",
      "adapter_revision": "claude-observe-2026-10",
      "executable_identity": "sha256:f1f6e96e0d8342b9dbf41d7e88255397a6a52ce3d8736ad6a4c6b59c9b62fefa",
-     "capability_revision": "claude-probe-v3"
+     "capability_revision": "claude-probe-v4"
     },
     "properties": [
      {
-      "evidence_digest": "sha256:e98124ba6d194292f88e131c33baeaa013b9e6635b0e2c28c43bb04578d9fd31",
+      "evidence_digest": "sha256:72cb07ab8ce059dfaddb58ee8fe21652ed35ea7878ae5ef762fbf59234b099b4",
       "scope": "controlled_projection",
       "category": "plugin",
       "property": "catalog_complete",
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-b/managed/projects/9e849bbbc37c1ef6/probe-diagnostics/claude-1791814840383585004/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-b/managed/projects/3a5303200dc99f33/probe-diagnostics/claude-1791821478989162445/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:e98124ba6d194292f88e131c33baeaa013b9e6635b0e2c28c43bb04578d9fd31",
+      "evidence_digest": "sha256:72cb07ab8ce059dfaddb58ee8fe21652ed35ea7878ae5ef762fbf59234b099b4",
       "scope": "controlled_projection",
       "category": "plugin",
       "artifact_id": "agentpack-bundle",
@@ -7512,10 +7512,10 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-b/managed/projects/9e849bbbc37c1ef6/probe-diagnostics/claude-1791814840383585004/plugin-list.json"
+      "evidence_ref": "<ROOT>/machine-b/managed/projects/3a5303200dc99f33/probe-diagnostics/claude-1791821478989162445/plugin-list.json"
      },
      {
-      "evidence_digest": "sha256:23c57f31d2649b9e400a3b3f503925ae4cda6a79efc260689f75277d2d6427e4",
+      "evidence_digest": "sha256:4a66166fd767c68add03b4779cf67bd432a1691d4ac4e53898d52dc78f8db1d8",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -7523,7 +7523,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-b/managed/projects/9e849bbbc37c1ef6/probe-diagnostics/claude-1791814840383585004/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-b/managed/projects/3a5303200dc99f33/probe-diagnostics/claude-1791821478989162445/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -7535,7 +7535,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:23c57f31d2649b9e400a3b3f503925ae4cda6a79efc260689f75277d2d6427e4",
+      "evidence_digest": "sha256:4a66166fd767c68add03b4779cf67bd432a1691d4ac4e53898d52dc78f8db1d8",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -7543,7 +7543,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-b/managed/projects/9e849bbbc37c1ef6/probe-diagnostics/claude-1791814840383585004/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-b/managed/projects/3a5303200dc99f33/probe-diagnostics/claude-1791821478989162445/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -7555,7 +7555,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:23c57f31d2649b9e400a3b3f503925ae4cda6a79efc260689f75277d2d6427e4",
+      "evidence_digest": "sha256:4a66166fd767c68add03b4779cf67bd432a1691d4ac4e53898d52dc78f8db1d8",
       "scope": "controlled_projection",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -7563,7 +7563,7 @@
       "value": true,
       "evidence": "observed",
       "method": "native_catalog",
-      "evidence_ref": "<ROOT>/machine-b/managed/projects/9e849bbbc37c1ef6/probe-diagnostics/claude-1791814840383585004/plugin-details.json"
+      "evidence_ref": "<ROOT>/machine-b/managed/projects/3a5303200dc99f33/probe-diagnostics/claude-1791821478989162445/plugin-details.json"
      },
      {
       "scope": "controlled_projection",
@@ -7575,7 +7575,7 @@
       "reason": "Native interface does not attribute source bytes."
      },
      {
-      "evidence_digest": "sha256:7c56a24a047804cfd3f0b951b0f12f5b01700696e2a1ab2b11b7028fe09aa251",
+      "evidence_digest": "sha256:4ce459a04f582280097335ccb0899b437489131c1ed766d2ce4d371309ec7c09",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -7583,10 +7583,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-b/managed/projects/9e849bbbc37c1ef6/probe-diagnostics/claude-1791814840383585004/session-init.json"
+      "evidence_ref": "<ROOT>/machine-b/managed/projects/3a5303200dc99f33/probe-diagnostics/claude-1791821478989162445/session-init.json"
      },
      {
-      "evidence_digest": "sha256:7c56a24a047804cfd3f0b951b0f12f5b01700696e2a1ab2b11b7028fe09aa251",
+      "evidence_digest": "sha256:4ce459a04f582280097335ccb0899b437489131c1ed766d2ce4d371309ec7c09",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/analyze-proxy-log",
@@ -7594,10 +7594,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-b/managed/projects/9e849bbbc37c1ef6/probe-diagnostics/claude-1791814840383585004/session-init.json"
+      "evidence_ref": "<ROOT>/machine-b/managed/projects/3a5303200dc99f33/probe-diagnostics/claude-1791821478989162445/session-init.json"
      },
      {
-      "evidence_digest": "sha256:7c56a24a047804cfd3f0b951b0f12f5b01700696e2a1ab2b11b7028fe09aa251",
+      "evidence_digest": "sha256:4ce459a04f582280097335ccb0899b437489131c1ed766d2ce4d371309ec7c09",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -7605,10 +7605,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-b/managed/projects/9e849bbbc37c1ef6/probe-diagnostics/claude-1791814840383585004/session-init.json"
+      "evidence_ref": "<ROOT>/machine-b/managed/projects/3a5303200dc99f33/probe-diagnostics/claude-1791821478989162445/session-init.json"
      },
      {
-      "evidence_digest": "sha256:7c56a24a047804cfd3f0b951b0f12f5b01700696e2a1ab2b11b7028fe09aa251",
+      "evidence_digest": "sha256:4ce459a04f582280097335ccb0899b437489131c1ed766d2ce4d371309ec7c09",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/build-go-stack",
@@ -7616,10 +7616,10 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-b/managed/projects/9e849bbbc37c1ef6/probe-diagnostics/claude-1791814840383585004/session-init.json"
+      "evidence_ref": "<ROOT>/machine-b/managed/projects/3a5303200dc99f33/probe-diagnostics/claude-1791821478989162445/session-init.json"
      },
      {
-      "evidence_digest": "sha256:7c56a24a047804cfd3f0b951b0f12f5b01700696e2a1ab2b11b7028fe09aa251",
+      "evidence_digest": "sha256:4ce459a04f582280097335ccb0899b437489131c1ed766d2ce4d371309ec7c09",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -7627,10 +7627,10 @@
       "value": true,
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-b/managed/projects/9e849bbbc37c1ef6/probe-diagnostics/claude-1791814840383585004/session-init.json"
+      "evidence_ref": "<ROOT>/machine-b/managed/projects/3a5303200dc99f33/probe-diagnostics/claude-1791821478989162445/session-init.json"
      },
      {
-      "evidence_digest": "sha256:7c56a24a047804cfd3f0b951b0f12f5b01700696e2a1ab2b11b7028fe09aa251",
+      "evidence_digest": "sha256:4ce459a04f582280097335ccb0899b437489131c1ed766d2ce4d371309ec7c09",
       "scope": "workspace_session",
       "category": "skill",
       "artifact_id": "agentpack-bundle/skills/webapp-testing",
@@ -7638,7 +7638,7 @@
       "value": "package",
       "evidence": "observed",
       "method": "session_init",
-      "evidence_ref": "<ROOT>/machine-b/managed/projects/9e849bbbc37c1ef6/probe-diagnostics/claude-1791814840383585004/session-init.json"
+      "evidence_ref": "<ROOT>/machine-b/managed/projects/3a5303200dc99f33/probe-diagnostics/claude-1791821478989162445/session-init.json"
      }
     ],
     "source_identity": "f59dc8acc436cec70261dd41c7d90189bfaea579bf82a952583e152fd203edc9",
@@ -7722,7 +7722,7 @@
       "category": "skill",
       "scope": "workspace_session",
       "completeness": "partial",
-      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level skills and plugins excluded"
+      "reason": "session started in the checkout with the staged bundle and an empty user home; user-level configuration excluded"
      }
     ],
     "contract_results": [

@@ -1,0 +1,1035 @@
+{
+ "date": "2026-10-12",
+ "platform": "Linux-6.8.0-142-generic-aarch64-with-glibc2.42",
+ "versions": {
+  "claude": "2.1.296 (Claude Code)",
+  "codex": "codex-cli 0.159.3",
+  "opencode": "1.17.11"
+ },
+ "agentpack_version": "agentpack 0.4.7",
+ "agentpack_sha256": "de095e22917502a0a8441b93ade9f69f8f1b7b8db9dcf1fa5a5a48c70e6599a4",
+ "skills": [
+  "webapp-testing",
+  "mcp-builder",
+  "internal-comms"
+ ],
+ "pin": "anthropics/skills@dbd4588f9e1033efb41dad4bef2f7947c8993d44",
+ "model_inference_requested": false,
+ "summary": {
+  "cells": 45,
+  "probed_cells": 45,
+  "observed_matches_native_by_agent": {
+   "claude": "15 of 15",
+   "codex": "15 of 15",
+   "opencode": "15 of 15"
+  },
+  "observed_matches_native": 45,
+  "receipt_expiry_checks": 36,
+  "earlier_receipt_retired": 36,
+  "lock_unchanged_in_all_cells": true
+ },
+ "cells": [
+  {
+   "project_copy_at": "none",
+   "agent": "claude",
+   "skill": "webapp-testing",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 0,
+    "planned-winner": "satisfied",
+    "observed-winner": "satisfied",
+    "findings": []
+   },
+   "expected_observed_winner": "satisfied",
+   "observed_matches_native": true,
+   "staged_skill_is_the_pinned_rendering": true,
+   "staged_skill_is_the_project_copy": false
+  },
+  {
+   "project_copy_at": "none",
+   "agent": "claude",
+   "skill": "mcp-builder",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 0,
+    "planned-winner": "satisfied",
+    "observed-winner": "satisfied",
+    "findings": []
+   },
+   "expected_observed_winner": "satisfied",
+   "observed_matches_native": true,
+   "staged_skill_is_the_pinned_rendering": true,
+   "staged_skill_is_the_project_copy": false
+  },
+  {
+   "project_copy_at": "none",
+   "agent": "claude",
+   "skill": "internal-comms",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 0,
+    "planned-winner": "satisfied",
+    "observed-winner": "satisfied",
+    "findings": []
+   },
+   "expected_observed_winner": "satisfied",
+   "observed_matches_native": true,
+   "staged_skill_is_the_pinned_rendering": true,
+   "staged_skill_is_the_project_copy": false
+  },
+  {
+   "project_copy_at": "none",
+   "agent": "codex",
+   "skill": "webapp-testing",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 0,
+    "planned-winner": "satisfied",
+    "observed-winner": "satisfied",
+    "findings": []
+   },
+   "expected_observed_winner": "satisfied",
+   "observed_matches_native": true
+  },
+  {
+   "project_copy_at": "none",
+   "agent": "codex",
+   "skill": "mcp-builder",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 0,
+    "planned-winner": "satisfied",
+    "observed-winner": "satisfied",
+    "findings": []
+   },
+   "expected_observed_winner": "satisfied",
+   "observed_matches_native": true
+  },
+  {
+   "project_copy_at": "none",
+   "agent": "codex",
+   "skill": "internal-comms",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 0,
+    "planned-winner": "satisfied",
+    "observed-winner": "satisfied",
+    "findings": []
+   },
+   "expected_observed_winner": "satisfied",
+   "observed_matches_native": true
+  },
+  {
+   "project_copy_at": "none",
+   "agent": "opencode",
+   "skill": "webapp-testing",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 0,
+    "planned-winner": "satisfied",
+    "observed-winner": "satisfied",
+    "findings": []
+   },
+   "expected_observed_winner": "satisfied",
+   "observed_matches_native": true
+  },
+  {
+   "project_copy_at": "none",
+   "agent": "opencode",
+   "skill": "mcp-builder",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 0,
+    "planned-winner": "satisfied",
+    "observed-winner": "satisfied",
+    "findings": []
+   },
+   "expected_observed_winner": "satisfied",
+   "observed_matches_native": true
+  },
+  {
+   "project_copy_at": "none",
+   "agent": "opencode",
+   "skill": "internal-comms",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 0,
+    "planned-winner": "satisfied",
+    "observed-winner": "satisfied",
+    "findings": []
+   },
+   "expected_observed_winner": "satisfied",
+   "observed_matches_native": true
+  },
+  {
+   "project_copy_at": ".claude/skills",
+   "agent": "claude",
+   "skill": "webapp-testing",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned+project": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 3,
+    "planned-winner": "violated",
+    "observed-winner": "violated",
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH"
+    ]
+   },
+   "expected_observed_winner": "violated",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true,
+   "staged_skill_is_the_pinned_rendering": false,
+   "staged_skill_is_the_project_copy": false
+  },
+  {
+   "project_copy_at": ".claude/skills",
+   "agent": "claude",
+   "skill": "mcp-builder",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned+project": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 3,
+    "planned-winner": "violated",
+    "observed-winner": "violated",
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH"
+    ]
+   },
+   "expected_observed_winner": "violated",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true,
+   "staged_skill_is_the_pinned_rendering": false,
+   "staged_skill_is_the_project_copy": false
+  },
+  {
+   "project_copy_at": ".claude/skills",
+   "agent": "claude",
+   "skill": "internal-comms",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned+project": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 3,
+    "planned-winner": "violated",
+    "observed-winner": "violated",
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH"
+    ]
+   },
+   "expected_observed_winner": "violated",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true,
+   "staged_skill_is_the_pinned_rendering": false,
+   "staged_skill_is_the_project_copy": false
+  },
+  {
+   "project_copy_at": ".claude/skills",
+   "agent": "codex",
+   "skill": "webapp-testing",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 3,
+    "planned-winner": "violated",
+    "observed-winner": "satisfied",
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH"
+    ]
+   },
+   "expected_observed_winner": "satisfied",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true
+  },
+  {
+   "project_copy_at": ".claude/skills",
+   "agent": "codex",
+   "skill": "mcp-builder",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 3,
+    "planned-winner": "violated",
+    "observed-winner": "satisfied",
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH"
+    ]
+   },
+   "expected_observed_winner": "satisfied",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true
+  },
+  {
+   "project_copy_at": ".claude/skills",
+   "agent": "codex",
+   "skill": "internal-comms",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 3,
+    "planned-winner": "violated",
+    "observed-winner": "satisfied",
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH"
+    ]
+   },
+   "expected_observed_winner": "satisfied",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true
+  },
+  {
+   "project_copy_at": ".claude/skills",
+   "agent": "opencode",
+   "skill": "webapp-testing",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 92,
+    "project": 8
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 3,
+    "planned-winner": "violated",
+    "observed-winner": "violated",
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH"
+    ]
+   },
+   "expected_observed_winner": "violated",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true
+  },
+  {
+   "project_copy_at": ".claude/skills",
+   "agent": "opencode",
+   "skill": "mcp-builder",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 90,
+    "project": 10
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 3,
+    "planned-winner": "violated",
+    "observed-winner": "violated",
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH"
+    ]
+   },
+   "expected_observed_winner": "violated",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true
+  },
+  {
+   "project_copy_at": ".claude/skills",
+   "agent": "opencode",
+   "skill": "internal-comms",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 94,
+    "project": 6
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 3,
+    "planned-winner": "violated",
+    "observed-winner": "violated",
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH"
+    ]
+   },
+   "expected_observed_winner": "violated",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true
+  },
+  {
+   "project_copy_at": ".agents/skills",
+   "agent": "claude",
+   "skill": "webapp-testing",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 3,
+    "planned-winner": "violated",
+    "observed-winner": "satisfied",
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH"
+    ]
+   },
+   "expected_observed_winner": "satisfied",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true,
+   "staged_skill_is_the_pinned_rendering": false,
+   "staged_skill_is_the_project_copy": true
+  },
+  {
+   "project_copy_at": ".agents/skills",
+   "agent": "claude",
+   "skill": "mcp-builder",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 3,
+    "planned-winner": "violated",
+    "observed-winner": "satisfied",
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH"
+    ]
+   },
+   "expected_observed_winner": "satisfied",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true,
+   "staged_skill_is_the_pinned_rendering": false,
+   "staged_skill_is_the_project_copy": true
+  },
+  {
+   "project_copy_at": ".agents/skills",
+   "agent": "claude",
+   "skill": "internal-comms",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 3,
+    "planned-winner": "violated",
+    "observed-winner": "satisfied",
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH"
+    ]
+   },
+   "expected_observed_winner": "satisfied",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true,
+   "staged_skill_is_the_pinned_rendering": false,
+   "staged_skill_is_the_project_copy": true
+  },
+  {
+   "project_copy_at": ".agents/skills",
+   "agent": "codex",
+   "skill": "webapp-testing",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned+project": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 3,
+    "planned-winner": "violated",
+    "observed-winner": "violated",
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH"
+    ]
+   },
+   "expected_observed_winner": "violated",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true
+  },
+  {
+   "project_copy_at": ".agents/skills",
+   "agent": "codex",
+   "skill": "mcp-builder",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned+project": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 3,
+    "planned-winner": "violated",
+    "observed-winner": "violated",
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH"
+    ]
+   },
+   "expected_observed_winner": "violated",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true
+  },
+  {
+   "project_copy_at": ".agents/skills",
+   "agent": "codex",
+   "skill": "internal-comms",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned+project": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 3,
+    "planned-winner": "violated",
+    "observed-winner": "violated",
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH"
+    ]
+   },
+   "expected_observed_winner": "violated",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true
+  },
+  {
+   "project_copy_at": ".agents/skills",
+   "agent": "opencode",
+   "skill": "webapp-testing",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 92,
+    "project": 8
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 3,
+    "planned-winner": "violated",
+    "observed-winner": "violated",
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH"
+    ]
+   },
+   "expected_observed_winner": "violated",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true
+  },
+  {
+   "project_copy_at": ".agents/skills",
+   "agent": "opencode",
+   "skill": "mcp-builder",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 89,
+    "project": 11
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 3,
+    "planned-winner": "violated",
+    "observed-winner": "violated",
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH"
+    ]
+   },
+   "expected_observed_winner": "violated",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true
+  },
+  {
+   "project_copy_at": ".agents/skills",
+   "agent": "opencode",
+   "skill": "internal-comms",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 91,
+    "project": 9
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 3,
+    "planned-winner": "violated",
+    "observed-winner": "violated",
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH"
+    ]
+   },
+   "expected_observed_winner": "violated",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true
+  },
+  {
+   "project_copy_at": ".codex/skills",
+   "agent": "claude",
+   "skill": "webapp-testing",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 0,
+    "planned-winner": "satisfied",
+    "observed-winner": "satisfied",
+    "findings": []
+   },
+   "expected_observed_winner": "satisfied",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true,
+   "staged_skill_is_the_pinned_rendering": true,
+   "staged_skill_is_the_project_copy": false
+  },
+  {
+   "project_copy_at": ".codex/skills",
+   "agent": "claude",
+   "skill": "mcp-builder",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 0,
+    "planned-winner": "satisfied",
+    "observed-winner": "satisfied",
+    "findings": []
+   },
+   "expected_observed_winner": "satisfied",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true,
+   "staged_skill_is_the_pinned_rendering": true,
+   "staged_skill_is_the_project_copy": false
+  },
+  {
+   "project_copy_at": ".codex/skills",
+   "agent": "claude",
+   "skill": "internal-comms",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 0,
+    "planned-winner": "satisfied",
+    "observed-winner": "satisfied",
+    "findings": []
+   },
+   "expected_observed_winner": "satisfied",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true,
+   "staged_skill_is_the_pinned_rendering": true,
+   "staged_skill_is_the_project_copy": false
+  },
+  {
+   "project_copy_at": ".codex/skills",
+   "agent": "codex",
+   "skill": "webapp-testing",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned+project": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 3,
+    "planned-winner": "violated",
+    "observed-winner": "violated",
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH"
+    ]
+   },
+   "expected_observed_winner": "violated",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true
+  },
+  {
+   "project_copy_at": ".codex/skills",
+   "agent": "codex",
+   "skill": "mcp-builder",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned+project": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 3,
+    "planned-winner": "violated",
+    "observed-winner": "violated",
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH"
+    ]
+   },
+   "expected_observed_winner": "violated",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true
+  },
+  {
+   "project_copy_at": ".codex/skills",
+   "agent": "codex",
+   "skill": "internal-comms",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned+project": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 3,
+    "planned-winner": "violated",
+    "observed-winner": "violated",
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH"
+    ]
+   },
+   "expected_observed_winner": "violated",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true
+  },
+  {
+   "project_copy_at": ".codex/skills",
+   "agent": "opencode",
+   "skill": "webapp-testing",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 0,
+    "planned-winner": "satisfied",
+    "observed-winner": "satisfied",
+    "findings": []
+   },
+   "expected_observed_winner": "satisfied",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true
+  },
+  {
+   "project_copy_at": ".codex/skills",
+   "agent": "opencode",
+   "skill": "mcp-builder",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 0,
+    "planned-winner": "satisfied",
+    "observed-winner": "satisfied",
+    "findings": []
+   },
+   "expected_observed_winner": "satisfied",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true
+  },
+  {
+   "project_copy_at": ".codex/skills",
+   "agent": "opencode",
+   "skill": "internal-comms",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 0,
+    "planned-winner": "satisfied",
+    "observed-winner": "satisfied",
+    "findings": []
+   },
+   "expected_observed_winner": "satisfied",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true
+  },
+  {
+   "project_copy_at": ".opencode/skills",
+   "agent": "claude",
+   "skill": "webapp-testing",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 0,
+    "planned-winner": "satisfied",
+    "observed-winner": "satisfied",
+    "findings": []
+   },
+   "expected_observed_winner": "satisfied",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true,
+   "staged_skill_is_the_pinned_rendering": true,
+   "staged_skill_is_the_project_copy": false
+  },
+  {
+   "project_copy_at": ".opencode/skills",
+   "agent": "claude",
+   "skill": "mcp-builder",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 0,
+    "planned-winner": "satisfied",
+    "observed-winner": "satisfied",
+    "findings": []
+   },
+   "expected_observed_winner": "satisfied",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true,
+   "staged_skill_is_the_pinned_rendering": true,
+   "staged_skill_is_the_project_copy": false
+  },
+  {
+   "project_copy_at": ".opencode/skills",
+   "agent": "claude",
+   "skill": "internal-comms",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 0,
+    "planned-winner": "satisfied",
+    "observed-winner": "satisfied",
+    "findings": []
+   },
+   "expected_observed_winner": "satisfied",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true,
+   "staged_skill_is_the_pinned_rendering": true,
+   "staged_skill_is_the_project_copy": false
+  },
+  {
+   "project_copy_at": ".opencode/skills",
+   "agent": "codex",
+   "skill": "webapp-testing",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 0,
+    "planned-winner": "satisfied",
+    "observed-winner": "satisfied",
+    "findings": []
+   },
+   "expected_observed_winner": "satisfied",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true
+  },
+  {
+   "project_copy_at": ".opencode/skills",
+   "agent": "codex",
+   "skill": "mcp-builder",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 0,
+    "planned-winner": "satisfied",
+    "observed-winner": "satisfied",
+    "findings": []
+   },
+   "expected_observed_winner": "satisfied",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true
+  },
+  {
+   "project_copy_at": ".opencode/skills",
+   "agent": "codex",
+   "skill": "internal-comms",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 100
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 0,
+    "planned-winner": "satisfied",
+    "observed-winner": "satisfied",
+    "findings": []
+   },
+   "expected_observed_winner": "satisfied",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true
+  },
+  {
+   "project_copy_at": ".opencode/skills",
+   "agent": "opencode",
+   "skill": "webapp-testing",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 89,
+    "project": 11
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 3,
+    "planned-winner": "violated",
+    "observed-winner": "violated",
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH"
+    ]
+   },
+   "expected_observed_winner": "violated",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true
+  },
+  {
+   "project_copy_at": ".opencode/skills",
+   "agent": "opencode",
+   "skill": "mcp-builder",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 88,
+    "project": 12
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 3,
+    "planned-winner": "violated",
+    "observed-winner": "violated",
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH"
+    ]
+   },
+   "expected_observed_winner": "violated",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true
+  },
+  {
+   "project_copy_at": ".opencode/skills",
+   "agent": "opencode",
+   "skill": "internal-comms",
+   "native_runs": 100,
+   "native_outcomes": {
+    "pinned": 94,
+    "project": 6
+   },
+   "lock_unchanged": true,
+   "agentpack": {
+    "probe_exit": 0,
+    "preflight_exit": 3,
+    "planned-winner": "violated",
+    "observed-winner": "violated",
+    "findings": [
+     "AMBIENT_ARTIFACT",
+     "CONTRACT_MISMATCH"
+    ]
+   },
+   "expected_observed_winner": "violated",
+   "observed_matches_native": true,
+   "earlier_receipt_retired": true
+  }
+ ]
+}

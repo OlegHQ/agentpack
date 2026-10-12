@@ -149,7 +149,7 @@
    "expected_exit": 3,
    "as_expected": true,
    "planned-winner": "violated",
-   "observed-winner": "violated",
+   "observed-winner": "satisfied",
    "findings": [
     "CONTRACT_MISMATCH"
    ]

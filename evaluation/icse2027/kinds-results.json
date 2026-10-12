@@ -1,0 +1,173 @@
+{
+ "date": "2026-10-12",
+ "platform": "Linux-6.8.0-142-generic-aarch64-with-glibc2.42",
+ "versions": {
+  "claude": "2.1.296 (Claude Code)",
+  "codex": "codex-cli 0.159.3"
+ },
+ "agentpack_version": "agentpack 0.4.8",
+ "model_inference_requested": false,
+ "summary": {
+  "cells": 12,
+  "as_expected": 12,
+  "lock_unchanged": true
+ },
+ "rows": [
+  {
+   "same_named_project": "none",
+   "agent": "claude",
+   "kind": "command",
+   "native_listing": {
+    "pinned": 20
+   },
+   "expected": "satisfied",
+   "observed_winner": "satisfied",
+   "as_expected": true,
+   "probe_exit": 0,
+   "preflight_exit": 0,
+   "lock_unchanged": true
+  },
+  {
+   "same_named_project": "none",
+   "agent": "claude",
+   "kind": "agent",
+   "native_listing": {
+    "pinned": 20
+   },
+   "expected": "satisfied",
+   "observed_winner": "satisfied",
+   "as_expected": true,
+   "probe_exit": 0,
+   "preflight_exit": 0,
+   "lock_unchanged": true
+  },
+  {
+   "same_named_project": "none",
+   "agent": "codex",
+   "kind": "command",
+   "native_listing": "rendered as a skill; see collision.py",
+   "expected": "satisfied",
+   "observed_winner": "satisfied",
+   "as_expected": true,
+   "probe_exit": 0,
+   "preflight_exit": 0,
+   "lock_unchanged": true
+  },
+  {
+   "same_named_project": "none",
+   "agent": "codex",
+   "kind": "agent",
+   "native_listing": "rendered as a skill; see collision.py",
+   "expected": "satisfied",
+   "observed_winner": "satisfied",
+   "as_expected": true,
+   "probe_exit": 0,
+   "preflight_exit": 0,
+   "lock_unchanged": true
+  },
+  {
+   "same_named_project": "command",
+   "agent": "claude",
+   "kind": "command",
+   "native_listing": {
+    "pinned+project": 20
+   },
+   "expected": "violated",
+   "observed_winner": "violated",
+   "as_expected": true,
+   "probe_exit": 0,
+   "preflight_exit": 3,
+   "lock_unchanged": true
+  },
+  {
+   "same_named_project": "command",
+   "agent": "claude",
+   "kind": "agent",
+   "native_listing": {
+    "pinned": 20
+   },
+   "expected": "satisfied",
+   "observed_winner": "satisfied",
+   "as_expected": true,
+   "probe_exit": 0,
+   "preflight_exit": 3,
+   "lock_unchanged": true
+  },
+  {
+   "same_named_project": "command",
+   "agent": "codex",
+   "kind": "command",
+   "native_listing": "rendered as a skill; see collision.py",
+   "expected": "violated",
+   "observed_winner": "violated",
+   "as_expected": true,
+   "probe_exit": 0,
+   "preflight_exit": 3,
+   "lock_unchanged": true
+  },
+  {
+   "same_named_project": "command",
+   "agent": "codex",
+   "kind": "agent",
+   "native_listing": "rendered as a skill; see collision.py",
+   "expected": "satisfied",
+   "observed_winner": "satisfied",
+   "as_expected": true,
+   "probe_exit": 0,
+   "preflight_exit": 3,
+   "lock_unchanged": true
+  },
+  {
+   "same_named_project": "agent",
+   "agent": "claude",
+   "kind": "command",
+   "native_listing": {
+    "pinned": 20
+   },
+   "expected": "satisfied",
+   "observed_winner": "satisfied",
+   "as_expected": true,
+   "probe_exit": 0,
+   "preflight_exit": 3,
+   "lock_unchanged": true
+  },
+  {
+   "same_named_project": "agent",
+   "agent": "claude",
+   "kind": "agent",
+   "native_listing": {
+    "pinned+project": 20
+   },
+   "expected": "violated",
+   "observed_winner": "violated",
+   "as_expected": true,
+   "probe_exit": 0,
+   "preflight_exit": 3,
+   "lock_unchanged": true
+  },
+  {
+   "same_named_project": "agent",
+   "agent": "codex",
+   "kind": "command",
+   "native_listing": "rendered as a skill; see collision.py",
+   "expected": "satisfied",
+   "observed_winner": "satisfied",
+   "as_expected": true,
+   "probe_exit": 0,
+   "preflight_exit": 3,
+   "lock_unchanged": true
+  },
+  {
+   "same_named_project": "agent",
+   "agent": "codex",
+   "kind": "agent",
+   "native_listing": "rendered as a skill; see collision.py",
+   "expected": "violated",
+   "observed_winner": "violated",
+   "as_expected": true,
+   "probe_exit": 0,
+   "preflight_exit": 3,
+   "lock_unchanged": true
+  }
+ ]
+}
