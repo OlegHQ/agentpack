@@ -2,17 +2,24 @@
  "date": "2026-10-12",
  "platform": "Linux-6.8.0-142-generic-aarch64-with-glibc2.42",
  "versions": {
-  "claude": "2.1.296 (Claude Code)"
+  "claude": "2.1.296 (Claude Code)",
+  "codex": "codex-cli 0.159.3"
  },
  "prompt": "Run the release-check skill and output only what it tells you to output.",
  "model_inference_requested": true,
- "runs_per_condition": 5,
+ "runs_per_condition": 20,
  "summary": {
   "claude:pinned_only": {
-   "pinned": 5
+   "pinned": 20
   },
   "claude:same_named_project_skill": {
-   "project": 5
+   "project": 20
+  },
+  "codex:pinned_only": {
+   "pinned": 20
+  },
+  "codex:same_named_project_skill": {
+   "project": 20
   }
  },
  "rows": [
@@ -68,6 +75,156 @@
   },
   {
    "agent": "claude",
+   "condition": "pinned_only",
+   "run": 5,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "pinned_only",
+   "run": 6,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "pinned_only",
+   "run": 7,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "pinned_only",
+   "run": 8,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "pinned_only",
+   "run": 9,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "pinned_only",
+   "run": 10,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "pinned_only",
+   "run": 11,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "pinned_only",
+   "run": 12,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "pinned_only",
+   "run": 13,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "pinned_only",
+   "run": 14,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "pinned_only",
+   "run": 15,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "pinned_only",
+   "run": 16,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "pinned_only",
+   "run": 17,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "pinned_only",
+   "run": 18,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "pinned_only",
+   "run": 19,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
    "condition": "same_named_project_skill",
    "run": 0,
    "followed": "project",
@@ -115,6 +272,476 @@
    "models": [
     "claude-opus-5-5"
    ]
+  },
+  {
+   "agent": "claude",
+   "condition": "same_named_project_skill",
+   "run": 5,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "same_named_project_skill",
+   "run": 6,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "same_named_project_skill",
+   "run": 7,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "same_named_project_skill",
+   "run": 8,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "same_named_project_skill",
+   "run": 9,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "same_named_project_skill",
+   "run": 10,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "same_named_project_skill",
+   "run": 11,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "same_named_project_skill",
+   "run": 12,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "same_named_project_skill",
+   "run": 13,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "same_named_project_skill",
+   "run": 14,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "same_named_project_skill",
+   "run": 15,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "same_named_project_skill",
+   "run": 16,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "same_named_project_skill",
+   "run": 17,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "same_named_project_skill",
+   "run": 18,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "same_named_project_skill",
+   "run": 19,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "codex",
+   "condition": "pinned_only",
+   "run": 0,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "pinned_only",
+   "run": 1,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "pinned_only",
+   "run": 2,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "pinned_only",
+   "run": 3,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "pinned_only",
+   "run": 4,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "pinned_only",
+   "run": 5,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "pinned_only",
+   "run": 6,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "pinned_only",
+   "run": 7,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "pinned_only",
+   "run": 8,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "pinned_only",
+   "run": 9,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "pinned_only",
+   "run": 10,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "pinned_only",
+   "run": 11,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "pinned_only",
+   "run": 12,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "pinned_only",
+   "run": 13,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "pinned_only",
+   "run": 14,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "pinned_only",
+   "run": 15,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "pinned_only",
+   "run": 16,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "pinned_only",
+   "run": 17,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "pinned_only",
+   "run": 18,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "pinned_only",
+   "run": 19,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "same_named_project_skill",
+   "run": 0,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "same_named_project_skill",
+   "run": 1,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "same_named_project_skill",
+   "run": 2,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "same_named_project_skill",
+   "run": 3,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "same_named_project_skill",
+   "run": 4,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "same_named_project_skill",
+   "run": 5,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "same_named_project_skill",
+   "run": 6,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "same_named_project_skill",
+   "run": 7,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "same_named_project_skill",
+   "run": 8,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "same_named_project_skill",
+   "run": 9,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "same_named_project_skill",
+   "run": 10,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "same_named_project_skill",
+   "run": 11,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "same_named_project_skill",
+   "run": 12,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "same_named_project_skill",
+   "run": 13,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "same_named_project_skill",
+   "run": 14,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "same_named_project_skill",
+   "run": 15,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "same_named_project_skill",
+   "run": 16,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "same_named_project_skill",
+   "run": 17,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "same_named_project_skill",
+   "run": 18,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": []
+  },
+  {
+   "agent": "codex",
+   "condition": "same_named_project_skill",
+   "run": 19,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": []
   }
  ]
 }

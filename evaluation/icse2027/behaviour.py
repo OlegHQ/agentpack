@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Does a same-named project skill change what the agent does, not only what it lists?
 
-This is the only experiment that calls a model. Two tiny skills share the name `release-check`
+This experiment calls a model (as does delivery.py). Two tiny skills share the name `release-check`
 and the same description; the pinned one tells the agent to answer "RESULT PINNED-COPY", the
 project one "RESULT PROJECT-COPY". The pinned skill is installed natively (a plugin for Claude
 Code, CODEX_HOME/skills for Codex), the project one in the root that agent reads, and the agent
@@ -21,8 +21,9 @@ ROOT = {'claude': '.claude/skills', 'codex': '.agents/skills'}
 
 parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
 parser.add_argument('--runs', type=int, default=5)
-parser.add_argument('--agents', nargs='+', default=['claude'], choices=['claude', 'codex'],
-                    help='codex needs its Linux sandbox (user namespaces); it is not run unsandboxed')
+parser.add_argument('--agents', nargs='+', default=['claude', 'codex'], choices=['claude', 'codex'])
+parser.add_argument('--codex-unsandboxed', action='store_true',
+                    help='run Codex without its sandbox (its Linux sandbox needs user namespaces); it only sees a temporary checkout')
 parser.add_argument('--output', type=Path, default=Path(__file__).resolve().parent / 'behaviour-results.json')
 args = parser.parse_args()
 
@@ -51,7 +52,8 @@ def ask(agent, ws, pinned_home):
             return p.stdout + p.stderr, []
     env = {**os.environ, 'CODEX_HOME': str(pinned_home)}
     last = pinned_home / 'last-message.txt'
-    p = subprocess.run(['codex', 'exec', '--skip-git-repo-check', '--sandbox', 'read-only',
+    sandbox = 'danger-full-access' if args.codex_unsandboxed else 'read-only'
+    p = subprocess.run(['codex', 'exec', '--skip-git-repo-check', '--sandbox', sandbox,
                         '--output-last-message', str(last), PROMPT], cwd=ws, env=env,
                        capture_output=True, text=True, timeout=300, stdin=subprocess.DEVNULL)
     return (last.read_text() if last.exists() else p.stdout + p.stderr), []

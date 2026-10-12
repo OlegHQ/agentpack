@@ -7,7 +7,7 @@ Scripts and recorded results for every experiment in the paper's evaluation sect
 | One pinned package on six agents | `delivery.py` | `delivery-results.json` | yes | the six agents, signed in |
 | Same-named skills in public repositories | `prevalence.py` | `prevalence-results.json` | no | `gh` (signed in), `git` |
 | What three agents list for a same-named skill | `collision.py` | `collision-results.json` | no | Claude Code 2.1.296, Codex 0.159.3, OpenCode 1.17.11 |
-| Which copy the agent follows | `behaviour.py` | `behaviour-results.json` | yes | Claude Code, signed in |
+| Which copy the agent follows | `behaviour.py` | `behaviour-results.json` | yes | Claude Code and Codex, signed in |
 | Thirty real repositories | `realrepos.py` | `realrepos-results.json` | no | Claude Code 2.1.296, Codex 0.159.3 |
 | CI gate on three operating systems | `ci_gate.py` | `ci-results/` | no | nothing: it runs in GitHub Actions |
 | Receipts over 16 states | `scenario.py` | `scenario-results.json` | no | Claude Code 2.1.296 |
@@ -36,7 +36,7 @@ python3 scenario.py  --agentpack bin/agentpack
 python3 faults.py    --agentpack bin/agentpack --claude "$(command -v claude)"
 python3 prevalence.py                               # about 8 minutes; GitHub code search is rate limited
 python3 delivery.py  --agentpack bin/agentpack --codex-unsandboxed   # real model calls on your accounts
-python3 behaviour.py                                # real model calls on your Claude Code account
+python3 behaviour.py --codex-unsandboxed            # real model calls on your Claude Code and Codex accounts
 ```
 
 Scripts that call no model run every agent in an empty temporary home: no account, credential, hook or user setting is read. `delivery.py` and `behaviour.py` are the exception by design and say so in their headers.
@@ -59,7 +59,7 @@ A package with a skill, a slash command, a subagent, a rule and a hook is pinned
 - Cursor did not fire the prompt hook in non-interactive mode. Agentpack does not stage hooks for Antigravity.
 - OpenCode's slash command is invoked with `opencode run --command`; a first run that sent `/delivery-command` as a prompt is kept in `history/`.
 - The first runs of this experiment exposed a defect in Agentpack: the hooks plugin it generated for OpenCode failed on OpenCode 1.17.11. Fixed in 0.4.7.
-- The lockfile is unchanged and no file is left in the checkout.
+- The lockfile is unchanged and no regular file is added to the checkout (`files_left_in_checkout` lists only the fixture's own `README.md`). Cursor and Antigravity get one link in the checkout that points to staging.
 
 ## Same-named skills
 
@@ -117,7 +117,7 @@ A package with a skill, a slash command, a subagent, a rule and a hook is pinned
 
 The observed check matches part A in 45 of 45 cells, and the earlier receipt is retired in 36 of 36. For OpenCode the probe samples 60 listings, because a single listing cannot show that its answer varies.
 
-**`behaviour.py`.** Two tiny skills with one name answer differently. Claude Code followed the pinned one in 5 of 5 runs when it was alone and the project copy in 5 of 5 when both existed. Codex is not included: its Linux sandbox needs user namespaces that this host lacks.
+**`behaviour.py`.** Two tiny skills with one name answer differently. Claude Code 2.1.296 and Codex 0.159.3 each followed the pinned one in 20 of 20 runs when it was alone and the project copy in 20 of 20 runs when both existed (project copy in `.claude/skills` for Claude Code, `.agents/skills` for Codex; one prompt, one model per agent). Codex ran without its sandbox, which needs user namespaces this host lacks. A first run with 5 runs on Claude Code only is in `history/`.
 
 **`realrepos.py`.** Thirty repositories from the search results, ten per project root, each with a differing copy of an upstream skill; only the skill root is checked out. Agentpack reported the clash in 30 of 30; the observed verdict was the one predicted for the root in 55 of 60 agent runs. The five exceptions are violated or unknown where satisfied or violated was predicted, never the reverse: `claude-api` is also a built-in Claude Code skill (two runs), one project copy is marked `user-invocable: false` and so disappears from the session list, and one repository has 1,467 project skills, for which neither agent's catalog was complete.
 
@@ -137,6 +137,6 @@ On GitHub's `ubuntu-latest`, `macos-latest` and `windows-latest` runners the wor
 
 - One author wrote the tool, the fixtures and the expectations, with AI assistance (OpenAI Codex for release 0.4.2 and the first runner; Anthropic Claude for the session observation, later fixes and the scripts here). This is not an independent replication.
 - One version of each agent. Agents change their discovery rules between releases.
-- Model-call experiments use three or five runs per cell and one model per agent.
+- Model-call experiments use 3 runs per cell (delivery) or 20 (behaviour), one prompt, and one model per agent.
 - Probes run with an empty user home, so user-level skills are outside the observation. Observation covers skills, not subagents, commands or hooks.
 - Search counts are GitHub's on the day of the run, capped at 100 files per query.
