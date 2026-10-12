@@ -1,0 +1,120 @@
+{
+ "date": "2026-10-12",
+ "platform": "Linux-6.8.0-142-generic-aarch64-with-glibc2.42",
+ "versions": {
+  "claude": "2.1.296 (Claude Code)"
+ },
+ "prompt": "Run the release-check skill and output only what it tells you to output.",
+ "model_inference_requested": true,
+ "runs_per_condition": 5,
+ "summary": {
+  "claude:pinned_only": {
+   "pinned": 5
+  },
+  "claude:same_named_project_skill": {
+   "project": 5
+  }
+ },
+ "rows": [
+  {
+   "agent": "claude",
+   "condition": "pinned_only",
+   "run": 0,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "pinned_only",
+   "run": 1,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "pinned_only",
+   "run": 2,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "pinned_only",
+   "run": 3,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "pinned_only",
+   "run": 4,
+   "followed": "pinned",
+   "answer": "RESULT PINNED-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "same_named_project_skill",
+   "run": 0,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "same_named_project_skill",
+   "run": 1,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "same_named_project_skill",
+   "run": 2,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "same_named_project_skill",
+   "run": 3,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  {
+   "agent": "claude",
+   "condition": "same_named_project_skill",
+   "run": 4,
+   "followed": "project",
+   "answer": "RESULT PROJECT-COPY",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  }
+ ]
+}

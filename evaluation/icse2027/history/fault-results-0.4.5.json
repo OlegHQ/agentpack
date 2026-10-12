@@ -1,0 +1,538 @@
+{
+ "date": "2026-10-12",
+ "platform": "Linux-6.8.0-142-generic-aarch64-with-glibc2.42",
+ "machine": "aarch64",
+ "agentpack_version": "agentpack 0.4.5",
+ "agentpack_sha256": "e363f800673cba8f16302fb3cb71930a953f9450ab4fb8e607d21b64a08e9c6a",
+ "claude_version": "2.1.296 (Claude Code)",
+ "model_inference_requested": false,
+ "summary": {
+  "faults_run": 8,
+  "faults_passing_semantic_oracle": 8,
+  "clean_controls_run": 6,
+  "clean_controls_passing": 6,
+  "faults_signalled_by_lock_hash_control": 0,
+  "live_cases_run": true
+ },
+ "probe_check": {
+  "exact_scoped_skill_entries": 1,
+  "checkout_unchanged": true,
+  "native_version": "2.1.296 (Claude Code)",
+  "skill_coverage": [
+   {
+    "category": "skill",
+    "scope": "controlled_projection",
+    "completeness": "partial",
+    "reason": "names observed in isolated plugin inventory; ambient user plugins and skills excluded; source bytes/digests not attributed by Claude"
+   },
+   {
+    "category": "skill",
+    "scope": "workspace_session",
+    "completeness": "partial",
+    "reason": "session started in the checkout with the staged bundle and an empty user home; user-level skills and plugins excluded"
+   }
+  ]
+ },
+ "cases": [
+  {
+   "case": "clean_no_checkout_write",
+   "kind": "clean",
+   "expected": {
+    "exit": 0,
+    "finding": null,
+    "finding_absent": null,
+    "requirement": [
+     "no-checkout-config",
+     "satisfied"
+    ]
+   },
+   "observed": {
+    "exit": 0,
+    "finding_codes": [
+     "BINARY_FOUND",
+     "INHERITANCE_BOUNDARY",
+     "STRICT_EXTERNAL"
+    ],
+    "requirements": {
+     "no-checkout-config": "satisfied"
+    }
+   },
+   "lock_hash_control_signals": false,
+   "elapsed_ms": 366.4,
+   "oracle": {
+    "exit": true,
+    "finding": true,
+    "finding_absent": true,
+    "requirement": true,
+    "lock_bytes_unchanged": true,
+    "checkout_unchanged": true
+   },
+   "pass": true
+  },
+  {
+   "case": "1_required_observation_no_receipt",
+   "kind": "fault",
+   "expected": {
+    "exit": 4,
+    "finding": "OBSERVATION_UNAVAILABLE",
+    "finding_absent": null,
+    "requirement": [
+     "native-skill",
+     "unknown"
+    ]
+   },
+   "observed": {
+    "exit": 4,
+    "finding_codes": [
+     "BINARY_FOUND",
+     "INHERITANCE_BOUNDARY",
+     "OBSERVATION_UNAVAILABLE",
+     "STRICT_EXTERNAL"
+    ],
+    "requirements": {
+     "native-skill": "unknown"
+    }
+   },
+   "lock_hash_control_signals": false,
+   "elapsed_ms": 249.9,
+   "oracle": {
+    "exit": true,
+    "finding": true,
+    "finding_absent": true,
+    "requirement": true,
+    "lock_bytes_unchanged": true,
+    "checkout_unchanged": true
+   },
+   "pass": true
+  },
+  {
+   "case": "2_strict_target_needs_checkout_overlay",
+   "kind": "fault",
+   "expected": {
+    "exit": 3,
+    "finding": "WORKSPACE_WRITE_REQUIRED",
+    "finding_absent": null,
+    "requirement": [
+     "no-checkout-config",
+     "violated"
+    ]
+   },
+   "observed": {
+    "exit": 3,
+    "finding_codes": [
+     "BINARY_FOUND",
+     "INHERITANCE_BOUNDARY",
+     "STRICT_EXTERNAL",
+     "WORKSPACE_WRITE_REQUIRED"
+    ],
+    "requirements": {
+     "no-checkout-config": "violated"
+    }
+   },
+   "lock_hash_control_signals": false,
+   "elapsed_ms": 26.5,
+   "oracle": {
+    "exit": true,
+    "finding": true,
+    "finding_absent": true,
+    "requirement": true,
+    "lock_bytes_unchanged": true,
+    "checkout_unchanged": true
+   },
+   "pass": true
+  },
+  {
+   "case": "clean_ci_policy_no_user_settings",
+   "kind": "clean",
+   "expected": {
+    "exit": 0,
+    "finding": null,
+    "finding_absent": "INHERITED_CONFIG",
+    "requirement": [
+     "no-checkout-config",
+     "satisfied"
+    ]
+   },
+   "observed": {
+    "exit": 0,
+    "finding_codes": [
+     "BINARY_FOUND",
+     "INHERITANCE_BOUNDARY",
+     "STRICT_EXTERNAL"
+    ],
+    "requirements": {
+     "no-checkout-config": "satisfied"
+    }
+   },
+   "lock_hash_control_signals": false,
+   "elapsed_ms": 153.4,
+   "oracle": {
+    "exit": true,
+    "finding": true,
+    "finding_absent": true,
+    "requirement": true,
+    "lock_bytes_unchanged": true,
+    "checkout_unchanged": true
+   },
+   "pass": true
+  },
+  {
+   "case": "3_undeclared_user_settings_under_ci",
+   "kind": "fault",
+   "expected": {
+    "exit": 3,
+    "finding": "INHERITED_CONFIG",
+    "finding_absent": null,
+    "requirement": null
+   },
+   "observed": {
+    "exit": 3,
+    "finding_codes": [
+     "BINARY_FOUND",
+     "INHERITANCE_BOUNDARY",
+     "INHERITED_CONFIG",
+     "STAGING_INPUTS_STALE",
+     "STRICT_EXTERNAL"
+    ],
+    "requirements": {
+     "no-checkout-config": "satisfied"
+    }
+   },
+   "lock_hash_control_signals": false,
+   "elapsed_ms": 152.3,
+   "oracle": {
+    "exit": true,
+    "finding": true,
+    "finding_absent": true,
+    "requirement": true,
+    "lock_bytes_unchanged": true,
+    "checkout_unchanged": true
+   },
+   "pass": true
+  },
+  {
+   "case": "clean_exact_skill_name",
+   "kind": "clean",
+   "expected": {
+    "exit": 0,
+    "finding": null,
+    "finding_absent": null,
+    "requirement": [
+     "named",
+     "satisfied"
+    ]
+   },
+   "observed": {
+    "exit": 0,
+    "finding_codes": [
+     "BINARY_FOUND",
+     "INHERITANCE_BOUNDARY"
+    ],
+    "requirements": {
+     "named": "satisfied"
+    }
+   },
+   "lock_hash_control_signals": false,
+   "elapsed_ms": 148.5,
+   "oracle": {
+    "exit": true,
+    "finding": true,
+    "finding_absent": true,
+    "requirement": true,
+    "lock_bytes_unchanged": true,
+    "checkout_unchanged": true
+   },
+   "pass": true
+  },
+  {
+   "case": "4_required_exact_skill_name_differs",
+   "kind": "fault",
+   "expected": {
+    "exit": 3,
+    "finding": "CONTRACT_MISMATCH",
+    "finding_absent": null,
+    "requirement": [
+     "named",
+     "violated"
+    ]
+   },
+   "observed": {
+    "exit": 3,
+    "finding_codes": [
+     "BINARY_FOUND",
+     "CONTRACT_MISMATCH",
+     "INHERITANCE_BOUNDARY"
+    ],
+    "requirements": {
+     "named": "violated"
+    }
+   },
+   "lock_hash_control_signals": false,
+   "elapsed_ms": 148.1,
+   "oracle": {
+    "exit": true,
+    "finding": true,
+    "finding_absent": true,
+    "requirement": true,
+    "lock_bytes_unchanged": true,
+    "checkout_unchanged": true
+   },
+   "pass": true
+  },
+  {
+   "case": "5_malformed_receipt_claiming_completeness",
+   "kind": "fault",
+   "expected": {
+    "exit": 5,
+    "finding": "RECEIPT_STALE",
+    "finding_absent": null,
+    "requirement": [
+     "native-skill",
+     "unknown"
+    ]
+   },
+   "observed": {
+    "exit": 5,
+    "finding_codes": [
+     "BINARY_FOUND",
+     "INHERITANCE_BOUNDARY",
+     "OBSERVATION_UNAVAILABLE",
+     "RECEIPT_STALE"
+    ],
+    "requirements": {
+     "native-skill": "unknown"
+    }
+   },
+   "lock_hash_control_signals": false,
+   "elapsed_ms": 146.2,
+   "oracle": {
+    "exit": true,
+    "finding": true,
+    "finding_absent": true,
+    "requirement": true,
+    "lock_bytes_unchanged": true,
+    "checkout_unchanged": true
+   },
+   "pass": true
+  },
+  {
+   "case": "clean_valid_live_receipt",
+   "kind": "clean",
+   "expected": {
+    "exit": 0,
+    "finding": "NATIVE_OBSERVED",
+    "finding_absent": null,
+    "requirement": [
+     "controlled-skill",
+     "satisfied"
+    ]
+   },
+   "observed": {
+    "exit": 0,
+    "finding_codes": [
+     "BINARY_FOUND",
+     "INHERITANCE_BOUNDARY",
+     "NATIVE_OBSERVED",
+     "STRICT_EXTERNAL"
+    ],
+    "requirements": {
+     "controlled-skill": "satisfied"
+    }
+   },
+   "lock_hash_control_signals": false,
+   "elapsed_ms": 147.3,
+   "oracle": {
+    "exit": true,
+    "finding": true,
+    "finding_absent": true,
+    "requirement": true,
+    "lock_bytes_unchanged": true,
+    "checkout_unchanged": true
+   },
+   "pass": true
+  },
+  {
+   "case": "6_live_receipt_then_workspace_edit",
+   "kind": "fault",
+   "expected": {
+    "exit": 4,
+    "finding": "RECEIPT_STALE",
+    "finding_absent": null,
+    "requirement": [
+     "controlled-skill",
+     "unknown"
+    ]
+   },
+   "observed": {
+    "exit": 4,
+    "finding_codes": [
+     "BINARY_FOUND",
+     "INHERITANCE_BOUNDARY",
+     "OBSERVATION_UNAVAILABLE",
+     "RECEIPT_STALE",
+     "STAGING_INPUTS_STALE",
+     "STRICT_EXTERNAL"
+    ],
+    "requirements": {
+     "controlled-skill": "unknown"
+    }
+   },
+   "lock_hash_control_signals": false,
+   "elapsed_ms": 147.2,
+   "oracle": {
+    "exit": true,
+    "finding": true,
+    "finding_absent": true,
+    "requirement": true,
+    "lock_bytes_unchanged": true,
+    "checkout_unchanged": true
+   },
+   "pass": true
+  },
+  {
+   "case": "clean_workspace_edit_reverted",
+   "kind": "clean",
+   "expected": {
+    "exit": 0,
+    "finding": "NATIVE_OBSERVED",
+    "finding_absent": null,
+    "requirement": [
+     "controlled-skill",
+     "satisfied"
+    ]
+   },
+   "observed": {
+    "exit": 0,
+    "finding_codes": [
+     "BINARY_FOUND",
+     "INHERITANCE_BOUNDARY",
+     "NATIVE_OBSERVED",
+     "STRICT_EXTERNAL"
+    ],
+    "requirements": {
+     "controlled-skill": "satisfied"
+    }
+   },
+   "lock_hash_control_signals": false,
+   "elapsed_ms": 146.0,
+   "oracle": {
+    "exit": true,
+    "finding": true,
+    "finding_absent": true,
+    "requirement": true,
+    "lock_bytes_unchanged": true,
+    "checkout_unchanged": true
+   },
+   "pass": true
+  },
+  {
+   "case": "8_agent_executable_changed",
+   "kind": "fault",
+   "expected": {
+    "exit": 4,
+    "finding": "RECEIPT_STALE",
+    "finding_absent": null,
+    "requirement": [
+     "controlled-skill",
+     "unknown"
+    ]
+   },
+   "observed": {
+    "exit": 4,
+    "finding_codes": [
+     "BINARY_FOUND",
+     "INHERITANCE_BOUNDARY",
+     "OBSERVATION_UNAVAILABLE",
+     "RECEIPT_STALE",
+     "STRICT_EXTERNAL"
+    ],
+    "requirements": {
+     "controlled-skill": "unknown"
+    }
+   },
+   "lock_hash_control_signals": false,
+   "elapsed_ms": 188.5,
+   "oracle": {
+    "exit": true,
+    "finding": true,
+    "finding_absent": true,
+    "requirement": true,
+    "lock_bytes_unchanged": true,
+    "checkout_unchanged": true
+   },
+   "pass": true
+  },
+  {
+   "case": "clean_original_executable_again",
+   "kind": "clean",
+   "expected": {
+    "exit": 0,
+    "finding": "NATIVE_OBSERVED",
+    "finding_absent": null,
+    "requirement": [
+     "controlled-skill",
+     "satisfied"
+    ]
+   },
+   "observed": {
+    "exit": 0,
+    "finding_codes": [
+     "BINARY_FOUND",
+     "INHERITANCE_BOUNDARY",
+     "NATIVE_OBSERVED",
+     "STRICT_EXTERNAL"
+    ],
+    "requirements": {
+     "controlled-skill": "satisfied"
+    }
+   },
+   "lock_hash_control_signals": false,
+   "elapsed_ms": 176.7,
+   "oracle": {
+    "exit": true,
+    "finding": true,
+    "finding_absent": true,
+    "requirement": true,
+    "lock_bytes_unchanged": true,
+    "checkout_unchanged": true
+   },
+   "pass": true
+  },
+  {
+   "case": "7_retained_diagnostic_removed",
+   "kind": "fault",
+   "expected": {
+    "exit": 5,
+    "finding": "OBSERVATION_UNAVAILABLE",
+    "finding_absent": "RECEIPT_STALE",
+    "requirement": [
+     "controlled-skill",
+     "unknown"
+    ]
+   },
+   "observed": {
+    "exit": 5,
+    "finding_codes": [
+     "BINARY_FOUND",
+     "INHERITANCE_BOUNDARY",
+     "OBSERVATION_UNAVAILABLE",
+     "STRICT_EXTERNAL"
+    ],
+    "requirements": {
+     "controlled-skill": "unknown"
+    }
+   },
+   "lock_hash_control_signals": false,
+   "elapsed_ms": 148.6,
+   "oracle": {
+    "exit": true,
+    "finding": true,
+    "finding_absent": true,
+    "requirement": true,
+    "lock_bytes_unchanged": true,
+    "checkout_unchanged": true
+   },
+   "pass": true
+  }
+ ]
+}

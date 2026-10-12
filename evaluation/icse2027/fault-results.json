@@ -2,8 +2,8 @@
  "date": "2026-10-12",
  "platform": "Linux-6.8.0-142-generic-aarch64-with-glibc2.42",
  "machine": "aarch64",
- "agentpack_version": "agentpack 0.4.5",
- "agentpack_sha256": "e363f800673cba8f16302fb3cb71930a953f9450ab4fb8e607d21b64a08e9c6a",
+ "agentpack_version": "agentpack 0.4.7",
+ "agentpack_sha256": "de095e22917502a0a8441b93ade9f69f8f1b7b8db9dcf1fa5a5a48c70e6599a4",
  "claude_version": "2.1.296 (Claude Code)",
  "model_inference_requested": false,
  "summary": {
@@ -58,7 +58,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 366.4,
+   "elapsed_ms": 280.4,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -94,7 +94,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 249.9,
+   "elapsed_ms": 189.8,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -130,7 +130,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 26.5,
+   "elapsed_ms": 20.9,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -165,7 +165,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 153.4,
+   "elapsed_ms": 174.0,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -199,7 +199,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 152.3,
+   "elapsed_ms": 166.1,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -233,7 +233,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 148.5,
+   "elapsed_ms": 173.3,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -268,7 +268,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 148.1,
+   "elapsed_ms": 172.7,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -304,7 +304,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 146.2,
+   "elapsed_ms": 171.9,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -340,7 +340,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 147.3,
+   "elapsed_ms": 169.2,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -378,7 +378,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 147.2,
+   "elapsed_ms": 176.6,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -414,7 +414,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 146.0,
+   "elapsed_ms": 167.5,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -451,7 +451,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 188.5,
+   "elapsed_ms": 161.4,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -487,7 +487,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 176.7,
+   "elapsed_ms": 183.9,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -523,7 +523,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 148.6,
+   "elapsed_ms": 169.3,
    "oracle": {
     "exit": true,
     "finding": true,

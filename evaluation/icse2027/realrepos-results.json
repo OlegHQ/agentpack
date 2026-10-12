@@ -1,0 +1,895 @@
+{
+ "date": "2026-10-12",
+ "platform": "Linux-6.8.0-142-generic-aarch64-with-glibc2.42",
+ "agentpack_version": "agentpack 0.4.7",
+ "versions": {
+  "claude": "2.1.296 (Claude Code)",
+  "codex": "codex-cli 0.159.3"
+ },
+ "pin": "anthropics/skills@dbd4588f9e1033efb41dad4bef2f7947c8993d44",
+ "model_inference_requested": false,
+ "summary": {
+  "repositories_checked": 30,
+  "skipped": 0,
+  "lock_unchanged": 30,
+  "claude_observed_as_expected": 26,
+  "claude_observed_violated": 12,
+  "claude_planned_violated": 20,
+  "codex_observed_as_expected": 29,
+  "codex_observed_violated": 19,
+  "codex_planned_violated": 30,
+  "clash_reported_by_at_least_one_grade": 30
+ },
+ "rows": [
+  {
+   "repository": "NeelakshSaxena/Drishti",
+   "root": ".claude/skills",
+   "skill": "academy-guide",
+   "commit": "73dfd9533bc9da383b6299d43ef965dc4d4259d6",
+   "status": "checked",
+   "project_skills_in_root": 1465,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "violated",
+     "as_expected": true
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "satisfied",
+     "expected_observed": "satisfied",
+     "as_expected": true
+    }
+   },
+   "lock_unchanged": true
+  },
+  {
+   "repository": "DevlopersField/socailapp",
+   "root": ".claude/skills",
+   "skill": "algorithmic-art",
+   "commit": "8d9b13eecd8136b85ab7c291d1f8d06b40b8e148",
+   "status": "checked",
+   "project_skills_in_root": 20,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "violated",
+     "as_expected": true
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "satisfied",
+     "expected_observed": "satisfied",
+     "as_expected": true
+    }
+   },
+   "lock_unchanged": true
+  },
+  {
+   "repository": "AISecurityAssurance/ai-sec-ally",
+   "root": ".claude/skills",
+   "skill": "brand-guidelines",
+   "commit": "36d77bdd5c3d2dab87f40c7706a3d86cdf652298",
+   "status": "checked",
+   "project_skills_in_root": 1,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "violated",
+     "as_expected": true
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "satisfied",
+     "expected_observed": "satisfied",
+     "as_expected": true
+    }
+   },
+   "lock_unchanged": true
+  },
+  {
+   "repository": "Albertsun6/AICAP",
+   "root": ".claude/skills",
+   "skill": "canvas-design",
+   "commit": "2dea42e50a9c429b68eaf499e2c8cded511187f5",
+   "status": "checked",
+   "project_skills_in_root": 24,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "violated",
+     "as_expected": true
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "satisfied",
+     "expected_observed": "satisfied",
+     "as_expected": true
+    }
+   },
+   "lock_unchanged": true
+  },
+  {
+   "repository": "JHamidun/claude-code-config-pack",
+   "root": ".claude/skills",
+   "skill": "claude-api",
+   "commit": "5cf4a391a9931a080c13fa6f60f0e28ceead7e98",
+   "status": "checked",
+   "project_skills_in_root": 319,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "violated",
+     "as_expected": true
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "satisfied",
+     "expected_observed": "satisfied",
+     "as_expected": true
+    }
+   },
+   "lock_unchanged": true
+  },
+  {
+   "repository": "7ossam26/ERP-V2",
+   "root": ".claude/skills",
+   "skill": "doc-coauthoring",
+   "commit": "7254e34b49acfbe394da3a889abe6e458084cb38",
+   "status": "checked",
+   "project_skills_in_root": 20,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "violated",
+     "as_expected": true
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "satisfied",
+     "expected_observed": "satisfied",
+     "as_expected": true
+    }
+   },
+   "lock_unchanged": true
+  },
+  {
+   "repository": "Ahmet-Talha-Kavakli/ai-body-backend",
+   "root": ".claude/skills",
+   "skill": "docx",
+   "commit": "edd79e5af7b07cd0c2d2dfce5b32f4d9312c8e83",
+   "status": "checked",
+   "project_skills_in_root": 35,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "violated",
+     "as_expected": true
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "satisfied",
+     "expected_observed": "satisfied",
+     "as_expected": true
+    }
+   },
+   "lock_unchanged": true
+  },
+  {
+   "repository": "Agistra/agistra.dev",
+   "root": ".claude/skills",
+   "skill": "frontend-design",
+   "commit": "367d8f966055c4a167fa91f5857f4cec583d81df",
+   "status": "checked",
+   "project_skills_in_root": 45,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "violated",
+     "as_expected": true
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "satisfied",
+     "expected_observed": "satisfied",
+     "as_expected": true
+    }
+   },
+   "lock_unchanged": true
+  },
+  {
+   "repository": "Albatross679/0313temp",
+   "root": ".claude/skills",
+   "skill": "internal-comms",
+   "commit": "b8648cd42078e717799cc2837fb1d4d4acbc5741",
+   "status": "checked",
+   "project_skills_in_root": 13,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "violated",
+     "as_expected": true
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "satisfied",
+     "expected_observed": "satisfied",
+     "as_expected": true
+    }
+   },
+   "lock_unchanged": true
+  },
+  {
+   "repository": "0xrizz/os-manager",
+   "root": ".claude/skills",
+   "skill": "mcp-builder",
+   "commit": "e5d12aee163f000f94bc6fd988e4c77180f50804",
+   "status": "checked",
+   "project_skills_in_root": 32,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "violated",
+     "as_expected": true
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "satisfied",
+     "expected_observed": "satisfied",
+     "as_expected": true
+    }
+   },
+   "lock_unchanged": true
+  },
+  {
+   "repository": "NeelakshSaxena/Drishti",
+   "root": ".agents/skills",
+   "skill": "academy-guide",
+   "commit": "73dfd9533bc9da383b6299d43ef965dc4d4259d6",
+   "status": "checked",
+   "project_skills_in_root": 1467,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 4,
+     "planned-winner": "violated",
+     "observed-winner": "unknown",
+     "expected_observed": "satisfied",
+     "as_expected": false
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 4,
+     "planned-winner": "violated",
+     "observed-winner": "unknown",
+     "expected_observed": "violated",
+     "as_expected": false
+    }
+   },
+   "lock_unchanged": true
+  },
+  {
+   "repository": "AkikoAkaki/simple-tarot",
+   "root": ".agents/skills",
+   "skill": "algorithmic-art",
+   "commit": "dce769e85fcf2d5f3b057034a450554e59dbb90f",
+   "status": "checked",
+   "project_skills_in_root": 2,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "satisfied",
+     "expected_observed": "satisfied",
+     "as_expected": true
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "violated",
+     "as_expected": true
+    }
+   },
+   "lock_unchanged": true
+  },
+  {
+   "repository": "Adrian-opo/multitool-app",
+   "root": ".agents/skills",
+   "skill": "brand-guidelines",
+   "commit": "9ab793e53aac93bcb8f54ed57090c4ba72d40cc1",
+   "status": "checked",
+   "project_skills_in_root": 17,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "satisfied",
+     "expected_observed": "satisfied",
+     "as_expected": true
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "violated",
+     "as_expected": true
+    }
+   },
+   "lock_unchanged": true
+  },
+  {
+   "repository": "Albertsun6/AICAP",
+   "root": ".agents/skills",
+   "skill": "canvas-design",
+   "commit": "2dea42e50a9c429b68eaf499e2c8cded511187f5",
+   "status": "checked",
+   "project_skills_in_root": 24,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "satisfied",
+     "expected_observed": "satisfied",
+     "as_expected": true
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "violated",
+     "as_expected": true
+    }
+   },
+   "lock_unchanged": true
+  },
+  {
+   "repository": "Alamator/everything-can",
+   "root": ".agents/skills",
+   "skill": "claude-api",
+   "commit": "125d5e619905d97b519a887d5bc7332dcc448a52",
+   "status": "checked",
+   "project_skills_in_root": 34,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "satisfied",
+     "as_expected": false
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "violated",
+     "as_expected": true
+    }
+   },
+   "lock_unchanged": true
+  },
+  {
+   "repository": "7ossam26/ERP-V2",
+   "root": ".agents/skills",
+   "skill": "doc-coauthoring",
+   "commit": "7254e34b49acfbe394da3a889abe6e458084cb38",
+   "status": "checked",
+   "project_skills_in_root": 20,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "satisfied",
+     "expected_observed": "satisfied",
+     "as_expected": true
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "violated",
+     "as_expected": true
+    }
+   },
+   "lock_unchanged": true
+  },
+  {
+   "repository": "Allternit/allternit-platform",
+   "root": ".agents/skills",
+   "skill": "docx",
+   "commit": "03ba05534dfff892d39f1df2c1dc07400d514c60",
+   "status": "checked",
+   "project_skills_in_root": 29,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "satisfied",
+     "expected_observed": "satisfied",
+     "as_expected": true
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "violated",
+     "as_expected": true
+    }
+   },
+   "lock_unchanged": true
+  },
+  {
+   "repository": "ABIvan-Tech/opencode-agentic-workflows",
+   "root": ".agents/skills",
+   "skill": "frontend-design",
+   "commit": "2a9cd59b1a1ad4af5e46dad52ccc6e477f6b4eb7",
+   "status": "checked",
+   "project_skills_in_root": 23,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 4,
+     "planned-winner": "violated",
+     "observed-winner": "unknown",
+     "expected_observed": "satisfied",
+     "as_expected": false
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "violated",
+     "as_expected": true
+    }
+   },
+   "lock_unchanged": true
+  },
+  {
+   "repository": "Ande-Labs/KhipuVault",
+   "root": ".agents/skills",
+   "skill": "internal-comms",
+   "commit": "c069cf9f0219868fed81b78aeebf3caa5102d26b",
+   "status": "checked",
+   "project_skills_in_root": 35,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "satisfied",
+     "expected_observed": "satisfied",
+     "as_expected": true
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "violated",
+     "as_expected": true
+    }
+   },
+   "lock_unchanged": true
+  },
+  {
+   "repository": "0xrizz/os-manager",
+   "root": ".agents/skills",
+   "skill": "mcp-builder",
+   "commit": "e5d12aee163f000f94bc6fd988e4c77180f50804",
+   "status": "checked",
+   "project_skills_in_root": 32,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "satisfied",
+     "expected_observed": "satisfied",
+     "as_expected": true
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "violated",
+     "as_expected": true
+    }
+   },
+   "lock_unchanged": true
+  },
+  {
+   "repository": "deadronos/NanoBotsIdle",
+   "root": ".codex/skills",
+   "skill": "algorithmic-art",
+   "commit": "48e87cadd5adf24cf475c87dd9bb629d82ff93b1",
+   "status": "checked",
+   "project_skills_in_root": 7,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 0,
+     "planned-winner": "satisfied",
+     "observed-winner": "satisfied",
+     "expected_observed": "satisfied",
+     "as_expected": true
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "violated",
+     "as_expected": true
+    }
+   },
+   "lock_unchanged": true
+  },
+  {
+   "repository": "DemonJianZ/banana-flow-studio",
+   "root": ".codex/skills",
+   "skill": "brand-guidelines",
+   "commit": "d804bc52d6ae1dc0eb259ac163f7436550e64fd0",
+   "status": "checked",
+   "project_skills_in_root": 204,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 0,
+     "planned-winner": "satisfied",
+     "observed-winner": "satisfied",
+     "expected_observed": "satisfied",
+     "as_expected": true
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "violated",
+     "as_expected": true
+    }
+   },
+   "lock_unchanged": true
+  },
+  {
+   "repository": "chichouzhi/graduation-thesis",
+   "root": ".codex/skills",
+   "skill": "canvas-design",
+   "commit": "aa13dc49cb931bba00fcac69787140680fa53381",
+   "status": "checked",
+   "project_skills_in_root": 8,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 0,
+     "planned-winner": "satisfied",
+     "observed-winner": "satisfied",
+     "expected_observed": "satisfied",
+     "as_expected": true
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "violated",
+     "as_expected": true
+    }
+   },
+   "lock_unchanged": true
+  },
+  {
+   "repository": "inuishan/PET",
+   "root": ".codex/skills",
+   "skill": "claude-api",
+   "commit": "e866d1c2bee174c293e5fef66b9ec77d8396c1f0",
+   "status": "checked",
+   "project_skills_in_root": 30,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "satisfied",
+     "observed-winner": "violated",
+     "expected_observed": "satisfied",
+     "as_expected": false
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "violated",
+     "as_expected": true
+    }
+   },
+   "lock_unchanged": true
+  },
+  {
+   "repository": "caojun1997/zha-milk",
+   "root": ".codex/skills",
+   "skill": "doc-coauthoring",
+   "commit": "a0ffa3cd6f2a7b9266d318735dd9d272a947a37f",
+   "status": "checked",
+   "project_skills_in_root": 6,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 0,
+     "planned-winner": "satisfied",
+     "observed-winner": "satisfied",
+     "expected_observed": "satisfied",
+     "as_expected": true
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "violated",
+     "as_expected": true
+    }
+   },
+   "lock_unchanged": true
+  },
+  {
+   "repository": "Sologa/codex-pipeline",
+   "root": ".codex/skills",
+   "skill": "docx",
+   "commit": "f50c55ba97a2e1e037a61ba1d5e10c3d0f8083ec",
+   "status": "checked",
+   "project_skills_in_root": 143,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 0,
+     "planned-winner": "satisfied",
+     "observed-winner": "satisfied",
+     "expected_observed": "satisfied",
+     "as_expected": true
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "violated",
+     "as_expected": true
+    }
+   },
+   "lock_unchanged": true
+  },
+  {
+   "repository": "0xarch2311/LAN-BoardgameArena",
+   "root": ".codex/skills",
+   "skill": "frontend-design",
+   "commit": "1ebe87f9b391c3611daca8b2868d6d065f738c84",
+   "status": "checked",
+   "project_skills_in_root": 1,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 0,
+     "planned-winner": "satisfied",
+     "observed-winner": "satisfied",
+     "expected_observed": "satisfied",
+     "as_expected": true
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "violated",
+     "as_expected": true
+    }
+   },
+   "lock_unchanged": true
+  },
+  {
+   "repository": "Liouinz/whatsapp-bot",
+   "root": ".codex/skills",
+   "skill": "internal-comms",
+   "commit": "e1d9b25277cd3eb0fafc41a58b49478ce27a9e76",
+   "status": "checked",
+   "project_skills_in_root": 234,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 0,
+     "planned-winner": "satisfied",
+     "observed-winner": "satisfied",
+     "expected_observed": "satisfied",
+     "as_expected": true
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "violated",
+     "as_expected": true
+    }
+   },
+   "lock_unchanged": true
+  },
+  {
+   "repository": "2926023299/commonUtil",
+   "root": ".codex/skills",
+   "skill": "mcp-builder",
+   "commit": "8aafd7a34211f1e98a7d7e1344d93536812c37dc",
+   "status": "checked",
+   "project_skills_in_root": 19,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 0,
+     "planned-winner": "satisfied",
+     "observed-winner": "satisfied",
+     "expected_observed": "satisfied",
+     "as_expected": true
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "violated",
+     "as_expected": true
+    }
+   },
+   "lock_unchanged": true
+  },
+  {
+   "repository": "BuhDuy256/crypto-strategy-lab",
+   "root": ".codex/skills",
+   "skill": "pdf",
+   "commit": "defb13f3eb6a69c3d90c65e4029713ff5d61f363",
+   "status": "checked",
+   "project_skills_in_root": 14,
+   "agents": {
+    "claude": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 0,
+     "planned-winner": "satisfied",
+     "observed-winner": "satisfied",
+     "expected_observed": "satisfied",
+     "as_expected": true
+    },
+    "codex": {
+     "restore_exit": 0,
+     "probe_exit": 0,
+     "preflight_exit": 3,
+     "planned-winner": "violated",
+     "observed-winner": "violated",
+     "expected_observed": "violated",
+     "as_expected": true
+    }
+   },
+   "lock_unchanged": true
+  }
+ ]
+}

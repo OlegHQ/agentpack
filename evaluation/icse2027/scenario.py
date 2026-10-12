@@ -26,11 +26,11 @@ SKILL_SHA = 'dbd4588f9e1033efb41dad4bef2f7947c8993d44'
 SKILL = 'webapp-testing'
 SPEC = f'{SKILL_REPO}/skills/{SKILL}@{SKILL_SHA}'
 CHECKOUT_REPO = 'https://github.com/OlegHQ/agentpack.git'
-CHECKOUT_TAG = 'v0.4.5'
+CHECKOUT_TAG = 'v0.4.7'
 CLAUDE_VERSION = '2.1.296 (Claude Code)'
 
 parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-parser.add_argument('--agentpack', type=Path, required=True, help='released Agentpack 0.4.5 binary')
+parser.add_argument('--agentpack', type=Path, required=True, help='released Agentpack 0.4.7 binary')
 parser.add_argument('--claude', default=shutil.which('claude'), help='Claude Code 2.1.296 executable')
 parser.add_argument('--output', type=Path, default=Path(__file__).resolve().parent / 'scenario-results.json')
 args = parser.parse_args()

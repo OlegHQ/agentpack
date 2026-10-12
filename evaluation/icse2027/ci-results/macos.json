@@ -1,0 +1,159 @@
+{
+ "platform": "macOS-26.6.2-arm64-arm-64bit",
+ "agents": [
+  "claude",
+  "codex",
+  "opencode"
+ ],
+ "rows": [
+  {
+   "agent": "claude",
+   "step": "restored, not observed",
+   "exit": 4,
+   "expected_exit": 4,
+   "as_expected": true,
+   "planned-winner": "satisfied",
+   "observed-winner": "unknown",
+   "findings": [
+    "OBSERVATION_UNAVAILABLE"
+   ]
+  },
+  {
+   "agent": "claude",
+   "step": "observed",
+   "exit": 0,
+   "expected_exit": 0,
+   "as_expected": true,
+   "planned-winner": "satisfied",
+   "observed-winner": "satisfied",
+   "findings": []
+  },
+  {
+   "agent": "claude",
+   "step": "same-named project skill appears",
+   "exit": 4,
+   "expected_exit": 4,
+   "as_expected": true,
+   "planned-winner": "violated",
+   "observed-winner": "unknown",
+   "findings": [
+    "CONTRACT_MISMATCH",
+    "OBSERVATION_UNAVAILABLE",
+    "RECEIPT_STALE",
+    "STAGING_INPUTS_STALE"
+   ]
+  },
+  {
+   "agent": "claude",
+   "step": "observed again with the project skill",
+   "exit": 3,
+   "expected_exit": 3,
+   "as_expected": true,
+   "planned-winner": "violated",
+   "observed-winner": "violated",
+   "findings": [
+    "CONTRACT_MISMATCH"
+   ]
+  },
+  {
+   "agent": "codex",
+   "step": "restored, not observed",
+   "exit": 4,
+   "expected_exit": 4,
+   "as_expected": true,
+   "planned-winner": "satisfied",
+   "observed-winner": "unknown",
+   "findings": [
+    "OBSERVATION_UNAVAILABLE",
+    "RECEIPT_STALE"
+   ]
+  },
+  {
+   "agent": "codex",
+   "step": "observed",
+   "exit": 0,
+   "expected_exit": 0,
+   "as_expected": true,
+   "planned-winner": "satisfied",
+   "observed-winner": "satisfied",
+   "findings": []
+  },
+  {
+   "agent": "codex",
+   "step": "same-named project skill appears",
+   "exit": 4,
+   "expected_exit": 4,
+   "as_expected": true,
+   "planned-winner": "violated",
+   "observed-winner": "unknown",
+   "findings": [
+    "CONTRACT_MISMATCH",
+    "OBSERVATION_UNAVAILABLE",
+    "RECEIPT_STALE",
+    "STAGING_INPUTS_STALE"
+   ]
+  },
+  {
+   "agent": "codex",
+   "step": "observed again with the project skill",
+   "exit": 3,
+   "expected_exit": 3,
+   "as_expected": true,
+   "planned-winner": "violated",
+   "observed-winner": "violated",
+   "findings": [
+    "CONTRACT_MISMATCH"
+   ]
+  },
+  {
+   "agent": "opencode",
+   "step": "restored, not observed",
+   "exit": 4,
+   "expected_exit": 4,
+   "as_expected": true,
+   "planned-winner": "satisfied",
+   "observed-winner": "unknown",
+   "findings": [
+    "OBSERVATION_UNAVAILABLE",
+    "RECEIPT_STALE"
+   ]
+  },
+  {
+   "agent": "opencode",
+   "step": "observed",
+   "exit": 0,
+   "expected_exit": 0,
+   "as_expected": true,
+   "planned-winner": "satisfied",
+   "observed-winner": "satisfied",
+   "findings": []
+  },
+  {
+   "agent": "opencode",
+   "step": "same-named project skill appears",
+   "exit": 4,
+   "expected_exit": 4,
+   "as_expected": true,
+   "planned-winner": "violated",
+   "observed-winner": "unknown",
+   "findings": [
+    "CONTRACT_MISMATCH",
+    "OBSERVATION_UNAVAILABLE",
+    "RECEIPT_STALE"
+   ]
+  },
+  {
+   "agent": "opencode",
+   "step": "observed again with the project skill",
+   "exit": 3,
+   "expected_exit": 3,
+   "as_expected": true,
+   "planned-winner": "violated",
+   "observed-winner": "violated",
+   "findings": [
+    "CONTRACT_MISMATCH"
+   ]
+  }
+ ],
+ "all_as_expected": true
+}
