@@ -727,3 +727,76 @@ func TestPreflightDetectsMaterializationInputsChangedAfterSync(t *testing.T) {
 	}
 	stale(true)
 }
+
+// A project's own .agents skills are project content. Only a project skill that carries a
+// locked skill's name is reported, and its absence leaves a never-probed workspace unknown.
+func TestPreflightReportsOnlySameNamedAgentsSkills(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("AGENTPACK_HOME", home)
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", os.Getenv("HOME"))
+	if _, err := paths.EnsureUserAgentpackLayout(); err != nil {
+		t.Fatal(err)
+	}
+	cacheKey := "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+	definition := t.TempDir()
+	if err := manifest.WriteStub(definition, "demo", "0.1.0"); err != nil {
+		t.Fatal(err)
+	}
+	lock := lockfile.PackLock{LockfileVersion: 2, Packages: []lockfile.Package{{
+		Module: "github.com/example/skills/review", Direct: true, Kind: lockfile.PackageSkill,
+		Owner: "example", Repo: "skills", Path: "review", Commit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		CacheKey: cacheKey,
+	}}}
+	if err := lock.Save(definition); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(home, "cache", cacheKey), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(home, "cache", cacheKey, "SKILL.md"), []byte("---\nname: review\n---\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	workspace := t.TempDir()
+	writeSkill := func(name string) {
+		t.Helper()
+		directory := filepath.Join(workspace, ".agents", "skills", name)
+		if err := os.MkdirAll(directory, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(directory, "SKILL.md"), []byte("---\nname: "+name+"\n---\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	sources := func() []string {
+		t.Helper()
+		target := base.Claude
+		report, err := NewService().Preflight(definition, PreflightOptions{Policy: environment.PolicyCI, WorkspaceRoot: workspace, Target: &target, ReceiptID: "latest"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		missing := false
+		var found []string
+		for _, finding := range report.Findings {
+			missing = missing || finding.Code == "RECEIPT_MISSING"
+			if finding.Code == "RECEIPT_STALE" {
+				t.Fatalf("a never-probed workspace is not a stale receipt: %#v", finding)
+			}
+			if finding.Code == "AMBIENT_ARTIFACT" {
+				found = append(found, finding.Source)
+			}
+		}
+		if !missing {
+			t.Fatalf("missing RECEIPT_MISSING: %#v", report.Findings)
+		}
+		return found
+	}
+	writeSkill("house-style")
+	if found := sources(); len(found) != 0 {
+		t.Fatalf("the project's own skill was reported as a collision: %v", found)
+	}
+	writeSkill("review")
+	if found := sources(); len(found) != 1 || found[0] != "review" {
+		t.Fatalf("same-named project skill not reported exactly once: %v", found)
+	}
+}

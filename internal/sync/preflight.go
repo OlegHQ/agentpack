@@ -632,13 +632,24 @@ func appendAmbientFindings(report *environment.Report, workspace string, lock lo
 			projectRoots = append(projectRoots, extra.root)
 		}
 	}
+	// Skills that .agents itself contributes are project content, not packaged skills.
+	lockedSkills := map[string]string{}
+	for _, artifact := range report.Artifacts {
+		if artifact.Kind != "skill" || artifact.Module == ".agents" {
+			continue
+		}
+		// The plan already omits a locked skill that .agents overrides; it is still a locked name.
+		if !artifact.Omitted || strings.HasPrefix(artifact.Reason, "overridden by .agents:") {
+			lockedSkills[strings.ToLower(artifact.Name)] = artifact.Name
+		}
+	}
 	for _, root := range projectRoots {
 		names, rootErr := staging.ProjectSkillNames(workspace, root)
 		if rootErr != nil {
 			report.Findings = append(report.Findings, environment.Finding{Code: "AMBIENT_SCAN_FAILED", Severity: environment.SeverityError, Message: rootErr.Error(), Evidence: environment.EvidenceUnknown})
 			return
 		}
-		for lower, display := range packSkills {
+		for lower, display := range lockedSkills {
 			if _, hit := names[lower]; !hit {
 				continue
 			}

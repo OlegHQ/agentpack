@@ -7,6 +7,12 @@ window.
 
 ## Unreleased
 
+## [0.4.4] - 2026-10-12
+
+### Fixed
+
+- 0.4.3 reported every skill a project keeps in its own `.agents/skills` as having a packaged skill's name, and so rejected clean workspaces under CI policy. Only a project skill that carries a locked skill's name is reported.
+
 ## [0.4.3] - 2026-10-12
 
 ### Added
