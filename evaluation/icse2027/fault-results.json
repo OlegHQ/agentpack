@@ -7,10 +7,10 @@
  "claude_version": "2.1.296 (Claude Code)",
  "model_inference_requested": false,
  "summary": {
-  "faults_run": 7,
-  "faults_passing_semantic_oracle": 7,
-  "clean_controls_run": 5,
-  "clean_controls_passing": 5,
+  "faults_run": 8,
+  "faults_passing_semantic_oracle": 8,
+  "clean_controls_run": 6,
+  "clean_controls_passing": 6,
   "faults_signalled_by_lock_hash_control": 0,
   "live_cases_run": true
  },
@@ -58,7 +58,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 291.8,
+   "elapsed_ms": 366.4,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -94,7 +94,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 182.2,
+   "elapsed_ms": 249.9,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -130,7 +130,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 18.2,
+   "elapsed_ms": 26.5,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -165,7 +165,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 145.9,
+   "elapsed_ms": 153.4,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -199,7 +199,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 149.5,
+   "elapsed_ms": 152.3,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -233,7 +233,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 184.6,
+   "elapsed_ms": 148.5,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -268,7 +268,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 151.2,
+   "elapsed_ms": 148.1,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -304,7 +304,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 148.9,
+   "elapsed_ms": 146.2,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -340,7 +340,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 154.8,
+   "elapsed_ms": 147.3,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -378,7 +378,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 160.3,
+   "elapsed_ms": 147.2,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -414,7 +414,80 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 150.5,
+   "elapsed_ms": 146.0,
+   "oracle": {
+    "exit": true,
+    "finding": true,
+    "finding_absent": true,
+    "requirement": true,
+    "lock_bytes_unchanged": true,
+    "checkout_unchanged": true
+   },
+   "pass": true
+  },
+  {
+   "case": "8_agent_executable_changed",
+   "kind": "fault",
+   "expected": {
+    "exit": 4,
+    "finding": "RECEIPT_STALE",
+    "finding_absent": null,
+    "requirement": [
+     "controlled-skill",
+     "unknown"
+    ]
+   },
+   "observed": {
+    "exit": 4,
+    "finding_codes": [
+     "BINARY_FOUND",
+     "INHERITANCE_BOUNDARY",
+     "OBSERVATION_UNAVAILABLE",
+     "RECEIPT_STALE",
+     "STRICT_EXTERNAL"
+    ],
+    "requirements": {
+     "controlled-skill": "unknown"
+    }
+   },
+   "lock_hash_control_signals": false,
+   "elapsed_ms": 188.5,
+   "oracle": {
+    "exit": true,
+    "finding": true,
+    "finding_absent": true,
+    "requirement": true,
+    "lock_bytes_unchanged": true,
+    "checkout_unchanged": true
+   },
+   "pass": true
+  },
+  {
+   "case": "clean_original_executable_again",
+   "kind": "clean",
+   "expected": {
+    "exit": 0,
+    "finding": "NATIVE_OBSERVED",
+    "finding_absent": null,
+    "requirement": [
+     "controlled-skill",
+     "satisfied"
+    ]
+   },
+   "observed": {
+    "exit": 0,
+    "finding_codes": [
+     "BINARY_FOUND",
+     "INHERITANCE_BOUNDARY",
+     "NATIVE_OBSERVED",
+     "STRICT_EXTERNAL"
+    ],
+    "requirements": {
+     "controlled-skill": "satisfied"
+    }
+   },
+   "lock_hash_control_signals": false,
+   "elapsed_ms": 176.7,
    "oracle": {
     "exit": true,
     "finding": true,
@@ -450,7 +523,7 @@
     }
    },
    "lock_hash_control_signals": false,
-   "elapsed_ms": 148.4,
+   "elapsed_ms": 148.6,
    "oracle": {
     "exit": true,
     "finding": true,

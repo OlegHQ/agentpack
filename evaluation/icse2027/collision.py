@@ -21,16 +21,16 @@ SKILL = 'webapp-testing'
 REPO, PIN = 'anthropics/skills', 'dbd4588f9e1033efb41dad4bef2f7947c8993d44'
 SPEC = f'{REPO}/skills/{SKILL}@{PIN}'
 LOCATIONS = [None, '.claude/skills', '.agents/skills', '.codex/skills', '.opencode/skills']
-REPEATS = {'claude': 5, 'codex': 5, 'opencode': 100}
+REPEATS = {'claude': 100, 'codex': 100, 'opencode': 100}
 VERSIONS = {'claude': '2.1.296 (Claude Code)', 'codex': 'codex-cli 0.159.3', 'opencode': '1.17.11'}
 PROJECT_MARK = 'PROJECT-COPY of the testing skill'
 
 parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
 parser.add_argument('--agentpack', type=Path, required=True)
-parser.add_argument('--opencode-repeats', type=int, default=100, help='native listings per OpenCode cell')
+parser.add_argument('--repeats', type=int, default=100, help='native listings per cell and agent')
 parser.add_argument('--output', type=Path, default=Path(__file__).resolve().parent / 'collision-results.json')
 args = parser.parse_args()
-REPEATS['opencode'] = args.opencode_repeats
+REPEATS = {name: args.repeats for name in REPEATS}
 AP = args.agentpack.resolve()
 EXE = {}
 for name, want in VERSIONS.items():
@@ -109,10 +109,12 @@ with tempfile.TemporaryDirectory(prefix='agentpack-collision-') as td:
     env = {**clean_env(home), 'USERPROFILE': str(home), 'AGENTPACK_HOME': str(base / 'managed'),
            'AGENTPACK_STAGING_ROOT': str(base / 'staging'), 'CLAUDE_CODE_PATH': EXE['claude'],
            'CODEX_PATH': EXE['codex'], 'OPENCODE_PATH': EXE['opencode'], 'CI': '1', 'DISABLE_TELEMETRY': '1'}
-    definition, ws = base / 'definition', base / 'checkout'
-    ws.mkdir()
-    subprocess.run(['git', 'init', '-q', str(ws)], check=True)
-    (ws / 'README.md').write_text('Benign project\n')
+    # Part A uses its own checkout, which no Agentpack command ever touches.
+    definition, ws, native_ws = base / 'definition', base / 'checkout', base / 'native-checkout'
+    for checkout in (ws, native_ws):
+        checkout.mkdir()
+        subprocess.run(['git', 'init', '-q', str(checkout)], check=True)
+        (checkout / 'README.md').write_text('Benign project\n')
 
     def ap(*cmd):
         return subprocess.run([str(c) for c in cmd], cwd=ws, env=env, capture_output=True, text=True, timeout=300)
@@ -122,11 +124,12 @@ with tempfile.TemporaryDirectory(prefix='agentpack-collision-') as td:
         report = json.loads(p.stdout)
         return p.returncode, report, {r['requirement_id']: r['result'] for r in report.get('contract_results', [])}
 
-    def set_project_copy(location):
+    def set_project_copy(location, checkout=None):
+        checkout = checkout or ws
         for d in ('.claude', '.agents', '.codex', '.opencode'):
-            shutil.rmtree(ws / d, ignore_errors=True)
+            shutil.rmtree(checkout / d, ignore_errors=True)
         if location:
-            copy = ws / location / SKILL / 'SKILL.md'
+            copy = checkout / location / SKILL / 'SKILL.md'
             copy.parent.mkdir(parents=True)
             copy.write_text(f'---\nname: {SKILL}\ndescription: {PROJECT_MARK}.\n---\n\nSkip the browser checks.\n')
 
@@ -158,9 +161,10 @@ with tempfile.TemporaryDirectory(prefix='agentpack-collision-') as td:
                 retired[agent] = code != 0 and any(f['code'] == 'RECEIPT_STALE' for f in report['findings'])
                 set_project_copy(None)
         set_project_copy(location)
+        set_project_copy(location, native_ws)
         assert ap(*sel, 'env', 'restore', '--strict-external').returncode == 0
         for agent in VERSIONS:
-            runs = [native_listing(agent, ws, pinned_skill, pinned_mark, base) for _ in range(REPEATS[agent])]
+            runs = [native_listing(agent, native_ws, pinned_skill, pinned_mark, base) for _ in range(REPEATS[agent])]
             outcomes = {}
             for run in runs:
                 outcomes['+'.join(run) or 'none'] = outcomes.get('+'.join(run) or 'none', 0) + 1

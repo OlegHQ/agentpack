@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Seven authored fault classes and their clean controls, with semantic oracles.
+"""Eight authored fault classes and their clean controls, with semantic oracles.
 
 Replaces the exit-status-only oracle of the 2026-10-11 runner. Each case must
 produce its expected exit status AND its named finding AND its requirement
 result, while pack.lock bytes and the checkout stay unchanged. The lock-hash
 control is computed from the actual comparison, not asserted.
 
-Cases 1-5 are offline: no native agent is executed. Cases 6-7 need a real
+Cases 1-5 are offline: no native agent is executed. Cases 6-8 need a real
 receipt and run only with --claude (Claude Code 2.1.296); they request no model
 inference. Exit status is 0 only when every executed oracle holds.
 """
@@ -161,6 +161,17 @@ with tempfile.TemporaryDirectory(prefix='agentpack-faults-') as td:
         case('6_live_receipt_then_workspace_edit', 'fault', live, 4, 'RECEIPT_STALE', ('controlled-skill', 'unknown'))
         shutil.rmtree(ws / '.agents')
         case('clean_workspace_edit_reverted', 'clean', live, 0, 'NATIVE_OBSERVED', ('controlled-skill', 'satisfied'))
+        # A different agent executable: same receipt, byte-different binary at the configured path.
+        # Preflight hashes the file and never executes it.
+        other = base / 'claude-other-build'
+        shutil.copyfile(CLAUDE, other)
+        with open(other, 'ab') as handle:
+            handle.write(b'\n')
+        other.chmod(0o755)
+        env['CLAUDE_CODE_PATH'] = str(other)
+        case('8_agent_executable_changed', 'fault', live, 4, 'RECEIPT_STALE', ('controlled-skill', 'unknown'))
+        env['CLAUDE_CODE_PATH'] = CLAUDE
+        case('clean_original_executable_again', 'clean', live, 0, 'NATIVE_OBSERVED', ('controlled-skill', 'satisfied'))
         Path(hits[0]['evidence_ref']).unlink()
         case('7_retained_diagnostic_removed', 'fault', live, 5, 'OBSERVATION_UNAVAILABLE',
              ('controlled-skill', 'unknown'), absent='RECEIPT_STALE')

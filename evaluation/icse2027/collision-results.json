@@ -22,9 +22,9 @@
   {
    "project_copy_at": "none",
    "agent": "claude",
-   "native_runs": 5,
+   "native_runs": 100,
    "native_outcomes": {
-    "pinned": 5
+    "pinned": 100
    },
    "lock_unchanged": true,
    "agentpack": {
@@ -42,9 +42,9 @@
   {
    "project_copy_at": "none",
    "agent": "codex",
-   "native_runs": 5,
+   "native_runs": 100,
    "native_outcomes": {
-    "pinned": 5
+    "pinned": 100
    },
    "lock_unchanged": true,
    "agentpack": {
@@ -77,9 +77,9 @@
   {
    "project_copy_at": ".claude/skills",
    "agent": "claude",
-   "native_runs": 5,
+   "native_runs": 100,
    "native_outcomes": {
-    "pinned+project": 5
+    "pinned+project": 100
    },
    "lock_unchanged": true,
    "agentpack": {
@@ -101,9 +101,9 @@
   {
    "project_copy_at": ".claude/skills",
    "agent": "codex",
-   "native_runs": 5,
+   "native_runs": 100,
    "native_outcomes": {
-    "pinned": 5
+    "pinned": 100
    },
    "lock_unchanged": true,
    "agentpack": {
@@ -143,9 +143,9 @@
   {
    "project_copy_at": ".agents/skills",
    "agent": "claude",
-   "native_runs": 5,
+   "native_runs": 100,
    "native_outcomes": {
-    "pinned": 5
+    "pinned": 100
    },
    "lock_unchanged": true,
    "agentpack": {
@@ -167,9 +167,9 @@
   {
    "project_copy_at": ".agents/skills",
    "agent": "codex",
-   "native_runs": 5,
+   "native_runs": 100,
    "native_outcomes": {
-    "pinned+project": 5
+    "pinned+project": 100
    },
    "lock_unchanged": true,
    "agentpack": {
@@ -191,7 +191,8 @@
    "agent": "opencode",
    "native_runs": 100,
    "native_outcomes": {
-    "pinned": 100
+    "pinned": 98,
+    "project": 2
    },
    "lock_unchanged": true,
    "agentpack": {
@@ -208,9 +209,9 @@
   {
    "project_copy_at": ".codex/skills",
    "agent": "claude",
-   "native_runs": 5,
+   "native_runs": 100,
    "native_outcomes": {
-    "pinned": 5
+    "pinned": 100
    },
    "lock_unchanged": true,
    "agentpack": {
@@ -229,9 +230,9 @@
   {
    "project_copy_at": ".codex/skills",
    "agent": "codex",
-   "native_runs": 5,
+   "native_runs": 100,
    "native_outcomes": {
-    "pinned+project": 5
+    "pinned+project": 100
    },
    "lock_unchanged": true,
    "agentpack": {
@@ -268,9 +269,9 @@
   {
    "project_copy_at": ".opencode/skills",
    "agent": "claude",
-   "native_runs": 5,
+   "native_runs": 100,
    "native_outcomes": {
-    "pinned": 5
+    "pinned": 100
    },
    "lock_unchanged": true,
    "agentpack": {
@@ -289,9 +290,9 @@
   {
    "project_copy_at": ".opencode/skills",
    "agent": "codex",
-   "native_runs": 5,
+   "native_runs": 100,
    "native_outcomes": {
-    "pinned": 5
+    "pinned": 100
    },
    "lock_unchanged": true,
    "agentpack": {
@@ -310,8 +311,8 @@
    "agent": "opencode",
    "native_runs": 100,
    "native_outcomes": {
-    "project": 4,
-    "pinned": 96
+    "pinned": 96,
+    "project": 4
    },
    "lock_unchanged": true,
    "agentpack": {
