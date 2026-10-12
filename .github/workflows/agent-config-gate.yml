@@ -1,0 +1,53 @@
+name: Agent configuration gate
+
+# Preconfigure coding agents on a clean runner and gate on what they will actually list.
+# No account and no API key: the probes read each agent's own catalog and call no model.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - evaluation/icse2027/ci_gate.py
+      - .github/workflows/agent-config-gate.yml
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: Gate (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Agentpack 0.4.7
+        if: runner.os != 'Windows'
+        run: |
+          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/OlegHQ/agentpack/releases/download/v0.4.7/agentpack-installer.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Install Agentpack 0.4.7 (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          irm https://github.com/OlegHQ/agentpack/releases/download/v0.4.7/agentpack-installer.ps1 | iex
+          "$env:USERPROFILE\.local\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+      - name: Install the agents (no sign-in)
+        run: npm install -g @anthropic-ai/claude-code@2.1.296 @openai/codex@0.159.3 opencode-ai@1.17.11
+      - name: Pin, restore, observe and gate
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python evaluation/icse2027/ci_gate.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-gate-${{ matrix.os }}
+          path: ci-gate-results.json
