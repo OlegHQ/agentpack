@@ -14,12 +14,12 @@ import (
 	"github.com/OlegHQ/agentpack/internal/cache"
 )
 
-// packageFile is one file of a cached package as staging sees it. Virtual is
+// PackageFile is one file of a cached package as staging sees it. Virtual is
 // where the file sits in the package's canonical layout (skills/<name>/…,
 // commands/…); Real is its actual path in the cache entry, which mode
 // selectors are written against. The two differ for a file reached through a
 // symbolic link or through a component path a plugin manifest declares.
-type packageFile struct {
+type PackageFile struct {
 	Path    string
 	Virtual string
 	Real    string
@@ -34,19 +34,19 @@ const maxFollowDepth = 32
 type packageWalk struct {
 	root   string
 	module string
-	files  []packageFile
+	files  []PackageFile
 	seen   map[string]bool
 	// open holds the directories being followed, so a link back to one of
 	// them is not followed again.
 	open map[string]bool
 }
 
-// packageFiles lists the files of a cache entry. A plugin gets its tree as it
+// PackageFiles lists the files of a cache entry. A plugin gets its tree as it
 // is, the symbolic links under its component directories followed, and the
 // component paths its manifests declare; a bare skill gets its whole tree with
 // links followed. A link or a declared path that leaves the package is skipped
 // with a warning that names it.
-func packageFiles(sourceRoot, module string, plugin bool) ([]packageFile, error) {
+func PackageFiles(sourceRoot, module string, plugin bool) ([]PackageFile, error) {
 	root, err := filepath.EvalSymlinks(sourceRoot)
 	if err != nil {
 		return nil, err
@@ -109,7 +109,7 @@ func (walk *packageWalk) add(absolute, virtual string) {
 	}
 	walk.seen[key] = true
 
-	walk.files = append(walk.files, packageFile{Path: absolute, Virtual: virtual, Real: filepath.ToSlash(real)})
+	walk.files = append(walk.files, PackageFile{Path: absolute, Virtual: virtual, Real: filepath.ToSlash(real)})
 }
 
 // follow adds what a symbolic link or directory at path holds under the

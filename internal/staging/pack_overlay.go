@@ -64,7 +64,7 @@ func StagePackOverlay(lock lockfile.PackLock, roots []HarnessRoot, effective mod
 }
 
 func stageSourceTree(sourceRoot string, roots []HarnessRoot, bareSkillName, module string, effective mode.Effective) error {
-	files, err := packageFiles(sourceRoot, module, bareSkillName == "")
+	files, err := PackageFiles(sourceRoot, module, bareSkillName == "")
 	if err != nil {
 		return err
 	}
@@ -112,20 +112,12 @@ func stageSourceTree(sourceRoot string, roots []HarnessRoot, bareSkillName, modu
 	}
 	// A command, agent or rule that a target only has as a skill must not
 	// take the place of a skill of the same name, or of another converted item.
-	converted := make(map[harness.Target]map[string]bool)
+	names := NewConvertedNames(skillSources)
 	for _, artifact := range parsed {
 		for _, root := range roots {
-			staged := *artifact
-			if artifact.Kind != artifacts.Skill && artifacts.RenderedKind(root.Target, artifact.Kind) == artifacts.Skill {
-				if converted[root.Target] == nil {
-					converted[root.Target] = make(map[string]bool)
-				}
-				name := convertedSkillName(artifact, skillSources, converted[root.Target])
-				converted[root.Target][name] = true
-				if name != artifact.StorageName {
-					log.Printf("warning: %s: %s stages %ss as skills and the skill name %s is taken; %s %s is staged as skill %s", module, root.Target, artifact.Kind.Word(), artifact.StorageName, artifact.Kind.Word(), artifact.StorageName, name)
-					staged = artifact.Renamed(name)
-				}
+			staged := names.For(artifact, root.Target)
+			if staged.StorageName != artifact.StorageName {
+				log.Printf("warning: %s: %s stages %ss as skills and the skill name %s is taken; %s %s is staged as skill %s", module, root.Target, artifact.Kind.Word(), artifact.StorageName, artifact.Kind.Word(), artifact.StorageName, staged.StorageName)
 			}
 			rendered := staged.Render(root.Target)
 			for _, warning := range rendered.Warnings {
@@ -139,22 +131,44 @@ func stageSourceTree(sourceRoot string, roots []HarnessRoot, bareSkillName, modu
 	return nil
 }
 
-// convertedSkillName names the skill a command, agent or rule becomes on a
-// target without that kind: its own name when it is free, otherwise the name
-// followed by its kind (review-command), then by a number.
-func convertedSkillName(artifact *artifacts.Markdown, skills map[string]string, taken map[string]bool) string {
+// ConvertedNames names the skills that a package's commands, agents and rules
+// become on a target without those kinds. An item keeps its own name when it
+// is free; otherwise it gets the name followed by its kind (review-command),
+// then by a number. Items must be offered in staging order.
+type ConvertedNames struct {
+	skills map[string]string
+	taken  map[harness.Target]map[string]bool
+}
+
+// NewConvertedNames takes the package's own skills, by storage name.
+func NewConvertedNames(skills map[string]string) *ConvertedNames {
+	return &ConvertedNames{skills: skills, taken: make(map[harness.Target]map[string]bool)}
+}
+
+// For returns the artifact as it is staged for target.
+func (names *ConvertedNames) For(artifact *artifacts.Markdown, target harness.Target) artifacts.Markdown {
+	if artifact.Kind == artifacts.Skill || artifacts.RenderedKind(target, artifact.Kind) != artifacts.Skill {
+		return *artifact
+	}
+	if names.taken[target] == nil {
+		names.taken[target] = make(map[string]bool)
+	}
 	free := func(name string) bool {
-		_, skill := skills[name]
-		return !skill && !taken[name]
+		_, skill := names.skills[name]
+		return !skill && !names.taken[target][name]
 	}
-	if free(artifact.StorageName) {
-		return artifact.StorageName
+	name := artifact.StorageName
+	if !free(name) {
+		name = artifact.StorageName + "-" + artifact.Kind.Word()
+		for suffix := 2; !free(name); suffix++ {
+			name = fmt.Sprintf("%s-%s-%d", artifact.StorageName, artifact.Kind.Word(), suffix)
+		}
 	}
-	name := artifact.StorageName + "-" + artifact.Kind.Word()
-	for suffix := 2; !free(name); suffix++ {
-		name = fmt.Sprintf("%s-%s-%d", artifact.StorageName, artifact.Kind.Word(), suffix)
+	names.taken[target][name] = true
+	if name == artifact.StorageName {
+		return *artifact
 	}
-	return name
+	return artifact.Renamed(name)
 }
 
 func copyRawSupport(sourceRoot string, roots []HarnessRoot, module string, effective mode.Effective) error {

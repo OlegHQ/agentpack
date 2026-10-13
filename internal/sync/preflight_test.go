@@ -827,3 +827,57 @@ func TestPreflightReportsOnlySameNamedAgentsSkills(t *testing.T) {
 		t.Fatalf("same-named project skill not reported exactly once: %v", found)
 	}
 }
+
+// The plan must name what staging writes: a skill reached through a path the
+// manifest declares, and a command that shares a skill's name on Codex.
+func TestEffectivePlanFollowsDeclaredPathsAndConvertedNames(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("AGENTPACK_HOME", home)
+	key := strings.Repeat("b", 64)
+	root := filepath.Join(home, "cache", key)
+	for relative, body := range map[string]string{
+		".codex-plugin/plugin.json":           `{"name":"pack","skills":"./.codex/skills/"}`,
+		".codex/skills/devops/SKILL.md":       "---\nname: devops\ndescription: DevOps\n---\nDeploy.\n",
+		"skills/build-bot/SKILL.md":           "---\nname: build-bot\ndescription: Skill\n---\nSkill body.\n",
+		"commands/build-bot.md":               "---\ndescription: Command\n---\nCommand body.\n",
+		"commands/modernize.md":               "---\ndescription: Start\nargument-hint: [system] [--source <path>]\n---\nBody.\n",
+		".claude-plugin/plugin.json.disabled": "{}",
+	} {
+		path := filepath.Join(root, filepath.FromSlash(relative))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	lock := lockfile.PackLock{Packages: []lockfile.Package{{Module: "github.com/team/pack", Kind: lockfile.PackagePlugin, CacheKey: key, Name: "pack"}}}
+	outputs := func(target base.Target) map[string]string {
+		records, err := plannedArtifacts(lock, mode.ImplicitEffective(), t.TempDir(), &target)
+		if err != nil {
+			t.Fatal(err)
+		}
+		result := make(map[string]string)
+		for _, record := range records {
+			if !record.Omitted && record.OutputPath != "" {
+				result[record.OutputPath] = record.ID
+			}
+		}
+		return result
+	}
+	codex := outputs(base.Codex)
+	for output, id := range map[string]string{
+		"skills/devops/SKILL.md":            "github.com/team/pack:.codex/skills/devops/SKILL.md",
+		"skills/build-bot/SKILL.md":         "github.com/team/pack:skills/build-bot/SKILL.md",
+		"skills/build-bot-command/SKILL.md": "github.com/team/pack:commands/build-bot.md",
+		"skills/modernize/SKILL.md":         "github.com/team/pack:commands/modernize.md",
+	} {
+		if codex[output] != id {
+			t.Fatalf("codex plan: %s comes from %q, want %q\n%v", output, codex[output], id, codex)
+		}
+	}
+	claude := outputs(base.Claude)
+	if claude["commands/build-bot.md"] == "" || claude["skills/devops/SKILL.md"] == "" || claude["skills/build-bot-command/SKILL.md"] != "" {
+		t.Fatalf("claude plan = %v", claude)
+	}
+}

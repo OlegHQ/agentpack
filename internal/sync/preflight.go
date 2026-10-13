@@ -383,18 +383,60 @@ func plannedArtifacts(lock lockfile.PackLock, effective mode.Effective, workspac
 		} else if err != nil {
 			return err
 		}
-		return filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
-			if walkErr != nil {
-				return walkErr
-			}
-			if entry.IsDir() {
+		// A package is read the way staging reads it: its tree, the links
+		// under its component directories, and the component paths its
+		// manifests declare. Each file has its real path, which modes and
+		// record ids use, and the path it takes in the canonical layout.
+		var files []staging.PackageFile
+		if dot {
+			err := filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
+				if walkErr != nil || entry.IsDir() {
+					return walkErr
+				}
+				relative, err := filepath.Rel(root, path)
+				if err != nil {
+					return err
+				}
+				files = append(files, staging.PackageFile{Path: path, Real: filepath.ToSlash(relative), Virtual: filepath.ToSlash(relative)})
 				return nil
-			}
-			relative, err := filepath.Rel(root, path)
+			})
 			if err != nil {
 				return err
 			}
-			relative = filepath.ToSlash(relative)
+		} else {
+			var err error
+			if files, err = staging.PackageFiles(root, module, bareName == ""); err != nil {
+				return err
+			}
+		}
+		markdown := func(file staging.PackageFile) bool {
+			extension := strings.ToLower(filepath.Ext(file.Virtual))
+			return extension == ".md" || extension == ".mdc"
+		}
+		// The package's own skills decide what a converted command, agent or
+		// rule of the same name is called, exactly as in staging.
+		skillNames := make(map[string]string)
+		if !dot {
+			for _, file := range files {
+				if !markdown(file) {
+					continue
+				}
+				if allowed, err := effective.AllowsPackagePath(module, file.Real); err != nil || !allowed {
+					continue
+				}
+				contents, err := os.ReadFile(file.Path)
+				if err != nil {
+					return err
+				}
+				if parsed, err := artifacts.Parse(file.Virtual, string(contents), bareName); err == nil && parsed != nil && parsed.Kind == artifacts.Skill {
+					skillNames[parsed.StorageName] = file.Real
+				}
+			}
+		}
+		converted := staging.NewConvertedNames(skillNames)
+		visit := func(file staging.PackageFile) error {
+			path, relative := file.Path, file.Real
+			var err error
 			allowed := false
 			if dot {
 				allowed, err = effective.AllowsDotAgentsPath(relative)
@@ -404,14 +446,14 @@ func plannedArtifacts(lock lockfile.PackLock, effective mode.Effective, workspac
 			if err != nil {
 				return err
 			}
-			if extension := strings.ToLower(filepath.Ext(path)); extension != ".md" && extension != ".mdc" {
+			if !markdown(file) {
 				return nil
 			}
 			contents, err := os.ReadFile(path)
 			if err != nil {
 				return err
 			}
-			parseRelative := relative
+			parseRelative := file.Virtual
 			if dot {
 				if strings.HasPrefix(relative, "claude/") {
 					if target != nil && *target != base.Claude {
@@ -443,7 +485,12 @@ func plannedArtifacts(lock lockfile.PackLock, effective mode.Effective, workspac
 				record.Reason = "disabled by mode or lock"
 			}
 			if target != nil {
-				rendered := parsed.Render(*target)
+				staged := *parsed
+				if !dot && !record.Omitted {
+					staged = converted.For(parsed, *target)
+					record.Name = staged.StorageName
+				}
+				rendered := staged.Render(*target)
 				if dot {
 					switch *target {
 					case base.Claude:
@@ -520,7 +567,13 @@ func plannedArtifacts(lock lockfile.PackLock, effective mode.Effective, workspac
 			}
 			records = append(records, record)
 			return nil
-		})
+		}
+		for _, file := range files {
+			if err := visit(file); err != nil {
+				return err
+			}
+		}
+		return nil
 	}
 	disabled := func(key string) bool {
 		for _, value := range lock.Config.DisabledPlugins {
