@@ -626,3 +626,36 @@ func TestCompiledCLIStagesHooksThatDoNotDependOnPath(t *testing.T) {
 		t.Fatalf("staged hook: %q, %v", output, err)
 	}
 }
+
+// How a hook was rendered is information: it is not labelled a warning, and
+// --quiet leaves it out. A hook that an agent cannot run is still a warning.
+func TestCompiledCLIReportsHookRenderingAsInformationAndQuietOmitsIt(t *testing.T) {
+	project := t.TempDir()
+	plugin := filepath.Join(project, "plug")
+	for relative, body := range map[string]string{
+		".claude-plugin/plugin.json": `{"name":"plug","version":"1.0.0"}`,
+		"hooks/hooks.json":           `{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"true"}]}],"StopFailure":[{"hooks":[{"type":"command","command":"true"}]}]}}`,
+	} {
+		path := filepath.Join(plugin, filepath.FromSlash(relative))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		writeFile(t, path, body)
+	}
+	result := runCLI(t, project, "add", "plug")
+	if result.err != nil {
+		t.Fatalf("add: stderr=%q err=%v", result.stderr, result.err)
+	}
+	for _, line := range strings.Split(result.stderr, "\n") {
+		if strings.HasPrefix(line, "warning:") && (strings.Contains(line, "rendered") || strings.Contains(line, "wrapped") || strings.Contains(line, "routed")) {
+			t.Fatalf("a rendered hook is reported as a warning: %s", line)
+		}
+	}
+	if !strings.Contains(result.stderr, "hook for claude: ") || !strings.Contains(result.stderr, "warning: ") || !strings.Contains(result.stderr, "skipping StopFailure hook") {
+		t.Fatalf("stderr=%q", result.stderr)
+	}
+	quiet := runCLI(t, project, "-q", "sync")
+	if quiet.err != nil || strings.Contains(quiet.stderr, "hook for ") || !strings.Contains(quiet.stderr, "skipping StopFailure hook") {
+		t.Fatalf("quiet sync: stderr=%q err=%v", quiet.stderr, quiet.err)
+	}
+}

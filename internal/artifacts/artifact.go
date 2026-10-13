@@ -73,6 +73,9 @@ func Parse(relativePath, contents, bareSkillName string) (*Markdown, error) {
 	if len(parts) < 2 || !markdownExtension(parts[len(parts)-1]) {
 		return nil, nil
 	}
+	if documentationFile(parts[len(parts)-1]) {
+		return nil, nil
+	}
 	tail := strings.Join(parts[1:], "/")
 	switch parts[0] {
 	case "commands":
@@ -177,6 +180,20 @@ func StripHarnessPrefix(path string) string {
 		}
 	}
 	return path
+}
+
+// documentationFile reports whether a markdown file in a component directory
+// is documentation about the directory and not a command, agent or rule:
+// README.md, CHANGELOG.md, LICENSE.md and the like, written in capitals as
+// the convention has it. A command a package really calls `readme.md` is
+// still a command.
+func documentationFile(name string) bool {
+	stem := strings.TrimSuffix(name, filepath.Ext(name))
+	switch stem {
+	case "README", "CHANGELOG", "LICENSE", "LICENCE", "NOTICE", "CONTRIBUTING", "SECURITY", "CODE_OF_CONDUCT", "AGENTS", "CLAUDE", "GEMINI":
+		return true
+	}
+	return false
 }
 
 func markdownExtension(path string) bool {

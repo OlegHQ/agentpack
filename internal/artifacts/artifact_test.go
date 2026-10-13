@@ -219,3 +219,21 @@ func TestSubagentIsAlsoACodexCustomAgentFile(t *testing.T) {
 		t.Fatal("a command became a Codex agent")
 	}
 }
+
+// alirezarezvani/claude-skills has agents/README.md, which was staged as an
+// agent named README.
+func TestDocumentationInAComponentDirectoryIsNotAnArtifact(t *testing.T) {
+	t.Parallel()
+	for _, relative := range []string{"agents/README.md", "commands/CHANGELOG.md", "agents/personas/README.md", "rules/LICENSE.md", ".claude/commands/CONTRIBUTING.md"} {
+		artifact, err := Parse(relative, "# About this directory\n\nNotes.\n", "")
+		if err != nil || artifact != nil {
+			t.Fatalf("%s became %#v, %v", relative, artifact, err)
+		}
+	}
+	for _, relative := range []string{"commands/readme.md", "agents/reviewer.md", "skills/README/SKILL.md"} {
+		artifact, err := Parse(relative, "---\ndescription: Real\n---\nBody.\n", "")
+		if err != nil || artifact == nil {
+			t.Fatalf("%s was not staged: %v", relative, err)
+		}
+	}
+}

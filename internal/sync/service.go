@@ -25,6 +25,9 @@ type Service struct {
 	Client *http.Client
 	// Notify receives one-line integrity reports. Nil writes them to stderr.
 	Notify func(message string)
+	// Info receives lines that report what a command did and need no action.
+	// Nil drops them, which is what --quiet asks for.
+	Info func(message string)
 }
 type SyncOptions struct {
 	DryRun, VerifyOnly, UpdateLock bool
@@ -425,6 +428,7 @@ func (service Service) Sync(ctx context.Context, projectRoot string, options Syn
 		Mode:           effective,
 		Target:         options.Target,
 		StrictExternal: options.StrictExternal,
+		Info:           service.Info,
 	}
 	drift, recorded, driftErr := pipeline.StagedDrift(options.VerifyOnly)
 	if driftErr != nil {

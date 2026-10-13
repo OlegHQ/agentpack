@@ -33,6 +33,9 @@ type Pipeline struct {
 	Target        *base.Target
 	// StrictExternal refuses workspace overlay materialization.
 	StrictExternal bool
+	// Info receives lines that report what staging did and need no action,
+	// such as how each hook was rendered. Nil drops them.
+	Info func(message string)
 }
 
 func (pipeline Pipeline) workspace() string {
@@ -360,6 +363,14 @@ func (pipeline Pipeline) stageHooks(ctx base.StageContext, harnesses []base.Harn
 			return err
 		}
 		for _, diagnostic := range output.Diagnostics {
+			// A hook rendered as intended is information; one that was
+			// left out or lost something is a warning.
+			if diagnostic.Level == "native" || diagnostic.Level == "emulated" {
+				if pipeline.Info != nil {
+					pipeline.Info(fmt.Sprintf("hook for %s: %s: %s", candidate.ID(), diagnostic.Source, diagnostic.Message))
+				}
+				continue
+			}
 			fmt.Fprintf(os.Stderr, "warning: %s: %s\n", diagnostic.Source, diagnostic.Message)
 		}
 		if err := hooks.WriteRenderedFiles(output); err != nil {

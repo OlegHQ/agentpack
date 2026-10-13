@@ -46,6 +46,9 @@ func (runner Runner) Run(ctx context.Context, arguments []string) (int, error) {
 	if runner.Service.Notify == nil {
 		runner.Service.Notify = func(message string) { fmt.Fprintln(runner.Stderr, "warning: "+message) }
 	}
+	if runner.Service.Info == nil && !invocation.Global.Quiet {
+		runner.Service.Info = func(message string) { fmt.Fprintln(runner.Stderr, message) }
+	}
 	if invocation.Command != "init" && hasBeforeDoubleDash(invocation.Args, "--version", "-V") {
 		fmt.Fprintln(runner.Stdout, "agentpack "+Version)
 		return 0, nil
