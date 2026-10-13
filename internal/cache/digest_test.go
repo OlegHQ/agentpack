@@ -449,3 +449,45 @@ func mustDigest(t *testing.T, root string) string {
 	}
 	return digest
 }
+
+// agentpack 0.4.8 wrote each link of a GitHub archive as an empty file and
+// locked that tree. The same package extracted with its links must still
+// verify against such a lock, and only then.
+func TestContentHashLockedBeforeLinksWereExtractedStillVerifies(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX links")
+	}
+	old, current := t.TempDir(), t.TempDir()
+	for _, root := range []string{old, current} {
+		writeTestFile(t, filepath.Join(root, "engineering", "devops", "SKILL.md"), "# DevOps")
+	}
+	writeTestFile(t, filepath.Join(old, "skills", "devops"), "")
+	if err := os.MkdirAll(filepath.Join(current, "skills"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink("../engineering/devops", filepath.Join(current, "skills", "devops")); err != nil {
+		t.Fatal(err)
+	}
+	locked, actual := mustDigest(t, old), mustDigest(t, current)
+	if locked == actual {
+		t.Fatal("a link and an empty file must not share a digest")
+	}
+	if !MatchesContentHash(current, locked, actual) || !MatchesContentHash(current, actual, actual) {
+		t.Fatal("the tree with its links does not verify against the lock of the tree without them")
+	}
+	writeTestFile(t, filepath.Join(current, "engineering", "devops", "SKILL.md"), "# Tampered")
+	if MatchesContentHash(current, locked, mustDigest(t, current)) {
+		t.Fatal("changed file content verified")
+	}
+	// A link that leaves the package is never taken for an empty file.
+	writeTestFile(t, filepath.Join(current, "engineering", "devops", "SKILL.md"), "# DevOps")
+	if err := os.Remove(filepath.Join(current, "skills", "devops")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink("/etc", filepath.Join(current, "skills", "devops")); err != nil {
+		t.Fatal(err)
+	}
+	if MatchesContentHash(current, locked, mustDigest(t, current)) {
+		t.Fatal("a link out of the package verified as an empty file")
+	}
+}

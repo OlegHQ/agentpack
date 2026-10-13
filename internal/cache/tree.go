@@ -55,7 +55,14 @@ func CopyPackageDirToCache(source, identityPrefix string) (cacheKey, commit, des
 	return cacheKey, commit, destination, nil
 }
 
+// copyMergeTree copies source over destination, following symbolic links. A
+// link back to a directory that is being copied is skipped, so a cycle of
+// links cannot recurse without end.
 func copyMergeTree(source, destination string) error {
+	return copyMergeTreeGuarded(source, destination, make(map[string]bool))
+}
+
+func copyMergeTreeGuarded(source, destination string, open map[string]bool) error {
 	resolved, err := filepath.EvalSymlinks(source)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil
@@ -70,6 +77,11 @@ func copyMergeTree(source, destination string) error {
 	if !info.IsDir() {
 		return copyFile(resolved, destination)
 	}
+	if open[resolved] {
+		return nil
+	}
+	open[resolved] = true
+	defer delete(open, resolved)
 	if err := os.MkdirAll(destination, 0o755); err != nil {
 		return fmt.Errorf("create copy destination %s: %w", destination, err)
 	}
@@ -78,7 +90,7 @@ func copyMergeTree(source, destination string) error {
 		return fmt.Errorf("read copy source %s: %w", resolved, err)
 	}
 	for _, entry := range entries {
-		if err := copyMergeTree(filepath.Join(resolved, entry.Name()), filepath.Join(destination, entry.Name())); err != nil {
+		if err := copyMergeTreeGuarded(filepath.Join(resolved, entry.Name()), filepath.Join(destination, entry.Name()), open); err != nil {
 			return err
 		}
 	}

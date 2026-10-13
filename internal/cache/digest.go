@@ -129,6 +129,27 @@ func (err *IntegrityError) Repaired() string {
 // permission bits, ownership, and timestamps are ignored. Any other file type
 // is an error. The result is the algorithm prefix followed by lowercase hex.
 func TreeDigest(root string) (string, error) {
+	return treeDigest(root, false)
+}
+
+// MatchesContentHash reports whether the tree at root, whose digest is
+// actual, is the tree a lock entry pins with expected.
+//
+// agentpack 0.4.8 and earlier wrote every symbolic link of a GitHub archive
+// as an empty file, and recorded the digest of that tree. The same package is
+// now extracted with its in-package links kept, so a hash locked by those
+// versions is also accepted when it equals the digest of this tree with each
+// link counted as an empty file. Every file's bytes and every path are still
+// covered; a new lock records the links themselves.
+func MatchesContentHash(root, expected, actual string) bool {
+	if actual == expected {
+		return true
+	}
+	legacy, err := treeDigest(root, true)
+	return err == nil && legacy != actual && legacy == expected
+}
+
+func treeDigest(root string, linksAsEmptyFiles bool) (string, error) {
 	info, err := os.Lstat(root)
 	if err != nil {
 		return "", fmt.Errorf("inspect package tree %s: %w", root, err)
@@ -181,6 +202,15 @@ func TreeDigest(root string) (string, error) {
 		path := filepath.Join(root, filepath.FromSlash(item.relative))
 		if item.mode&fs.ModeSymlink != 0 {
 			target, err := os.Readlink(path)
+			if err == nil && linksAsEmptyFiles {
+				// Only a link the extractor itself would have created can
+				// stand for the empty file an older version wrote.
+				if !githubsource.LinkStaysInside(item.relative, target) {
+					return "", fmt.Errorf("link %s leaves the package", item.relative)
+				}
+				header("f", item.relative, 0)
+				continue
+			}
 			if err != nil {
 				return "", fmt.Errorf("read link %s: %w", path, err)
 			}
@@ -224,7 +254,7 @@ func VerifyPackage(pkg lockfile.Package) error {
 	if err != nil {
 		return fmt.Errorf("verify %s: %w", pkg.Module, err)
 	}
-	if actual != pkg.ContentHash {
+	if !MatchesContentHash(out, pkg.ContentHash, actual) {
 		return &IntegrityError{Package: pkg, Path: out, Expected: pkg.ContentHash, Actual: actual}
 	}
 	return nil
@@ -355,7 +385,7 @@ func buildVerified(pkg lockfile.Package, fill func(string) error) (temporary, di
 	if digest, err = TreeDigest(temporary); err != nil {
 		return "", "", err
 	}
-	if pkg.ContentHash != "" && digest != pkg.ContentHash {
+	if pkg.ContentHash != "" && !MatchesContentHash(temporary, pkg.ContentHash, digest) {
 		err = &IntegrityError{Package: pkg, Expected: pkg.ContentHash, Actual: digest, Fetched: true}
 		return "", "", err
 	}

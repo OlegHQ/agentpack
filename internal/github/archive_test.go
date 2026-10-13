@@ -6,6 +6,7 @@ import (
 	"compress/gzip"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -104,4 +105,60 @@ func githubTarball(t *testing.T, files map[string]string) []byte {
 		t.Fatal(err)
 	}
 	return compressed.Bytes()
+}
+
+func TestExtractTarballKeepsOnlyLinksThatStayInsideTheExtractedTree(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symbolic links need privileges on Windows")
+	}
+	t.Parallel()
+	var compressed bytes.Buffer
+	gzipWriter := gzip.NewWriter(&compressed)
+	tarWriter := tar.NewWriter(gzipWriter)
+	entries := []struct{ name, body, link string }{
+		{name: "repo-sha/pkg/engineering/skills/devops/SKILL.md", body: "# DevOps"},
+		{name: "repo-sha/pkg/.codex/skills/devops", link: "../../engineering/skills/devops"},
+		{name: "repo-sha/pkg/.codex/skills/slash", link: "../../engineering/skills/devops/"},
+		{name: "repo-sha/pkg/.codex/skills/up", link: "../../../shared"},
+		{name: "repo-sha/pkg/.codex/skills/absolute", link: "/etc"},
+		{name: "repo-sha/pkg/.codex/skills/unclean", link: "devops/../../../../outside"},
+		{name: "repo-sha/pkg/.codex/skills/devops/planted.md", body: "written through a link"},
+		{name: "repo-sha/shared/SKILL.md", body: "# Shared"},
+	}
+	for _, entry := range entries {
+		header := &tar.Header{Name: entry.name, Mode: 0o644, Size: int64(len(entry.body))}
+		if entry.link != "" {
+			header.Typeflag, header.Linkname, header.Mode = tar.TypeSymlink, entry.link, 0o777
+		}
+		if err := tarWriter.WriteHeader(header); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := tarWriter.Write([]byte(entry.body)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := tarWriter.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := gzipWriter.Close(); err != nil {
+		t.Fatal(err)
+	}
+	destination := t.TempDir()
+	if _, err := ExtractTarballWithPrefix(bytes.NewReader(compressed.Bytes()), "pkg", destination); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"devops", "slash"} {
+		if body, err := os.ReadFile(filepath.Join(destination, ".codex", "skills", name, "SKILL.md")); err != nil || string(body) != "# DevOps" {
+			t.Fatalf("%s through its link = %q, %v", name, body, err)
+		}
+	}
+	for _, name := range []string{"up", "absolute", "unclean"} {
+		info, err := os.Lstat(filepath.Join(destination, ".codex", "skills", name))
+		if err != nil || !info.Mode().IsRegular() || info.Size() != 0 {
+			t.Fatalf("%s must stay an empty file, got %v, %v", name, info, err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(destination, "engineering", "skills", "devops", "planted.md")); err == nil {
+		t.Fatal("an archive entry was written through a link")
+	}
 }

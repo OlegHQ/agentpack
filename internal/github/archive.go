@@ -44,6 +44,7 @@ func ExtractTarballWithPrefix(archive io.Reader, prefix, destination string) (in
 	}
 	prefix = strings.Trim(prefix, "/")
 	files := 0
+	links := make(map[string]bool)
 	for {
 		header, err := reader.Next()
 		if err == io.EOF {
@@ -63,6 +64,22 @@ func ExtractTarballWithPrefix(archive io.Reader, prefix, destination string) (in
 		output, err := safeExtractPath(destination, extractRelative)
 		if err != nil {
 			return 0, err
+		}
+		if belowLink(links, extractRelative) {
+			// Git never stores an entry below a link; writing one would
+			// leave the destination through it.
+			continue
+		}
+		if header.Typeflag == tar.TypeSymlink && LinkStaysInside(extractRelative, header.Linkname) {
+			if err := os.MkdirAll(filepath.Dir(output), 0o755); err != nil {
+				return 0, fmt.Errorf("create archive parent %s: %w", filepath.Dir(output), err)
+			}
+			if os.Symlink(header.Linkname, output) == nil {
+				links[extractRelative] = true
+				files++
+				continue
+			}
+			// Where links cannot be created the entry stays an empty file.
 		}
 		if header.FileInfo().IsDir() {
 			if err := os.MkdirAll(output, 0o755); err != nil {
@@ -84,6 +101,33 @@ func ExtractTarballWithPrefix(archive io.Reader, prefix, destination string) (in
 		}
 		files++
 	}
+}
+
+// LinkStaysInside reports whether a symbolic link at relative (inside the
+// extracted tree) may be created as written. The target must be a clean
+// relative path — any ".." only at its start — that still lies inside the
+// tree, so that following it, however links are chained, cannot leave the
+// tree. Every other link (absolute, or reaching a part of the repository
+// that is not extracted) is written as an empty file, as before.
+func LinkStaysInside(relative, target string) bool {
+	if target == "" || strings.ContainsRune(target, '\\') || strings.ContainsRune(target, 0) || path.IsAbs(target) || filepath.VolumeName(target) != "" {
+		return false
+	}
+	clean := path.Clean(target)
+	if trimmed := strings.TrimRight(target, "/"); trimmed != clean && trimmed != "./"+clean {
+		return false
+	}
+	resolved := path.Join(path.Dir(relative), clean)
+	return resolved != ".." && !strings.HasPrefix(resolved, "../")
+}
+
+func belowLink(links map[string]bool, relative string) bool {
+	for current := path.Dir(relative); current != "." && current != "/"; current = path.Dir(current) {
+		if links[current] {
+			return true
+		}
+	}
+	return false
 }
 
 func PathLooksLikeFile(inRepoPath string) bool {

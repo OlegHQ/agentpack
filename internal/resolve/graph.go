@@ -217,10 +217,12 @@ func (resolver Resolver) settleContentHash(pkg lockfile.Package, options Resolve
 	}
 	switch {
 	case expected != "" && fetched != "":
-		if fetched == expected {
+		out, entryErr := cache.EntryDir(pkg.CacheKey)
+		if fetched == expected || entryErr == nil && cache.MatchesContentHash(out, expected, fetched) {
+			pkg.ContentHash = expected
 			return pkg, nil
 		}
-		if out, err := cache.EntryDir(pkg.CacheKey); err == nil {
+		if entryErr == nil {
 			_ = os.RemoveAll(out)
 		}
 		pkg.ContentHash = expected
