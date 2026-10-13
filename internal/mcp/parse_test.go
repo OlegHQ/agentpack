@@ -48,3 +48,14 @@ func TestParseServersSkipsOnlyTheUnreadableServer(t *testing.T) {
 		t.Fatal("malformed document accepted")
 	}
 }
+
+func TestParseServersNamesTheFieldsItCannotCarryOver(t *testing.T) {
+	t.Parallel()
+	servers, warnings, err := ParseServers([]byte(`{"mcpServers":{"github":{"type":"http","url":"https://api.example.test/mcp","headers":{"Authorization":"Bearer ${TOKEN}"},"oauth":{"clientId":"x"}},"plain":{"command":"run","args":["a"],"env":{"K":"V"},"disabled":false}}}`))
+	if err != nil || len(servers) != 2 {
+		t.Fatalf("servers = %#v, %v", servers, err)
+	}
+	if len(warnings) != 1 || !strings.Contains(warnings[0], `field(s) headers, oauth of MCP server "github"`) {
+		t.Fatalf("warnings = %v", warnings)
+	}
+}

@@ -54,6 +54,8 @@ A plugin's servers are read from every place the vendors' plugin formats allow, 
 
 A definition file may wrap its servers in `mcpServers` or be the bare `name → server` map; both are published and both are read. A declared path must stay inside the package. A server or a location that cannot be read (a `.mcpb` bundle, a URL, an entry with neither `command` nor `url`) is skipped with a warning that names it; the package's other servers still load.
 
+A server definition is carried over as `type`, `command`, `args`, `env`, `url` and `disabled`. Other fields a vendor format allows (`headers`, `oauth`, `cwd`, …) are not written to the harnesses; the server is staged without them, with a warning that names the fields.
+
 The merged set is then written in each harness's native format:
 
 | Harness | Output |

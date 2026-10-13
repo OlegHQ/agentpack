@@ -50,14 +50,36 @@ func DecodeServers(raw map[string]json.RawMessage) (map[string]Server, []string)
 		}
 		var server Server
 		if err := json.Unmarshal(raw[name], &server); err != nil {
-			warnings = append(warnings, fmt.Sprintf("MCP server %q is not a server definition (%v)", name, err))
+			warnings = append(warnings, fmt.Sprintf("MCP server %q: it is not a server definition (%v)", name, err))
 			continue
 		}
 		if server.Command == nil && server.URL == nil {
-			warnings = append(warnings, fmt.Sprintf("MCP server %q has neither command nor url", name))
+			warnings = append(warnings, fmt.Sprintf("MCP server %q: it has neither command nor url", name))
 			continue
 		}
 		servers[name] = server
+		if dropped := unsupportedFields(raw[name]); len(dropped) != 0 {
+			warnings = append(warnings, fmt.Sprintf("field(s) %s of MCP server %q, which agentpack does not carry over; the server is staged without them", strings.Join(dropped, ", "), name))
+		}
 	}
 	return servers, warnings
+}
+
+// unsupportedFields names the fields of a server definition that Server has
+// no place for (headers, oauth, cwd, …), so that leaving them out is said.
+func unsupportedFields(raw json.RawMessage) []string {
+	var fields map[string]json.RawMessage
+	if json.Unmarshal(raw, &fields) != nil {
+		return nil
+	}
+	var dropped []string
+	for field := range fields {
+		switch field {
+		case "type", "command", "args", "env", "url", "disabled":
+		default:
+			dropped = append(dropped, field)
+		}
+	}
+	sort.Strings(dropped)
+	return dropped
 }
