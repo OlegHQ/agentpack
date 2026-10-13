@@ -2,6 +2,7 @@ package grok
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/OlegHQ/agentpack/internal/mcp"
@@ -32,9 +33,21 @@ func MergeMCP(path string, entries mcp.Entries) error {
 		}
 		server := entries[name].Server
 		value := make(map[string]any)
+		// Grok's [mcp_servers] documents headers for a remote server; its
+		// OAuth flow takes no client settings, and a stdio server no cwd.
+		var missing []string
 		if server.IsRemote() {
 			value["url"] = *server.URL
+			if len(server.Headers) != 0 {
+				value["headers"] = server.Headers
+			}
+			if server.OAuth != nil {
+				missing = append(missing, "OAuth client settings")
+			}
 		} else {
+			if server.Cwd != nil {
+				missing = append(missing, "a working directory (cwd)")
+			}
 			if server.Command != nil {
 				value["command"] = *server.Command
 			}
@@ -47,6 +60,9 @@ func MergeMCP(path string, entries mcp.Entries) error {
 		}
 		if server.Disabled != nil && *server.Disabled {
 			value["enabled"] = false
+		}
+		if len(missing) != 0 {
+			log.Printf("warning: %s", mcp.NotCarried("Grok", name, missing...))
 		}
 		servers[name] = value
 	}

@@ -54,7 +54,20 @@ A plugin's servers are read from every place the vendors' plugin formats allow, 
 
 A definition file may wrap its servers in `mcpServers` or be the bare `name → server` map; both are published and both are read. A declared path must stay inside the package. A server or a location that cannot be read (a `.mcpb` bundle, a URL, an entry with neither `command` nor `url`) is skipped with a warning that names it; the package's other servers still load.
 
-A server definition is carried over as `type`, `command`, `args`, `env`, `url` and `disabled`. Other fields a vendor format allows (`headers`, `oauth`, `cwd`, …) are not written to the harnesses; the server is staged without them, with a warning that names the fields.
+A server definition is carried over as `type`, `command`, `args`, `env`, `url`, `disabled`, `headers`, `cwd` and its OAuth client settings. The last three are written where the agent's documented format has a place for them:
+
+| | Claude Code | Cursor | Codex | OpenCode | Grok | Antigravity |
+|---|---|---|---|---|---|---|
+| `headers` (remote) | `headers` | `headers` | `http_headers` | `headers` | `headers` | `headers` |
+| `cwd` (stdio) | no setting | no setting | `cwd` | `cwd` | no setting | `cwd` |
+| OAuth client id | `oauth.clientId` | `auth.CLIENT_ID` | `oauth.client_id` | `oauth.clientId` | no setting | `oauth.clientId` |
+| OAuth client secret | not in the file (`MCP_CLIENT_SECRET`) | `auth.CLIENT_SECRET` | no setting | `oauth.clientSecret` | no setting | `oauth.clientSecret` |
+| OAuth scopes | `oauth.scopes` | `auth.scopes` | `scopes` | `oauth.scope` | no setting | no setting |
+| OAuth callback port | `oauth.callbackPort` | fixed by Cursor | `oauth.callback_port` | no setting | no setting | fixed by Antigravity |
+
+The OAuth settings are read in any of the published spellings (`oauth` with `clientId` or `client_id`, Cursor's `auth`, a `scopes` list next to them). Where an agent has no setting, the server is staged for that agent without it and a warning names the server, the agent and the setting. A plugin server's relative `cwd` is relative to the plugin and is staged like `${CLAUDE_PLUGIN_ROOT}` (see below). In the manifest the same fields are `headers`, `cwd` and `[mcp.servers.<name>.oauth]` with `client_id`, `client_secret`, `callback_port`, `scopes`, `metadata_url`.
+
+Header values and OAuth settings may hold credentials. Like `env`, they are never written to `pack.lock`, and they are not part of a record's `definition` digest; `cwd` is, when set. Any other field (`headersHelper`, `envFile`, …) is left out with a warning that names it.
 
 The merged set is then written in each harness's native format:
 

@@ -1,8 +1,10 @@
 package sync
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -436,5 +438,87 @@ func TestSyncRemovesTheTempDirectoriesOfProjectsThatAreGone(t *testing.T) {
 		if fixtureMissing(directory) {
 			t.Errorf("removed: %s", directory)
 		}
+	}
+}
+
+// The official github plugin's server needs an Authorization header, Codex
+// plugins declare an OAuth client, and context-mode's Codex definition a cwd.
+// These used to be left out of every agent's configuration.
+func TestRemoteServerHeadersOAuthAndCwdReachEveryAgentThatHasThem(t *testing.T) {
+	fixture := newIntegrityFixture(t)
+	fixture.upstream.tarballs[commitTwo] = map[string]string{
+		"remote/.claude-plugin/plugin.json": `{"name":"remote","version":"1.0.0"}`,
+		"remote/.mcp.json": `{"mcpServers":{
+			"github":{"type":"http","url":"https://api.githubcopilot.com/mcp/","headers":{"Authorization":"Bearer header-token"}},
+			"gmail":{"type":"http","url":"https://gmailmcp.googleapis.com/mcp/v1","scopes":["https://mail.google.com/"],"oauth":{"client_id":"client-id","client_secret":"client-secret","callback_port":12798}},
+			"local":{"command":"node","args":["./start.mjs"],"cwd":"."}}}`,
+		"remote/start.mjs": "// start\n",
+	}
+	fixture.manifest("github.com/acme/skills/remote", commitTwo)
+	var logged bytes.Buffer
+	previous := log.Writer()
+	log.SetOutput(&logged)
+	t.Cleanup(func() { log.SetOutput(previous) })
+	lock := fixture.lock()
+	fixture.sync(SyncOptions{})
+
+	codexHome, err := codex.CurrentHome(fixture.project, "default")
+	if err != nil {
+		t.Fatal(err)
+	}
+	grokHome, err := paths.StagingGrokHomeDirForMode(fixture.project, "default")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pluginRoot := filepath.Join(fixture.stagedDir("plugin-roots"), lock.Packages[0].CacheKey[:16])
+	read := func(path string) string {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return strings.Join(strings.Fields(string(data)), " ")
+	}
+	for agent, check := range map[string]struct {
+		path string
+		want []string
+		not  []string
+	}{
+		"claude":   {filepath.Join(fixture.bundle(), ".mcp.json"), []string{`"headers": { "Authorization": "Bearer header-token" }`, `"clientId": "client-id"`, `"callbackPort": 12798`, `"scopes": "https://mail.google.com/"`}, []string{"client-secret", `"cwd"`}},
+		"cursor":   {fixture.stagedDir("cursor/agentpack-bundle/mcp.json"), []string{`"Authorization": "Bearer header-token"`, `"CLIENT_ID": "client-id"`, `"CLIENT_SECRET": "client-secret"`, `"scopes": [ "https://mail.google.com/" ]`}, []string{`"cwd"`, "12798"}},
+		"opencode": {fixture.stagedDir("opencode/opencode.json"), []string{`"Authorization": "Bearer header-token"`, `"clientId": "client-id"`, `"clientSecret": "client-secret"`, `"scope": "https://mail.google.com/"`, `"cwd": "` + pluginRoot + `"`}, nil},
+		"agy":      {fixture.stagedDir("agy/agentpack-bundle/mcp_config.json"), []string{`"Authorization": "Bearer header-token"`, `"clientId": "client-id"`, `"clientSecret": "client-secret"`, `"cwd": "` + pluginRoot + `"`, `"serverUrl"`}, nil},
+		"codex":    {filepath.Join(codexHome, "config.toml"), []string{"http_headers", "Bearer header-token", "client_id = 'client-id'", "callback_port = 12798", "scopes = ['https://mail.google.com/']", "cwd = '" + pluginRoot + "'"}, []string{"client-secret"}},
+		"grok":     {filepath.Join(grokHome, "config.toml"), []string{"headers", "Bearer header-token"}, []string{"client-id", "cwd"}},
+	} {
+		text := read(check.path)
+		for _, part := range check.want {
+			if !strings.Contains(text, part) {
+				t.Errorf("%s configuration lacks %s:\n%s", agent, part, text)
+			}
+		}
+		for _, part := range check.not {
+			if strings.Contains(text, part) {
+				t.Errorf("%s configuration holds %s, which it has no setting for:\n%s", agent, part, text)
+			}
+		}
+	}
+	// An agent without an equivalent says so, by server and setting; the others say nothing.
+	for _, part := range []string{
+		"MCP server local: Claude Code has no setting for a working directory (cwd)",
+		"MCP server local: Cursor has no setting for a working directory (cwd)",
+		"MCP server local: Grok has no setting for a working directory (cwd)",
+		"MCP server gmail: Grok has no setting for OAuth client settings",
+		"MCP server gmail: Codex has no setting for an OAuth client secret",
+	} {
+		if !strings.Contains(logged.String(), part) {
+			t.Errorf("no warning %q in:\n%s", part, logged.String())
+		}
+	}
+	if strings.Contains(logged.String(), "MCP server github:") || strings.Contains(logged.String(), "OpenCode has no setting for a working directory") {
+		t.Errorf("a warning for a setting that was carried over:\n%s", logged.String())
+	}
+	// pack.lock holds no header value and no client secret.
+	if text := fixture.lockText(); strings.Contains(text, "header-token") || strings.Contains(text, "client-secret") || strings.Contains(text, "client-id") {
+		t.Fatalf("pack.lock holds credentials:\n%s", text)
 	}
 }

@@ -3,7 +3,9 @@ package opencode
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
+	"strings"
 
 	"github.com/OlegHQ/agentpack/internal/mcp"
 	"github.com/tailscale/hujson"
@@ -36,9 +38,38 @@ func MergeMCP(path string, entries mcp.Entries) error {
 		}
 		server := entries[name].Server
 		value := map[string]any{"enabled": server.Disabled == nil || !*server.Disabled}
+		var missing []string
 		if server.IsRemote() {
 			value["type"], value["url"] = "remote", *server.URL
+			if len(server.Headers) != 0 {
+				value["headers"] = server.Headers
+			}
+			// OpenCode spells the client oauth.clientId, clientSecret and scope.
+			if oauth := server.OAuth; oauth != nil {
+				client := make(map[string]any)
+				if oauth.ClientID != "" {
+					client["clientId"] = oauth.ClientID
+				}
+				if oauth.ClientSecret != "" {
+					client["clientSecret"] = oauth.ClientSecret
+				}
+				if len(oauth.Scopes) != 0 {
+					client["scope"] = strings.Join(oauth.Scopes, " ")
+				}
+				if len(client) != 0 {
+					value["oauth"] = client
+				}
+				if oauth.CallbackPort != 0 {
+					missing = append(missing, "an OAuth callback port")
+				}
+				if oauth.MetadataURL != "" {
+					missing = append(missing, "an OAuth metadata URL")
+				}
+			}
 		} else {
+			if server.Cwd != nil {
+				value["cwd"] = *server.Cwd
+			}
 			value["type"] = "local"
 			command := append([]string(nil), server.Args...)
 			if server.Command != nil {
@@ -48,6 +79,9 @@ func MergeMCP(path string, entries mcp.Entries) error {
 			if len(server.Env) != 0 {
 				value["environment"] = server.Env
 			}
+		}
+		if len(missing) != 0 {
+			log.Printf("warning: %s", mcp.NotCarried("OpenCode", name, missing...))
 		}
 		servers[name] = value
 	}

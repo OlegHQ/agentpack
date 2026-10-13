@@ -2,6 +2,7 @@ package codex
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/OlegHQ/agentpack/internal/mcp"
@@ -33,9 +34,39 @@ func mergeMCP(path string, entries mcp.Entries) error {
 		}
 		server := entries[name].Server
 		value := make(map[string]any)
+		var missing []string
 		if server.IsRemote() {
 			value["url"] = *server.URL
+			if len(server.Headers) != 0 {
+				value["http_headers"] = server.Headers
+			}
+			// Codex keeps the client under [mcp_servers.<name>.oauth] and the
+			// scopes next to it; it has no place for a client secret.
+			if oauth := server.OAuth; oauth != nil {
+				client := make(map[string]any)
+				if oauth.ClientID != "" {
+					client["client_id"] = oauth.ClientID
+				}
+				if oauth.CallbackPort != 0 {
+					client["callback_port"] = oauth.CallbackPort
+				}
+				if len(client) != 0 {
+					value["oauth"] = client
+				}
+				if len(oauth.Scopes) != 0 {
+					value["scopes"] = oauth.Scopes
+				}
+				if oauth.ClientSecret != "" {
+					missing = append(missing, "an OAuth client secret")
+				}
+				if oauth.MetadataURL != "" {
+					missing = append(missing, "an OAuth metadata URL")
+				}
+			}
 		} else {
+			if server.Cwd != nil {
+				value["cwd"] = *server.Cwd
+			}
 			if server.Command != nil {
 				value["command"] = *server.Command
 			}
@@ -48,6 +79,9 @@ func mergeMCP(path string, entries mcp.Entries) error {
 		}
 		if server.Disabled != nil && *server.Disabled {
 			value["enabled"] = false
+		}
+		if len(missing) != 0 {
+			log.Printf("warning: %s", mcp.NotCarried("Codex", name, missing...))
 		}
 		servers[name] = value
 	}

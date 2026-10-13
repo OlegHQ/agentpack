@@ -16,9 +16,6 @@ func (HookRenderer) Render(bundle hooks.Bundle, context hooks.RenderContext) (ho
 	events := make(map[string]any)
 	for _, hook := range bundle.Hooks {
 		mapped := hook.Event
-		if mapped == hooks.PermissionRequest {
-			mapped = hooks.PreToolUse
-		}
 		keep, err := hooks.CheckSupport(harness.Codex, hook, Support(hook.Event, hook.Handler), &output, "rendered into Codex native hooks.json", "wrapped into agentpack hook-exec for Codex")
 		if err != nil {
 			return hooks.RenderOutput{}, err
@@ -43,13 +40,18 @@ func (HookRenderer) Render(bundle hooks.Bundle, context hooks.RenderContext) (ho
 	return output, nil
 }
 
+// Support follows the event list of the Codex hooks reference
+// (learn.chatgpt.com/docs/hooks, read 2026-10-13; the names are also in the
+// codex-cli 0.159.3 binary): PreToolUse, PermissionRequest, PostToolUse,
+// PreCompact, PostCompact, UserPromptSubmit, SubagentStart, SubagentStop,
+// Stop, SessionStart, SessionEnd. Codex's own Interrupt has no counterpart in
+// the other agents' hook files.
 func Support(event hooks.Event, handler hooks.Handler) hooks.Support {
 	switch event {
-	case hooks.PreToolUse, hooks.PostToolUse, hooks.UserPromptSubmit, hooks.SessionStart, hooks.Stop:
-	case hooks.PermissionRequest:
-		return hooks.Support{Kind: hooks.Degraded, Reason: "Codex permission checks are approximated with pre-tool-use hooks"}
+	case hooks.PreToolUse, hooks.PermissionRequest, hooks.PostToolUse, hooks.PreCompact, "PostCompact", hooks.UserPromptSubmit,
+		hooks.SubagentStart, hooks.SubagentStop, hooks.Stop, hooks.SessionStart, hooks.SessionEnd:
 	default:
-		return hooks.Support{Kind: hooks.Unsupported, Reason: "Codex does not expose this Claude lifecycle event natively"}
+		return hooks.Support{Kind: hooks.Unsupported, Reason: "Codex has no such hook event"}
 	}
 	if handler.Kind == hooks.CommandHandler || handler.Kind == hooks.PromptHandler {
 		return hooks.Support{Kind: hooks.Native}

@@ -7,7 +7,6 @@ import (
 	"runtime"
 
 	base "github.com/OlegHQ/agentpack/internal/harness"
-	"github.com/OlegHQ/agentpack/internal/mcp"
 	"github.com/OlegHQ/agentpack/internal/paths"
 	"github.com/tailscale/hujson"
 )
@@ -115,26 +114,33 @@ func linkMutableFile(source, destination string) error {
 	}
 	return os.Symlink(source, destination)
 }
-func readMCP(path string) (mcp.Config, error) {
+func readMCP(path string) (mcpFile, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return mcp.Config{}, err
+		return mcpFile{}, err
 	}
 	data, err = hujson.Standardize(append(data, '\n'))
 	if err != nil {
-		return mcp.Config{}, err
+		return mcpFile{}, err
 	}
-	var config mcp.Config
+	var config mcpFile
 	err = json.Unmarshal(data, &config)
 	return config, err
 }
+
+// mcpFile is an mcp.json with each server kept as written, so that merging
+// the pack's servers with the user's loses no field of either.
+type mcpFile struct {
+	Servers map[string]json.RawMessage `json:"mcpServers"`
+}
+
 func mergeMCPFiles(pack, user, destination string) error {
 	_, packErr := os.Stat(pack)
 	_, userErr := os.Stat(user)
 	if packErr != nil && userErr != nil {
 		return nil
 	}
-	config := mcp.Config{Servers: map[string]mcp.Server{}}
+	config := mcpFile{Servers: map[string]json.RawMessage{}}
 	if packErr == nil {
 		value, err := readMCP(pack)
 		if err != nil {

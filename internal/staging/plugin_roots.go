@@ -42,6 +42,7 @@ func (pipeline Pipeline) stagePluginRoots(entries mcp.Entries) (mcp.Entries, err
 	for _, name := range entries.Names() {
 		entry := entries[name]
 		resolved[name] = entry
+		entry = withPluginCwd(entry)
 		if entry.CacheKey == "" || !referencesAny(entry.Server, append(pluginRootVariables, pluginDataVariables...)) {
 			continue
 		}
@@ -94,7 +95,7 @@ func (pipeline Pipeline) verifyPluginRoots() error {
 		return err
 	}
 	for _, name := range entries.Names() {
-		entry := entries[name]
+		entry := withPluginCwd(entries[name])
 		if entry.CacheKey == "" || !referencesAny(entry.Server, pluginRootVariables) {
 			continue
 		}
@@ -104,6 +105,16 @@ func (pipeline Pipeline) verifyPluginRoots() error {
 		}
 	}
 	return nil
+}
+
+// withPluginCwd makes a plugin server's relative working directory relative
+// to the plugin, which is what "cwd": "." means in a plugin's own file.
+func withPluginCwd(entry mcp.Entry) mcp.Entry {
+	if cwd := entry.Server.Cwd; entry.CacheKey != "" && cwd != nil && !filepath.IsAbs(*cwd) && !strings.Contains(*cwd, "${") {
+		inPlugin := filepath.ToSlash(filepath.Join("${PLUGIN_ROOT}", *cwd))
+		entry.Server.Cwd = &inPlugin
+	}
+	return entry
 }
 
 func pluginRootName(cacheKey string) string {
@@ -135,7 +146,12 @@ func referencesAny(server mcp.Server, variables []string) bool {
 			return true
 		}
 	}
-	return false
+	for _, value := range server.Headers {
+		if contains(value) {
+			return true
+		}
+	}
+	return server.Cwd != nil && contains(*server.Cwd)
 }
 
 func substituteServer(server mcp.Server, replacements map[string]string) mcp.Server {
@@ -162,6 +178,17 @@ func substituteServer(server mcp.Server, replacements map[string]string) mcp.Ser
 			environment[key] = replace(value)
 		}
 		server.Env = environment
+	}
+	if len(server.Headers) != 0 {
+		headers := make(map[string]string, len(server.Headers))
+		for key, value := range server.Headers {
+			headers[key] = replace(value)
+		}
+		server.Headers = headers
+	}
+	if server.Cwd != nil {
+		directory := replace(*server.Cwd)
+		server.Cwd = &directory
 	}
 	return server
 }

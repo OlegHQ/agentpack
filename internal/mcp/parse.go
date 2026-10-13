@@ -57,6 +57,10 @@ func DecodeServers(raw map[string]json.RawMessage) (map[string]Server, []string)
 			warnings = append(warnings, fmt.Sprintf("MCP server %q: it has neither command nor url", name))
 			continue
 		}
+		var fields map[string]json.RawMessage
+		if json.Unmarshal(raw[name], &fields) == nil {
+			server.OAuth = decodeOAuth(fields)
+		}
 		servers[name] = server
 		if dropped := unsupportedFields(raw[name]); len(dropped) != 0 {
 			warnings = append(warnings, fmt.Sprintf("field(s) %s of MCP server %q, which agentpack does not carry over; the server is staged without them", strings.Join(dropped, ", "), name))
@@ -66,7 +70,7 @@ func DecodeServers(raw map[string]json.RawMessage) (map[string]Server, []string)
 }
 
 // unsupportedFields names the fields of a server definition that Server has
-// no place for (headers, oauth, cwd, …), so that leaving them out is said.
+// no place for, so that leaving them out is said.
 func unsupportedFields(raw json.RawMessage) []string {
 	var fields map[string]json.RawMessage
 	if json.Unmarshal(raw, &fields) != nil {
@@ -75,11 +79,74 @@ func unsupportedFields(raw json.RawMessage) []string {
 	var dropped []string
 	for field := range fields {
 		switch field {
-		case "type", "command", "args", "env", "url", "disabled":
+		case "type", "command", "args", "env", "url", "disabled", "headers", "cwd", "oauth", "auth", "scopes":
 		default:
 			dropped = append(dropped, field)
 		}
 	}
 	sort.Strings(dropped)
 	return dropped
+}
+
+// decodeOAuth reads a server's OAuth client settings in any of the published
+// spellings: Claude Code's oauth {clientId, callbackPort,
+// authServerMetadataUrl}, Codex's oauth {client_id, client_secret,
+// callback_port}, OpenCode's oauth {clientId, clientSecret, scope}, Cursor's
+// auth {CLIENT_ID, CLIENT_SECRET, scopes}, and a scopes list next to them.
+func decodeOAuth(fields map[string]json.RawMessage) *OAuth {
+	var oauth OAuth
+	found := false
+	for _, key := range []string{"oauth", "auth"} {
+		var object map[string]any
+		if json.Unmarshal(fields[key], &object) != nil {
+			continue
+		}
+		for name, value := range object {
+			switch strings.ToLower(strings.ReplaceAll(name, "_", "")) {
+			case "clientid":
+				oauth.ClientID, _ = value.(string)
+			case "clientsecret":
+				oauth.ClientSecret, _ = value.(string)
+			case "callbackport":
+				if port, ok := value.(float64); ok {
+					oauth.CallbackPort = int(port)
+				}
+			case "scope", "scopes":
+				oauth.Scopes = scopeList(value)
+			case "authservermetadataurl", "metadataurl":
+				oauth.MetadataURL, _ = value.(string)
+			default:
+				continue
+			}
+			found = true
+		}
+	}
+	if raw, present := fields["scopes"]; present {
+		var value any
+		if json.Unmarshal(raw, &value) == nil {
+			if scopes := scopeList(value); len(scopes) != 0 {
+				oauth.Scopes, found = scopes, true
+			}
+		}
+	}
+	if !found {
+		return nil
+	}
+	return &oauth
+}
+
+func scopeList(value any) []string {
+	switch typed := value.(type) {
+	case string:
+		return strings.Fields(typed)
+	case []any:
+		var scopes []string
+		for _, item := range typed {
+			if text, ok := item.(string); ok {
+				scopes = append(scopes, text)
+			}
+		}
+		return scopes
+	}
+	return nil
 }

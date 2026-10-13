@@ -58,6 +58,13 @@ func (server Server) Definition() string {
 	for _, argument := range server.Args {
 		field(argument)
 	}
+	// The directory a server starts in decides what a relative command runs.
+	// It is part of the digest only when set, so records made before servers
+	// could carry one still match. Headers and OAuth settings, like env, may
+	// hold credentials and are never part of it.
+	if server.Cwd != nil {
+		field("cwd=" + *server.Cwd)
+	}
 	return "sha256:" + hex.EncodeToString(hasher.Sum(nil))
 }
 
