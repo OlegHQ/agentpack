@@ -478,7 +478,7 @@ func (service Service) Sync(ctx context.Context, projectRoot string, options Syn
 		}
 		_ = rebuildLock.Unlock()
 		if err == nil {
-			tidyProjectDirectories(projectRoot)
+			staging.RemoveOrphanedProjectDirectories(projectRoot)
 		}
 	}
 	if err != nil {

@@ -332,6 +332,9 @@ func withOperationLock(path string, operation func() error) (err error) {
 	if err := os.MkdirAll(directory, 0o755); err != nil {
 		return err
 	}
+	// The directory outlives the project unless something can tell whose it
+	// was; the marker lets a later sync remove it once the project is gone.
+	_ = paths.MarkProjectDirectory(directory, filepath.Dir(path))
 	guard := flock.New(filepath.Join(directory, "pack.lock.lock"))
 	if err := guard.Lock(); err != nil {
 		return err

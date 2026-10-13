@@ -175,6 +175,7 @@ func (pipeline Pipeline) Rebuild() (_ []string, rebuildErr error) {
 		}
 	}
 	published = true
+	MarkProjectDirectories(pipeline.ProjectRoot)
 	return []string{filepath.Join(plugins, paths.StagedAgentpackBundleName)}, nil
 }
 
