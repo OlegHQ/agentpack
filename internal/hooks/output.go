@@ -15,8 +15,10 @@ func GuidanceAdditionalContext(body string) map[string]any {
 
 func HookOutput(target harness.Target, event Event, result Result) any {
 	switch target {
-	case harness.Codex, harness.Agy:
+	case harness.Codex:
 		return codexOutput(result)
+	case harness.Agy:
+		return agyOutput(event, result)
 	case harness.Cursor:
 		return cursorOutput(event, result)
 	case harness.OpenCode:
@@ -45,6 +47,45 @@ func codexOutput(result Result) map[string]any {
 		value["updatedMCPToolOutput"] = result.UpdatedToolOutput
 	}
 	mergeMetadata(value, result.Metadata)
+	return value
+}
+
+// agyOutput answers in Antigravity's hook contract: a decision for
+// PreToolUse, an empty object for PostToolUse, injected steps for
+// SessionStart and PreInvocation, and "continue" to keep a Stop from ending
+// the loop.
+func agyOutput(event Event, result Result) map[string]any {
+	value := make(map[string]any)
+	switch event {
+	case PreToolUse, PermissionRequest:
+		// For Antigravity "allow" approves the tool without asking the user.
+		// A hook that merely did not object must not do that, so only a
+		// refusal or a request to ask is passed on.
+		if result.Decision == Deny || result.Decision == Ask {
+			value["decision"] = result.Decision
+			if result.Message != "" {
+				value["reason"] = result.Message
+			}
+		}
+		if overwrite, ok := result.UpdatedInput.(map[string]any); ok && len(overwrite) != 0 {
+			value["overwrite"] = overwrite
+		}
+	case SessionStart:
+		if result.AdditionalContext != "" {
+			value["injectSteps"] = []any{map[string]any{"systemMessage": map[string]any{"systemMessage": result.AdditionalContext}}}
+		}
+	case UserPromptSubmit:
+		if result.AdditionalContext != "" {
+			value["injectSteps"] = []any{map[string]any{"ephemeralMessage": result.AdditionalContext}}
+		}
+	case Stop:
+		if result.Decision == Deny {
+			value["decision"] = "continue"
+			if result.Message != "" {
+				value["reason"] = result.Message
+			}
+		}
+	}
 	return value
 }
 

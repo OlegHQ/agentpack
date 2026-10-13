@@ -34,6 +34,8 @@ func Renderer(target base.Target) hooks.Renderer {
 		return codex.HookRenderer{}
 	case base.OpenCode:
 		return opencode.HookRenderer{}
+	case base.Agy:
+		return agy.HookRenderer{}
 	default:
 		return nil
 	}

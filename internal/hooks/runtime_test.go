@@ -167,3 +167,58 @@ func TestExecFormCommandHookKeepsItsArgumentsAndPluginRoot(t *testing.T) {
 		t.Fatalf("output = %q, %v", output.Stdout, err)
 	}
 }
+
+// Antigravity sends {"toolCall": {"name": "run_command"}} and reads a
+// decision from the JSON it gets back, not from the exit status.
+func TestDispatchForAntigravityMatchesItsToolNamesAndAnswersInItsContract(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("runs sh")
+	}
+	t.Parallel()
+	specs := t.TempDir()
+	write := func(name string, spec ExecutionSpec) {
+		data, err := json.Marshal(spec)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(specs, name), data, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("a.json", ExecutionSpec{Target: harness.Agy, Event: PreToolUse, Matcher: "Bash", Handler: Handler{Kind: CommandHandler, Command: `echo '{"decision":"block","message":"no shell"}'`}})
+	write("b.json", ExecutionSpec{Target: harness.Agy, Event: UserPromptSubmit, Handler: Handler{Kind: CommandHandler, Command: `echo '{"additionalContext":"remember"}'`}})
+	write("c.json", ExecutionSpec{Target: harness.Agy, Event: Stop, Handler: Handler{Kind: CommandHandler, Command: `echo '{"decision":"block","reason":"x","message":"not done"}'`}})
+	run := func(event Event, stdin string) (map[string]any, int) {
+		outcome, err := Dispatch(context.Background(), DispatchArgs{Target: harness.Agy, Event: event, SpecsDirectory: specs, Stdin: []byte(stdin)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		object, _ := outcome.JSON.(map[string]any)
+		return object, outcome.ExitCode
+	}
+	denied, code := run(PreToolUse, `{"toolCall":{"name":"run_command","args":{"CommandLine":"rm -rf /"}},"stepIdx":1}`)
+	if denied["decision"] != Deny || denied["reason"] != "no shell" || code != 0 {
+		t.Fatalf("PreToolUse = %#v, exit %d", denied, code)
+	}
+	if other, _ := run(PreToolUse, `{"toolCall":{"name":"view_file"}}`); len(other) != 0 {
+		t.Fatalf("a Bash matcher fired for view_file: %#v", other)
+	}
+	injected, _ := run(UserPromptSubmit, `{"invocationNum":1}`)
+	steps, _ := injected["injectSteps"].([]any)
+	if len(steps) != 1 || steps[0].(map[string]any)["ephemeralMessage"] != "remember" {
+		t.Fatalf("PreInvocation = %#v", injected)
+	}
+	if stop, code := run(Stop, `{"terminationReason":"NO_TOOL_CALL"}`); stop["decision"] != "continue" || stop["reason"] != "not done" || code != 0 {
+		t.Fatalf("Stop = %#v", stop)
+	}
+}
+
+func TestAntigravityPreToolUseNeverAutoApproves(t *testing.T) {
+	t.Parallel()
+	if output := HookOutput(harness.Agy, PreToolUse, Result{Decision: Allow, Message: "fine"}).(map[string]any); len(output) != 0 {
+		t.Fatalf("a hook without objection approved the tool for the user: %#v", output)
+	}
+	if output := HookOutput(harness.Agy, PreToolUse, Result{Decision: Ask, Message: "sure?"}).(map[string]any); output["decision"] != Ask || output["reason"] != "sure?" {
+		t.Fatalf("ask = %#v", output)
+	}
+}

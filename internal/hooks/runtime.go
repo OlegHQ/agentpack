@@ -266,7 +266,8 @@ func Dispatch(ctx context.Context, arguments DispatchArgs) (DispatchOutcome, err
 		return DispatchOutcome{JSON: map[string]any{}}, nil
 	}
 	exitCode := 0
-	if merged.Decision == Deny {
+	// Antigravity reads the decision from the JSON it is given.
+	if merged.Decision == Deny && arguments.Target != harness.Agy {
 		exitCode = 2
 	}
 	return DispatchOutcome{JSON: HookOutput(arguments.Target, arguments.Event, merged), ExitCode: exitCode}, nil
@@ -285,6 +286,12 @@ func ExtractToolName(value any) string {
 			return text
 		}
 	}
+	// Antigravity: {"toolCall": {"name": "run_command", ...}}
+	if call, ok := object["toolCall"].(map[string]any); ok {
+		if text, ok := call["name"].(string); ok {
+			return text
+		}
+	}
 	return ""
 }
 
@@ -297,6 +304,15 @@ func CandidateToolNames(raw string) []string {
 	if other := pairs[raw]; other != "" {
 		result = append(result, other)
 	}
+	// Antigravity's tool names, so that a matcher written for Claude Code's
+	// tools (Bash, Read, Write|Edit, …) applies to the same kind of step.
+	antigravity := map[string][]string{
+		"run_command": {"Bash", "Shell"}, "view_file": {"Read"}, "write_to_file": {"Write", "Edit"},
+		"replace_file_content": {"Edit", "Write"}, "multi_replace_file_content": {"MultiEdit", "Edit", "Write"},
+		"grep_search": {"Grep"}, "find_by_name": {"Glob"}, "list_dir": {"LS"},
+		"read_url_content": {"WebFetch", "Fetch"}, "search_web": {"WebSearch"},
+	}
+	result = append(result, antigravity[raw]...)
 	if rest, ok := strings.CutPrefix(raw, "MCP:"); ok {
 		result = append(result, "mcp__"+rest)
 	} else if rest, ok := strings.CutPrefix(raw, "mcp__"); ok {

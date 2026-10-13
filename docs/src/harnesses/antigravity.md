@@ -46,9 +46,22 @@ The merged MCP servers are staged as the plugin's `mcp_config.json`, the place A
 
 So the only ways to make a server appear in `agy mcp list` are to write it into your real `~/.gemini/config/mcp_config.json`, where it would apply to every project, or to run `agy` under another `HOME`, where it has no login. agentpack does neither. To use one of the pack's servers in every Antigravity session, add it yourself with `agy mcp add`.
 
-## Hooks are not staged
+## Hooks
 
-As with Grok, this is a verified limitation. Antigravity has a real hook engine and `agy plugin validate` statically accepts a Claude-shape `hooks.json`, but `agy` does **not** auto-load hooks from a workspace `.agents/plugins/<name>/` overlay — a live session never fires a `SessionStart` hook from there, and the binary documents `.agents/` as agent *metadata*, not a plugin source. With no config-root redirect, the only way to load hooks is `agy plugin import/install` into the real `~/.gemini` (pollution). Antigravity's hook support therefore stays unsupported.
+Hooks are staged as `hooks.json` at the root of the staged plugin, in Antigravity's own format: one named hook, `agentpack`, whose keys are Antigravity's events. Antigravity loads a plugin's hooks only from `<plugin>/hooks.json` (its plugin guide: "native plugins … must place `hooks.json` directly at the plugin root"), not from `hooks/hooks.json`, and not in Claude Code's shape; `agy plugin validate` reports `hooks : 1 processed` for the staged bundle (agy 1.3.4, 2026-10-13).
+
+| Hook written for | Staged as | Notes |
+|---|---|---|
+| `SessionStart` | `SessionStart` | `additionalContext` is injected as a system message |
+| `PreToolUse`, `PermissionRequest` | `PreToolUse`, matcher `*` | each hook's own matcher is applied by agentpack; Claude Code tool names match Antigravity's (`Bash` = `run_command`, `Read` = `view_file`, `Write`/`Edit` = `write_to_file`/`replace_file_content`, `Grep` = `grep_search`, `Glob` = `find_by_name`, `WebFetch` = `read_url_content`, `WebSearch` = `search_web`) |
+| `PostToolUse` | `PostToolUse`, matcher `*` | |
+| `UserPromptSubmit` | `PreInvocation` | Antigravity has no prompt-submit event; the hook runs before each model call, with a warning |
+| `Stop` | `Stop` | a blocking result becomes `"decision": "continue"` |
+| any other event | skipped | with a warning that names the event |
+
+Every entry calls `agentpack hook-exec dispatch`, which runs the package's handlers in a staged copy of the package and answers in Antigravity's output contract. A hook that does not object returns no decision: agentpack never answers `"allow"` for a tool on a hook's behalf, because for Antigravity that approves the tool without asking you.
+
+Nothing is written to `~/.gemini`. The plugin reaches Antigravity through the workspace link `./.agents/plugins/agentpack-bundle`, as its skills and MCP servers do, and Antigravity loads workspace hooks once the folder is trusted. What `agy plugin validate` confirms is that the file is found and parsed; that a session fires the hooks of a workspace plugin can only be seen in a session. An observation with agy 1.0.3 and a Claude-shape `hooks/hooks.json` found that it did not; that file was in the wrong place and shape, so it does not settle the question for the file staged now.
 
 ## Attribution
 

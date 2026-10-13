@@ -33,7 +33,9 @@ func (target Target) RawPluginSubdirs() []string {
 	case Cursor:
 		return []string{"hooks", "assets", "scripts", "commands", "agents", "rules", "skills"}
 	case Agy:
-		return []string{"hooks", "commands", "agents", "rules", "skills"}
+		// No raw hooks directory: Antigravity reads hooks.json at the plugin
+		// root, which the hook renderer writes in Antigravity's own shape.
+		return []string{"commands", "agents", "rules", "skills"}
 	default:
 		return nil
 	}

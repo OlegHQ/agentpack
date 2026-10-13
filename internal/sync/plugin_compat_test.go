@@ -92,6 +92,14 @@ func TestPluginWithNewHookEventsAndLooseFrontmatterStagesWhole(t *testing.T) {
 	if got := hookEvents(t, fixture.stagedDir("cursor/agentpack-bundle/hooks/hooks.json")); got != "postToolUseFailure stop" {
 		t.Fatalf("cursor hook events = %q", got)
 	}
+	// Antigravity reads hooks.json at the plugin root, in its own shape.
+	antigravity := readJSONFile(t, fixture.stagedDir("agy/agentpack-bundle/hooks.json"))["agentpack"].(map[string]any)
+	if antigravity["Stop"] == nil || len(antigravity) != 1 {
+		t.Fatalf("antigravity hooks = %#v", antigravity)
+	}
+	if !fixtureMissing(fixture.stagedDir("agy/agentpack-bundle/hooks/hooks.json")) {
+		t.Fatal("a Claude Code hooks file was copied into the Antigravity plugin, where nothing reads it")
+	}
 	command, err := os.ReadFile(filepath.Join(fixture.bundle(), "commands", "modernize.md"))
 	if err != nil || !strings.Contains(string(command), "[system] [--source <path>]") || !strings.Contains(string(command), "You are the front door.") {
 		t.Fatalf("staged command = %q, %v", command, err)
