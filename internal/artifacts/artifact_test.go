@@ -127,3 +127,53 @@ func TestFrontmatterIsReadKeyByKeyWhenItIsNotValidYAML(t *testing.T) {
 		t.Fatalf("unreadable frontmatter: %#v, %v", broken, err)
 	}
 }
+
+func TestOpenCodeAgentToolsBecomeTheDocumentedObject(t *testing.T) {
+	t.Parallel()
+	for name, tools := range map[string]string{
+		"list":   "tools: [\"Read\", \"Write\", \"Edit\", \"Bash\", \"Grep\", \"Glob\"]\n",
+		"string": "tools: Read, Write, Edit, Bash(git:*, npm:*), Grep, Glob\n",
+	} {
+		artifact, err := Parse("agents/reviewer.md", "---\nname: reviewer\ndescription: Review code\n"+tools+"model: sonnet\n---\n\nReview carefully.\n", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		rendered := artifact.Render(harness.OpenCode)
+		reparsed, err := Parse("agents/reviewer.md", rendered.Contents, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		staged, ok := reparsed.ExtraFrontmatter["tools"].(map[string]any)
+		if !ok {
+			t.Fatalf("%s: OpenCode tools must be an object, got %#v\n%s", name, reparsed.ExtraFrontmatter["tools"], rendered.Contents)
+		}
+		for tool, want := range map[string]bool{"read": true, "write": true, "edit": true, "bash": true, "grep": true, "glob": true, "webfetch": false, "task": false} {
+			if staged[tool] != want {
+				t.Fatalf("%s: tools[%s] = %v, want %v\n%s", name, tool, staged[tool], want, rendered.Contents)
+			}
+		}
+		if len(rendered.Warnings) != 1 || !strings.Contains(rendered.Warnings[0], "model sonnet") || strings.Contains(rendered.Contents, "model:") {
+			t.Fatalf("%s: warnings = %v\n%s", name, rendered.Warnings, rendered.Contents)
+		}
+		// Claude Code keeps what the package wrote.
+		if claude := artifact.Render(harness.Claude).Contents; !strings.Contains(claude, "Read") || strings.Contains(claude, "webfetch") {
+			t.Fatalf("%s: claude = %s", name, claude)
+		}
+	}
+	artifact, err := Parse("agents/browser.md", "---\ndescription: Browse\ntools: Read, mcp__playwright__navigate\ndisallowedTools: [Bash]\ncolor: blue\nmode: plan\nmodel: anthropic/claude-sonnet-4-5\n---\n\nBrowse.\n", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	rendered := artifact.Render(harness.OpenCode)
+	if len(rendered.Warnings) != 2 || !strings.Contains(strings.Join(rendered.Warnings, "\n"), "mcp__playwright__navigate") || !strings.Contains(strings.Join(rendered.Warnings, "\n"), "mode plan") {
+		t.Fatalf("warnings = %v", rendered.Warnings)
+	}
+	for _, part := range []string{"bash: false", `color: '#3b82f6'`, "model: anthropic/claude-sonnet-4-5"} {
+		if !strings.Contains(rendered.Contents, part) && !strings.Contains(rendered.Contents, strings.ReplaceAll(part, "'", `"`)) {
+			t.Fatalf("rendered lacks %s:\n%s", part, rendered.Contents)
+		}
+	}
+	if strings.Contains(rendered.Contents, "disallowedTools") || strings.Contains(rendered.Contents, "mode:") {
+		t.Fatalf("rendered = %s", rendered.Contents)
+	}
+}

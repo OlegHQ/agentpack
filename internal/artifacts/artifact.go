@@ -27,6 +27,8 @@ const (
 type Rendered struct {
 	RelativePath string
 	Contents     string
+	// Warnings name what could not be carried over to the target.
+	Warnings []string
 }
 
 type Markdown struct {
@@ -43,6 +45,18 @@ type Markdown struct {
 	tailPath               string
 }
 
+// Renamed returns the artifact under another name, for a target where its own
+// name is taken by an artifact of the kind it is converted to.
+func (artifact Markdown) Renamed(name string) Markdown {
+	artifact.Name, artifact.StorageName = name, name
+	return artifact
+}
+
+// Word is the kind as it is written in messages and converted names.
+func (kind Kind) Word() string {
+	return [...]string{"skill", "command", "agent", "rule"}[kind]
+}
+
 func Parse(relativePath, contents, bareSkillName string) (*Markdown, error) {
 	relativePath = filepath.ToSlash(filepath.Clean(relativePath))
 	if bareSkillName != "" {
@@ -51,7 +65,7 @@ func Parse(relativePath, contents, bareSkillName string) (*Markdown, error) {
 		}
 		return parseSkill(bareSkillName, contents, "SKILL.md")
 	}
-	stripped := stripHarnessPrefix(relativePath)
+	stripped := StripHarnessPrefix(relativePath)
 	parts := strings.Split(stripped, "/")
 	if len(parts) == 3 && parts[0] == "skills" && parts[2] == "SKILL.md" {
 		return parseSkill(parts[1], contents, "SKILL.md")
@@ -80,7 +94,7 @@ func StagedSkillSupportPath(relativePath, bareSkillName string) (string, bool) {
 		}
 		return "skills/" + bareSkillName + "/" + relativePath, true
 	}
-	parts := strings.Split(stripHarnessPrefix(relativePath), "/")
+	parts := strings.Split(StripHarnessPrefix(relativePath), "/")
 	if len(parts) < 3 || parts[0] != "skills" || strings.Join(parts[2:], "/") == "SKILL.md" {
 		return "", false
 	}
@@ -154,7 +168,9 @@ func descriptionOrInfer(description, body, name string, kind Kind) string {
 	}
 }
 
-func stripHarnessPrefix(path string) string {
+// StripHarnessPrefix removes the per-agent directory a package may keep its
+// components under (.claude/skills, .cursor/rules, …).
+func StripHarnessPrefix(path string) string {
 	for _, prefix := range []string{".claude/", ".cursor/", ".opencode/", ".agents/", ".grok/"} {
 		if strings.HasPrefix(path, prefix) {
 			return strings.TrimPrefix(path, prefix)
