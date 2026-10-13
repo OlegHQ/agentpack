@@ -65,6 +65,16 @@ The merged set is then written in each harness's native format:
 
 For Cursor's fake `HOME`, the merged pack `mcp.json` is additionally merged with your real `~/.cursor/mcp.json` — user-defined entries win on conflict — so agentpack-managed servers coexist with your own.
 
+## Servers that run from the plugin's own directory
+
+A plugin's server definition may name the plugin's directory: `bun run --cwd ${CLAUDE_PLUGIN_ROOT} start`, `node ${CLAUDE_PLUGIN_ROOT}/start.mjs`. Claude Code expands that variable for a plugin it installed itself; the other agents do not know it, and in agentpack's merged bundle it would not name the plugin's files for Claude Code either.
+
+For each package with such a server, `sync` therefore stages one whole copy of the package under `<staging>/modes/<mode>/plugin-roots/<cache_key prefix>/` and writes that path into every harness's MCP config in place of `${CLAUDE_PLUGIN_ROOT}`, `${CURSOR_PLUGIN_ROOT}` or `${PLUGIN_ROOT}`, in `command`, `args` and `env`. The copy is filtered through the active mode like the rest of the package. The server runs in the copy, not in the verified cache entry, so what it writes next to its files (a `node_modules`, a database) cannot make the cache fail verification; the copy is rebuilt by each `sync`.
+
+`${CLAUDE_PLUGIN_DATA}` and `${PLUGIN_DATA}` become `$AGENTPACK_HOME/projects/<hash>/plugin-data/<module>/`, which survives rebuilds and package updates.
+
+`pack.lock` records the definition as the package published it, with the variable, so a lock is the same on every machine.
+
 ## What pack.lock records
 
 MCP definitions live in the manifest, in plugins and in `./.agents/mcp.json`, but what a server *runs* is decided when it starts: `npx @playwright/mcp@latest` downloads whatever `latest` means that day. `agentpack lock` therefore records every merged server in `pack.lock` under `[[mcp_servers]]`, with an explicit `status`. `agentpack add` does the same for the servers the added package brings, and `agentpack mcp add` for the one it defines:

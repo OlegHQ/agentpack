@@ -125,6 +125,9 @@ func (pipeline Pipeline) Rebuild() (_ []string, rebuildErr error) {
 		return nil, err
 	}
 	merged = mcp.ApplyPins(merged, pipeline.Lock.MCPServers)
+	if merged, err = pipeline.stagePluginRoots(merged); err != nil {
+		return nil, err
+	}
 	if len(merged) != 0 {
 		for _, candidate := range harnesses {
 			if err := candidate.WriteMCP(merged, ctx); err != nil {
@@ -185,6 +188,9 @@ func (pipeline Pipeline) verify(ctx base.StageContext) error {
 		if err := candidate.Verify(ctx); err != nil {
 			return fmt.Errorf("verify %s: %w", candidate.ID(), err)
 		}
+	}
+	if err := pipeline.verifyPluginRoots(); err != nil {
+		return err
 	}
 	plugins, err := paths.StagingPluginsDirForMode(pipeline.ProjectRoot, pipeline.Mode.Name())
 	if err != nil {
@@ -414,6 +420,11 @@ func (pipeline Pipeline) managedRebuildPaths(ctx base.StageContext, harnesses []
 		return nil, err
 	}
 	managed = append(managed, grokHome)
+	pluginRoots, err := paths.StagingPluginRootsDirForMode(pipeline.ProjectRoot, pipeline.Mode.Name())
+	if err != nil {
+		return nil, err
+	}
+	managed = append(managed, pluginRoots)
 	manifestPath, err := paths.StagedManifestPath(pipeline.ProjectRoot, pipeline.Mode.Name())
 	if err != nil {
 		return nil, err

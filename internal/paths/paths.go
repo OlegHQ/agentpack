@@ -271,6 +271,23 @@ func StagingCursorHomeDirForMode(root, mode string) (string, error) {
 	return stagingSubdir(root, mode, "cursor-home")
 }
 
+// StagingPluginRootsDirForMode holds whole copies of the plugins whose MCP
+// servers run from their own directory, one per package, shared by every
+// harness of the mode.
+func StagingPluginRootsDirForMode(root, mode string) (string, error) {
+	return stagingSubdir(root, mode, "plugin-roots")
+}
+
+// PluginDataDir is the durable directory a plugin's ${CLAUDE_PLUGIN_DATA}
+// names for a project; it survives staging rebuilds and package updates.
+func PluginDataDir(projectRoot, module string) (string, error) {
+	state, err := ProjectStateDir(projectRoot)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(state, "plugin-data", module), nil
+}
+
 func bundleDirForMode(projectRoot, modeName, segment string) (string, error) {
 	root, err := stagingSubdir(projectRoot, modeName, segment)
 	if err != nil {

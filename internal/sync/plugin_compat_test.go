@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/OlegHQ/agentpack/internal/harness/codex"
 	"github.com/OlegHQ/agentpack/internal/paths"
 )
 
@@ -187,4 +188,71 @@ func TestAddKeepsThePackageWhenItsMCPServerCannotBePinned(t *testing.T) {
 	if pinned, _ := fixture.lock().MCPServer("playwright"); pinned.Version != "0.0.41" {
 		t.Fatalf("lock after the registry returned = %#v", pinned)
 	}
+}
+
+// The official discord and telegram plugins start their server with
+// `bun run --cwd ${CLAUDE_PLUGIN_ROOT} start`, and context-mode defines its
+// server inline in plugin.json as `node ${CLAUDE_PLUGIN_ROOT}/start.mjs`. The
+// variable used to reach five agents as literal text.
+func TestPluginRootVariableBecomesAStagedCopyOfThePluginForEveryAgent(t *testing.T) {
+	fixture := newIntegrityFixture(t)
+	fixture.upstream.tarballs[commitTwo] = map[string]string{
+		"discord/.claude-plugin/plugin.json": `{"name":"discord","version":"0.0.1","mcpServers":{"inline":{"command":"node","args":["${CLAUDE_PLUGIN_ROOT}/start.mjs"],"env":{"STATE":"${CLAUDE_PLUGIN_DATA}/state"}}}}`,
+		"discord/.mcp.json":                  `{"mcpServers":{"discord":{"command":"bun","args":["run","--cwd","${CLAUDE_PLUGIN_ROOT}","--shell=bun","--silent","start"]}}}`,
+		"discord/package.json":               `{"scripts":{"start":"bun install --no-summary && bun server.ts"}}`,
+		"discord/server.ts":                  "// server\n",
+		"discord/start.mjs":                  "// start\n",
+	}
+	fixture.manifest("github.com/acme/skills/discord", commitTwo)
+	lock := fixture.lock()
+	fixture.sync(SyncOptions{})
+
+	root := filepath.Join(fixture.stagedDir("plugin-roots"), lock.Packages[0].CacheKey[:16])
+	for _, name := range []string{"package.json", "server.ts", "start.mjs", ".mcp.json"} {
+		if _, err := os.Stat(filepath.Join(root, name)); err != nil {
+			t.Fatalf("staged plugin directory: %v", err)
+		}
+	}
+	if cached := fixture.cacheEntry(lock); cached == root || strings.HasPrefix(root, cached) {
+		t.Fatalf("the server would run inside the verified cache entry %s", cached)
+	}
+	codexHome, err := codex.CurrentHome(fixture.project, "default")
+	if err != nil {
+		t.Fatal(err)
+	}
+	grokHome, err := paths.StagingGrokHomeDirForMode(fixture.project, "default")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for agent, path := range map[string]string{
+		"claude":   filepath.Join(fixture.bundle(), ".mcp.json"),
+		"cursor":   fixture.stagedDir("cursor/agentpack-bundle/mcp.json"),
+		"opencode": fixture.stagedDir("opencode/opencode.json"),
+		"agy":      fixture.stagedDir("agy/agentpack-bundle/mcp_config.json"),
+		"codex":    filepath.Join(codexHome, "config.toml"),
+		"grok":     filepath.Join(grokHome, "config.toml"),
+	} {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("%s: %v", agent, err)
+		}
+		text := string(data)
+		if strings.Contains(text, "PLUGIN_ROOT") || strings.Contains(text, "PLUGIN_DATA") {
+			t.Errorf("%s configuration still holds a plugin variable:\n%s", agent, text)
+		}
+		if !strings.Contains(text, root) || !strings.Contains(text, filepath.Join(root, "start.mjs")) {
+			t.Errorf("%s configuration does not name the staged plugin directory %s:\n%s", agent, root, text)
+		}
+	}
+	// The lock records the definition as published, not this machine's path.
+	if text := fixture.lockText(); strings.Contains(text, root) {
+		t.Fatalf("pack.lock holds a staging path:\n%s", text)
+	}
+	// A second sync finds the same paths and reports no drift.
+	fixture.notices = nil
+	fixture.sync(SyncOptions{})
+	if len(fixture.notices) != 0 {
+		t.Fatalf("notices = %v", fixture.notices)
+	}
+	fixture.sync(SyncOptions{VerifyOnly: true})
 }
