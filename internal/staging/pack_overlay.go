@@ -64,54 +64,97 @@ func StagePackOverlay(lock lockfile.PackLock, roots []HarnessRoot, effective mod
 }
 
 func stageSourceTree(sourceRoot string, roots []HarnessRoot, bareSkillName, module string, effective mode.Effective) error {
-	return filepath.WalkDir(sourceRoot, func(path string, entry os.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		if entry.IsDir() {
-			return nil
-		}
-		relative, err := filepath.Rel(sourceRoot, path)
+	files, err := packageFiles(sourceRoot, module, bareSkillName == "")
+	if err != nil {
+		return err
+	}
+	var parsed []*artifacts.Markdown
+	skillSources := make(map[string]string)
+	for _, file := range files {
+		allowed, err := effective.AllowsPackagePath(module, file.Real)
 		if err != nil {
 			return err
 		}
-		relative = filepath.ToSlash(relative)
-		allowed, err := effective.AllowsPackagePath(module, relative)
-		if err != nil || !allowed {
-			return err
+		if !allowed {
+			continue
 		}
-		if destination, ok := artifacts.StagedSkillSupportPath(relative, bareSkillName); ok {
+		if destination, ok := artifacts.StagedSkillSupportPath(file.Virtual, bareSkillName); ok {
 			for _, root := range roots {
-				if err := copyFile(path, filepath.Join(root.Path, filepath.FromSlash(destination))); err != nil {
+				if err := copyFile(file.Path, filepath.Join(root.Path, filepath.FromSlash(destination))); err != nil {
 					return err
 				}
 			}
-			return nil
+			continue
 		}
-		extension := strings.ToLower(filepath.Ext(path))
+		extension := strings.ToLower(filepath.Ext(file.Virtual))
 		if extension != ".md" && extension != ".mdc" {
-			return nil
+			continue
 		}
-		contents, err := os.ReadFile(path)
+		contents, err := os.ReadFile(file.Path)
 		if err != nil {
 			return err
 		}
-		artifact, err := artifacts.Parse(relative, string(contents), bareSkillName)
+		artifact, err := artifacts.Parse(file.Virtual, string(contents), bareSkillName)
 		if err != nil {
-			log.Printf("warning: skipping markdown artifact %s: %v", relative, err)
-			return nil
+			log.Printf("warning: %s: skipping markdown artifact %s: %v", module, file.Real, err)
+			continue
 		}
 		if artifact == nil {
-			return nil
+			continue
 		}
+		if artifact.Kind == artifacts.Skill {
+			if first, duplicate := skillSources[artifact.StorageName]; duplicate && first != file.Real {
+				log.Printf("warning: %s: skill %s is published twice (%s and %s); the second is staged", module, artifact.StorageName, first, file.Real)
+			}
+			skillSources[artifact.StorageName] = file.Real
+		}
+		parsed = append(parsed, artifact)
+	}
+	// A command, agent or rule that a target only has as a skill must not
+	// take the place of a skill of the same name, or of another converted item.
+	converted := make(map[harness.Target]map[string]bool)
+	for _, artifact := range parsed {
 		for _, root := range roots {
-			rendered := artifact.Render(root.Target)
+			staged := *artifact
+			if artifact.Kind != artifacts.Skill && artifacts.RenderedKind(root.Target, artifact.Kind) == artifacts.Skill {
+				if converted[root.Target] == nil {
+					converted[root.Target] = make(map[string]bool)
+				}
+				name := convertedSkillName(artifact, skillSources, converted[root.Target])
+				converted[root.Target][name] = true
+				if name != artifact.StorageName {
+					log.Printf("warning: %s: on %s a %s is staged as a skill and the name %s is taken; %s %s is staged as skill %s", module, root.Target, artifact.Kind.Word(), artifact.StorageName, artifact.Kind.Word(), artifact.StorageName, name)
+					staged = artifact.Renamed(name)
+				}
+			}
+			rendered := staged.Render(root.Target)
+			for _, warning := range rendered.Warnings {
+				log.Printf("warning: %s: %s", module, warning)
+			}
 			if err := writeFile(filepath.Join(root.Path, filepath.FromSlash(rendered.RelativePath)), []byte(rendered.Contents)); err != nil {
 				return err
 			}
 		}
-		return nil
-	})
+	}
+	return nil
+}
+
+// convertedSkillName names the skill a command, agent or rule becomes on a
+// target without that kind: its own name when it is free, otherwise the name
+// followed by its kind (review-command), then by a number.
+func convertedSkillName(artifact *artifacts.Markdown, skills map[string]string, taken map[string]bool) string {
+	free := func(name string) bool {
+		_, skill := skills[name]
+		return !skill && !taken[name]
+	}
+	if free(artifact.StorageName) {
+		return artifact.StorageName
+	}
+	name := artifact.StorageName + "-" + artifact.Kind.Word()
+	for suffix := 2; !free(name); suffix++ {
+		name = fmt.Sprintf("%s-%s-%d", artifact.StorageName, artifact.Kind.Word(), suffix)
+	}
+	return name
 }
 
 func copyRawSupport(sourceRoot string, roots []HarnessRoot, module string, effective mode.Effective) error {
@@ -135,7 +178,8 @@ func copyRawSupport(sourceRoot string, roots []HarnessRoot, module string, effec
 			if walkErr != nil {
 				return walkErr
 			}
-			if entry.IsDir() {
+			// Links are followed by stageSourceTree, inside the package only.
+			if entry.IsDir() || entry.Type()&os.ModeSymlink != 0 {
 				return nil
 			}
 			relative, err := filepath.Rel(source, path)
