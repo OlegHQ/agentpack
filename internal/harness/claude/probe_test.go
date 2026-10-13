@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -162,5 +163,16 @@ func TestEmptySkillInventoryIsNotTheNextLine(t *testing.T) {
 	names, err := parseSkillInventory("Component inventory\n  Skills (0)\n  Agents (0)\n")
 	if err != nil || len(names) != 0 {
 		t.Fatalf("names=%v err=%v", names, err)
+	}
+}
+
+// The zoom plugin has commands and skills of the same name; Claude Code lists
+// both among its skills. The probe still declines the inventory, and says
+// which name is listed twice.
+func TestSkillInventoryNamesTheDuplicate(t *testing.T) {
+	t.Parallel()
+	_, err := parseSkillInventory("Skills (3)  build-zoom-bot, debug-zoom, build-zoom-bot\n")
+	if err == nil || !strings.Contains(err.Error(), `"build-zoom-bot" twice`) {
+		t.Fatalf("error = %v", err)
 	}
 }

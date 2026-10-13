@@ -438,8 +438,14 @@ func parseSkillInventory(text string) ([]string, error) {
 	}
 	seen := map[string]bool{}
 	for _, name := range names {
-		if strings.ContainsAny(name, "/\\") || name == "." || name == ".." || seen[name] {
-			return nil, fmt.Errorf("invalid or duplicate native skill inventory name")
+		if strings.ContainsAny(name, "/\\") || name == "." || name == ".." {
+			return nil, fmt.Errorf("invalid native skill inventory name %q", name)
+		}
+		// Claude Code lists a package's commands among its skills, so a
+		// command and a skill that the package publishes under one name
+		// appear twice. The inventory cannot tell them apart; say which name.
+		if seen[name] {
+			return nil, fmt.Errorf("native skill inventory lists %q twice (a command and a skill of the same name)", name)
 		}
 		seen[name] = true
 	}
