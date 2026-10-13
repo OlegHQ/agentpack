@@ -30,6 +30,9 @@ const (
 type Entry struct {
 	Server Server
 	Source Source
+	// Module and CacheKey name the package a plugin's server came from.
+	Module   string
+	CacheKey string
 }
 
 type Entries map[string]Entry

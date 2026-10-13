@@ -38,9 +38,21 @@ agentpack mcp list      # every server, with provenance (manifest / plugin / .ag
 
 After packages and the `./.agents/` overlay are staged, `sync` gathers MCP definitions from three sources and merges them. Later sources win when the same server name appears more than once:
 
-1. **Plugin `mcp.json` files** — from each staged plugin, ordered by `cache_key`, filtered through the active [mode](./modes.md)
+1. **Plugin definitions** — from each staged plugin, ordered by `cache_key`, filtered through the active [mode](./modes.md)
 2. **Manifest `[mcp.servers]`** — your project-level definitions
 3. **`./.agents/mcp.json`** — the project overlay
+
+A plugin's servers are read from every place the vendors' plugin formats allow, in this order (a later definition of the same server name wins):
+
+| Location | Format it comes from |
+|---|---|
+| `mcp.json` at the plugin root | Cursor |
+| `.mcp.json` at the plugin root | Claude Code, Codex |
+| `mcpServers` in `.codex-plugin/plugin.json`: a path such as `./.codex-plugin/mcp.json`, or an inline map | Codex |
+| `mcpServers` in `.cursor-plugin/plugin.json`: a path, an inline map, or an array of them | Cursor |
+| `mcpServers` in `.claude-plugin/plugin.json`: a path, an inline map, or an array of them | Claude Code |
+
+A definition file may wrap its servers in `mcpServers` or be the bare `name → server` map; both are published and both are read. A declared path must stay inside the package. A server or a location that cannot be read (a `.mcpb` bundle, a URL, an entry with neither `command` nor `url`) is skipped with a warning that names it; the package's other servers still load.
 
 The merged set is then written in each harness's native format:
 
