@@ -28,9 +28,31 @@ Every harness names and formats the same ideas differently. agentpack does not c
 
 Two harnesses have first-class rules — Cursor and Antigravity — so rules are preserved there. Everywhere else, a rule becomes a best-effort skill, with its original rule scope noted so the intent survives. Codex gets the portable skill subset: commands and agents fall back to skills.
 
+Where a command, agent or rule becomes a skill, it keeps its name. If the same package already has a skill of that name (or another converted item took it), the converted item is staged as `<name>-command`, `<name>-agent` or `<name>-rule`, then with `-2`, `-3`, and a warning says so. Nothing is overwritten.
+
+## Where artifacts are found
+
+Artifacts are read from the default directories of every plugin format (`skills/<name>/SKILL.md`, `commands/`, `agents/`, `rules/`, also under `.claude/`, `.cursor/`, `.opencode/`, `.agents/`, `.grok/`), and from the component paths a plugin manifest declares: `skills`, `commands`, `agents` and `rules` in `.claude-plugin/plugin.json`, `.cursor-plugin/plugin.json` or `.codex-plugin/plugin.json`, each a path or an array of paths. Claude Code adds declared skills to the default directory and replaces it for commands and agents; Cursor replaces; agentpack stages one tree for all agents, so it reads the declared paths in addition to the defaults.
+
+A declared path, and a symbolic link under a component directory, is followed only while it resolves inside the package (`"skills": "./.codex/skills/"`, where each entry links to `../../engineering/skills/<name>`). A path or link that leaves the package, does not exist, or loops is skipped with a warning that names it. Components written inline in a manifest (Claude Code's `commands` object) are not staged, also with a warning.
+
 ## Frontmatter
 
 agentpack writes whatever frontmatter the target format needs (for example, Cursor `.mdc` metadata), using the artifact's name and any metadata carried in the source. The instruction body is preserved; only the wrapper changes.
+
+Frontmatter that is not valid YAML as a whole is read one top-level key at a time, as the agents read it: a value that does not parse, such as the unquoted `argument-hint: [system] [--source <path>]`, is kept as the text written. Frontmatter with no readable key leaves the file with no fields and its description is taken from the body.
+
+OpenCode validates every agent file and refuses its whole configuration when one field has another form, so an agent rendered for OpenCode has its Claude Code fields converted:
+
+| Claude Code | OpenCode |
+|---|---|
+| `tools: Read, Grep, Bash` or a YAML list (an allow list) | `tools:` object with `read`, `write`, `edit`, `bash`, `grep`, `glob`, `list`, `webfetch`, `websearch`, `task`, `todowrite`, `skill` each `true` or `false` |
+| `disallowedTools` | the same tools set to `false` |
+| `color: blue` (a name) | the hex value; a value that is neither a known name nor hex is left out |
+| `model: sonnet` (an alias) | left out, so the agent uses the session's model; a `provider/model` id is kept |
+| `mode` other than `subagent`, `primary`, `all` | left out |
+
+A tool with no OpenCode counterpart (an MCP tool name, for example) is left out of the map. Each value left out is named in a warning.
 
 ## Hooks
 
