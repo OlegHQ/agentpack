@@ -25,7 +25,7 @@ Found by adding 40 published packages (Claude Code, Cursor and Codex plugins, sk
 
 ### Changed
 
-- A `content_hash` for a package that contains symbolic links differs from the one 0.4.8 recorded (links are links, not empty files). Locks written by 0.4.8 and earlier still verify; `agentpack lock` records the new value.
+- A `content_hash` for a package that contains symbolic links differs from the one 0.4.8 recorded (links are links, not empty files). Lock entries written by 0.4.8 and earlier still verify and keep their hash; an entry locked from now on records the links.
 - One hook, server or artifact that cannot be staged no longer fails the package: it is skipped with a warning that names it.
 
 ## [0.4.8] - 2026-10-12
