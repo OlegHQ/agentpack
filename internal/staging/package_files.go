@@ -249,10 +249,14 @@ func (walk *packageWalk) component(component, resolved string, manifest cache.Pl
 	}
 	for _, entry := range entries {
 		child, err := filepath.EvalSymlinks(filepath.Join(resolved, entry.Name()))
-		if err != nil || !cache.Inside(walk.root, child) {
+		if err != nil {
 			if entry.Type()&os.ModeSymlink != 0 {
-				walk.warn("skipping skill %s: its link does not resolve inside the package", entry.Name())
+				walk.warn("skipping skill %s: its link target does not exist in the package", entry.Name())
 			}
+			continue
+		}
+		if !cache.Inside(walk.root, child) {
+			walk.warn("skipping skill %s: it links outside the package", entry.Name())
 			continue
 		}
 		if regular(filepath.Join(child, "SKILL.md")) {

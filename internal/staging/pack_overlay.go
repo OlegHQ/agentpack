@@ -123,7 +123,7 @@ func stageSourceTree(sourceRoot string, roots []HarnessRoot, bareSkillName, modu
 				name := convertedSkillName(artifact, skillSources, converted[root.Target])
 				converted[root.Target][name] = true
 				if name != artifact.StorageName {
-					log.Printf("warning: %s: on %s a %s is staged as a skill and the name %s is taken; %s %s is staged as skill %s", module, root.Target, artifact.Kind.Word(), artifact.StorageName, artifact.Kind.Word(), artifact.StorageName, name)
+					log.Printf("warning: %s: %s stages %ss as skills and the skill name %s is taken; %s %s is staged as skill %s", module, root.Target, artifact.Kind.Word(), artifact.StorageName, artifact.Kind.Word(), artifact.StorageName, name)
 					staged = artifact.Renamed(name)
 				}
 			}

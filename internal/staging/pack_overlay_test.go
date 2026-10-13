@@ -130,7 +130,7 @@ func TestStageSourceTreeFollowsDeclaredComponentPathsInsideThePackage(t *testing
 	if _, err := os.Stat(filepath.Join(codexRoot, "skills", "ship", "SKILL.md")); err != nil {
 		t.Fatal(err)
 	}
-	for _, part := range []string{"skipping skill leak", `.claude-plugin/plugin.json agents: path "./missing/" does not exist`} {
+	for _, part := range []string{"skipping skill leak: it links outside the package", `.claude-plugin/plugin.json agents: path "./missing/" does not exist`} {
 		if !strings.Contains(logged.String(), part) {
 			t.Fatalf("log lacks %q:\n%s", part, logged.String())
 		}
