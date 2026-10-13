@@ -22,11 +22,11 @@ Every harness names and formats the same ideas differently. agentpack does not c
 | Source | Claude | Cursor | OpenCode | Codex | Grok | Antigravity |
 |---|---|---|---|---|---|---|
 | command | command frontmatter | plain markdown | command markdown | skill fallback | command | command |
-| agent | agent frontmatter | agent markdown | agent markdown | skill fallback | agent | agent |
+| agent | agent frontmatter | agent markdown | agent markdown | custom agent (`agents/<name>.toml`) and skill fallback | agent | agent |
 | skill | normalized skill | skill | skill | Codex skill | skill | skill |
 | rule | skill fallback | `.mdc` (preserved) | skill fallback | skill fallback | skill fallback | rule (preserved) |
 
-Two harnesses have first-class rules — Cursor and Antigravity — so rules are preserved there. Everywhere else, a rule becomes a best-effort skill, with its original rule scope noted so the intent survives. Codex gets the portable skill subset: commands and agents fall back to skills.
+Two harnesses have first-class rules — Cursor and Antigravity — so rules are preserved there. Everywhere else, a rule becomes a best-effort skill, with its original rule scope noted so the intent survives. Codex gets commands as skills. A subagent is staged for Codex twice: as a custom agent file, `$CODEX_HOME/agents/<name>.toml` with `name` (the file name), `description` and `developer_instructions` (the agent's body), which is what Codex documents for custom agents, and as a skill of the same name, which Codex versions without custom agents still find.
 
 Where a command, agent or rule becomes a skill, it keeps its name. If the same package already has a skill of that name (or another converted item took it), the converted item is staged as `<name>-command`, `<name>-agent` or `<name>-rule`, then with `-2`, `-3`, and a warning says so. Nothing is overwritten.
 
@@ -71,7 +71,7 @@ Cursor has 21: `sessionStart`, `sessionEnd`, `preToolUse`, `postToolUse`, `postT
 | a Claude Code event | every event, as written | the ten events Cursor shares (`preToolUse`, `postToolUse`, `postToolUseFailure`, `beforeSubmitPrompt`, `stop`, `subagentStart`, `subagentStop`, `sessionStart`, `sessionEnd`, `preCompact`); `PermissionRequest` as `preToolUse` | `PreToolUse`, `PostToolUse`, `UserPromptSubmit`, `SessionStart`, `Stop`; `PermissionRequest` as `PreToolUse` | `PreToolUse`, `PostToolUse`, `UserPromptSubmit`, `PermissionRequest`, `PreCompact` | not staged (see their pages) |
 | a Cursor event | the ten shared events | every event, as written, with its `matcher`, `timeout`, `loop_limit` and `failClosed` | as for the shared Claude Code events | as for the shared Claude Code events | not staged |
 
-A hook whose event the target agent has no equivalent for is skipped for that agent, with a warning that names the event and the hook file; the package's other hooks and its other content are staged. The same holds for an event name no agent documents, a handler `type` agentpack cannot run (`mcp_tool`), and a hook file that does not parse. Command hooks run with `CLAUDE_PLUGIN_ROOT`, `CURSOR_PLUGIN_ROOT` and `PLUGIN_ROOT` set to the staged copy of their package.
+A hook whose event the target agent has no equivalent for is skipped for that agent, with a warning that names the event and the hook file; the package's other hooks and its other content are staged. The same holds for an event name no agent documents, a handler `type` agentpack cannot run (`mcp_tool`), and a hook file that does not parse. Command hooks run with `CLAUDE_PLUGIN_ROOT`, `CURSOR_PLUGIN_ROOT` and `PLUGIN_ROOT` set to the staged copy of their package. A command hook in Claude Code's exec form (`"command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/hook.mjs"]`) keeps its arguments and runs without a shell, with those variables substituted in the program and its arguments. Every staged hook calls agentpack by the absolute path of the executable that staged it, not by whatever `agentpack` is on the agent's `PATH`.
 
 ## Skill shadowing
 

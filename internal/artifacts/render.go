@@ -9,6 +9,7 @@ import (
 
 	"github.com/OlegHQ/agentpack/internal/harness"
 	"github.com/goccy/go-yaml"
+	"github.com/pelletier/go-toml/v2"
 )
 
 type yamlField struct {
@@ -305,4 +306,25 @@ func renderMarkdown(fields []yamlField, body string) string {
 	output.WriteString("---\n\n")
 	output.WriteString(strings.TrimLeft(body, "\n"))
 	return trailingNewline(output.String())
+}
+
+// CodexAgent renders a subagent as a Codex custom agent file,
+// agents/<name>.toml with name, description and developer_instructions, the
+// form Codex reads from $CODEX_HOME/agents and .codex/agents. The agent's
+// file name is its Codex name, so that it is a plain identifier. It reports
+// false for anything that is not a subagent.
+func (artifact Markdown) CodexAgent() (Rendered, bool) {
+	if artifact.Kind != Agent {
+		return Rendered{}, false
+	}
+	name := strings.TrimSuffix(filepath.Base(artifact.tailPath), filepath.Ext(artifact.tailPath))
+	encoded, err := toml.Marshal(map[string]any{
+		"name":                   name,
+		"description":            artifact.Description,
+		"developer_instructions": strings.TrimSpace(artifact.Body) + "\n",
+	})
+	if err != nil {
+		return Rendered{}, false
+	}
+	return Rendered{RelativePath: "agents/" + name + ".toml", Contents: string(encoded)}, true
 }

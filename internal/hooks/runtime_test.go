@@ -133,3 +133,37 @@ func TestExtractJSONObjectFromNoisyOutput(t *testing.T) {
 		t.Fatalf("value = %#v, %v", value, err)
 	}
 }
+
+// The stripe plugin writes its hooks in exec form: "command": "node",
+// "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/lifecycle/postToolUse.mjs"]. The
+// arguments used to be dropped, so the hook ran `node` alone.
+func TestExecFormCommandHookKeepsItsArgumentsAndPluginRoot(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("runs /bin/echo")
+	}
+	t.Parallel()
+	var value any
+	if err := json.Unmarshal([]byte(`{"hooks":{"PostToolUse":[{"matcher":"Skill","hooks":[{"type":"command","command":"/bin/echo","args":["${CLAUDE_PLUGIN_ROOT}/scripts/postToolUse.mjs","two words"],"timeout":5}]}]}}`), &value); err != nil {
+		t.Fatal(err)
+	}
+	bundle, err := ParseNested("hooks.json", value, Origin{})
+	if err != nil || len(bundle.Hooks) != 1 {
+		t.Fatalf("bundle = %#v, %v", bundle, err)
+	}
+	hook := bundle.Hooks[0]
+	if len(hook.Handler.Args) != 2 || hook.RawExtra["args"] != nil {
+		t.Fatalf("handler = %#v extra = %#v", hook.Handler, hook.RawExtra)
+	}
+	encoded, err := json.Marshal(ExecutionSpec{Target: harness.Codex, Event: hook.Event, Handler: hook.Handler, WorkingDir: "/staged/package"})
+	if err != nil || !strings.Contains(string(encoded), "postToolUse.mjs") {
+		t.Fatalf("spec = %s, %v", encoded, err)
+	}
+	var spec ExecutionSpec
+	if err := json.Unmarshal(encoded, &spec); err != nil {
+		t.Fatal(err)
+	}
+	output, err := RunCommand(context.Background(), spec, nil)
+	if err != nil || string(output.Stdout) != "/staged/package/scripts/postToolUse.mjs two words\n" {
+		t.Fatalf("output = %q, %v", output.Stdout, err)
+	}
+}

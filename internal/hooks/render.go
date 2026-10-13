@@ -114,6 +114,9 @@ func HandlerObject(hook Hook, includeExtra bool) map[string]any {
 	switch hook.Handler.Kind {
 	case CommandHandler:
 		object["command"] = hook.Handler.Command
+		if len(hook.Handler.Args) != 0 {
+			object["args"] = hook.Handler.Args
+		}
 		if hook.Handler.Timeout != nil {
 			object["timeout_secs"] = *hook.Handler.Timeout
 		}

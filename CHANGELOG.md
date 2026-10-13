@@ -15,6 +15,8 @@ Found by adding 40 published packages (Claude Code, Cursor and Codex plugins, sk
 
 ### Fixed
 
+- A command hook written in Claude Code's exec form (`"command": "node", "args": [...]`, the stripe plugin) lost its arguments and ran the program alone. The arguments are kept and the hook runs without a shell.
+- Subagents are also staged as Codex custom agent files (`agents/<name>.toml`), next to the skill fallback.
 - A failed `add` left the package in `agentpack.toml` and `pack.lock` although nothing was staged. Both files are now put back as they were.
 - Staged hooks ran `agentpack` by bare name, so they used whatever `agentpack` the agent's `PATH` had. They name the executable that staged them.
 - Saving `pack.lock` left an `agentpack-<hash>` directory in the system temporary directory for every project, and Codex homes under `/var/tmp/ap-c` were never removed. These directories are marked with their project and removed by a later `sync` once the project is gone. Codex homes go under `AGENTPACK_STAGING_ROOT` when that path is short enough for Codex's control socket.

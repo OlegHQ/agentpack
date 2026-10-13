@@ -126,6 +126,13 @@ func stageSourceTree(sourceRoot string, roots []HarnessRoot, bareSkillName, modu
 			if err := writeFile(filepath.Join(root.Path, filepath.FromSlash(rendered.RelativePath)), []byte(rendered.Contents)); err != nil {
 				return err
 			}
+			// Codex has custom agents of its own; a subagent is staged as one
+			// as well as the skill that older Codex versions find it under.
+			if native, ok := artifact.CodexAgent(); ok && root.Target == harness.Codex {
+				if err := writeFile(filepath.Join(root.Path, filepath.FromSlash(native.RelativePath)), []byte(native.Contents)); err != nil {
+					return err
+				}
+			}
 		}
 	}
 	return nil

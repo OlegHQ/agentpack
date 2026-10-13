@@ -183,7 +183,16 @@ func buildHook(sourcePath string, event Event, matcher string, raw any, origin O
 		if timeout, ok := unsigned(object["timeout"]); ok {
 			handler.Timeout = &timeout
 		}
-		excluded = []string{"type", "command", "timeout"}
+		if arguments, ok := object["args"].([]any); ok {
+			for _, argument := range arguments {
+				text, isText := argument.(string)
+				if !isText {
+					return Hook{}, invalidHook(sourcePath, "command hook args must be strings")
+				}
+				handler.Args = append(handler.Args, text)
+			}
+		}
+		excluded = []string{"type", "command", "args", "timeout"}
 	case HTTPHandler:
 		handler.URL, ok = object["url"].(string)
 		if !ok {

@@ -143,6 +143,9 @@ const (
 type Handler struct {
 	Kind    HandlerKind
 	Command string
+	// Args makes a command hook exec-form, as Claude Code writes it: Command
+	// is the program and Args its arguments, run without a shell.
+	Args    []string
 	Timeout *uint64
 	URL     string
 	Method  string
@@ -161,6 +164,9 @@ func (handler Handler) MarshalJSON() ([]byte, error) {
 	switch handler.Kind {
 	case CommandHandler:
 		tag, inner["command"] = "Command", handler.Command
+		if len(handler.Args) != 0 {
+			inner["args"] = handler.Args
+		}
 		if handler.Timeout != nil {
 			inner["timeout_secs"] = *handler.Timeout
 		}
@@ -205,6 +211,7 @@ func (handler *Handler) UnmarshalJSON(data []byte) error {
 	for tag, raw := range outer {
 		var inner struct {
 			Command     string            `json:"command"`
+			Args        []string          `json:"args"`
 			TimeoutSecs *uint64           `json:"timeout_secs"`
 			URL         string            `json:"url"`
 			Method      string            `json:"method"`
@@ -229,7 +236,7 @@ func (handler *Handler) UnmarshalJSON(data []byte) error {
 		default:
 			return fmt.Errorf("unknown hook handler variant %q", tag)
 		}
-		handler.Command, handler.Timeout = inner.Command, inner.TimeoutSecs
+		handler.Command, handler.Args, handler.Timeout = inner.Command, inner.Args, inner.TimeoutSecs
 		handler.URL, handler.Method, handler.Headers, handler.Body = inner.URL, inner.Method, inner.Headers, inner.Body
 		handler.Prompt, handler.Agent, handler.Model = inner.Prompt, inner.Agent, inner.Model
 	}

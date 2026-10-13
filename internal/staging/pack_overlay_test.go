@@ -162,6 +162,9 @@ func TestCodexKeepsACommandWhoseNameIsAlsoASkill(t *testing.T) {
 			t.Fatalf("codex %s = %q, %v", relative, data, err)
 		}
 	}
+	if data, err := os.ReadFile(filepath.Join(codexRoot, "agents", "build-bot.toml")); err != nil || !strings.Contains(string(data), "Agent body.") {
+		t.Fatalf("codex custom agent = %q, %v", data, err)
+	}
 	if data, _ := os.ReadFile(filepath.Join(codexRoot, "skills/build-bot-command/SKILL.md")); !strings.Contains(string(data), "name: build-bot-command") {
 		t.Fatalf("converted skill keeps the taken name:\n%s", data)
 	}

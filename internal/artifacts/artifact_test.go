@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/OlegHQ/agentpack/internal/harness"
+	"github.com/pelletier/go-toml/v2"
 )
 
 func TestCursorCommandRendersForOpenCodeAndCursor(t *testing.T) {
@@ -190,5 +191,31 @@ func TestOpenCodeCommandDropsAClaudeModelAlias(t *testing.T) {
 	}
 	if claude := artifact.Render(harness.Claude); !strings.Contains(claude.Contents, "model: opus") || len(claude.Warnings) != 0 {
 		t.Fatalf("claude = %#v", claude)
+	}
+}
+
+func TestSubagentIsAlsoACodexCustomAgentFile(t *testing.T) {
+	t.Parallel()
+	artifact, err := Parse("agents/research/company-researcher.md", "---\nname: Company Researcher\ndescription: Research a company\nallowed-tools:\n  - Read\n---\n\n# Company Researcher Agent\n\nResearch \"it\".\n", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	rendered, ok := artifact.CodexAgent()
+	if !ok || rendered.RelativePath != "agents/company-researcher.toml" {
+		t.Fatalf("rendered = %#v, %v", rendered, ok)
+	}
+	var decoded map[string]string
+	if err := toml.Unmarshal([]byte(rendered.Contents), &decoded); err != nil {
+		t.Fatalf("%v\n%s", err, rendered.Contents)
+	}
+	if decoded["name"] != "company-researcher" || decoded["description"] != "Research a company" || !strings.Contains(decoded["developer_instructions"], "Research \"it\".") || len(decoded) != 3 {
+		t.Fatalf("decoded = %#v", decoded)
+	}
+	command, err := Parse("commands/plan.md", "Plan.\n", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := command.CodexAgent(); ok {
+		t.Fatal("a command became a Codex agent")
 	}
 }
