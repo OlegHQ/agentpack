@@ -256,3 +256,118 @@ func TestPluginRootVariableBecomesAStagedCopyOfThePluginForEveryAgent(t *testing
 	}
 	fixture.sync(SyncOptions{VerifyOnly: true})
 }
+
+// stripe/ai providers/claude/plugin failed in sync on a hook event, and the
+// manifest and lock already named it. Whatever makes an add fail, the project
+// files stay as they were.
+func TestFailedAddLeavesManifestAndLockUnchanged(t *testing.T) {
+	fixture := newIntegrityFixture(t)
+	fixture.manifest(demoKey, commitOne)
+	fixture.lock()
+	manifestBefore, err := os.ReadFile(paths.ManifestPath(fixture.project))
+	if err != nil {
+		t.Fatal(err)
+	}
+	lockBefore := fixture.lockText()
+	fixture.upstream.tarballs[commitTwo] = map[string]string{
+		"browser/.claude-plugin/plugin.json": `{"name":"browser","version":"1.0.0"}`,
+		"browser/commands/open.md":           "Open.\n",
+	}
+	// Staging cannot be written, so the add fails after it has locked.
+	blocked := filepath.Join(t.TempDir(), "not-a-directory")
+	writeIntegrityFile(t, blocked, "")
+	t.Setenv("AGENTPACK_STAGING_ROOT", blocked)
+	if _, err := fixture.service.Add(context.Background(), fixture.project, "acme/skills/browser@"+commitTwo, false); err == nil {
+		t.Fatal("add succeeded without a staging directory")
+	}
+	manifestAfter, _ := os.ReadFile(paths.ManifestPath(fixture.project))
+	if string(manifestAfter) != string(manifestBefore) || fixture.lockText() != lockBefore {
+		t.Fatalf("a failed add changed the project:\n%s\n%s", manifestAfter, fixture.lockText())
+	}
+
+	// In a directory with no project yet, a failed add creates none.
+	empty := t.TempDir()
+	if _, err := fixture.service.Add(context.Background(), empty, "acme/skills/browser@"+commitTwo, false); err == nil {
+		t.Fatal("add succeeded without a staging directory")
+	}
+	for _, path := range []string{paths.ManifestPath(empty), paths.LockPath(empty)} {
+		if !fixtureMissing(path) {
+			t.Fatalf("a failed add left %s behind", path)
+		}
+	}
+}
+
+// anthropics/claude-plugins-official lists 315 plugins; "stripe" is a
+// git-subdir entry that points at stripe/ai. `add --plugin` adds one of them.
+func TestAddPluginResolvesAMarketplaceEntryToItsOwnRepositoryAndCommit(t *testing.T) {
+	fixture := newIntegrityFixture(t)
+	fixture.upstream.tarballs[commitOne] = map[string]string{
+		".claude-plugin/marketplace.json": `{"name":"official","renames":{"old-stripe":"stripe"},"plugins":[
+			{"name":"hookify","source":"./plugins/hookify"},
+			{"name":"stripe","source":{"source":"git-subdir","url":"https://github.com/stripe/ai.git","path":"providers/claude/plugin","ref":"main","sha":"` + commitTwo + `"}},
+			{"name":"whole","source":{"source":"url","url":"https://github.com/acme/whole.git","sha":"` + commitTwo + `"}},
+			{"name":"short","source":{"source":"github","repo":"acme/short","ref":"v1"}},
+			{"name":"elsewhere","source":{"source":"url","url":"https://gitlab.com/acme/elsewhere.git"}},
+			{"name":"registry","source":{"source":"npm","package":"acme-plugin"}}]}`,
+		"plugins/hookify/.claude-plugin/plugin.json": `{"name":"hookify","version":"1.0.0"}`,
+		"plugins/hookify/commands/hookify.md":        "---\ndescription: Hookify\n---\nMake a hook.\n",
+	}
+	fixture.upstream.tarballs[commitTwo] = map[string]string{
+		".claude-plugin/plugin.json":                          `{"name":"whole","version":"1.0.0"}`,
+		"skills/whole/SKILL.md":                               "---\nname: whole\ndescription: Whole\n---\nWhole.\n",
+		"providers/claude/plugin/.claude-plugin/plugin.json":  `{"name":"stripe","version":"0.1.0"}`,
+		"providers/claude/plugin/.mcp.json":                   `{"mcpServers":{"stripe":{"type":"http","url":"https://mcp.stripe.com"}}}`,
+		"providers/claude/plugin/skills/stripe-docs/SKILL.md": "---\nname: stripe-docs\ndescription: Docs\n---\nDocs.\n",
+		"providers/claude/plugin/hooks/hooks.json":            `{"hooks":{"PostToolBatch":[{"hooks":[{"type":"command","command":"echo batch"}]}],"PostToolUse":[{"matcher":"Bash","hooks":[{"type":"command","command":"echo use"}]}]}}`,
+	}
+	fixture.upstream.refs["v1"] = commitTwo
+	fixture.writeManifest("\n[dependencies]\n")
+	add := func(marketplace, plugin string) (string, error) {
+		pkg, err := fixture.service.AddPlugin(context.Background(), fixture.project, marketplace, plugin, false)
+		return pkg.Module + "@" + pkg.Commit, err
+	}
+	for plugin, want := range map[string]string{
+		"stripe":     "github.com/stripe/ai/providers/claude/plugin@" + commitTwo,
+		"old-stripe": "github.com/stripe/ai/providers/claude/plugin@" + commitTwo,
+		"whole":      "github.com/acme/whole@" + commitTwo,
+		"short":      "github.com/acme/short@" + commitTwo,
+		"hookify":    "github.com/anthropics/claude-plugins-official/plugins/hookify@" + commitOne,
+	} {
+		got, err := add("anthropics/claude-plugins-official@"+commitOne, plugin)
+		if err != nil || got != want {
+			t.Fatalf("--plugin %s = %s, %v; want %s", plugin, got, err, want)
+		}
+	}
+	lock := fixture.loadLock()
+	if len(lock.Packages) != 4 {
+		t.Fatalf("packages = %#v", lock.Packages)
+	}
+	for _, pkg := range lock.Packages {
+		if pkg.ContentHash == "" || len(pkg.Commit) != 40 {
+			t.Fatalf("unpinned package %#v", pkg)
+		}
+	}
+	if server, found := lock.MCPServer("stripe"); !found || server.Host != "mcp.stripe.com" {
+		t.Fatalf("mcp_servers = %#v", lock.MCPServers)
+	}
+	// The stripe plugin's PostToolBatch hook is a Claude Code event and no other agent's.
+	if got := hookEvents(t, filepath.Join(fixture.bundle(), "hooks", "hooks.json")); got != "PostToolBatch PostToolUse" {
+		t.Fatalf("claude hook events = %q", got)
+	}
+	if _, err := os.Stat(filepath.Join(fixture.bundle(), "skills", "stripe-docs", "SKILL.md")); err != nil {
+		t.Fatal(err)
+	}
+	before := fixture.lockText()
+	for plugin, part := range map[string]string{
+		"missing":   `lists no plugin named "missing"; it lists 6, among them elsewhere, hookify`,
+		"elsewhere": "github.com only",
+		"registry":  `"npm" source`,
+	} {
+		if _, err := add("anthropics/claude-plugins-official@"+commitOne, plugin); err == nil || !strings.Contains(err.Error(), part) {
+			t.Fatalf("--plugin %s error = %v, want %q", plugin, err, part)
+		}
+	}
+	if fixture.lockText() != before {
+		t.Fatal("a rejected --plugin changed pack.lock")
+	}
+}

@@ -60,6 +60,17 @@ agentpack add anthropics/skills/skills/canvas-design --no-sync
 
 A spec may be a module ID, `owner/repo[/path]` shorthand, a GitHub tree/blob URL, a single-segment local/alias name, or a filesystem path. An optional `@ref` pins a branch, tag, or commit. `--no-sync` skips the sync step. (Requires a manifest.)
 
+`--plugin <name>` adds one plugin of a marketplace catalog; the spec then names the marketplace repository:
+
+```sh
+agentpack add anthropics/claude-plugins-official --plugin stripe
+agentpack add anthropics/claude-plugins-official@f359d43 --plugin hookify
+```
+
+The catalog entry says where the plugin lives, and agentpack adds that: a directory of the marketplace repository (a relative path or `{"source": "local"}`), or another GitHub repository (`{"source": "github"}`, `{"source": "url"}`, `{"source": "git-subdir"}`, with its `path`). An entry's `sha` is used as the pin, otherwise its `ref`; a plugin inside the marketplace repository follows the `@ref` you gave. The manifest records the plugin's own repository and path, and `pack.lock` pins its commit, so later commands do not need the catalog. A name in the catalog's `renames` map is followed. An entry that is not a git repository on github.com (`npm`, another host) is refused with a message that says so.
+
+If `add` fails at any step, including the sync, `agentpack.toml` and `pack.lock` are left exactly as they were.
+
 ### `agentpack remove <spec>`
 
 Drop a matching `[dependencies]` entry, prune mode selectors that targeted it, refresh `pack.lock`, then sync unless `--no-sync`.

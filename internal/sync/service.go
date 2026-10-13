@@ -230,7 +230,22 @@ func (service Service) Update(ctx context.Context, projectRoot string, specs []s
 	}
 	return lock, err
 }
+
+// Add records a package in agentpack.toml, locks it and stages it. When any
+// of that fails, agentpack.toml and pack.lock are left exactly as they were:
+// a package that could not be staged is not half-added.
 func (service Service) Add(ctx context.Context, projectRoot, spec string, noSync bool) (lockfile.Package, error) {
+	restore := keepProjectFiles(projectRoot)
+	pkg, err := service.add(ctx, projectRoot, spec, noSync)
+	if err != nil {
+		if restoreErr := restore(); restoreErr != nil {
+			return pkg, errors.Join(err, fmt.Errorf("restore agentpack.toml and pack.lock: %w", restoreErr))
+		}
+	}
+	return pkg, err
+}
+
+func (service Service) add(ctx context.Context, projectRoot, spec string, noSync bool) (lockfile.Package, error) {
 	if _, err := paths.EnsureUserAgentpackLayout(); err != nil {
 		return lockfile.Package{}, err
 	}

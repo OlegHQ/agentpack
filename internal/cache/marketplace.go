@@ -98,7 +98,7 @@ func materializeSinglePluginMarketplace(root string) (bool, error) {
 	}
 	if len(pluginNames) != 1 {
 		names := mapKeys(pluginNames)
-		return false, fmt.Errorf("marketplace at %s contains multiple plugins (%s); add a specific plugin source directory instead", root, strings.Join(names, ", "))
+		return false, fmt.Errorf("marketplace at %s contains multiple plugins (%s); name one with `agentpack add <marketplace> --plugin <name>`, or add its source directory", root, strings.Join(names, ", "))
 	}
 	if len(localSources) == 0 {
 		return false, fmt.Errorf("marketplace plugin %q at %s has no local source; add its Git or package source directly", mapKeys(pluginNames)[0], root)

@@ -83,15 +83,29 @@ func (runner Runner) Run(ctx context.Context, arguments []string) (int, error) {
 		}
 	case "add", "remove":
 		args, noSync := takeBool(invocation.Args, "--no-sync")
+		plugin, hasPlugin := "", false
+		if invocation.Command == "add" {
+			if plugin, args, hasPlugin, err = takeFlag(args, "--plugin"); err != nil {
+				return 2, err
+			}
+		}
 		if len(args) != 1 {
 			return 2, fmt.Errorf("%s requires exactly one package spec", invocation.Command)
 		}
 		if invocation.Command == "add" {
 			if !invocation.Global.Quiet {
-				fmt.Fprintf(runner.Stdout, "Adding: %s\n", args[0])
+				if hasPlugin {
+					fmt.Fprintf(runner.Stdout, "Adding: plugin %s of marketplace %s\n", plugin, args[0])
+				} else {
+					fmt.Fprintf(runner.Stdout, "Adding: %s\n", args[0])
+				}
 			}
 			var pkg lockfile.Package
-			pkg, err = runner.Service.Add(ctx, root, args[0], noSync)
+			if hasPlugin {
+				pkg, err = runner.Service.AddPlugin(ctx, root, args[0], plugin, noSync)
+			} else {
+				pkg, err = runner.Service.Add(ctx, root, args[0], noSync)
+			}
 			if err == nil && !invocation.Global.Quiet {
 				fmt.Fprintf(runner.Stdout, "Recorded %s in agentpack.toml and refreshed pack.lock.\n", pkg.Module)
 			}

@@ -89,3 +89,121 @@ func catalogOnlyEntry(archive []byte, source githubsource.Source) error {
 	}
 	return nil
 }
+
+// CatalogPlugin is where one named plugin of a marketplace catalog lives.
+type CatalogPlugin struct {
+	Name    string
+	Catalog string
+	// Local says the plugin is a directory of the marketplace repository
+	// itself; Path is then relative to the repository root.
+	Local bool
+	// Owner, Repo and Ref name the GitHub repository and the commit, tag or
+	// branch of an entry that points at another repository.
+	Owner, Repo, Ref string
+	Path             string
+}
+
+// ResolveCatalogPlugin finds a plugin by name in the marketplace catalogs
+// (.claude-plugin/marketplace.json, .cursor-plugin/marketplace.json,
+// .agents/plugins/marketplace.json) below directory in a repository archive.
+// It understands every source kind of the Claude Code marketplace schema that
+// names a directory or a git repository: a relative path, {"source":"local"},
+// {"source":"github"}, {"source":"url"} and {"source":"git-subdir"}. An entry
+// pinned with "sha" resolves to that commit, otherwise to its "ref".
+func ResolveCatalogPlugin(archive []byte, directory, name string) (CatalogPlugin, error) {
+	directory = strings.Trim(directory, "/")
+	var catalogs []string
+	// Claude Code's catalog first: it is the one that carries external sources.
+	for index := len(marketplaceSpecs) - 1; index >= 0; index-- {
+		relative := filepath.ToSlash(marketplaceSpecs[index].relativePath)
+		if directory != "" {
+			relative = directory + "/" + relative
+		}
+		catalogs = append(catalogs, relative)
+	}
+	files, err := githubsource.ReadRepoFiles(bytes.NewReader(archive), catalogs...)
+	if err != nil {
+		return CatalogPlugin{}, err
+	}
+	if len(files) == 0 {
+		return CatalogPlugin{}, fmt.Errorf("no marketplace catalog (.claude-plugin/marketplace.json, .cursor-plugin/marketplace.json or .agents/plugins/marketplace.json) at this source, so --plugin has nothing to select from")
+	}
+	var known []string
+	for _, catalog := range catalogs {
+		data, found := files[catalog]
+		if !found {
+			continue
+		}
+		var document struct {
+			Metadata struct {
+				PluginRoot string `json:"pluginRoot"`
+			} `json:"metadata"`
+			Renames map[string]string            `json:"renames"`
+			Plugins []map[string]json.RawMessage `json:"plugins"`
+		}
+		if err := json.Unmarshal(data, &document); err != nil {
+			return CatalogPlugin{}, fmt.Errorf("parse marketplace catalog %s: %w", catalog, err)
+		}
+		wanted := name
+		if renamed, found := document.Renames[name]; found {
+			wanted = renamed
+		}
+		for _, entry := range document.Plugins {
+			var entryName string
+			_ = json.Unmarshal(entry["name"], &entryName)
+			known = append(known, entryName)
+			if entryName != wanted {
+				continue
+			}
+			plugin := CatalogPlugin{Name: entryName, Catalog: catalog}
+			var local string
+			if json.Unmarshal(entry["source"], &local) == nil {
+				plugin.Local = true
+			} else {
+				var source struct {
+					Source, Repo, URL, Path, Ref, SHA string
+				}
+				if err := json.Unmarshal(entry["source"], &source); err != nil {
+					return CatalogPlugin{}, fmt.Errorf("plugin %q in %s has a source that is neither a path nor an object", entryName, catalog)
+				}
+				switch source.Source {
+				case "local":
+					plugin.Local, local = true, source.Path
+				case "github":
+					owner, repo, found := strings.Cut(strings.Trim(source.Repo, "/"), "/")
+					if !found {
+						return CatalogPlugin{}, fmt.Errorf("plugin %q in %s has a github source without an owner/repo", entryName, catalog)
+					}
+					plugin.Owner, plugin.Repo, plugin.Path = owner, repo, source.Path
+				case "url", "git-subdir", "git":
+					parsed, err := githubsource.ParseURL(strings.TrimSuffix(source.URL, ".git"))
+					if err != nil {
+						return CatalogPlugin{}, fmt.Errorf("plugin %q in %s lives at %s; agentpack fetches packages from github.com only, so it cannot be added", entryName, catalog, source.URL)
+					}
+					plugin.Owner, plugin.Repo, plugin.Path = parsed.Owner, parsed.Repo, source.Path
+				default:
+					return CatalogPlugin{}, fmt.Errorf("plugin %q in %s has a %q source, which is not a git repository or a directory; agentpack cannot add it", entryName, catalog, source.Source)
+				}
+				plugin.Ref = source.Ref
+				if source.SHA != "" {
+					plugin.Ref = source.SHA
+				}
+			}
+			if plugin.Local {
+				clean, err := safeRelativePath(filepath.ToSlash(filepath.Join(document.Metadata.PluginRoot, local)), catalog, entryName)
+				if err != nil {
+					return CatalogPlugin{}, err
+				}
+				plugin.Path = filepath.ToSlash(filepath.Join(directory, clean))
+			}
+			plugin.Path = strings.Trim(filepath.ToSlash(plugin.Path), "/")
+			return plugin, nil
+		}
+	}
+	sort.Strings(known)
+	shown := known
+	if len(shown) > 12 {
+		shown = shown[:12]
+	}
+	return CatalogPlugin{}, fmt.Errorf("the marketplace lists no plugin named %q; it lists %d, among them %s", name, len(known), strings.Join(shown, ", "))
+}

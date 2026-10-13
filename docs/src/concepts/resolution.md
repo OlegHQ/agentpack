@@ -55,7 +55,7 @@ A marketplace root can represent one logical plugin through separate local sourc
 .agents/plugins/marketplace.json -> ./providers/codex/plugin
 ```
 
-Marketplace source paths must remain inside the repository. A catalog with multiple plugin names is ambiguous for one dependency, so agentpack rejects it with guidance to add the desired plugin source directory directly.
+Marketplace source paths must remain inside the repository. A catalog with multiple plugin names is ambiguous for one dependency, so agentpack rejects it; name the plugin with `agentpack add <marketplace> --plugin <name>` (see the [CLI reference](../reference/cli.md)), which also follows entries that point at other repositories, or add the plugin's source directory directly.
 
 Some catalog entries are not plugin directories at all. A Claude Code marketplace may define a plugin in the catalog entry itself (`"strict": false`, with the entry's own `lspServers`, `skills` and so on) and point `source` at a directory that holds only a README. The official `gopls-lsp`, `pyright-lsp`, `lua-lsp` and `php-lsp` entries are of this kind: each is a language server setting for Claude Code and nothing else. Adding such a directory fails with a message that says so and names the catalog and what the entry declares, for example:
 
