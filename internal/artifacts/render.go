@@ -16,6 +16,7 @@ type yamlField struct {
 
 var (
 	commandExtraKeys  = []string{"agent", "allowed-tools", "context", "disable-model-invocation", "model", "subtask"}
+	claudeCommandKeys = []string{"agent", "allowed-tools", "argument-hint", "arguments", "context", "disable-model-invocation", "model", "subtask"}
 	cursorCommandKeys = []string{"agent", "allowed-tools", "context", "disable-model-invocation", "model", "permission", "subtask"}
 	skillExtraKeys    = []string{"allowed-tools", "agent", "compatibility", "context", "disallowedTools", "license", "mcpServers", "metadata", "mode", "model", "permission", "subtask", "tools"}
 	agentExtraKeys    = []string{"color", "disallowedTools", "hidden", "hooks", "mcpServers", "mode", "model", "permission", "subtask", "tools"}
@@ -67,8 +68,11 @@ func (artifact Markdown) renderCommand(target harness.Target) Rendered {
 	}
 	if target != harness.Agy {
 		allowed := commandExtraKeys
-		if target == harness.Cursor {
+		switch target {
+		case harness.Cursor:
 			allowed = cursorCommandKeys
+		case harness.Claude, harness.Grok:
+			allowed = claudeCommandKeys
 		}
 		fields = mergeExtra(fields, artifact.ExtraFrontmatter, allowed)
 	}

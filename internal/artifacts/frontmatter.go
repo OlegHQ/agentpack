@@ -36,13 +36,55 @@ func splitFrontmatter(contents string) (map[string]any, string, error) {
 			}
 			frontmatter := make(map[string]any)
 			if err := yaml.Unmarshal([]byte(yamlText), &frontmatter); err != nil {
-				return nil, "", fmt.Errorf("invalid YAML frontmatter: %w", err)
+				frontmatter = lenientFrontmatter(yamlText)
 			}
 			return frontmatter, trailingNewline(strings.TrimLeft(body, "\n")), nil
 		}
 		offset += len(line) + 1
 	}
 	return nil, trailingNewline(contents), nil
+}
+
+// lenientFrontmatter reads frontmatter that is not valid YAML as a whole the
+// way the agents do: one top-level key at a time. A value that parses as YAML
+// keeps its type; one that does not, such as the unquoted
+// `argument-hint: [system] [--source <path>]`, is kept as the text written.
+// Frontmatter with no readable key yields no fields and the file still loads,
+// as it does in Claude Code.
+func lenientFrontmatter(yamlText string) map[string]any {
+	var blocks [][]string
+	for _, line := range strings.Split(strings.ReplaceAll(yamlText, "\r\n", "\n"), "\n") {
+		if strings.TrimSpace(line) == "" || strings.HasPrefix(strings.TrimSpace(line), "#") && !strings.HasPrefix(line, " ") {
+			continue
+		}
+		indented := strings.HasPrefix(line, " ") || strings.HasPrefix(line, "\t") || strings.HasPrefix(line, "- ")
+		if key, _, found := strings.Cut(line, ":"); found && !indented && key != "" && !strings.ContainsAny(key, " \t\"'[]{}") {
+			blocks = append(blocks, []string{line})
+		} else if len(blocks) != 0 {
+			blocks[len(blocks)-1] = append(blocks[len(blocks)-1], line)
+		}
+	}
+	frontmatter := make(map[string]any, len(blocks))
+	for _, block := range blocks {
+		parsed := make(map[string]any)
+		if err := yaml.Unmarshal([]byte(strings.Join(block, "\n")+"\n"), &parsed); err == nil && len(parsed) == 1 {
+			for key, value := range parsed {
+				frontmatter[key] = value
+			}
+			continue
+		}
+		key, value, _ := strings.Cut(block[0], ":")
+		parts := []string{strings.TrimSpace(value)}
+		for _, continuation := range block[1:] {
+			parts = append(parts, strings.TrimSpace(continuation))
+		}
+		text := strings.TrimSpace(strings.Join(parts, " "))
+		if len(text) >= 2 && (text[0] == '"' || text[0] == '\'') && text[len(text)-1] == text[0] {
+			text = text[1 : len(text)-1]
+		}
+		frontmatter[key] = text
+	}
+	return frontmatter
 }
 
 func takeCommon(frontmatter map[string]any) commonFrontmatter {

@@ -97,3 +97,33 @@ func TestCodexFoldsCommandsAndAgentsIntoSkills(t *testing.T) {
 		}
 	}
 }
+
+func TestFrontmatterIsReadKeyByKeyWhenItIsNotValidYAML(t *testing.T) {
+	t.Parallel()
+	// commands/modernize.md of the official code-modernization plugin.
+	source := "---\ndescription: Start here — say what you want done\nargument-hint: [system] [--source <path>]\narguments: system\nallowed-tools:\n  - Read\n  - Bash\ndisable-model-invocation: true\n---\n\nYou are the front door.\n"
+	artifact, err := Parse("commands/modernize.md", source, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if artifact.Description != "Start here — say what you want done" || artifact.ExtraFrontmatter["argument-hint"] != "[system] [--source <path>]" {
+		t.Fatalf("artifact = %#v", artifact)
+	}
+	if tools, ok := artifact.ExtraFrontmatter["allowed-tools"].([]any); !ok || len(tools) != 2 {
+		t.Fatalf("allowed-tools = %#v", artifact.ExtraFrontmatter["allowed-tools"])
+	}
+	claude := artifact.Render(harness.Claude).Contents
+	if !strings.Contains(claude, `argument-hint: '[system] [--source <path>]'`) && !strings.Contains(claude, `argument-hint: "[system] [--source <path>]"`) {
+		t.Fatalf("claude = %s", claude)
+	}
+	if reparsed, err := Parse("commands/modernize.md", claude, ""); err != nil || reparsed.ExtraFrontmatter["argument-hint"] != "[system] [--source <path>]" {
+		t.Fatalf("rendered command does not parse back: %v\n%s", err, claude)
+	}
+	if openCode := artifact.Render(harness.OpenCode).Contents; strings.Contains(openCode, "argument-hint") || !strings.Contains(openCode, "You are the front door.") {
+		t.Fatalf("opencode = %s", openCode)
+	}
+	broken, err := Parse("commands/broken.md", "---\n[not a mapping\n---\n\nBody text\n", "")
+	if err != nil || broken.Description != "Body text" || len(broken.ExtraFrontmatter) != 0 {
+		t.Fatalf("unreadable frontmatter: %#v, %v", broken, err)
+	}
+}
