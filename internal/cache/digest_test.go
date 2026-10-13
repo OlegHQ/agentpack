@@ -491,3 +491,42 @@ func TestContentHashLockedBeforeLinksWereExtractedStillVerifies(t *testing.T) {
 		t.Fatal("a link out of the package verified as an empty file")
 	}
 }
+
+// A lock written by 0.4.8 pins the tree with empty files in place of links.
+// Fetching the package again with its links must install it, not report a
+// download that contradicts the lock.
+func TestEnsureLockCachedInstallsALinkedTreeAgainstAnOlderLock(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX links")
+	}
+	t.Setenv("AGENTPACK_HOME", t.TempDir())
+	old := t.TempDir()
+	writeTestFile(t, filepath.Join(old, "SKILL.md"), "# Demo")
+	writeTestFile(t, filepath.Join(old, "engineering", "devops", "SKILL.md"), "# DevOps")
+	writeTestFile(t, filepath.Join(old, "skills", "devops"), "")
+	pkg := lockfile.Package{Module: "github.com/acme/demo", Kind: lockfile.PackageSkill, Owner: "acme", Repo: "demo", Commit: strings.Repeat("a", 40), CacheKey: "linked", ContentHash: mustDigest(t, old)}
+	restore := func(_ lockfile.Package, destination string) error {
+		writeTestFile(t, filepath.Join(destination, "SKILL.md"), "# Demo")
+		writeTestFile(t, filepath.Join(destination, "engineering", "devops", "SKILL.md"), "# DevOps")
+		if err := os.MkdirAll(filepath.Join(destination, "skills"), 0o755); err != nil {
+			return err
+		}
+		return os.Symlink("../engineering/devops", filepath.Join(destination, "skills", "devops"))
+	}
+	ready, err := EnsureLockCached(pkg, restore)
+	if err != nil || !ready {
+		t.Fatalf("EnsureLockCached() = %v, %v", ready, err)
+	}
+	out, _ := EntryDir(pkg.CacheKey)
+	if body, err := os.ReadFile(filepath.Join(out, "skills", "devops", "SKILL.md")); err != nil || string(body) != "# DevOps" {
+		t.Fatalf("linked skill = %q, %v", body, err)
+	}
+	if err := VerifyPackage(pkg); err != nil {
+		t.Fatalf("the installed entry does not verify against the older lock: %v", err)
+	}
+	writeTestFile(t, filepath.Join(out, "engineering", "devops", "SKILL.md"), "# Tampered")
+	var mismatch *IntegrityError
+	if err := VerifyPackage(pkg); !errors.As(err, &mismatch) {
+		t.Fatalf("tampered entry verified: %v", err)
+	}
+}
