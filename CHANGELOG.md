@@ -9,8 +9,16 @@ window.
 
 Found by adding 40 published packages (Claude Code, Cursor and Codex plugins, skills, community marketplaces) with 0.4.8.
 
+### Added
+
+- `agentpack add <marketplace> --plugin <name>` adds one named plugin of a marketplace catalog, following relative-path, `local`, `github`, `url` and `git-subdir` entries (`sha` before `ref`, `renames` honoured). The manifest records the plugin's own repository and path; `pack.lock` pins its commit.
+
 ### Fixed
 
+- A failed `add` left the package in `agentpack.toml` and `pack.lock` although nothing was staged. Both files are now put back as they were.
+- Staged hooks ran `agentpack` by bare name, so they used whatever `agentpack` the agent's `PATH` had. They name the executable that staged them.
+- Saving `pack.lock` left an `agentpack-<hash>` directory in the system temporary directory for every project, and Codex homes under `/var/tmp/ap-c` were never removed. These directories are marked with their project and removed by a later `sync` once the project is gone. Codex homes go under `AGENTPACK_STAGING_ROOT` when that path is short enough for Codex's control socket.
+- MCP server fields that are not carried over (`headers`, `oauth`, `cwd`) were dropped without a message.
 - A plugin's `.mcp.json` written as a bare `name → server` map (the official playwright, firebase, gitlab and laravel-boost plugins) was ignored without a message. Both forms are read.
 - MCP servers defined inline in `plugin.json` (`mcpServers`), or in a file it names such as `.codex-plugin/mcp.json`, were not read. All three vendors' locations are read; a server or location that cannot be read is skipped with a warning.
 - An unknown hook event (`PostToolUseFailure`, Cursor's `afterAgentResponse`) failed the whole package after the lock was written. The event lists follow the current Claude Code and Cursor references, Cursor hook files are parsed in their own format and stay native on Cursor, hooks are read from the manifests' `hooks` fields too, and each agent gets the hooks published for it. A hook the target has no event for is skipped with a warning.
