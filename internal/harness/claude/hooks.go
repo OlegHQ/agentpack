@@ -18,6 +18,10 @@ func (HookRenderer) Render(bundle hooks.Bundle, context hooks.RenderContext) (ho
 	}
 	events := make(map[string]any)
 	for _, hook := range bundle.Hooks {
+		if !hook.Event.Claude() {
+			hooks.PushDiagnostic(&output, "omitted", hook, "Claude Code has no such hook event")
+			continue
+		}
 		handler, err := renderHandler(hook, context, &output)
 		if err != nil {
 			return hooks.RenderOutput{}, err
@@ -33,6 +37,9 @@ func (HookRenderer) Render(bundle hooks.Bundle, context hooks.RenderContext) (ho
 		groups, _ := events[string(hook.Event)].([]any)
 		events[string(hook.Event)] = append(groups, group)
 	}
+	if len(events) == 0 {
+		return output, nil
+	}
 	output.Files = append(output.Files, hooks.RenderedFile{Path: filepath.Join(context.TargetRoot, "hooks", "hooks.json"), JSON: map[string]any{"hooks": events}})
 	return output, nil
 }
@@ -47,7 +54,15 @@ func renderHandler(hook hooks.Hook, context hooks.RenderContext, output *hooks.R
 		return nil, err
 	}
 	hooks.PushDiagnostic(output, "emulated", hook, "wrapped command hook to preserve package-relative working directory")
-	object := map[string]any{"type": "command", "command": hooks.HookExecCommand(hooks.CommandHandler, harness.Claude, specPath)}
+	// Options Claude Code reads on the hook itself (async, asyncRewake,
+	// statusMessage, …) stay on the wrapped command.
+	object := make(map[string]any, len(hook.RawExtra)+3)
+	if hook.Dialect == "" || hook.Dialect == hooks.ClaudeDialect {
+		for key, value := range hook.RawExtra {
+			object[key] = value
+		}
+	}
+	object["type"], object["command"] = "command", hooks.HookExecCommand(hooks.CommandHandler, harness.Claude, specPath)
 	if hook.Handler.Timeout != nil {
 		object["timeout"] = *hook.Handler.Timeout
 	}

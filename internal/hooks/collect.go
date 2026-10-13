@@ -24,6 +24,7 @@ func Collect(projectRoot string, lock lockfile.PackLock, seededCodexHooks string
 			return Bundle{}, err
 		}
 		bundle.Hooks = append(bundle.Hooks, parsed.Hooks...)
+		bundle.Skipped = append(bundle.Skipped, parsed.Skipped...)
 	}
 	plugins := packagesByKind(lock, lockfile.PackagePlugin)
 	if err := collectPackages(plugins, PackPlugin, effective, &bundle); err != nil {
@@ -51,6 +52,7 @@ func Collect(projectRoot string, lock lockfile.PackLock, seededCodexHooks string
 				return Bundle{}, err
 			}
 			bundle.Hooks = append(bundle.Hooks, parsed.Hooks...)
+			bundle.Skipped = append(bundle.Skipped, parsed.Skipped...)
 		}
 	}
 	sort.SliceStable(bundle.Hooks, func(i, j int) bool {
@@ -80,28 +82,120 @@ func collectPackages(packages []lockfile.Package, layer Layer, effective mode.Ef
 		if pkg.CacheKey == "" {
 			continue
 		}
-		allowed, err := effective.AllowsPackagePath(pkg.Module, "hooks/hooks.json")
-		if err != nil {
-			return err
-		}
-		if !allowed {
-			continue
-		}
 		root, err := cache.EntryDir(pkg.CacheKey)
 		if err != nil {
 			return err
 		}
-		source := filepath.Join(root, "hooks", "hooks.json")
-		if !regularFile(source) {
-			continue
+		eventOffset := 0
+		for _, source := range packageSources(root, pkg, layer, bundle) {
+			allowed, err := effective.AllowsPackagePath(pkg.Module, source.gate)
+			if err != nil {
+				return err
+			}
+			if !allowed {
+				continue
+			}
+			origin := Origin{Layer: layer, Module: pkg.Module, CacheKey: pkg.CacheKey, SourceRelative: source.relative, SourceRoot: root, SourceFile: source.file, PackageKey: packageKey(pkg.CacheKey, pkg.Module, layer)}
+			var parsed Bundle
+			if source.dialect == CursorDialect {
+				parsed, err = ParseCursor(source.file, source.value, origin)
+			} else {
+				parsed, err = ParseNested(source.file, source.value, origin)
+			}
+			if err != nil {
+				// One unreadable hook file does not take the package down.
+				bundle.skip(origin, source.file, "skipping this hook file: %v", err)
+				continue
+			}
+			highest := eventOffset
+			for index := range parsed.Hooks {
+				hook := &parsed.Hooks[index]
+				if hook.Dialect == "" {
+					hook.Dialect = source.dialect
+				}
+				// Spec files are named by event index within a package, so
+				// each further hook file of the package continues the count.
+				hook.Origin.EventIndex += eventOffset
+				highest = max(highest, hook.Origin.EventIndex+1)
+			}
+			eventOffset = highest
+			bundle.Hooks = append(bundle.Hooks, parsed.Hooks...)
+			bundle.Skipped = append(bundle.Skipped, parsed.Skipped...)
 		}
-		parsed, err := parseSource(layer, pkg.Module, pkg.CacheKey, root, source, "hooks/hooks.json")
-		if err != nil {
-			return err
-		}
-		bundle.Hooks = append(bundle.Hooks, parsed.Hooks...)
 	}
 	return nil
+}
+
+// hookSource is one place a package defines hooks: a file, or an object
+// written inline in a plugin manifest.
+type hookSource struct {
+	dialect  Dialect
+	relative string
+	gate     string
+	file     string
+	value    any
+}
+
+// packageSources lists a package's hook definitions as the plugin formats
+// give them: hooks/hooks.json, read as Cursor's format when its events are
+// Cursor's and as Claude Code's otherwise, then what each plugin.json declares
+// under hooks, as a path, inline, or an array of them. A file two manifests
+// share is read once, for the first of them.
+func packageSources(root string, pkg lockfile.Package, layer Layer, bundle *Bundle) []hookSource {
+	var sources []hookSource
+	read := make(map[string]bool)
+	origin := Origin{Layer: layer, Module: pkg.Module}
+	file := func(path, relative string, dialect Dialect) {
+		resolved, err := filepath.EvalSymlinks(path)
+		if err != nil || read[resolved] || !regularFile(resolved) {
+			return
+		}
+		read[resolved] = true
+		data, err := os.ReadFile(resolved)
+		var value any
+		if err == nil {
+			err = json.Unmarshal(data, &value)
+		}
+		if err != nil {
+			bundle.skip(origin, resolved, "skipping this hook file: %v", err)
+			return
+		}
+		if dialect == "" {
+			dialect = ClaudeDialect
+			if LooksLikeCursor(value) {
+				dialect = CursorDialect
+			}
+		}
+		sources = append(sources, hookSource{dialect: dialect, relative: relative, gate: relative, file: resolved, value: value})
+	}
+	file(filepath.Join(root, "hooks", "hooks.json"), "hooks/hooks.json", "")
+	dialects := map[string]Dialect{"claude": ClaudeDialect, "cursor": CursorDialect, "codex": CodexDialect}
+	for _, manifest := range cache.ReadPluginManifests(root) {
+		dialect := dialects[manifest.Vendor]
+		paths, inline := manifest.Declared("hooks")
+		for _, declared := range paths {
+			resolved, err := cache.ResolveInside(root, declared)
+			if err != nil {
+				bundle.skip(origin, manifest.Relative, "skipping its hooks: %v", err)
+				continue
+			}
+			file(resolved, strings.TrimPrefix(filepath.ToSlash(declared), "./"), dialect)
+		}
+		for index, raw := range inline {
+			var events any
+			if err := json.Unmarshal(raw, &events); err != nil {
+				continue
+			}
+			// An inline value is the event map itself, without the wrapper a file has.
+			if object, ok := asObject(events); ok {
+				if _, wrapped := asObject(object["hooks"]); !wrapped {
+					events = map[string]any{"hooks": object}
+				}
+			}
+			sources = append(sources, hookSource{dialect: dialect, relative: fmt.Sprintf("%s#hooks[%d]", manifest.Relative, index), gate: manifest.Relative, file: filepath.Join(root, filepath.FromSlash(manifest.Relative)), value: events})
+		}
+	}
+	return sources
 }
 
 func parseSource(layer Layer, module, cacheKey, sourceRoot, sourceFile, sourceRelative string) (Bundle, error) {

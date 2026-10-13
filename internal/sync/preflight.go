@@ -897,7 +897,7 @@ func collectHookFindings(workspace, definitionRoot string, lock lockfile.PackLoc
 	if err != nil {
 		return nil, err
 	}
-	output, err := renderer.Render(bundle, hooks.RenderContext{ProjectRoot: definitionRoot, TargetRoot: root})
+	output, err := renderer.Render(bundle.ForTarget(target), hooks.RenderContext{ProjectRoot: definitionRoot, TargetRoot: root})
 	if err != nil {
 		return nil, err
 	}

@@ -133,6 +133,9 @@ func HandlerObject(hook Hook, includeExtra bool) map[string]any {
 }
 
 func PushDiagnostic(output *RenderOutput, level string, hook Hook, message string) {
+	if level == "omitted" {
+		message = fmt.Sprintf("skipping %s hook: %s", hook.Event, message)
+	}
 	output.Diagnostics = append(output.Diagnostics, Diagnostic{Level: level, Source: fmt.Sprintf("%s (%s)", hook.Origin.Module, hook.Origin.SourceFile), Message: message})
 	switch level {
 	case "native":

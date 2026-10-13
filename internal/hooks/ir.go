@@ -3,6 +3,8 @@ package hooks
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/OlegHQ/agentpack/internal/harness"
 )
 
 type Event string
@@ -20,21 +22,92 @@ const (
 	PermissionRequest Event = "PermissionRequest"
 )
 
+// Events that Claude Code and Cursor both have, under their Claude Code names.
+const (
+	PostToolUseFailure Event = "PostToolUseFailure"
+	SubagentStart      Event = "SubagentStart"
+)
+
+// claudeEvents is the hook event list of the Claude Code hooks reference
+// (code.claude.com/docs/en/hooks, read 2026-10-13).
+var claudeEvents = eventSet(
+	"SessionStart", "Setup", "UserPromptSubmit", "UserPromptExpansion", "PreToolUse", "PermissionRequest",
+	"PermissionDenied", "PostToolUse", "PostToolUseFailure", "PostToolBatch", "Notification", "MessageDisplay",
+	"SubagentStart", "SubagentStop", "TaskCreated", "TaskCompleted", "Stop", "StopFailure", "TeammateIdle",
+	"InstructionsLoaded", "ConfigChange", "CwdChanged", "DirectoryAdded", "FileChanged", "WorktreeCreate",
+	"WorktreeRemove", "PreCompact", "PostCompact", "PreModelSwitch", "PostModelSwitch", "Elicitation",
+	"ElicitationResult", "SessionEnd",
+)
+
+// cursorEvents is the hook event list of the Cursor hooks reference
+// (cursor.com/docs/hooks, read 2026-10-13), each with the event it is in this
+// package: the Claude Code name where both agents have the event, otherwise
+// Cursor's own name, which then only Cursor can run.
+var cursorEvents = map[string]Event{
+	"sessionStart": SessionStart, "sessionEnd": SessionEnd, "preToolUse": PreToolUse, "postToolUse": PostToolUse,
+	"postToolUseFailure": PostToolUseFailure, "subagentStart": SubagentStart, "subagentStop": SubagentStop,
+	"beforeSubmitPrompt": UserPromptSubmit, "preCompact": PreCompact, "stop": Stop,
+	"beforeShellExecution": "beforeShellExecution", "afterShellExecution": "afterShellExecution",
+	"beforeMCPExecution": "beforeMCPExecution", "afterMCPExecution": "afterMCPExecution",
+	"beforeReadFile": "beforeReadFile", "afterFileEdit": "afterFileEdit",
+	"afterAgentResponse": "afterAgentResponse", "afterAgentThought": "afterAgentThought",
+	"beforeTabFileRead": "beforeTabFileRead", "afterTabFileEdit": "afterTabFileEdit", "workspaceOpen": "workspaceOpen",
+}
+
+func eventSet(names ...string) map[Event]bool {
+	set := make(map[Event]bool, len(names))
+	for _, name := range names {
+		set[Event(name)] = true
+	}
+	return set
+}
+
+// ParseEvent reads an event as a hook file or the hook-exec command line
+// names it: a Claude Code event, its dashed alias, or a Cursor event.
 func ParseEvent(value string) (Event, bool) {
 	aliases := map[string]Event{
-		"PreToolUse": PreToolUse, "pre-tool-use": PreToolUse,
-		"PostToolUse": PostToolUse, "post-tool-use": PostToolUse,
-		"UserPromptSubmit": UserPromptSubmit, "user-prompt-submit": UserPromptSubmit,
-		"Stop": Stop, "stop": Stop, "SubagentStop": SubagentStop, "subagent-stop": SubagentStop,
-		"SessionStart": SessionStart, "session-start": SessionStart,
-		"SessionEnd": SessionEnd, "session-end": SessionEnd,
-		"PreCompact": PreCompact, "pre-compact": PreCompact,
-		"Notification": Notification, "notification": Notification,
-		"PermissionRequest": PermissionRequest, "permission-request": PermissionRequest,
+		"pre-tool-use": PreToolUse, "post-tool-use": PostToolUse, "user-prompt-submit": UserPromptSubmit,
+		"stop": Stop, "subagent-stop": SubagentStop, "session-start": SessionStart, "session-end": SessionEnd,
+		"pre-compact": PreCompact, "notification": Notification, "permission-request": PermissionRequest,
 	}
-	event, found := aliases[value]
+	if event, found := aliases[value]; found {
+		return event, true
+	}
+	if claudeEvents[Event(value)] {
+		return Event(value), true
+	}
+	event, found := cursorEvents[value]
 	return event, found
 }
+
+// ParseCursorEvent reads an event name of a Cursor hooks file.
+func ParseCursorEvent(value string) (Event, bool) {
+	event, found := cursorEvents[value]
+	return event, found
+}
+
+// Claude reports whether Claude Code has the event.
+func (event Event) Claude() bool { return claudeEvents[event] }
+
+// CursorName is the event's name in a Cursor hooks file, when Cursor has it.
+func (event Event) CursorName() (string, bool) {
+	for name, mapped := range cursorEvents {
+		if mapped == event {
+			return name, true
+		}
+	}
+	return "", false
+}
+
+// Dialect says which agent's hook file a hook was published in. The handler
+// reads that agent's input and writes that agent's output.
+type Dialect string
+
+const (
+	ClaudeDialect Dialect = "claude"
+	CursorDialect Dialect = "cursor"
+	CodexDialect  Dialect = "codex"
+)
 
 type Layer string
 
@@ -176,12 +249,18 @@ type Origin struct {
 	HookIndex         int    `json:"hook_index"`
 }
 
+// SourcePackage identifies the package (or layer) a hook came from.
+func (origin Origin) SourcePackage() string {
+	return fmt.Sprintf("%d:%s:%s", origin.Layer.Rank(), origin.Module, origin.PackageKey)
+}
+
 func (origin Origin) SourceID() string {
 	return fmt.Sprintf("%d:%s:%s:%s", origin.Layer.Rank(), origin.Module, origin.PackageKey, origin.SourceRelative)
 }
 
 type Hook struct {
 	Event             Event          `json:"event"`
+	Dialect           Dialect        `json:"dialect,omitempty"`
 	Matcher           string         `json:"matcher,omitempty"`
 	Handler           Handler        `json:"handler"`
 	Origin            Origin         `json:"origin"`
@@ -193,6 +272,42 @@ func (hook Hook) Strict() bool { return hook.Event == PreToolUse || hook.Event =
 
 type Bundle struct {
 	Hooks []Hook `json:"hooks,omitempty"`
+	// Skipped names what a hook file holds that was not read: an event no
+	// agent documents, a handler type agentpack cannot run, a file that does
+	// not parse. The rest of the package is unaffected.
+	Skipped []Diagnostic `json:"-"`
+}
+
+// ForTarget keeps, for each package, the hooks of one dialect: the target's
+// own when the package publishes hooks for that agent, otherwise Claude
+// Code's, then Cursor's, then Codex's. A package that ships a hook file per
+// agent would otherwise run every one of them on each agent.
+func (bundle Bundle) ForTarget(target harness.Target) Bundle {
+	own := map[harness.Target]Dialect{harness.Claude: ClaudeDialect, harness.Cursor: CursorDialect, harness.Codex: CodexDialect}[target]
+	available := make(map[string]map[Dialect]bool)
+	for _, hook := range bundle.Hooks {
+		key := hook.Origin.SourcePackage()
+		if available[key] == nil {
+			available[key] = make(map[Dialect]bool)
+		}
+		available[key][hook.Dialect] = true
+	}
+	chosen := make(map[string]Dialect, len(available))
+	for key, dialects := range available {
+		for _, candidate := range []Dialect{own, ClaudeDialect, CursorDialect, CodexDialect, ""} {
+			if dialects[candidate] {
+				chosen[key] = candidate
+				break
+			}
+		}
+	}
+	selected := Bundle{Skipped: bundle.Skipped}
+	for _, hook := range bundle.Hooks {
+		if chosen[hook.Origin.SourcePackage()] == hook.Dialect {
+			selected.Hooks = append(selected.Hooks, hook)
+		}
+	}
+	return selected
 }
 
 type Decision string

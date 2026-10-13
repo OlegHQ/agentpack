@@ -3,6 +3,7 @@ package hooks
 import (
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 
@@ -94,5 +95,60 @@ func writeHookFile(t *testing.T, path, contents string) {
 	}
 	if err := os.WriteFile(path, []byte(contents), 0o644); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// mksglu/context-mode publishes one hooks file per agent and names two of
+// them in its manifests.
+func TestCollectReadsEveryHookLocationAndSurvivesABrokenOne(t *testing.T) {
+	t.Setenv("AGENTPACK_HOME", t.TempDir())
+	pkg := lockfile.Package{Module: "github.com/mksglu/context-mode", Kind: lockfile.PackagePlugin, CacheKey: "context-mode"}
+	root, _ := cache.EntryDir(pkg.CacheKey)
+	writeHookFile(t, filepath.Join(root, ".claude-plugin", "plugin.json"), `{"name":"context-mode","hooks":{"PostToolUseFailure":[{"hooks":[{"type":"command","command":"inline"}]}]}}`)
+	writeHookFile(t, filepath.Join(root, ".cursor-plugin", "plugin.json"), `{"name":"context-mode","hooks":"./hooks/cursor/hooks.json"}`)
+	writeHookFile(t, filepath.Join(root, ".codex-plugin", "plugin.json"), `{"name":"context-mode","hooks":["./.codex-plugin/hooks.json","../outside.json"]}`)
+	writeHookFile(t, filepath.Join(root, "hooks", "hooks.json"), nestedCommand("claude"))
+	writeHookFile(t, filepath.Join(root, "hooks", "cursor", "hooks.json"), `{"version":1,"hooks":{"afterAgentResponse":[{"command":"cursor"}],"stop":[{"command":"cursor-stop"}]}}`)
+	writeHookFile(t, filepath.Join(root, ".codex-plugin", "hooks.json"), nestedCommand("codex"))
+	broken := lockfile.Package{Module: "github.com/o/broken", Kind: lockfile.PackagePlugin, CacheKey: "broken"}
+	brokenRoot, _ := cache.EntryDir(broken.CacheKey)
+	writeHookFile(t, filepath.Join(brokenRoot, "hooks", "hooks.json"), `{"hooks":{"Stop":"not a list"}}`)
+
+	bundle, err := Collect(t.TempDir(), lockfile.PackLock{Packages: []lockfile.Package{pkg, broken}}, "", mode.ImplicitEffective())
+	if err != nil {
+		t.Fatal(err)
+	}
+	commands := func(target harness.Target) string {
+		var parts []string
+		for _, hook := range bundle.ForTarget(target).Hooks {
+			parts = append(parts, hook.Handler.Command)
+		}
+		sort.Strings(parts)
+		return strings.Join(parts, " ")
+	}
+	for target, want := range map[harness.Target]string{
+		harness.Claude: "claude inline", harness.Cursor: "cursor cursor-stop", harness.Codex: "codex", harness.OpenCode: "claude inline",
+	} {
+		if got := commands(target); got != want {
+			t.Fatalf("%s runs %q, want %q", target, got, want)
+		}
+	}
+	specs := make(map[string]bool)
+	for _, hook := range bundle.Hooks {
+		path := SpecPath(harness.Claude, "/staged", hook)
+		if specs[path] {
+			t.Fatalf("two hooks of one package share the spec file %s", path)
+		}
+		specs[path] = true
+	}
+	var skipped []string
+	for _, diagnostic := range bundle.Skipped {
+		skipped = append(skipped, diagnostic.Source+": "+diagnostic.Message)
+	}
+	joined := strings.Join(skipped, "\n")
+	for _, part := range []string{"github.com/o/broken", "event groups must be arrays", `"../outside.json" leaves the package`} {
+		if !strings.Contains(joined, part) {
+			t.Fatalf("skipped lacks %q:\n%s", part, joined)
+		}
 	}
 }

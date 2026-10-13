@@ -93,7 +93,9 @@ func RunCommand(ctx context.Context, spec ExecutionSpec, stdin []byte) (CommandO
 	} else {
 		command = exec.CommandContext(ctx, "/bin/sh", "-c", spec.Handler.Command)
 	}
-	command.Env = append(os.Environ(), "CLAUDE_PLUGIN_ROOT="+spec.WorkingDir, "AGENTPACK_PLUGIN_ROOT="+spec.WorkingDir)
+	// Each agent names the plugin directory its own way; a hook written for
+	// one of them finds it under that name on all of them.
+	command.Env = append(os.Environ(), "CLAUDE_PLUGIN_ROOT="+spec.WorkingDir, "CURSOR_PLUGIN_ROOT="+spec.WorkingDir, "PLUGIN_ROOT="+spec.WorkingDir, "AGENTPACK_PLUGIN_ROOT="+spec.WorkingDir)
 	command.Stdin = bytes.NewReader(stdin)
 	var stdout, stderr bytes.Buffer
 	command.Stdout, command.Stderr = &stdout, &stderr

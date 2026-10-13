@@ -1,6 +1,7 @@
 package hooks
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 )
@@ -33,8 +34,9 @@ func parseEventGroups(sourcePath string, root map[string]any, base Origin, codex
 	eventNames := sortedKeys(root)
 	for eventIndex, eventName := range eventNames {
 		event, found := ParseEvent(eventName)
-		if !found {
-			return Bundle{}, invalidHook(sourcePath, "unknown hook event %q", eventName)
+		if !found || !event.Claude() {
+			bundle.skip(base, sourcePath, "skipping its %s hooks: %q is not a hook event of Claude Code or Codex", eventName, eventName)
+			continue
 		}
 		entries, ok := root[eventName].([]any)
 		if !ok {
@@ -50,6 +52,9 @@ func parseEventGroups(sourcePath string, root map[string]any, base Origin, codex
 				extra := objectExtra(entry, "matcher", "hooks")
 				for hookIndex, rawHandler := range handlers {
 					hook, err := buildHook(sourcePath, event, matcher, rawHandler, indexedOrigin(base, eventIndex, groupIndex, hookIndex), extra)
+					if bundle.skipUnsupported(base, sourcePath, eventName, err) {
+						continue
+					}
 					if err != nil {
 						return Bundle{}, err
 					}
@@ -61,6 +66,9 @@ func parseEventGroups(sourcePath string, root map[string]any, base Origin, codex
 				return Bundle{}, invalidHook(sourcePath, "matcher groups must contain hooks arrays")
 			}
 			hook, err := buildHook(sourcePath, event, matcher, rawEntry, indexedOrigin(base, eventIndex, groupIndex, 0), objectExtra(entry, "matcher"))
+			if bundle.skipUnsupported(base, sourcePath, eventName, err) {
+				continue
+			}
 			if err != nil {
 				return Bundle{}, err
 			}
@@ -68,6 +76,91 @@ func parseEventGroups(sourcePath string, root map[string]any, base Origin, codex
 		}
 	}
 	return bundle, nil
+}
+
+// ParseCursor reads a Cursor hooks file: {"version": 1, "hooks": {"<event>":
+// [{"command": "...", "matcher": "...", ...}]}}, with camelCase event names
+// and one flat entry per hook.
+func ParseCursor(sourcePath string, value any, base Origin) (Bundle, error) {
+	root, ok := asObject(value)
+	if !ok {
+		return Bundle{}, invalidHook(sourcePath, "hook file must be a JSON object")
+	}
+	events, ok := asObject(root["hooks"])
+	if !ok {
+		return Bundle{}, invalidHook(sourcePath, "hook file must contain a top-level hooks object")
+	}
+	var bundle Bundle
+	for eventIndex, eventName := range sortedKeys(events) {
+		event, found := ParseCursorEvent(eventName)
+		if !found {
+			bundle.skip(base, sourcePath, "skipping its %s hooks: %q is not a Cursor hook event", eventName, eventName)
+			continue
+		}
+		entries, ok := events[eventName].([]any)
+		if !ok {
+			return Bundle{}, invalidHook(sourcePath, "event groups must be arrays")
+		}
+		for entryIndex, rawEntry := range entries {
+			entry, ok := asObject(rawEntry)
+			if !ok {
+				return Bundle{}, invalidHook(sourcePath, "hook entries must be JSON objects")
+			}
+			if _, typed := entry["type"]; !typed {
+				copied := objectExtra(entry)
+				copied["type"] = string(CommandHandler)
+				entry = copied
+			}
+			matcher, _ := entry["matcher"].(string)
+			hook, err := buildHook(sourcePath, event, matcher, entry, indexedOrigin(base, eventIndex, entryIndex, 0), nil)
+			if bundle.skipUnsupported(base, sourcePath, eventName, err) {
+				continue
+			}
+			if err != nil {
+				return Bundle{}, err
+			}
+			delete(hook.RawExtra, "matcher")
+			hook.Dialect = CursorDialect
+			bundle.Hooks = append(bundle.Hooks, hook)
+		}
+	}
+	return bundle, nil
+}
+
+// LooksLikeCursor reports whether a hooks file found at a default location is
+// in Cursor's format: it names Cursor events and no Claude Code event.
+func LooksLikeCursor(value any) bool {
+	root, _ := asObject(value)
+	events, _ := asObject(root["hooks"])
+	cursor := false
+	for name := range events {
+		if claudeEvents[Event(name)] {
+			return false
+		}
+		if _, found := cursorEvents[name]; found {
+			cursor = true
+		}
+	}
+	return cursor
+}
+
+type unsupportedHandler struct{ kind string }
+
+func (err unsupportedHandler) Error() string { return "unsupported hook type " + err.kind }
+
+func (bundle *Bundle) skip(origin Origin, sourcePath, format string, arguments ...any) {
+	bundle.Skipped = append(bundle.Skipped, Diagnostic{Level: "skipped", Source: fmt.Sprintf("%s (%s)", origin.Module, sourcePath), Message: fmt.Sprintf(format, arguments...)})
+}
+
+// skipUnsupported records a handler of a type agentpack cannot run and
+// reports whether err was that.
+func (bundle *Bundle) skipUnsupported(origin Origin, sourcePath, eventName string, err error) bool {
+	var unsupported unsupportedHandler
+	if !errors.As(err, &unsupported) {
+		return false
+	}
+	bundle.skip(origin, sourcePath, "skipping a %s hook: hooks of type %q are not run by agentpack", eventName, unsupported.kind)
+	return true
 }
 
 func buildHook(sourcePath string, event Event, matcher string, raw any, origin Origin, groupExtra map[string]any) (Hook, error) {
@@ -119,7 +212,7 @@ func buildHook(sourcePath string, event Event, matcher string, raw any, origin O
 		handler.Model, _ = object["model"].(string)
 		excluded = []string{"type", "prompt", "instruction", "agent", "model"}
 	default:
-		return Hook{}, invalidHook(sourcePath, "unsupported Claude hook type %q", kindText)
+		return Hook{}, unsupportedHandler{kind: kindText}
 	}
 	return Hook{Event: event, Matcher: matcher, Handler: handler, Origin: origin, MatcherGroupExtra: groupExtra, RawExtra: objectExtra(object, excluded...)}, nil
 }

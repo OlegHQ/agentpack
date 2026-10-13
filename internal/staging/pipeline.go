@@ -300,7 +300,7 @@ func (pipeline Pipeline) HookDiagnostics() ([]hooks.Diagnostic, hooks.RenderSumm
 		if err != nil {
 			return nil, hooks.RenderSummary{}, err
 		}
-		output, err := renderer.Render(bundle, hooks.RenderContext{ProjectRoot: pipeline.ProjectRoot, TargetRoot: filepath.Join(root, string(target)), StagedPackages: map[string]string{}})
+		output, err := renderer.Render(bundle.ForTarget(target), hooks.RenderContext{ProjectRoot: pipeline.ProjectRoot, TargetRoot: filepath.Join(root, string(target)), StagedPackages: map[string]string{}})
 		if err != nil {
 			return nil, hooks.RenderSummary{}, err
 		}
@@ -326,6 +326,9 @@ func (pipeline Pipeline) stageHooks(ctx base.StageContext, harnesses []base.Harn
 	if err != nil {
 		return err
 	}
+	for _, diagnostic := range bundle.Skipped {
+		fmt.Fprintf(os.Stderr, "warning: %s: %s\n", diagnostic.Source, diagnostic.Message)
+	}
 	if len(bundle.Hooks) == 0 {
 		return nil
 	}
@@ -338,11 +341,14 @@ func (pipeline Pipeline) stageHooks(ctx base.StageContext, harnesses []base.Harn
 		if err != nil {
 			return err
 		}
-		packages, err := hooks.StageOriginPackages(bundle, candidate.ID(), root, pipeline.Mode)
+		// Each agent gets the hooks the package published for it, or the
+		// nearest other dialect when it published none.
+		selected := bundle.ForTarget(candidate.ID())
+		packages, err := hooks.StageOriginPackages(selected, candidate.ID(), root, pipeline.Mode)
 		if err != nil {
 			return err
 		}
-		output, err := renderer.Render(bundle, hooks.RenderContext{ProjectRoot: pipeline.ProjectRoot, TargetRoot: root, StagedPackages: packages})
+		output, err := renderer.Render(selected, hooks.RenderContext{ProjectRoot: pipeline.ProjectRoot, TargetRoot: root, StagedPackages: packages})
 		if err != nil {
 			return err
 		}
