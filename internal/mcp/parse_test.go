@@ -28,7 +28,7 @@ func TestParseServersAcceptsWrappedAndBareMaps(t *testing.T) {
 
 func TestParseServersSkipsOnlyTheUnreadableServer(t *testing.T) {
 	t.Parallel()
-	servers, warnings, err := ParseServers([]byte(`{"good":{"command":"run"},"note":"text","empty":{},"args":{"command":"x","args":"oops"}}`))
+	servers, warnings, err := ParseServers([]byte(`{"$schema":"https://example.test/mcp.schema.json","good":{"command":"run"},"note":"text","empty":{},"args":{"command":"x","args":"oops"}}`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,6 +40,9 @@ func TestParseServersSkipsOnlyTheUnreadableServer(t *testing.T) {
 		if !strings.Contains(joined, name) {
 			t.Fatalf("warnings do not name %s: %v", name, warnings)
 		}
+	}
+	if len(warnings) != 3 {
+		t.Fatalf("warnings = %v", warnings)
 	}
 	if _, _, err := ParseServers([]byte("{")); err == nil {
 		t.Fatal("malformed document accepted")

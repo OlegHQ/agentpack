@@ -37,9 +37,8 @@ func (HookRenderer) Render(bundle hooks.Bundle, context hooks.RenderContext) (ho
 		groups, _ := events[string(hook.Event)].([]any)
 		events[string(hook.Event)] = append(groups, group)
 	}
-	if len(events) == 0 {
-		return output, nil
-	}
+	// Written even when no hook is left: the bundle's hooks directory holds a
+	// raw copy of the package's hooks file, which may be in Cursor's format.
 	output.Files = append(output.Files, hooks.RenderedFile{Path: filepath.Join(context.TargetRoot, "hooks", "hooks.json"), JSON: map[string]any{"hooks": events}})
 	return output, nil
 }

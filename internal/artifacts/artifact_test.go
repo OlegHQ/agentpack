@@ -177,3 +177,18 @@ func TestOpenCodeAgentToolsBecomeTheDocumentedObject(t *testing.T) {
 		t.Fatalf("rendered = %s", rendered.Contents)
 	}
 }
+
+func TestOpenCodeCommandDropsAClaudeModelAlias(t *testing.T) {
+	t.Parallel()
+	artifact, err := Parse("commands/plan.md", "---\ndescription: Plan\nmodel: opus\n---\n\nPlan.\n", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	openCode := artifact.Render(harness.OpenCode)
+	if strings.Contains(openCode.Contents, "model:") || len(openCode.Warnings) != 1 || !strings.Contains(openCode.Warnings[0], "model opus") {
+		t.Fatalf("opencode = %#v", openCode)
+	}
+	if claude := artifact.Render(harness.Claude); !strings.Contains(claude.Contents, "model: opus") || len(claude.Warnings) != 0 {
+		t.Fatalf("claude = %#v", claude)
+	}
+}

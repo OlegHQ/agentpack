@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/tailscale/hujson"
 )
@@ -43,6 +44,10 @@ func DecodeServers(raw map[string]json.RawMessage) (map[string]Server, []string)
 	}
 	sort.Strings(names)
 	for _, name := range names {
+		if strings.HasPrefix(name, "$") {
+			// "$schema" and the like, next to the servers of a bare map.
+			continue
+		}
 		var server Server
 		if err := json.Unmarshal(raw[name], &server); err != nil {
 			warnings = append(warnings, fmt.Sprintf("MCP server %q is not a server definition (%v)", name, err))

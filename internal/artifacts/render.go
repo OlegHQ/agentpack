@@ -63,6 +63,7 @@ func (artifact Markdown) renderSkill(target harness.Target) Rendered {
 
 func (artifact Markdown) renderCommand(target harness.Target) Rendered {
 	var fields []yamlField
+	var warnings []string
 	if target == harness.Claude || target == harness.Grok {
 		fields = []yamlField{{"description", artifact.Description}, {"name", artifact.Name}}
 	} else if target == harness.Cursor {
@@ -78,9 +79,22 @@ func (artifact Markdown) renderCommand(target harness.Target) Rendered {
 		case harness.Claude, harness.Grok:
 			allowed = claudeCommandKeys
 		}
-		fields = mergeExtra(fields, artifact.ExtraFrontmatter, allowed)
+		extras := artifact.ExtraFrontmatter
+		if model, found := extras["model"]; found && target == harness.OpenCode {
+			if text, _ := model.(string); !strings.Contains(text, "/") {
+				// A Claude Code alias such as sonnet names no OpenCode model.
+				extras = make(map[string]any, len(artifact.ExtraFrontmatter))
+				for key, value := range artifact.ExtraFrontmatter {
+					if key != "model" {
+						extras[key] = value
+					}
+				}
+				warnings = append(warnings, fmt.Sprintf("OpenCode command %s: model %v is not an OpenCode provider/model id; the command uses the session's model", artifact.Name, model))
+			}
+		}
+		fields = mergeExtra(fields, extras, allowed)
 	}
-	return Rendered{RelativePath: "commands/" + artifact.tailPath, Contents: renderMarkdown(fields, artifact.Body)}
+	return Rendered{RelativePath: "commands/" + artifact.tailPath, Contents: renderMarkdown(fields, artifact.Body), Warnings: warnings}
 }
 
 func (artifact Markdown) renderAgent(target harness.Target) Rendered {

@@ -55,3 +55,20 @@ func TestRendererKeepsNewClaudeEventsAndSkipsCursorOnlyOnes(t *testing.T) {
 		t.Fatalf("diagnostics = %#v", output.Diagnostics)
 	}
 }
+
+// The bundle's hooks directory starts as a raw copy of the package's, so a
+// package whose hooks are all Cursor-only must still end with a Claude Code
+// hooks file, an empty one.
+func TestRendererReplacesACursorOnlyHooksFileWithAnEmptyOne(t *testing.T) {
+	t.Parallel()
+	bundle := hooks.Bundle{Hooks: []hooks.Hook{
+		{Event: "afterFileEdit", Dialect: hooks.CursorDialect, Handler: hooks.Handler{Kind: hooks.CommandHandler, Command: "mark"}, Origin: hooks.Origin{Module: "module", PackageKey: "pkg", SourceFile: "hooks.json"}},
+	}}
+	output, err := (HookRenderer{}).Render(bundle, hooks.RenderContext{TargetRoot: "/staged", StagedPackages: map[string]string{"pkg": "/staged/pkg"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(output.Files) != 1 || !strings.HasSuffix(output.Files[0].Path, "hooks.json") || len(output.Files[0].JSON.(map[string]any)["hooks"].(map[string]any)) != 0 || output.Summary.Omitted != 1 {
+		t.Fatalf("output = %#v", output)
+	}
+}
