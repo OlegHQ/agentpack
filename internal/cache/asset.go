@@ -34,7 +34,7 @@ func ClassifyMaterialized(root, displayURL string, source githubsource.Source, c
 		}
 		kind = lockfile.PackagePlugin
 	} else if !regularFile(filepath.Join(root, "SKILL.md")) {
-		return lockfile.Package{}, fmt.Errorf("invalid cache layout: %s", root)
+		return lockfile.Package{}, fmt.Errorf("invalid cache layout: %s is not a package: it has no SKILL.md, plugin manifest (.claude-plugin, .cursor-plugin or .codex-plugin), agentpack.toml or marketplace manifest", root)
 	}
 	module := ""
 	if source.Owner != "path" && source.Owner != "local" {

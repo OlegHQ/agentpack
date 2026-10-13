@@ -57,6 +57,16 @@ A marketplace root can represent one logical plugin through separate local sourc
 
 Marketplace source paths must remain inside the repository. A catalog with multiple plugin names is ambiguous for one dependency, so agentpack rejects it with guidance to add the desired plugin source directory directly.
 
+Some catalog entries are not plugin directories at all. A Claude Code marketplace may define a plugin in the catalog entry itself (`"strict": false`, with the entry's own `lspServers`, `skills` and so on) and point `source` at a directory that holds only a README. The official `gopls-lsp`, `pyright-lsp`, `lua-lsp` and `php-lsp` entries are of this kind: each is a language server setting for Claude Code and nothing else. Adding such a directory fails with a message that says so and names the catalog and what the entry declares, for example:
+
+```text
+cannot install anthropics/claude-plugins-official/plugins/gopls-lsp: it is the marketplace catalog entry
+"gopls-lsp", a language server configuration for Claude Code (.claude-plugin/marketplace.json defines
+lspServers: gopls runs `gopls`) with no plugin files of its own; …
+```
+
+Nothing is written to the manifest, the lock or the cache. Agentpack stages skills, commands, agents, rules, hooks and MCP servers; it has no language server setting to write for the agents.
+
 ## Metadata caching and the offline fallback
 
 GitHub ref→commit and tag-list lookups are cached in `$AGENTPACK_HOME/cache/db.reddb` and reused across `add`, `lock`, and `sync`, which keeps repeat resolutions off the network. When the GitHub REST API fails or is throttled, agentpack falls back to the Git protocol through an embedded Go Git client against `https://github.com/<owner>/<repo>.git` before resorting to stale cached metadata. There is no external `git` executable or hard REST API dependency for ref and tag resolution.

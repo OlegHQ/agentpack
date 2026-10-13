@@ -84,6 +84,14 @@ func MaterializeGitHubTree(ctx context.Context, client *http.Client, source gith
 		if written == 0 && effective.Path != "" {
 			return lockfile.Package{}, fmt.Errorf("no files matched repository path %q in %s/%s archive at %.8s", effective.Path, effective.Owner, effective.Repo, commit)
 		}
+		if !IsPackageRoot(out) {
+			// Not a package by itself: say what the repository's catalog
+			// makes of it, and leave nothing in the cache.
+			if err := catalogOnlyEntry(prefetched, effective); err != nil {
+				_ = os.RemoveAll(out)
+				return lockfile.Package{}, err
+			}
+		}
 	}
 	pkg, err := ClassifyMaterialized(out, githubsource.CanonicalTreeURL(effective), effective, commit, cacheKey)
 	if err != nil || !fetched {

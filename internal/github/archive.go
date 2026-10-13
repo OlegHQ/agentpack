@@ -194,3 +194,36 @@ func firstError(errors ...error) error {
 	}
 	return nil
 }
+
+// ReadRepoFiles returns the contents of the named repository-relative files
+// that the archive holds.
+func ReadRepoFiles(archive io.Reader, names ...string) (map[string][]byte, error) {
+	reader, err := tarReader(archive)
+	if err != nil {
+		return nil, err
+	}
+	wanted := make(map[string]bool, len(names))
+	for _, name := range names {
+		wanted[name] = true
+	}
+	found := make(map[string][]byte)
+	for len(found) < len(wanted) {
+		header, err := reader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("read archive: %w", err)
+		}
+		relative, ok := repoRelative(header.Name)
+		if !ok || !wanted[relative] || header.Typeflag != tar.TypeReg {
+			continue
+		}
+		data, err := io.ReadAll(io.LimitReader(reader, 16<<20))
+		if err != nil {
+			return nil, fmt.Errorf("read archive file %s: %w", relative, err)
+		}
+		found[relative] = data
+	}
+	return found, nil
+}
