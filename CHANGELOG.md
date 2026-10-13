@@ -7,6 +7,27 @@ window.
 
 ## Unreleased
 
+Found by adding 40 published packages (Claude Code, Cursor and Codex plugins, skills, community marketplaces) with 0.4.8.
+
+### Fixed
+
+- A plugin's `.mcp.json` written as a bare `name → server` map (the official playwright, firebase, gitlab and laravel-boost plugins) was ignored without a message. Both forms are read.
+- MCP servers defined inline in `plugin.json` (`mcpServers`), or in a file it names such as `.codex-plugin/mcp.json`, were not read. All three vendors' locations are read; a server or location that cannot be read is skipped with a warning.
+- An unknown hook event (`PostToolUseFailure`, Cursor's `afterAgentResponse`) failed the whole package after the lock was written. The event lists follow the current Claude Code and Cursor references, Cursor hook files are parsed in their own format and stay native on Cursor, hooks are read from the manifests' `hooks` fields too, and each agent gets the hooks published for it. A hook the target has no event for is skipped with a warning.
+- A command with frontmatter that is not strict YAML (`argument-hint: [system] [--source <path>]`) was skipped. Such frontmatter is read key by key.
+- `add` of a marketplace entry that only configures a language server (`gopls-lsp`, `pyright-lsp`, …) failed with `Invalid cache layout`. The error now says what the entry is and why nothing is installed.
+- A manifest's `skills`, `commands`, `agents` and `rules` paths were not followed, and symbolic links in a GitHub archive became empty files, so `alirezarezvani/claude-skills` staged none of its 372 skills. Declared paths and in-package links are followed; a path or link that leaves the package is skipped with a warning.
+- A Claude subagent's `tools` list, named `color` or model alias made OpenCode refuse its whole configuration. They are converted to the forms OpenCode accepts.
+- `${CLAUDE_PLUGIN_ROOT}` in an MCP server definition reached five agents as literal text, and named the wrong directory for Claude Code. Each such package gets a staged copy of itself, and every harness's config names it.
+- `add` did not record the added package's MCP servers in `pack.lock`.
+- On Codex, a command or agent with the name of a skill of the same package was overwritten by it. It is staged as `<name>-command` / `<name>-agent`.
+- `preflight` and `probe` planned artifacts with their own walk of the cache; they now use the files and names staging uses.
+
+### Changed
+
+- A `content_hash` for a package that contains symbolic links differs from the one 0.4.8 recorded (links are links, not empty files). Locks written by 0.4.8 and earlier still verify; `agentpack lock` records the new value.
+- One hook, server or artifact that cannot be staged no longer fails the package: it is skipped with a warning that names it.
+
 ## [0.4.8] - 2026-10-12
 
 ### Added
