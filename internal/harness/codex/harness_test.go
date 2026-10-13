@@ -798,7 +798,7 @@ func TestLaunchFinishesAgainstOriginalGenerationAfterSwitch(t *testing.T) {
 		return transaction.Root()
 	}
 	first := build()
-	t.Cleanup(func() { _ = os.RemoveAll(filepath.Dir(first)) })
+	t.Cleanup(func() { _ = os.RemoveAll(filepath.Dir(filepath.Dir(first))) })
 	launchCtx := base.LaunchContext{ProjectRoot: project, Mode: mode.ImplicitEffective()}
 	command, err := harness.LaunchCommand(launchCtx)
 	if err != nil {

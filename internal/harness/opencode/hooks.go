@@ -61,7 +61,7 @@ func (HookRenderer) Render(bundle hooks.Bundle, context hooks.RenderContext) (ho
 		return hooks.RenderOutput{}, err
 	}
 	output.Files = append(output.Files,
-		hooks.RenderedFile{Path: filepath.Join(pluginRoot, "config.json"), JSON: map[string]any{"hooks": entries}},
+		hooks.RenderedFile{Path: filepath.Join(pluginRoot, "config.json"), JSON: map[string]any{"agentpack": hooks.Executable(), "hooks": entries}},
 		hooks.RenderedFile{Path: filepath.Join(pluginRoot, "index.js"), Text: pluginSource},
 		hooks.RenderedFile{Path: filepath.Join(context.TargetRoot, "opencode.json"), JSON: config},
 	)

@@ -18,6 +18,7 @@ import (
 	"github.com/OlegHQ/agentpack/internal/cache"
 	githubsource "github.com/OlegHQ/agentpack/internal/github"
 	base "github.com/OlegHQ/agentpack/internal/harness"
+	"github.com/OlegHQ/agentpack/internal/harness/codex"
 	"github.com/OlegHQ/agentpack/internal/lockfile"
 	"github.com/OlegHQ/agentpack/internal/paths"
 	"github.com/OlegHQ/agentpack/internal/staging"
@@ -835,6 +836,13 @@ func newIntegrityFixture(t *testing.T) *integrityFixture {
 			"/@modelcontextprotocol%2Fserver-filesystem/2025.1.0": `{"version":"2025.1.0","dist":{"integrity":"sha512-filesystem"}}`,
 		},
 	}}
+	// The Codex homes of a project sit at a short path outside the test's
+	// temporary directories; remove them with the project.
+	t.Cleanup(func() {
+		if homes, err := codex.ProjectHomes(project); err == nil {
+			_ = os.RemoveAll(homes)
+		}
+	})
 	fixture.service = Service{
 		Client: &http.Client{Transport: integrityTransport(fixture.serve)},
 		Notify: func(message string) { fixture.notices = append(fixture.notices, message) },

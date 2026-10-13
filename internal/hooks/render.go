@@ -83,12 +83,30 @@ func HookAssetRoot(target harness.Target, root string) string {
 	return filepath.Join(root, "hooks", "_packages")
 }
 
+// Executable is the agentpack binary a staged hook runs: the absolute path of
+// the one that is staging, so that the hook does not depend on what the name
+// `agentpack` resolves to on the agent's PATH (nothing, or another version).
+// A test binary has no hook-exec; there the bare name is kept.
+func Executable() string {
+	path, err := os.Executable()
+	if err != nil || path == "" || strings.HasSuffix(path, ".test") || strings.HasSuffix(path, ".test.exe") {
+		return "agentpack"
+	}
+	if resolved, err := filepath.EvalSymlinks(path); err == nil {
+		path = resolved
+	}
+	return path
+}
+
+// ExecutableCommand is Executable as a word of a shell command line.
+func ExecutableCommand() string { return shellQuote(Executable()) }
+
 func HookExecCommand(kind HandlerKind, target harness.Target, specPath string) string {
-	return fmt.Sprintf("agentpack hook-exec %s --target %s --spec %s", kind, target, shellQuote(specPath))
+	return fmt.Sprintf("%s hook-exec %s --target %s --spec %s", ExecutableCommand(), kind, target, shellQuote(specPath))
 }
 
 func HookDispatchCommand(target harness.Target, event Event, specsRoot string) string {
-	return fmt.Sprintf("agentpack hook-exec dispatch --target %s --event %s --specs-dir %s", target, event, shellQuote(specsRoot))
+	return fmt.Sprintf("%s hook-exec dispatch --target %s --event %s --specs-dir %s", ExecutableCommand(), target, event, shellQuote(specsRoot))
 }
 
 func HandlerObject(hook Hook, includeExtra bool) map[string]any {

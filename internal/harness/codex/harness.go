@@ -262,6 +262,31 @@ func shortStagingCodexHome(projectRoot, modeName string) (string, error) {
 		modeHash := sha256.Sum256([]byte(hash + "\x00" + modeName))
 		return filepath.Join(os.TempDir(), "a", hex.EncodeToString(modeHash[:4])), nil
 	}
+	modeComp := paths.ModePathComponent(modeName)
+	if len(modeComp) > 10 {
+		sum := sha256.Sum256([]byte(modeName))
+		modeComp = hex.EncodeToString(sum[:4])
+	}
+	return filepath.Join(HomesBase(), hash, modeComp), nil
+}
+
+// HomesBase is the directory that holds the Codex homes of every project.
+//
+// Codex binds a Unix socket at <home>/app-server-control/app-server-control.sock,
+// and a socket path is limited to about 104 (macOS) or 108 (Linux) bytes, so a
+// home must sit at a short path. With AGENTPACK_STAGING_ROOT set, the homes go
+// under it (<root>/ap-c) whenever a generation there still leaves room for the
+// socket. Otherwise, and when the configured root is too long, they go under
+// /var/tmp/ap-c, the one place agentpack writes outside its configured roots.
+func HomesBase() string {
+	if root := os.Getenv("AGENTPACK_STAGING_ROOT"); root != "" {
+		candidate := filepath.Join(canonicalOrProjected(root), "ap-c")
+		// <base>/<16 hex project>/<mode, at most 10>/g-<10 digits> + socket
+		longest := len(candidate) + 1 + 16 + 1 + 10 + 1 + 12 + len(controlSocketSuffix)
+		if limit := maxSunLen(); limit == 0 || longest < limit {
+			return candidate
+		}
+	}
 	baseDir := "/var/tmp"
 	if fi, err := os.Stat(baseDir); err != nil || !fi.IsDir() {
 		baseDir = os.TempDir()
@@ -269,12 +294,17 @@ func shortStagingCodexHome(projectRoot, modeName string) (string, error) {
 	if resolved, err := filepath.EvalSymlinks(baseDir); err == nil && resolved != "" {
 		baseDir = resolved
 	}
-	modeComp := paths.ModePathComponent(modeName)
-	if len(modeComp) > 10 {
-		sum := sha256.Sum256([]byte(modeName))
-		modeComp = hex.EncodeToString(sum[:4])
+	return filepath.Join(baseDir, "ap-c")
+}
+
+// ProjectHomes is the directory that holds one project's Codex homes, for
+// every mode.
+func ProjectHomes(projectRoot string) (string, error) {
+	hash, err := paths.ProjectPathHash(projectRoot)
+	if err != nil {
+		return "", err
 	}
-	return filepath.Join(baseDir, "ap-c", hash, modeComp), nil
+	return filepath.Join(HomesBase(), hash), nil
 }
 
 func resetPaths(ctx base.StageContext) ([]string, error) {

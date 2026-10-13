@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/OlegHQ/agentpack/internal/cli"
+	"github.com/OlegHQ/agentpack/internal/harness/codex"
 	"github.com/OlegHQ/agentpack/internal/paths"
 )
 
@@ -24,7 +25,6 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(err)
 	}
-	defer os.RemoveAll(buildRoot)
 	agentpackBinary = filepath.Join(buildRoot, "agentpack")
 	if runtime.GOOS == "windows" {
 		agentpackBinary += ".exe"
@@ -32,9 +32,13 @@ func TestMain(m *testing.M) {
 	command := exec.Command("go", "build", "-o", agentpackBinary, "./cmd/agentpack")
 	command.Dir = repositoryRoot
 	if output, err := command.CombinedOutput(); err != nil {
+		_ = os.RemoveAll(buildRoot)
 		panic(string(output) + err.Error())
 	}
-	os.Exit(m.Run())
+	// os.Exit skips deferred calls, so the build directory is removed first.
+	code := m.Run()
+	_ = os.RemoveAll(buildRoot)
+	os.Exit(code)
 }
 
 func TestCompiledCLIHelpAndVersion(t *testing.T) {
@@ -520,6 +524,20 @@ func runCLIWithEnv(t *testing.T, workingDirectory string, arguments []string, ex
 	if err := os.MkdirAll(home, 0o755); err != nil {
 		t.Fatal(err)
 	}
+	// Codex homes sit at a short path outside the test's directories.
+	t.Cleanup(func() {
+		roots := []string{workingDirectory}
+		for index, argument := range arguments {
+			if argument == "--project-root" && index+1 < len(arguments) {
+				roots = append(roots, arguments[index+1])
+			}
+		}
+		for _, root := range roots {
+			if hash, err := paths.ProjectPathHash(root); err == nil {
+				_ = os.RemoveAll(filepath.Join(codex.HomesBase(), hash))
+			}
+		}
+	})
 	command := exec.Command(agentpackBinary, arguments...)
 	command.Dir = workingDirectory
 	overrides := []string{"HOME=" + home, "USERPROFILE=" + home, "AGENTPACK_HOME=" + agentpackHome, "AGENTPACK_STAGING_ROOT=" + stagingRoot}
@@ -553,4 +571,58 @@ func stagedModeRoot(t *testing.T, project string) string {
 		t.Fatal(err)
 	}
 	return filepath.Join(project, "_staging", "projects", hash, "modes", "default")
+}
+
+// A staged hook used to run `agentpack hook-exec …` by bare name, so it ran
+// whatever `agentpack` the agent's PATH had, or nothing. It now names the
+// executable that staged it.
+func TestCompiledCLIStagesHooksThatDoNotDependOnPath(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("runs the staged command with sh")
+	}
+	project := t.TempDir()
+	plugin := filepath.Join(project, "plug")
+	for relative, body := range map[string]string{
+		".claude-plugin/plugin.json": `{"name":"plug","version":"1.0.0"}`,
+		"hooks/hooks.json":           `{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"printf ran-from-$(basename \"$CLAUDE_PLUGIN_ROOT\")"}]}]}}`,
+	} {
+		path := filepath.Join(plugin, filepath.FromSlash(relative))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		writeFile(t, path, body)
+	}
+	if result := runCLI(t, project, "add", "plug"); result.err != nil {
+		t.Fatalf("add: stdout=%q stderr=%q err=%v", result.stdout, result.stderr, result.err)
+	}
+	executable, err := filepath.EvalSymlinks(agentpackBinary)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mode := stagedModeRoot(t, project)
+	for _, relative := range []string{"plugins/agentpack-bundle/hooks/hooks.json", "cursor/agentpack-bundle/hooks/hooks.json"} {
+		staged := readFile(t, filepath.Join(mode, filepath.FromSlash(relative)))
+		if !strings.Contains(staged, executable+" hook-exec ") || strings.Contains(staged, `"agentpack hook-exec`) {
+			t.Fatalf("%s does not call %s:\n%s", relative, executable, staged)
+		}
+	}
+	if config := readFile(t, filepath.Join(stagedCodexHome(t, project, project), "hooks.json")); !strings.Contains(config, executable+" hook-exec ") {
+		t.Fatalf("codex hooks.json:\n%s", config)
+	}
+	var claude struct {
+		Hooks map[string][]struct {
+			Hooks []struct{ Command string }
+		}
+	}
+	if err := json.Unmarshal([]byte(readFile(t, filepath.Join(mode, "plugins", "agentpack-bundle", "hooks", "hooks.json"))), &claude); err != nil {
+		t.Fatal(err)
+	}
+	// With no agentpack on PATH at all, the staged command still runs the hook.
+	command := exec.Command("/bin/sh", "-c", claude.Hooks["Stop"][0].Hooks[0].Command)
+	command.Env = []string{"PATH=/usr/bin:/bin", "HOME=" + filepath.Join(project, "_home")}
+	command.Stdin = strings.NewReader("{}")
+	output, err := command.CombinedOutput()
+	if err != nil || string(output) != "ran-from-package" {
+		t.Fatalf("staged hook: %q, %v", output, err)
+	}
 }

@@ -371,3 +371,59 @@ func TestAddPluginResolvesAMarketplaceEntryToItsOwnRepositoryAndCommit(t *testin
 		t.Fatal("a rejected --plugin changed pack.lock")
 	}
 }
+
+// Deleted projects left their /tmp/agentpack-<hash> staging and their Codex
+// homes behind for good. A sync removes the ones agentpack marked whose
+// project is gone, and nothing else.
+func TestSyncRemovesTheTempDirectoriesOfProjectsThatAreGone(t *testing.T) {
+	fixture := newIntegrityFixture(t)
+	temporary := t.TempDir()
+	t.Setenv("TMPDIR", temporary)
+	t.Setenv("AGENTPACK_STAGING_ROOT", "")
+	os.Unsetenv("AGENTPACK_STAGING_ROOT")
+	fixture.manifest(demoKey, commitOne)
+	fixture.lock()
+	fixture.sync(SyncOptions{})
+
+	staging, parent, err := paths.StagingProjectDir(fixture.project)
+	if err != nil || parent != temporary {
+		t.Fatalf("staging = %s under %s, %v", staging, parent, err)
+	}
+	homes, err := codex.ProjectHomes(fixture.project)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(homes) })
+	for _, directory := range []string{staging, homes} {
+		if data, err := os.ReadFile(filepath.Join(directory, ".agentpack-project")); err != nil || !strings.Contains(string(data), filepath.Base(fixture.project)) {
+			t.Fatalf("%s is not marked with its project: %q, %v", directory, data, err)
+		}
+	}
+	gone, alive := filepath.Join(t.TempDir(), "deleted-project"), t.TempDir()
+	make := func(parent, name, project string) string {
+		directory := filepath.Join(parent, name)
+		writeIntegrityFile(t, filepath.Join(directory, "modes", "default", "file"), "x")
+		if project != "" {
+			writeIntegrityFile(t, filepath.Join(directory, ".agentpack-project"), project+"\n")
+		}
+		t.Cleanup(func() { _ = os.RemoveAll(directory) })
+		return directory
+	}
+	homesBase := filepath.Dir(homes)
+	orphans := []string{make(temporary, "agentpack-0000000000000001", gone), make(homesBase, "0000000000000001", gone)}
+	kept := []string{
+		make(temporary, "agentpack-0000000000000002", alive), make(temporary, "agentpack-0000000000000003", ""),
+		make(homesBase, "0000000000000002", alive), make(homesBase, "0000000000000003", ""),
+	}
+	fixture.sync(SyncOptions{})
+	for _, directory := range orphans {
+		if !fixtureMissing(directory) {
+			t.Errorf("left over: %s", directory)
+		}
+	}
+	for _, directory := range append(kept, staging, homes) {
+		if fixtureMissing(directory) {
+			t.Errorf("removed: %s", directory)
+		}
+	}
+}

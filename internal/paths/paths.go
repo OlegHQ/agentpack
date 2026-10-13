@@ -325,3 +325,67 @@ func regularFile(path string) bool {
 	info, err := os.Stat(path)
 	return err == nil && info.Mode().IsRegular()
 }
+
+// projectMarker is written into each directory agentpack creates for one
+// project outside $AGENTPACK_HOME. It holds the project's path, so that the
+// directory can be recognised as left over once the project is gone.
+const projectMarker = ".agentpack-project"
+
+// StagingProjectDir is the directory that holds a project's staging for every
+// mode. The second result is the directory such directories are created in
+// when no AGENTPACK_STAGING_ROOT is set, and empty when one is.
+func StagingProjectDir(projectRoot string) (string, string, error) {
+	directory, err := stagingRootBase(projectRoot)
+	if err != nil {
+		return "", "", err
+	}
+	if _, configured := os.LookupEnv("AGENTPACK_STAGING_ROOT"); configured {
+		return directory, "", nil
+	}
+	return directory, filepath.Dir(directory), nil
+}
+
+// MarkProjectDirectory records which project a directory belongs to.
+func MarkProjectDirectory(directory, projectRoot string) error {
+	root, err := canonical(projectRoot)
+	if err != nil {
+		return err
+	}
+	if info, err := os.Stat(directory); err != nil || !info.IsDir() {
+		return nil
+	}
+	marker := filepath.Join(directory, projectMarker)
+	if data, err := os.ReadFile(marker); err == nil && string(data) == root+"\n" {
+		return nil
+	}
+	return os.WriteFile(marker, []byte(root+"\n"), 0o644)
+}
+
+// OrphanedProjectDirectories lists the directories directly under parent that
+// carry a project marker for a project directory that no longer exists. A
+// directory without a marker is never listed.
+func OrphanedProjectDirectories(parent string) []string {
+	entries, err := os.ReadDir(parent)
+	if err != nil {
+		return nil
+	}
+	var orphans []string
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		directory := filepath.Join(parent, entry.Name())
+		data, err := os.ReadFile(filepath.Join(directory, projectMarker))
+		if err != nil {
+			continue
+		}
+		root := strings.TrimSpace(string(data))
+		if root == "" || !filepath.IsAbs(root) {
+			continue
+		}
+		if _, err := os.Stat(root); os.IsNotExist(err) {
+			orphans = append(orphans, directory)
+		}
+	}
+	return orphans
+}

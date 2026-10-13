@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	hookexec "github.com/OlegHQ/agentpack/internal/hooks"
 )
 
 func InjectGuidance(bundle, blob string) error {
@@ -42,11 +44,11 @@ func addGuidanceHook(bundle, guidancePath string) error {
 	kept := session[:0]
 	for _, group := range session {
 		encoded, _ := json.Marshal(group)
-		if !strings.Contains(string(encoded), "agentpack hook-exec inject-guidance") {
+		if !strings.Contains(string(encoded), " hook-exec inject-guidance ") {
 			kept = append(kept, group)
 		}
 	}
-	command := "agentpack hook-exec inject-guidance --target claude --event SessionStart --file " + shellQuote(guidancePath)
+	command := hookexec.ExecutableCommand() + " hook-exec inject-guidance --target claude --event SessionStart --file " + shellQuote(guidancePath)
 	hooks["SessionStart"] = append(kept, map[string]any{"hooks": []any{map[string]any{"type": "command", "command": command}}})
 	if err := os.MkdirAll(filepath.Dir(hooksPath), 0o755); err != nil {
 		return err

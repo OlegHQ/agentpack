@@ -62,7 +62,7 @@ func TestCodexGenerationSwitchPreservesRunningHome(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { _ = os.RemoveAll(filepath.Dir(first)) })
+	t.Cleanup(func() { _ = os.RemoveAll(filepath.Dir(filepath.Dir(first))) })
 	if err := os.WriteFile(filepath.Join(first, "running-session.marker"), []byte("still here"), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -136,7 +136,7 @@ func TestFailedCodexRebuildKeepsPublishedGeneration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { _ = os.RemoveAll(filepath.Dir(first)) })
+	t.Cleanup(func() { _ = os.RemoveAll(filepath.Dir(filepath.Dir(first))) })
 	if err := os.WriteFile(nativeConfig, []byte("[invalid\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}

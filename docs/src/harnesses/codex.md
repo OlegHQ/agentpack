@@ -15,7 +15,16 @@ agentpack codex --model gpt-5-codex
 agentpack --yolo codex      # adds --dangerously-bypass-approvals-and-sandbox
 ```
 
-Each project mode gets a complete generation home. Agentpack builds and verifies a replacement before switching new launches to it. Running sessions keep their original home and daemon. The home is **seeded** from your real `~/.codex/` (`config.toml`, `skills`, `themes`) so user config keeps working under the redirect.
+Each project mode gets a complete generation home. Agentpack builds and verifies a replacement before switching new launches to it. Running sessions keep their original home and daemon.
+
+### Where the homes are
+
+Codex binds a Unix socket at `<home>/app-server-control/app-server-control.sock`, and a socket path may be at most about 104 bytes on macOS and 108 on Linux. A home therefore has to sit at a short path, which a staging tree usually is not. The homes are kept in:
+
+- `$AGENTPACK_STAGING_ROOT/ap-c/<project hash>/<mode>/g-<n>/` when `AGENTPACK_STAGING_ROOT` is set and that path still leaves room for the socket (a root of up to about 23 bytes on Linux, such as `/tmp/ap` or `/srv/agentpack`);
+- `/var/tmp/ap-c/<project hash>/<mode>/g-<n>/` otherwise, including when the configured staging root is too long. This is the one place agentpack writes outside `$AGENTPACK_HOME` and the staging root.
+
+Each `<project hash>` directory holds a `.agentpack-project` file with the project's path. A `sync` in any project removes the directories under `/var/tmp/ap-c/` (and the `/tmp/agentpack-<hash>` staging trees of the default staging location) whose recorded project no longer exists and that no running session holds. Directories written by versions before this marker are not touched. The home is **seeded** from your real `~/.codex/` (`config.toml`, `skills`, `themes`) so user config keeps working under the redirect.
 
 ## Credential bridging
 
@@ -33,6 +42,8 @@ After upgrading to this layout, an MCP credential that existed only in the OS ke
 ## Session history
 
 The generated home is replaceable, but Codex resume state is not. agentpack links staged `sessions/`, `archived_sessions/`, and `history.jsonl` to their native locations under `~/.codex/`, and defaults `sqlite_home` to `~/.codex`. Sessions created through agentpack therefore appear in direct `codex resume` and survive staging cleanup, project/mode changes, and machine restarts.
+
+This is the one thing agentpack creates in your real `~/.codex`: every `sync` (not only `agentpack codex`) makes sure `~/.codex/sessions/`, `~/.codex/archived_sessions/` and `~/.codex/history.jsonl` exist, creating them empty when they do not, because the staged home links to them and the links are verified. It happens on a machine where Codex was never run as well. Nothing else under `~/.codex` is written; `config.toml`, `skills` and `themes` are only read.
 
 On the first sync after upgrading, agentpack imports surviving history from every old staging mode before rebuilding it. Existing native files always win; differing collisions are retained under `$AGENTPACK_HOME/recovery/session-history/codex/` for manual inspection. An explicitly configured `sqlite_home` is preserved.
 
