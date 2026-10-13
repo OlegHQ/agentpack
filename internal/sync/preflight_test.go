@@ -836,12 +836,11 @@ func TestEffectivePlanFollowsDeclaredPathsAndConvertedNames(t *testing.T) {
 	key := strings.Repeat("b", 64)
 	root := filepath.Join(home, "cache", key)
 	for relative, body := range map[string]string{
-		".codex-plugin/plugin.json":           `{"name":"pack","skills":"./.codex/skills/"}`,
-		".codex/skills/devops/SKILL.md":       "---\nname: devops\ndescription: DevOps\n---\nDeploy.\n",
-		"skills/build-bot/SKILL.md":           "---\nname: build-bot\ndescription: Skill\n---\nSkill body.\n",
-		"commands/build-bot.md":               "---\ndescription: Command\n---\nCommand body.\n",
-		"commands/modernize.md":               "---\ndescription: Start\nargument-hint: [system] [--source <path>]\n---\nBody.\n",
-		".claude-plugin/plugin.json.disabled": "{}",
+		".codex-plugin/plugin.json":     `{"name":"pack","skills":"./.codex/skills/"}`,
+		".codex/skills/devops/SKILL.md": "---\nname: devops\ndescription: DevOps\n---\nDeploy.\n",
+		"skills/build-bot/SKILL.md":     "---\nname: build-bot\ndescription: Skill\n---\nSkill body.\n",
+		"commands/build-bot.md":         "---\ndescription: Command\n---\nCommand body.\n",
+		"commands/modernize.md":         "---\ndescription: Start\nargument-hint: [system] [--source <path>]\n---\nBody.\n",
 	} {
 		path := filepath.Join(root, filepath.FromSlash(relative))
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
