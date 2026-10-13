@@ -135,5 +135,56 @@ func TestCursorPluginHooksAreStagedForCursorAndSkippedElsewhereByName(t *testing
 	if matches, _ := filepath.Glob(fixture.stagedDir("cursor/agentpack-bundle/hooks/_packages/*/package/hooks/stop-hook.sh")); len(matches) != 1 {
 		t.Fatalf("staged hook package = %v", matches)
 	}
-	_ = context.Background
+}
+
+// `agentpack add` of a plugin that brings MCP servers used to leave them
+// unrecorded and tell the user to run `agentpack lock`.
+func TestAddRecordsThePackagesMCPServersInTheLock(t *testing.T) {
+	fixture := newIntegrityFixture(t)
+	fixture.upstream.tarballs[commitTwo] = map[string]string{
+		"browser/.claude-plugin/plugin.json": `{"name":"browser","version":"1.0.0"}`,
+		// The bare map of the official playwright and gitlab plugins.
+		"browser/.mcp.json": `{"playwright":{"command":"npx","args":["@playwright/mcp@latest"]},"gitlab":{"type":"http","url":"https://gitlab.com/api/v4/mcp"}}`,
+	}
+	fixture.writeManifest("\n[dependencies]\n")
+	if _, err := fixture.service.Add(context.Background(), fixture.project, "acme/skills/browser@"+commitTwo, false); err != nil {
+		t.Fatal(err)
+	}
+	lock := fixture.loadLock()
+	playwright, _ := lock.MCPServer("playwright")
+	gitlab, _ := lock.MCPServer("gitlab")
+	if playwright.Status != "pinned" || playwright.Version != "0.0.41" || playwright.Source != "plugin" || gitlab.Status != "unpinnable" || gitlab.Host != "gitlab.com" {
+		t.Fatalf("mcp_servers = %#v", lock.MCPServers)
+	}
+	if fixture.noticed("no current record in pack.lock") {
+		t.Fatalf("notices = %v", fixture.notices)
+	}
+	if staged := fixture.stagedMCP(); !strings.Contains(staged, `"@playwright/mcp@0.0.41"`) || !strings.Contains(staged, "https://gitlab.com/api/v4/mcp") {
+		t.Fatalf("staged MCP = %s", staged)
+	}
+}
+
+// A registry that cannot be reached does not undo the add.
+func TestAddKeepsThePackageWhenItsMCPServerCannotBePinned(t *testing.T) {
+	fixture := newIntegrityFixture(t)
+	fixture.upstream.tarballs[commitTwo] = map[string]string{
+		"browser/.claude-plugin/plugin.json": `{"name":"browser","version":"1.0.0"}`,
+		"browser/.mcp.json":                  `{"mcpServers":{"playwright":{"command":"npx","args":["@playwright/mcp@latest"]}}}`,
+	}
+	fixture.writeManifest("\n[dependencies]\n")
+	fixture.upstream.registryDown = true
+	pkg, err := fixture.service.Add(context.Background(), fixture.project, "acme/skills/browser@"+commitTwo, false)
+	if err != nil || pkg.ContentHash == "" {
+		t.Fatalf("add = %#v, %v", pkg, err)
+	}
+	if _, recorded := fixture.loadLock().MCPServer("playwright"); recorded {
+		t.Fatal("an unreachable registry produced a record")
+	}
+	if !fixture.noticed(`MCP server "playwright" (npm package @playwright/mcp@latest) could not be pinned`) || !strings.Contains(fixture.stagedMCP(), `"@playwright/mcp@latest"`) {
+		t.Fatalf("notices = %v\nstaged = %s", fixture.notices, fixture.stagedMCP())
+	}
+	fixture.upstream.registryDown = false
+	if pinned, _ := fixture.lock().MCPServer("playwright"); pinned.Version != "0.0.41" {
+		t.Fatalf("lock after the registry returned = %#v", pinned)
+	}
 }

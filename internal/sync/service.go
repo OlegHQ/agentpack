@@ -80,13 +80,28 @@ type resolveRun struct {
 	// regenerate lets `agentpack lock` replace a lock it cannot parse.
 	regenerate       bool
 	allowUnpinnedMCP bool
-	primed           []lockfile.Package
+	// softMCP leaves a server without a record, with a notice, when its
+	// registry cannot be reached, instead of failing the command.
+	softMCP bool
+	primed  []lockfile.Package
 }
 
-// resolveAndSave is the resolve step of add, remove and update: it records
-// missing content hashes and keeps MCP records as they are.
+// resolveAndSave is the resolve step of remove: it records missing content
+// hashes and keeps MCP records as they are.
 func (service Service) resolveAndSave(ctx context.Context, projectRoot string, project *manifest.Manifest, refresh bool, primed []lockfile.Package) (lockfile.PackLock, error) {
 	return service.resolve(ctx, projectRoot, project, resolveRun{options: resolve.ResolveOptions{RefreshFloating: refresh, RecordContentHashes: true}, explicit: true, primed: primed})
+}
+
+// resolveAdded is the resolve step of add. It also records the MCP servers
+// the project now stages, which include the ones the new package brings. A
+// registry that cannot be reached does not undo the add: that server stays
+// unrecorded and runs as written until `agentpack lock` pins it.
+func (service Service) resolveAdded(ctx context.Context, projectRoot string, project *manifest.Manifest, primed []lockfile.Package) (lockfile.PackLock, error) {
+	lock, err := service.resolve(ctx, projectRoot, project, resolveRun{options: resolve.ResolveOptions{RecordContentHashes: true}, pinMode: mcpResolve, softMCP: true, explicit: true, primed: primed})
+	if err == nil {
+		service.reportMCPServers(lock)
+	}
+	return lock, err
 }
 
 func (service Service) resolve(ctx context.Context, projectRoot string, project *manifest.Manifest, run resolveRun) (lockfile.PackLock, error) {
@@ -127,7 +142,7 @@ func (service Service) resolve(ctx context.Context, projectRoot string, project 
 		return lockfile.PackLock{}, err
 	}
 	resolved.Config = locked.Config
-	if resolved.MCPServers, err = service.settleMCPServers(ctx, projectRoot, project, resolved, locked.MCPServers, run.pinMode, run.allowUnpinnedMCP); err != nil {
+	if resolved.MCPServers, err = service.settleMCPServers(ctx, projectRoot, project, resolved, locked.MCPServers, run.pinMode, run.allowUnpinnedMCP, run.softMCP); err != nil {
 		return lockfile.PackLock{}, err
 	}
 	// An implicit run leaves the file alone unless what it records changed.
@@ -232,7 +247,7 @@ func (service Service) Add(ctx context.Context, projectRoot, spec string, noSync
 			return lockfile.Package{}, err
 		}
 		project, _ := manifest.Load(projectRoot)
-		lock, err := service.resolveAndSave(ctx, projectRoot, project, false, nil)
+		lock, err := service.resolveAdded(ctx, projectRoot, project, nil)
 		if err != nil {
 			return lockfile.Package{}, err
 		}
@@ -254,7 +269,7 @@ func (service Service) Add(ctx context.Context, projectRoot, spec string, noSync
 		return lockfile.Package{}, err
 	}
 	project, _ := manifest.Load(projectRoot)
-	lock, err := service.resolveAndSave(ctx, projectRoot, project, false, []lockfile.Package{resolved.Package})
+	lock, err := service.resolveAdded(ctx, projectRoot, project, []lockfile.Package{resolved.Package})
 	if err != nil {
 		return lockfile.Package{}, err
 	}

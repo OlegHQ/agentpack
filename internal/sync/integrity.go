@@ -156,7 +156,7 @@ func (service Service) checkLockRecords(projectRoot string, project *manifest.Ma
 // settleMCPServers builds the lock records for every MCP server the project
 // stages, in any mode. A record is kept while the server's definition is
 // unchanged, so an unchanged lock never needs the network.
-func (service Service) settleMCPServers(ctx context.Context, projectRoot string, project *manifest.Manifest, lock lockfile.PackLock, previous []lockfile.MCPServer, pinMode mcpPinMode, allowUnpinned bool) ([]lockfile.MCPServer, error) {
+func (service Service) settleMCPServers(ctx context.Context, projectRoot string, project *manifest.Manifest, lock lockfile.PackLock, previous []lockfile.MCPServer, pinMode mcpPinMode, allowUnpinned, soft bool) ([]lockfile.MCPServer, error) {
 	entries, err := staging.CollectMCP(projectRoot, lock, project, nil)
 	if err != nil {
 		return nil, err
@@ -205,6 +205,9 @@ func (service Service) settleMCPServers(ctx context.Context, projectRoot string,
 			record.Status, record.AllowUnpinned = lockfile.MCPUnpinned, true
 			record.Reason = "the registry could not be asked at lock time"
 			service.notify("MCP server %q recorded as unpinned (%v)", name, err)
+		case soft:
+			service.notify("MCP server %q (npm package %s) could not be pinned and has no record in pack.lock: %v; it runs as written until `agentpack lock` reaches the registry", name, record.Requested, err)
+			continue
 		default:
 			return nil, fmt.Errorf("cannot pin MCP server %q (npm package %s): %w; nothing was written to pack.lock; retry when the registry is reachable, or run `agentpack lock --allow-unpinned-mcp` to record this server as unpinned", name, record.Requested, err)
 		}
@@ -245,7 +248,7 @@ func (service Service) RefreshMCPRecords(ctx context.Context, projectRoot string
 	if pin {
 		pinMode = mcpResolve
 	}
-	records, err := service.settleMCPServers(ctx, projectRoot, project, lock, lock.MCPServers, pinMode, allowUnpinned)
+	records, err := service.settleMCPServers(ctx, projectRoot, project, lock, lock.MCPServers, pinMode, allowUnpinned, false)
 	if err != nil {
 		return err
 	}

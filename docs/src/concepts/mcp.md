@@ -67,7 +67,7 @@ For Cursor's fake `HOME`, the merged pack `mcp.json` is additionally merged with
 
 ## What pack.lock records
 
-MCP definitions live in the manifest, in plugins and in `./.agents/mcp.json`, but what a server *runs* is decided when it starts: `npx @playwright/mcp@latest` downloads whatever `latest` means that day. `agentpack lock` therefore records every merged server in `pack.lock` under `[[mcp_servers]]`, with an explicit `status`:
+MCP definitions live in the manifest, in plugins and in `./.agents/mcp.json`, but what a server *runs* is decided when it starts: `npx @playwright/mcp@latest` downloads whatever `latest` means that day. `agentpack lock` therefore records every merged server in `pack.lock` under `[[mcp_servers]]`, with an explicit `status`. `agentpack add` does the same for the servers the added package brings, and `agentpack mcp add` for the one it defines:
 
 | Launcher | Recognized from | What is recorded | Status |
 |---|---|---|---|
@@ -104,6 +104,8 @@ agentpack mcp add playwright --command npx --args @playwright/mcp@latest --allow
 ```
 
 The server is then recorded with `status = "unpinned"` and `allow_unpinned = true`, runs as written, and is tried again on the next `lock`.
+
+`agentpack add` does not fail on an unreachable registry: the package is added and locked, the server is left without a record, and a warning names it. It then runs as written until `agentpack lock` can pin it.
 
 `sync` and the launchers never contact a registry. A server with no current record runs as written, with a warning that names it.
 
