@@ -7,7 +7,9 @@ window.
 
 ## Unreleased
 
-Found by adding 40 published packages (Claude Code, Cursor and Codex plugins, skills, community marketplaces) with 0.4.8.
+## [0.5.0] - 2026-10-13
+
+Found by adding 40 published packages (Claude Code, Cursor and Codex plugins, skills, community marketplaces) with 0.4.8, and by comparing what Agentpack and other tools deliver from the same nine packages.
 
 ### Added
 
