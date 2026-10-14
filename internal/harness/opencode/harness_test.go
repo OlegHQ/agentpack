@@ -44,3 +44,16 @@ func TestPrepareSeedsConfigAndAttributionIdempotently(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestStagesLSPReadsTheLspMap(t *testing.T) {
+	directory := t.TempDir()
+	path := filepath.Join(directory, "opencode.json")
+	for text, want := range map[string]bool{`{"lsp":{"x":{"command":["x"]}}}`: true, `{"lsp":{}}`: false, `{"mcp":{}}`: false} {
+		if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if got := stagesLSP(path); got != want {
+			t.Errorf("stagesLSP(%s) = %v", text, got)
+		}
+	}
+}

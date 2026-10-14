@@ -83,7 +83,7 @@ A plugin declares language servers in Claude Code's format: `.lsp.json` at the p
 |---|---|
 | Claude Code | `.lsp.json` at the root of the staged bundle |
 | Grok | `$GROK_HOME/lsp.json` (Grok reads a plugin's `.lsp.json` only after the plugin is trusted), and `[features] lsp_tools = true` in its `config.toml` so that the model gets Grok's `lsp` tool, unless the user's configuration sets it |
-| OpenCode | the `lsp` map of the staged `opencode.json`: `command` as `[command, args...]`, `extensions` from the keys of `extensionToLanguage`, `env`, and `initialization` from `initializationOptions`; other fields are left out with a warning |
+| OpenCode | the `lsp` map of the staged `opencode.json`: `command` as `[command, args...]`, `extensions` from the keys of `extensionToLanguage`, `env`, and `initialization` from `initializationOptions`; other fields are left out with a warning; `agentpack opencode` sets `OPENCODE_EXPERIMENTAL_LSP_TOOL=true`, which gives the model OpenCode's `lsp` tool, unless it is already set |
 | Codex, Cursor, Antigravity | not written: Codex has no language server setting, Cursor and Antigravity run only their built-in servers; a warning names them |
 
 The language server program itself (for example `pyright-langserver`) is not installed by agentpack; the agent starts it from `PATH`.

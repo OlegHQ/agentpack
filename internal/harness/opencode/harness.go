@@ -47,6 +47,11 @@ func launch(ctx base.LaunchContext) (*exec.Cmd, error) {
 	}
 	command := exec.Command(binary, ctx.Arguments...)
 	command.Env = append(os.Environ(), "OPENCODE_CONFIG_DIR="+root)
+	// OpenCode gives its model the lsp tool only with this variable set;
+	// a package's language servers are staged so that the agent uses them.
+	if _, set := os.LookupEnv("OPENCODE_EXPERIMENTAL_LSP_TOOL"); !set && stagesLSP(filepath.Join(root, "opencode.json")) {
+		command.Env = append(command.Env, "OPENCODE_EXPERIMENTAL_LSP_TOOL=true")
+	}
 	return command, nil
 }
 
@@ -146,4 +151,20 @@ func writeConfig(path string, value any) error {
 		return err
 	}
 	return os.WriteFile(path, data, 0o644)
+}
+
+// stagesLSP says whether the staged opencode.json names a language server.
+func stagesLSP(path string) bool {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return false
+	}
+	standard, err := hujson.Standardize(append(data, '\n'))
+	if err != nil {
+		return false
+	}
+	var config struct {
+		LSP map[string]json.RawMessage `json:"lsp"`
+	}
+	return json.Unmarshal(standard, &config) == nil && len(config.LSP) != 0
 }
