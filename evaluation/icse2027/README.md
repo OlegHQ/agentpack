@@ -1,145 +1,110 @@
 # Agentpack ICSE 2027 evaluation artifact
 
-Scripts and recorded results for every experiment in the paper's evaluation section. All results were recorded on 2026-10-12 with the released Agentpack 0.4.8 binary, on Linux 6.8 aarch64 unless a CI runner is named.
+Scripts and recorded results for the three experiments of the paper's evaluation. All three were recorded on 2026-10-14 and 2026-10-15 on Linux 6.8 aarch64 with one binary, the Agentpack 0.5.0 release candidate (sha256 `8592b2cf2c8d157a349165fba52ecb5f370cae7b68ba4b17b21affac9759e96a`), and these agents: Claude Code 2.1.299, Codex 0.159.3, OpenCode 1.17.11, Cursor 2026.08.25-3e8eec8, Grok 1.0.44, Antigravity 1.3.5. Claude Code updated itself to 2.1.300 during the work; the runs put the 2.1.299 binary first on `PATH` with `DISABLE_AUTOUPDATER=1`.
 
-| Experiment | Script | Results | Calls a model | Needs |
+The release candidate was built with `make release` from commit ee0ffb3 of OlegHQ/agentpack. The published release v0.5.0 (https://github.com/OlegHQ/agentpack/releases/tag/v0.5.0) was built by CI (GoReleaser) from tag commit 215a1cf, which differs from ee0ffb3 only in `README.md`; its binaries therefore have other checksums (linux arm64: `3fabcebbde9409cb14118842edd1128847bbc5186a6908f3b03b30e83e726e8f`). With that binary, `video/demo.sh` without model calls gave the same pinned version, catalog and language-server output on 2026-10-15. To rerun the scripts against the release, pass its binary and its own checksum.
+
+| Experiment | Script | Results | Calls a model |
+|---|---|---|---|
+| What 13 tools deliver from 9 pinned published inputs | `ecosystem.py` | `ecosystem-results.json` | no |
+| 40 published packages through Agentpack | `plugins.py` | `plugins-results.json`, `plugins-corpus.json` | no |
+| One package on six agents, item by item | `delivery.py` | `delivery-results.json` | yes |
+
+```sh
+SHA=8592b2cf2c8d157a349165fba52ecb5f370cae7b68ba4b17b21affac9759e96a
+uv run ecosystem.py setup --tools-dir TOOLS            # downloads the pinned tools
+GITHUB_TOKEN=$(gh auth token) uv run ecosystem.py run --tools-dir TOOLS --agentpack bin/agentpack --agentpack-sha256 $SHA --work WORK --jobs 4
+uv run ecosystem.py rescore                            # recomputes every cell and the summary from the stored evidence
+uv run plugins.py  --agentpack bin/agentpack --agentpack-sha256 $SHA --work WORK2 --jobs 3
+uv run delivery.py --agentpack bin/agentpack --agentpack-sha256 $SHA --runs 3 --codex-unsandboxed   # real model calls on your accounts
+```
+
+`ecosystem.py` and `plugins.py` run every tool and agent in empty temporary homes; no account or user setting is read. `delivery.py` uses your signed-in agents through the Agentpack launcher, in a temporary checkout.
+
+## What each tool delivers (`ecosystem.py`)
+
+Nine inputs pinned by commit (three Claude Code plugins, two Cursor plugins, a Codex plugin, a bare skill, two marketplace repositories) are given to each tool with the command its documentation gives. A cell is one input, one agent and one kind of content (skill, command, subagent, rule, hook, MCP server); 162 cells exist. The scoring rule is the docstring of `ecosystem.py`, is copied into the results (`scoring_rule`) and is applied by code to every tool's stored evidence: an item counts when the agent's own listing shows it, or, where the agent has no listing without a model, when a file holds it where the agent documents it. Numbers are in `summary.<tool>`.
+
+| Tool | Inputs accepted (and something delivered) | Native | Converted | Absent |
 |---|---|---|---|---|
-| One pinned package on six agents | `delivery.py` | `delivery-results.json` | yes | the six agents, signed in |
-| Same-named skills in public repositories | `prevalence.py` | `prevalence-results.json` | no | `gh` (signed in), `git` |
-| What three agents list for a same-named skill | `collision.py` | `collision-results.json` | no | Claude Code 2.1.296, Codex 0.159.3, OpenCode 1.17.11 |
-| Same-named commands and subagents | `kinds.py` | `kinds-results.json` | no | Claude Code 2.1.296, Codex 0.159.3 |
-| Which copy the agent follows | `behaviour.py` | `behaviour-results.json` | yes | Claude Code and Codex, signed in |
-| Thirty skill directories in 26 real repositories | `realrepos.py` | `realrepos-results.json` | no | Claude Code 2.1.296, Codex 0.159.3 |
-| CI gate on three operating systems | `ci_gate.py` | `ci-results/` | no | nothing: it runs in GitHub Actions |
-| Receipts over 16 states | `scenario.py` | `scenario-results.json` | no | Claude Code 2.1.296 |
-| Eight fault classes | `faults.py` | `fault-results.json` | no | nothing for five classes; Claude Code for three |
+| Agentpack 0.5.0 | 9 (9) | 148 | 14 | 0 |
+| Microsoft APM 0.33.0 | 9 (8) | 124 | 0 | 38 |
+| rulesync 33.0.0 | 9 (5) | 99 | 9 | 54 |
+| Ruler 0.3.44 (content copied in by hand) | 0 | 81 | 0 | 81 |
+| Each agent's own install command | per agent | 58 | 4 | 100 |
+| Vercel skills 1.7.2 | 6 (6) | 36 | 0 | 126 |
+| skills-lock 0.1.0 | 6 (6) | 36 | 0 | 126 |
+| skillpm 4.0.0 | 5 (5) | 25 | 0 | 137 |
+| liqiongyu/agentpack 0.9.1 | 1 (1) | 22 | 0 | 140 |
+| openskills 1.5.0 | 3 (2) | 8 | 0 | 154 |
+| dotagents 3.3.0 | 8 (6) | 6 | 0 | 156 |
+| skillshare 0.25.10 | 1 (1) | 6 | 0 | 156 |
+| retr0h/agentpack 1.1.0 | 7 (1) | 5 | 0 | 157 |
 
-## Quickstart: released binary and Python 3 only
+- Agentpack's 14 conversions: commands on Codex and on Antigravity (as skills, 4 inputs each), hooks on OpenCode (as a generated plugin, 4), a rule on Claude Code and on Grok (as a skill, 1 each).
+- One cell has another tool ahead of Agentpack: Ruler puts a Cursor rule into `CLAUDE.md`, Agentpack delivers it to Claude Code as a skill.
+- rulesync documents a plugin importer for Claude Code plugins only. Pointed at the Codex and Cursor plugins as well (not documented), it reaches 123 native and 9 converted; this is the row `rulesync-claude-importer` in the results.
+- Lockfile: Agentpack's `pack.lock` records the pinned commit and a content hash in 9 of 9 inputs, and delivers both npx-started Playwright servers as `@playwright/mcp@0.0.83`. APM records the commit in 8 and a hash in 9 and delivers `@latest`; rulesync has a lockfile for the bare skill only. Claude Code's own plugin record holds the commit its catalog was at when installed, which is the pinned one for 2 inputs (2026-10-14; it was 4 on 2026-10-13, before the official catalog moved on).
+- Where files go: Agentpack writes `agentpack.toml` and `pack.lock` to the checkout and one link at launch; the rest is in its own home and staging directory, a Codex home under `/var/tmp/ap-c`, and an empty `~/.codex/history.jsonl`. APM writes up to 137 files into the checkout, rulesync up to 264.
+- Limits: hooks are one item per input (a hook file that names one of the input's scripts counts; events are not compared). Cursor skills, commands, subagents, rules and hooks, and Antigravity skills, subagents and rules, have no listing without a model and are decided by files. Cursor's own install command needs a login and was not run.
 
-```sh
-curl -LO https://github.com/OlegHQ/agentpack/releases/download/v0.4.8/agentpack_0.4.8_linux_arm64.tar.gz
-curl -LO https://github.com/OlegHQ/agentpack/releases/download/v0.4.8/checksums.txt
-sha256sum -c checksums.txt --ignore-missing
-mkdir bin && tar -xzf agentpack_0.4.8_linux_arm64.tar.gz -C bin
+## Forty published packages (`plugins.py`)
 
-# five offline fault classes and three ready controls, about one second, no agent needed
-python3 faults.py --agentpack bin/agentpack --output /tmp/fault-results.json
-```
+Forty packages chosen by a fixed rule from the official Claude Code, Cursor and Codex plugin repositories, `anthropics/skills` and the three most-starred community marketplaces (`plugins-corpus.json`) are each added, locked and synced in a fresh project. Numbers are in `summary`.
 
-Archives for `linux_amd64`, `darwin_arm64`, `darwin_amd64` and `windows_amd64` are in the same release. The CI experiment needs nothing local at all: see [the workflow](../../.github/workflows/agent-config-gate.yml) and [its run](https://github.com/OlegHQ/agentpack/actions/runs/38275520826).
+- 40 of 40 lock and stage. Four of them are catalog entries that define the plugin, a language server only, in the catalog; one is a marketplace root whose nine plugins are all added.
+- Sync repeated with the network blocked: 40 of 40 succeed with the same lock and the same staged items.
 
-With the agents installed (the scripts refuse other agent versions, because the probes are validated for these versions only):
+| Kind (source items) | In the staged tree | Listed by the agent's own CLI |
+|---|---|---|
+| Skills (594) | 594 on six agents | Claude Code 594, OpenCode 594, Grok 594, Codex 498 of 567 (27 hidden by the packages' own metadata) |
+| Commands (130) | 130 on five agents; on Codex 130 as skills, 20 of them under `<name>-command` | Claude Code 130, OpenCode 130, Grok 130, Codex 117 |
+| Subagents (50) | 50 on six agents (Codex: `agents/<name>.toml`; subagents a package keeps in subdirectories of `agents/` are staged at its top for every agent but OpenCode) | OpenCode 50, Grok 50, Antigravity 50, Claude Code 42, Codex 42 |
+| Rule (1) | Cursor and Antigravity as a rule, the other four as a skill | no listing |
+| Hooks (4 packages) | 4 on Claude Code, Codex, Cursor, Grok, Antigravity; OpenCode 3 as a generated plugin, 1 dropped | Grok lists 4; `agy plugin validate` reports hooks processed in 4 |
+| MCP servers (16) | 16 on six agents | 16 on five agents; `agy mcp list` shows none |
+| Language servers (4) | 4 on Claude Code, OpenCode, Grok; Codex, Cursor and Antigravity have no setting (warning) | Claude Code 4, OpenCode 4, Grok 4 |
 
-```sh
-python3 collision.py --agentpack bin/agentpack      # about 25 minutes; --repeats 5 for a quick pass
-python3 realrepos.py --agentpack bin/agentpack      # clones 30 public repositories, skill directories only
-python3 scenario.py  --agentpack bin/agentpack
-python3 faults.py    --agentpack bin/agentpack --claude "$(command -v claude)"
-python3 prevalence.py                               # about 8 minutes; GitHub code search is rate limited
-python3 delivery.py  --agentpack bin/agentpack --codex-unsandboxed   # real model calls on your accounts
-python3 behaviour.py --codex-unsandboxed            # real model calls on your Claude Code and Codex accounts
-```
+- The 8 subagents that Claude Code and Codex do not list are the personas of `alirezarezvani/claude-skills`, whose declared names contain spaces (`name: Startup CTO`). The skills and commands Codex does not list are in the same repository. With the previous candidate (b9330796, kept in `history/`), which staged nested subagents in their subdirectories, Claude Code, Grok and Antigravity listed 17 of 50.
+- Cursor has no listing without a model for skills, commands and subagents; Antigravity none for skills and commands.
+- Every listing finished in this recording (`packages_without_observation` is empty for every agent and kind). In the run on the previous candidate, three experiments shared the host and three packages' listings timed out; those rows are kept in `history/0.5.0-rc-b9330796/`.
+- Six MCP servers in these repositories start through an npm launcher. Locked through the package that ships them, 5 get an exact version; locked as a manifest entry, 6. The sixth package also defines its server as a local `node` command, which Agentpack uses and does not pin. In every pinned case the exact version is in all six agents' configurations, and sync with the network blocked changes nothing.
 
-Scripts that call no model run every agent in an empty temporary home: no account, credential, hook or user setting is read. `delivery.py` and `behaviour.py` are the exception by design and say so in their headers.
+## One package on six agents (`delivery.py`)
 
-## One pinned package on six agents (`delivery.py`)
+A package with a skill, a slash command, a subagent, a rule, a prompt hook, a local stdio MCP server and a language server is locked and restored once, and each agent is started through Agentpack in non-interactive mode, three times per item. Each item makes the agent answer with its own token; the hook appends a line to a file; the MCP server (Node, inside the package, declared once in `.mcp.json`) returns a token that is nowhere in the package as text and records each call it receives. The language server (Node, declared in `.lsp.json` for the file extension `.dlv`) logs every request and answers a hover with its own token; the prompt asks for the hover text of a word in `sample.dlv`, and the item counts when the server logged the agent's `initialize` (the answer containing the hover token is recorded as `lsp_hover_token_in_answer`). It runs only on the three agents that have a language-server setting. Numbers are in `matrix`.
 
-A package with a skill, a slash command, a subagent, a rule and a hook is pinned and restored once, and each agent is launched through Agentpack in non-interactive mode, three times per artifact. Each artifact tells the agent to answer with its own token; the hook appends a line to a file when a prompt is submitted.
+| Agent | Skill | Command | Subagent | Rule | MCP tool call | Language server | Hook fired |
+|---|---|---|---|---|---|---|---|
+| Claude Code | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 18/18 |
+| Codex | 3/3 | 3/3 | 2/3 | 3/3 | 3/3 | no setting | 14/15 |
+| OpenCode | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 18/18 |
+| Cursor | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | no setting | 0/15 |
+| Grok | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 21/21 |
+| Antigravity | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | no setting | 15/15 |
 
-| Agent | Version | Skill | Command | Subagent | Rule | Hook fired |
-|---|---|---|---|---|---|---|
-| Claude Code | 2.1.296 (Claude Code) | 3/3 | 3/3 | 3/3 | 3/3 | 12/12 |
-| Codex | codex-cli 0.159.3 | 3/3 | 3/3 | 3/3 | 3/3 | 12/12 |
-| OpenCode | 1.17.11 | 3/3 | 3/3 | 3/3 | 3/3 | 12/12 |
-| Cursor | 2026.08.25-3e8eec8 | 3/3 | 3/3 | 3/3 | 3/3 | 0/12 |
-| Grok | grok 1.0.44 (5b807183dd79) [stable] | 3/3 | 3/3 | 0/3 | 3/3 | 12/12 |
-| Antigravity | 1.3.3 | 3/3 | 3/3 | 3/3 | 3/3 | 0/12 |
+- The hover token was in the answer in all 9 language-server runs. OpenCode is launched with `OPENCODE_EXPERIMENTAL_LSP_TOOL=true` (set by Agentpack when the staged configuration has language servers) and Grok with `[features] lsp_tools = true` in the staged `config.toml`, so the model can call the language server.
+- Cursor did not fire the prompt hook in non-interactive mode.
+- Codex's first subagent run did not finish within the 240-second limit; its hook line is missing because the run was stopped. In the recording on the previous candidate (`history/0.5.0-rc-b9330796/`) Codex answered 3 of 3 and Grok's third subagent run timed out instead.
+- Grok needs `--always-approve`, which its user guide gives for scripts, for the subagent and for the MCP call. With it, the subagent answered in 3 of 3 runs. With the invocation used for the other agents the subagent run ends before the subagent answers: 0 of 3, kept in the results as `agent (original invocation)`; that is why Grok has 21 hook runs.
+- For the MCP call Claude Code is given `--allowedTools` for the one tool and Cursor `--approve-mcps` (`mcp_launch_options`). The server recorded the call in 18 of 18 runs.
+- OpenCode runs `openai/gpt-6.1-sol` (`--opencode-model`); on 2026-10-14 the ChatGPT-account sign-in refused the earlier default models.
+- Codex runs a hook only after a person has reviewed it; these runs pass Codex's flag that skips the review. Codex runs without its sandbox, which needs user namespaces this host lacks.
+- The lockfile is unchanged; the checkout holds only the files the script put there (`README.md`, `sample.dlv`).
 
-- 23 of 24 artifact cells work in 3 of 3 runs. Grok's subagent is staged and Grok names it, but its non-interactive mode did not return the subagent's answer.
-- Codex runs a hook only after a person has reviewed it; these runs pass Codex's own flag that skips the review. Without it the staged hook does not fire.
-- Cursor did not fire the prompt hook in non-interactive mode. Agentpack does not stage hooks for Antigravity.
-- OpenCode's slash command is invoked with `opencode run --command`; a first run that sent `/delivery-command` as a prompt is kept in `history/`.
-- The first runs of this experiment exposed a defect in Agentpack: the hooks plugin it generated for OpenCode failed on OpenCode 1.17.11. Fixed in 0.4.7.
-- The lockfile is unchanged and no regular file is added to the checkout (`files_left_in_checkout` lists only the fixture's own `README.md`). Cursor and Antigravity get one link in the checkout that points to staging.
+## Earlier experiments in this folder
 
-## Same-named skills
-
-**`prevalence.py`.** For the 19 skills of `anthropics/skills` at commit `dbd4588`: the first 100 hits of each of 57 code-search queries (35 had more) give 3,816 files in 1,731 repositories; 1,193 equal the pinned upstream file, 304 equal an older upstream version and 2,319 differ from every upstream version (renames followed). Repository and blob hash of every file are in the results. There is no denominator, and we did not check whether any of these repositories also pins the upstream skill: this shows that project skills with these names are common (1,284 repositories hold a differing copy), not how often a clash occurs.
-
-**`collision.py`.** Part A does not use Agentpack: three skills are fetched with git and installed the way each agent documents, project skills with the same names are placed in one project root at a time in a checkout no Agentpack command touches, and each agent is asked 100 times what a session lists. Codex and OpenCode print descriptions, so copies are told apart by their text; Claude Code prints names, where a plugin skill carries its plugin prefix. Part B restores the same pins with Agentpack and runs the planned and the observed check; the expected observed result follows from part A by one rule in the script. It also takes a receipt in the clean checkout first and checks that the project copy retires it.
-
-| Project copy in | Agent | Skill | Lists, installed natively (of 100 runs) | Planned | Observed | Earlier receipt retired |
-|---|---|---|---|---|---|---|
-| none | claude | webapp-testing | pinned 100 | satisfied | satisfied |  |
-| none | claude | mcp-builder | pinned 100 | satisfied | satisfied |  |
-| none | claude | internal-comms | pinned 100 | satisfied | satisfied |  |
-| none | codex | webapp-testing | pinned 100 | satisfied | satisfied |  |
-| none | codex | mcp-builder | pinned 100 | satisfied | satisfied |  |
-| none | codex | internal-comms | pinned 100 | satisfied | satisfied |  |
-| none | opencode | webapp-testing | pinned 100 | satisfied | satisfied |  |
-| none | opencode | mcp-builder | pinned 100 | satisfied | satisfied |  |
-| none | opencode | internal-comms | pinned 100 | satisfied | satisfied |  |
-| .claude/skills | claude | webapp-testing | pinned and project 100 | violated | violated | True |
-| .claude/skills | claude | mcp-builder | pinned and project 100 | violated | violated | True |
-| .claude/skills | claude | internal-comms | pinned and project 100 | violated | violated | True |
-| .claude/skills | codex | webapp-testing | pinned 100 | violated | satisfied | True |
-| .claude/skills | codex | mcp-builder | pinned 100 | violated | satisfied | True |
-| .claude/skills | codex | internal-comms | pinned 100 | violated | satisfied | True |
-| .claude/skills | opencode | webapp-testing | pinned 96, project 4 | violated | violated | True |
-| .claude/skills | opencode | mcp-builder | pinned 96, project 4 | violated | violated | True |
-| .claude/skills | opencode | internal-comms | pinned 95, project 5 | violated | violated | True |
-| .agents/skills | claude | webapp-testing | pinned 100 | violated | satisfied | True |
-| .agents/skills | claude | mcp-builder | pinned 100 | violated | satisfied | True |
-| .agents/skills | claude | internal-comms | pinned 100 | violated | satisfied | True |
-| .agents/skills | codex | webapp-testing | pinned and project 100 | violated | violated | True |
-| .agents/skills | codex | mcp-builder | pinned and project 100 | violated | violated | True |
-| .agents/skills | codex | internal-comms | pinned and project 100 | violated | violated | True |
-| .agents/skills | opencode | webapp-testing | pinned 91, project 9 | violated | violated | True |
-| .agents/skills | opencode | mcp-builder | pinned 93, project 7 | violated | violated | True |
-| .agents/skills | opencode | internal-comms | pinned 95, project 5 | violated | violated | True |
-| .codex/skills | claude | webapp-testing | pinned 100 | satisfied | satisfied | True |
-| .codex/skills | claude | mcp-builder | pinned 100 | satisfied | satisfied | True |
-| .codex/skills | claude | internal-comms | pinned 100 | satisfied | satisfied | True |
-| .codex/skills | codex | webapp-testing | pinned and project 100 | violated | violated | True |
-| .codex/skills | codex | mcp-builder | pinned and project 100 | violated | violated | True |
-| .codex/skills | codex | internal-comms | pinned and project 100 | violated | violated | True |
-| .codex/skills | opencode | webapp-testing | pinned 100 | satisfied | satisfied | True |
-| .codex/skills | opencode | mcp-builder | pinned 100 | satisfied | satisfied | True |
-| .codex/skills | opencode | internal-comms | pinned 100 | satisfied | satisfied | True |
-| .opencode/skills | claude | webapp-testing | pinned 100 | satisfied | satisfied | True |
-| .opencode/skills | claude | mcp-builder | pinned 100 | satisfied | satisfied | True |
-| .opencode/skills | claude | internal-comms | pinned 100 | satisfied | satisfied | True |
-| .opencode/skills | codex | webapp-testing | pinned 100 | satisfied | satisfied | True |
-| .opencode/skills | codex | mcp-builder | pinned 100 | satisfied | satisfied | True |
-| .opencode/skills | codex | internal-comms | pinned 100 | satisfied | satisfied | True |
-| .opencode/skills | opencode | webapp-testing | project 22, pinned 78 | violated | violated | True |
-| .opencode/skills | opencode | mcp-builder | pinned 90, project 10 | violated | violated | True |
-| .opencode/skills | opencode | internal-comms | pinned 92, project 8 | violated | violated | True |
-
-The observed check matches part A in 45 of 45 cells, and the earlier receipt is retired in 36 of 36. For OpenCode the probe samples 60 listings, because a single listing cannot show that its answer varies.
-
-**`kinds.py`.** The same question for a pinned slash command and a pinned subagent. Installed natively as a Claude Code plugin, with a same-named project command or subagent next to it, Claude Code listed both and gave the bare name to the project's in 20 of 20 listings each. With Agentpack, the observed check gave the expected verdict in 12 of 12 cells (two kinds, three situations, Claude Code and Codex). For Codex, Agentpack renders commands and subagents as skills, so the project copy there is a skill in `.agents/skills`.
-
-**`behaviour.py`.** Two tiny skills with one name answer differently. Claude Code 2.1.296 and Codex 0.159.3 each followed the pinned one in 20 of 20 runs when it was alone and the project copy in 20 of 20 runs when both existed (project copy in `.claude/skills` for Claude Code, `.agents/skills` for Codex; one prompt, one model per agent). Codex ran without its sandbox, which needs user namespaces this host lacks. A first run with 5 runs on Claude Code only is in `history/`.
-
-**`realrepos.py`.** Thirty project skill directories in 26 repositories from the search results, ten per project root, each with a differing copy of an upstream skill; only the skill root is checked out. Agentpack reported the clash in 30 of 30 by at least one check; the observed check reported it for the agent that reads the root in 29 and was unknown in one; the observed verdict was the one predicted for the root in 55 of 60 agent runs. The five exceptions are violated or unknown where satisfied or violated was predicted, never the reverse: `claude-api` is also a built-in Claude Code skill (two runs), one project copy is marked `user-invocable: false` and so disappears from the session list, and one repository has 1,467 project skills, for which neither agent's catalog was complete.
-
-## CI gate (`ci_gate.py`, `ci-results/`)
-
-On GitHub's `ubuntu-latest`, `macos-latest` and `windows-latest` runners the workflow installs the released binary and Claude Code, Codex and OpenCode from npm, with no account. For each agent: unknown (4) before a probe, ready (0) after it, unknown (4) when a same-named project skill appears, violated (3) after a new probe. All 36 steps gave the expected exit status.
-
-## Regression suites
-
-`scenario.py`: 16 states, 14 outcomes written down before the runs, all hold. `faults.py`: 8 of 8 fault classes and 6 of 6 ready controls.
-
-## History
-
-`history/` keeps earlier results, including runs that went wrong. `history/0.4.7/` is the complete result set recorded with release 0.4.7, before commands and subagents were observed; every headline number is the same. Also kept: the scenario against 0.4.2 (two expectations failed, which led to a tool change), the false alarms of 0.4.3, the first three-agent runs whose direct reading was not yet independent of Agentpack's staging, the missing receipt expiry for `.codex/skills` in 0.4.4, and the first delivery run. `history/macos-0.4.2/` is the first evaluation on macOS with Codex 0.159.2.
+`collision.py`, `kinds.py`, `behaviour.py`, `realrepos.py`, `scenario.py`, `faults.py`, `prevalence.py` and `ci_gate.py`, with their result files and `ci-results/`, were recorded on 2026-10-12 with Agentpack 0.4.8 for an earlier draft and are not used by the paper. `history/` keeps older recordings; `history/0.4.8/` holds the 0.4.8 recordings of the three experiments above and the scripts that made them; `history/0.5.0-rc-b9330796/` holds the recordings on the previous candidate (b9330796), which staged nested subagents in their subdirectories, and the rows whose listings timed out there.
 
 ## Limits
 
-- One author wrote the tool, the fixtures and the expectations, with AI assistance (OpenAI Codex for release 0.4.2 and the first runner; Anthropic Claude for the session observation, later fixes and the scripts here). This is not an independent replication.
-- One version of each agent. Agents change their discovery rules between releases.
-- Model-call experiments use 3 runs per cell (delivery) or 20 (behaviour), one prompt, and one model per agent.
-- Probes run with an empty user home, so user-level configuration is outside the observation. Observation covers skills, commands and subagents on Claude Code and Codex and skills on OpenCode; hooks are not observed.
-- Search counts are GitHub's on the day of the run, capped at 100 files per query.
+One author wrote the tool and the scripts, with AI assistance; this is not an independent replication. One version of each agent, one host. The functional test has three runs per item, one prompt and one model per agent.
+
+## mcp-lock on the two Playwright packages (2026-10-15)
+
+mcp-lock 0.1.0 (https://github.com/mcpguards/mcp-lock) pins npm-started MCP servers in configuration files. Run in an empty directory with an empty `HOME` as `npx -y @mcpguards/mcp-lock@0.1.0 init --config <file> --pin` on each package's own MCP file:
+
+- `cursor/plugins@1dcc2ba:third_party/playwright/mcp.json` (`mcpServers` form): "1 locked"; `.mcp.lock` written with version 0.0.83 and a sha512 integrity; the file rewritten to `@playwright/mcp@0.0.83`.
+- `anthropics/claude-plugins-official@f359d43:external_plugins/playwright/.mcp.json` (bare form, no `mcpServers` key, as Claude Code plugins use): "No MCP servers found in any discovered config."
+
+It installs nothing for any agent; the pin stays in the file it was given.

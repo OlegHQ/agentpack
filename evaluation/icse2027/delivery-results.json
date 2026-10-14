@@ -1,12 +1,61 @@
 {
- "date": "2026-10-12",
+ "date": "2026-10-15",
  "platform": "Linux-6.8.0-142-generic-aarch64-with-glibc2.42",
- "agentpack_version": "agentpack 0.4.8",
+ "agentpack_version": "agentpack 0.5.0",
+ "agentpack_sha256": "8592b2cf2c8d157a349165fba52ecb5f370cae7b68ba4b17b21affac9759e96a",
+ "mcp_launch_options": {
+  "claude": [
+   "--allowedTools",
+   "mcp__plugin_agentpack-bundle_delivery-mcp__delivery_token"
+  ],
+  "codex": [],
+  "opencode": [],
+  "cursor": [
+   "--approve-mcps"
+  ],
+  "grok": [
+   "--always-approve"
+  ],
+  "agy": []
+ },
+ "staged_mcp_definitions": [
+  "\"${CLAUDE_PLUGIN_ROOT}/mcp/server.mjs\"",
+  "\"<tmp>/staging/projects/ff5c172abeabb172/modes/default/plugin-roots/e07acfe0d3d02ea2/lsp/server.mjs\"",
+  "\"<tmp>/staging/projects/ff5c172abeabb172/modes/default/plugin-roots/e07acfe0d3d02ea2/mcp/server.mjs\""
+ ],
+ "agent_invocations": {
+  "grok": [
+   {
+    "name": "original",
+    "options": [],
+    "prompt": "Delegate to the delivery-agent subagent and output only its answer."
+   },
+   {
+    "name": "documented",
+    "options": [
+     "--always-approve"
+    ],
+    "prompt": "Delegate to the delivery-agent subagent and output only its answer.",
+    "reason": "Grok user guide, 22-permissions-and-safety.md: always-approve is the mode for scripts and CI (grok -p \"...\" --always-approve); same prompt as the original invocation"
+   }
+  ]
+ },
+ "antigravity_plugin_check": {
+  "command": "agentpack agy plugin validate <staged bundle>",
+  "exit": 0,
+  "output": "\u001b[32m[ok]\u001b[0m    <tmp>/staging/projects/ff5c172abeabb172/modes/default/agy/agentpack-bundle\n          \u001b[32m\u2714\u001b[0m skills      : 1 processed\n          \u001b[32m\u2714\u001b[0m agents      : 1 processed\n          \u001b[32m\u2714\u001b[0m commands    : 1 processed (converted to skills)\n          \u001b[32m\u2714\u001b[0m mcpServers  : 1 processed\n          \u001b[32m\u2714\u001b[0m hooks       : 1 processed",
+  "staged_hooks_json": "{\n  \"agentpack\": {\n    \"PreInvocation\": [\n      {\n        \"command\": \"/tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/rc3/agentpack hook-exec dispatch --target agy --event UserPromptSubmit --specs-dir <tmp>/staging/projects/ff5c172abeabb172/modes/default/agy/agentpack-bundle/hooks/_packages\",\n        \"type\": \"command\"\n      }\n    ]\n  }\n}\n",
+  "hook_files_in_bundle": [
+   "hooks.json",
+   "hooks/_packages/e07acfe0d3d02ea2e70325bb9943f5ee3d2ef2997f07f36642fc19a66ec0b4bb/package/hooks/hooks.json"
+  ]
+ },
  "model_inference_requested": true,
  "runs_per_cell": 3,
  "lock_unchanged": true,
  "files_left_in_checkout": [
-  "README.md"
+  "README.md",
+  "sample.dlv"
  ],
  "matrix": {
   "claude": {
@@ -15,8 +64,8 @@
     "runs": 3
    },
    "hook": {
-    "delivered": 12,
-    "runs": 12
+    "delivered": 18,
+    "runs": 18
    },
    "command": {
     "delivered": 3,
@@ -27,6 +76,14 @@
     "runs": 3
    },
    "rule": {
+    "delivered": 3,
+    "runs": 3
+   },
+   "lsp": {
+    "delivered": 3,
+    "runs": 3
+   },
+   "mcp": {
     "delivered": 3,
     "runs": 3
    }
@@ -37,18 +94,22 @@
     "runs": 3
    },
    "hook": {
-    "delivered": 12,
-    "runs": 12
+    "delivered": 14,
+    "runs": 15
    },
    "command": {
     "delivered": 3,
     "runs": 3
    },
    "agent": {
-    "delivered": 3,
+    "delivered": 2,
     "runs": 3
    },
    "rule": {
+    "delivered": 3,
+    "runs": 3
+   },
+   "mcp": {
     "delivered": 3,
     "runs": 3
    }
@@ -59,8 +120,8 @@
     "runs": 3
    },
    "hook": {
-    "delivered": 12,
-    "runs": 12
+    "delivered": 18,
+    "runs": 18
    },
    "command": {
     "delivered": 3,
@@ -71,6 +132,14 @@
     "runs": 3
    },
    "rule": {
+    "delivered": 3,
+    "runs": 3
+   },
+   "lsp": {
+    "delivered": 3,
+    "runs": 3
+   },
+   "mcp": {
     "delivered": 3,
     "runs": 3
    }
@@ -82,7 +151,7 @@
    },
    "hook": {
     "delivered": 0,
-    "runs": 12
+    "runs": 15
    },
    "command": {
     "delivered": 3,
@@ -93,6 +162,10 @@
     "runs": 3
    },
    "rule": {
+    "delivered": 3,
+    "runs": 3
+   },
+   "mcp": {
     "delivered": 3,
     "runs": 3
    }
@@ -103,18 +176,30 @@
     "runs": 3
    },
    "hook": {
-    "delivered": 12,
-    "runs": 12
+    "delivered": 21,
+    "runs": 21
    },
    "command": {
     "delivered": 3,
     "runs": 3
    },
-   "agent": {
+   "agent (original invocation)": {
     "delivered": 0,
     "runs": 3
    },
+   "agent": {
+    "delivered": 3,
+    "runs": 3
+   },
    "rule": {
+    "delivered": 3,
+    "runs": 3
+   },
+   "lsp": {
+    "delivered": 3,
+    "runs": 3
+   },
+   "mcp": {
     "delivered": 3,
     "runs": 3
    }
@@ -125,8 +210,8 @@
     "runs": 3
    },
    "hook": {
-    "delivered": 0,
-    "runs": 12
+    "delivered": 15,
+    "runs": 15
    },
    "command": {
     "delivered": 3,
@@ -139,177 +224,280 @@
    "rule": {
     "delivered": 3,
     "runs": 3
+   },
+   "mcp": {
+    "delivered": 3,
+    "runs": 3
    }
   }
  },
  "rows": [
   {
    "agent": "claude",
-   "version": "2.1.296 (Claude Code)",
+   "version": "2.1.299 (Claude Code)",
    "artifact": "skill",
    "run": 0,
    "delivered": true,
    "exit": 0,
-   "seconds": 4.3,
+   "seconds": 9.9,
    "invoked_as": "request",
    "hook_ran": true,
    "answer_tail": "SKILL-OK-4471"
   },
   {
    "agent": "claude",
-   "version": "2.1.296 (Claude Code)",
+   "version": "2.1.299 (Claude Code)",
    "artifact": "skill",
    "run": 1,
    "delivered": true,
    "exit": 0,
-   "seconds": 4.6,
+   "seconds": 9.9,
    "invoked_as": "request",
    "hook_ran": true,
    "answer_tail": "SKILL-OK-4471"
   },
   {
    "agent": "claude",
-   "version": "2.1.296 (Claude Code)",
+   "version": "2.1.299 (Claude Code)",
    "artifact": "skill",
    "run": 2,
    "delivered": true,
    "exit": 0,
-   "seconds": 4.2,
+   "seconds": 7.5,
    "invoked_as": "request",
    "hook_ran": true,
    "answer_tail": "SKILL-OK-4471"
   },
   {
    "agent": "claude",
-   "version": "2.1.296 (Claude Code)",
+   "version": "2.1.299 (Claude Code)",
    "artifact": "command",
    "run": 0,
    "delivered": true,
    "exit": 0,
-   "seconds": 3.4,
+   "seconds": 5.8,
    "invoked_as": "slash",
    "hook_ran": true,
    "answer_tail": "COMMAND-OK-9282"
   },
   {
    "agent": "claude",
-   "version": "2.1.296 (Claude Code)",
+   "version": "2.1.299 (Claude Code)",
    "artifact": "command",
    "run": 1,
    "delivered": true,
    "exit": 0,
-   "seconds": 3.3,
+   "seconds": 6.7,
    "invoked_as": "slash",
    "hook_ran": true,
    "answer_tail": "COMMAND-OK-9282"
   },
   {
    "agent": "claude",
-   "version": "2.1.296 (Claude Code)",
+   "version": "2.1.299 (Claude Code)",
    "artifact": "command",
    "run": 2,
    "delivered": true,
    "exit": 0,
-   "seconds": 3.3,
+   "seconds": 8.2,
    "invoked_as": "slash",
    "hook_ran": true,
    "answer_tail": "COMMAND-OK-9282"
   },
   {
    "agent": "claude",
-   "version": "2.1.296 (Claude Code)",
+   "version": "2.1.299 (Claude Code)",
    "artifact": "agent",
    "run": 0,
    "delivered": true,
    "exit": 0,
-   "seconds": 6.5,
+   "seconds": 9.6,
    "invoked_as": "request",
    "hook_ran": true,
    "answer_tail": "AGENT-OK-6113"
   },
   {
    "agent": "claude",
-   "version": "2.1.296 (Claude Code)",
+   "version": "2.1.299 (Claude Code)",
    "artifact": "agent",
    "run": 1,
    "delivered": true,
    "exit": 0,
-   "seconds": 6.2,
+   "seconds": 9.6,
    "invoked_as": "request",
    "hook_ran": true,
    "answer_tail": "AGENT-OK-6113"
   },
   {
    "agent": "claude",
-   "version": "2.1.296 (Claude Code)",
+   "version": "2.1.299 (Claude Code)",
    "artifact": "agent",
    "run": 2,
    "delivered": true,
    "exit": 0,
-   "seconds": 6.6,
+   "seconds": 9.5,
    "invoked_as": "request",
    "hook_ran": true,
    "answer_tail": "AGENT-OK-6113"
   },
   {
    "agent": "claude",
-   "version": "2.1.296 (Claude Code)",
+   "version": "2.1.299 (Claude Code)",
    "artifact": "rule",
    "run": 0,
    "delivered": true,
    "exit": 0,
-   "seconds": 3.2,
+   "seconds": 6.7,
    "invoked_as": "request",
    "hook_ran": true,
    "answer_tail": "RULE-OK-5527"
   },
   {
    "agent": "claude",
-   "version": "2.1.296 (Claude Code)",
+   "version": "2.1.299 (Claude Code)",
    "artifact": "rule",
    "run": 1,
    "delivered": true,
    "exit": 0,
-   "seconds": 3.1,
+   "seconds": 5.1,
    "invoked_as": "request",
    "hook_ran": true,
    "answer_tail": "RULE-OK-5527"
   },
   {
    "agent": "claude",
-   "version": "2.1.296 (Claude Code)",
+   "version": "2.1.299 (Claude Code)",
    "artifact": "rule",
    "run": 2,
    "delivered": true,
    "exit": 0,
-   "seconds": 3.2,
+   "seconds": 6.0,
    "invoked_as": "request",
    "hook_ran": true,
    "answer_tail": "RULE-OK-5527"
+  },
+  {
+   "agent": "claude",
+   "version": "2.1.299 (Claude Code)",
+   "artifact": "lsp",
+   "run": 0,
+   "lsp_server_log": [
+    "initialize",
+    "initialized",
+    "textDocument/didOpen file:///tmp/agentpack-delivery-mzs0vkq9/checkout/sample.dlv",
+    "textDocument/hover file:///tmp/agentpack-delivery-mzs0vkq9/checkout/sample.dlv",
+    "shutdown"
+   ],
+   "lsp_hover_token_in_answer": true,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 12.2,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "LSP-OK-8246"
+  },
+  {
+   "agent": "claude",
+   "version": "2.1.299 (Claude Code)",
+   "artifact": "lsp",
+   "run": 1,
+   "lsp_server_log": [
+    "initialize",
+    "initialized",
+    "textDocument/didOpen file:///tmp/agentpack-delivery-mzs0vkq9/checkout/sample.dlv",
+    "textDocument/hover file:///tmp/agentpack-delivery-mzs0vkq9/checkout/sample.dlv",
+    "shutdown"
+   ],
+   "lsp_hover_token_in_answer": true,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 10.9,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "LSP-OK-8246"
+  },
+  {
+   "agent": "claude",
+   "version": "2.1.299 (Claude Code)",
+   "artifact": "lsp",
+   "run": 2,
+   "lsp_server_log": [
+    "initialize",
+    "initialized",
+    "textDocument/didOpen file:///tmp/agentpack-delivery-mzs0vkq9/checkout/sample.dlv",
+    "textDocument/hover file:///tmp/agentpack-delivery-mzs0vkq9/checkout/sample.dlv",
+    "shutdown"
+   ],
+   "lsp_hover_token_in_answer": true,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 12.5,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "LSP-OK-8246"
+  },
+  {
+   "agent": "claude",
+   "version": "2.1.299 (Claude Code)",
+   "artifact": "mcp",
+   "run": 0,
+   "mcp_server_recorded_call": true,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 8.2,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "MCP-OK-7735"
+  },
+  {
+   "agent": "claude",
+   "version": "2.1.299 (Claude Code)",
+   "artifact": "mcp",
+   "run": 1,
+   "mcp_server_recorded_call": true,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 9.8,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "MCP-OK-7735"
+  },
+  {
+   "agent": "claude",
+   "version": "2.1.299 (Claude Code)",
+   "artifact": "mcp",
+   "run": 2,
+   "mcp_server_recorded_call": true,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 18.7,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "MCP-OK-7735"
   },
   {
    "agent": "codex",
    "version": "codex-cli 0.159.3",
    "artifact": "skill",
    "run": 0,
-   "delivered": true,
-   "exit": 0,
-   "seconds": 10.7,
-   "invoked_as": "request",
-   "hook_ran": true,
-   "answer_tail": " skill. Use when asked to run the delivery-skill skill.\n---\n\nReply with exactly this line and nothing else: SKILL-OK-4471\n\ncodex\nSKILL-OK-4471\ntokens used\n4,481"
-  },
-  {
-   "agent": "codex",
-   "version": "codex-cli 0.159.3",
-   "artifact": "skill",
-   "run": 1,
    "delivered": true,
    "exit": 0,
    "seconds": 8.5,
    "invoked_as": "request",
    "hook_ran": true,
-   "answer_tail": " skill. Use when asked to run the delivery-skill skill.\n---\n\nReply with exactly this line and nothing else: SKILL-OK-4471\n\ncodex\nSKILL-OK-4471\ntokens used\n2,554"
+   "answer_tail": " skill. Use when asked to run the delivery-skill skill.\n---\n\nReply with exactly this line and nothing else: SKILL-OK-4471\n\ncodex\nSKILL-OK-4471\ntokens used\n8,058"
+  },
+  {
+   "agent": "codex",
+   "version": "codex-cli 0.159.3",
+   "artifact": "skill",
+   "run": 1,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 10.8,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": " skill. Use when asked to run the delivery-skill skill.\n---\n\nReply with exactly this line and nothing else: SKILL-OK-4471\n\ncodex\nSKILL-OK-4471\ntokens used\n8,159"
   },
   {
    "agent": "codex",
@@ -318,10 +506,10 @@
    "run": 2,
    "delivered": true,
    "exit": 0,
-   "seconds": 9.2,
+   "seconds": 11.4,
    "invoked_as": "request",
    "hook_ran": true,
-   "answer_tail": " skill. Use when asked to run the delivery-skill skill.\n---\n\nReply with exactly this line and nothing else: SKILL-OK-4471\n\ncodex\nSKILL-OK-4471\ntokens used\n4,446"
+   "answer_tail": " skill. Use when asked to run the delivery-skill skill.\n---\n\nReply with exactly this line and nothing else: SKILL-OK-4471\n\ncodex\nSKILL-OK-4471\ntokens used\n8,159"
   },
   {
    "agent": "codex",
@@ -330,10 +518,10 @@
    "run": 0,
    "delivered": true,
    "exit": 0,
-   "seconds": 9.7,
+   "seconds": 8.2,
    "invoked_as": "slash",
    "hook_ran": true,
-   "answer_tail": "elivery test command\ndisable-model-invocation: true\n---\n\nReply with exactly this line and nothing else: COMMAND-OK-9282\n\ncodex\nCOMMAND-OK-9282\ntokens used\n4,442"
+   "answer_tail": "livery test command\ndisable-model-invocation: true\n---\n\nReply with exactly this line and nothing else: COMMAND-OK-9282\n\ncodex\nCOMMAND-OK-9282\ntokens used\n22,719"
   },
   {
    "agent": "codex",
@@ -342,10 +530,10 @@
    "run": 1,
    "delivered": true,
    "exit": 0,
-   "seconds": 8.5,
+   "seconds": 10.1,
    "invoked_as": "slash",
    "hook_ran": true,
-   "answer_tail": "elivery test command\ndisable-model-invocation: true\n---\n\nReply with exactly this line and nothing else: COMMAND-OK-9282\n\ncodex\nCOMMAND-OK-9282\ntokens used\n2,521"
+   "answer_tail": "elivery test command\ndisable-model-invocation: true\n---\n\nReply with exactly this line and nothing else: COMMAND-OK-9282\n\ncodex\nCOMMAND-OK-9282\ntokens used\n8,127"
   },
   {
    "agent": "codex",
@@ -354,22 +542,22 @@
    "run": 2,
    "delivered": true,
    "exit": 0,
-   "seconds": 9.1,
+   "seconds": 10.2,
    "invoked_as": "slash",
    "hook_ran": true,
-   "answer_tail": "elivery test command\ndisable-model-invocation: true\n---\n\nReply with exactly this line and nothing else: COMMAND-OK-9282\n\ncodex\nCOMMAND-OK-9282\ntokens used\n4,446"
+   "answer_tail": "livery test command\ndisable-model-invocation: true\n---\n\nReply with exactly this line and nothing else: COMMAND-OK-9282\n\ncodex\nCOMMAND-OK-9282\ntokens used\n15,295"
   },
   {
    "agent": "codex",
    "version": "codex-cli 0.159.3",
    "artifact": "agent",
    "run": 0,
-   "delivered": true,
-   "exit": 0,
-   "seconds": 22.0,
+   "delivered": false,
+   "exit": -1,
+   "seconds": 240.1,
    "invoked_as": "request",
-   "hook_ran": true,
-   "answer_tail": "elivery test subagent. Whatever you are asked, answer with exactly this line and nothing else: AGENT-OK-6113\n\ncollab: Wait\ncodex\nAGENT-OK-6113\ntokens used\n5,339"
+   "hook_ran": false,
+   "answer_tail": "TIMEOUT"
   },
   {
    "agent": "codex",
@@ -378,10 +566,10 @@
    "run": 1,
    "delivered": true,
    "exit": 0,
-   "seconds": 20.8,
+   "seconds": 17.2,
    "invoked_as": "request",
    "hook_ran": true,
-   "answer_tail": "2Z ERROR codex_core::tools::router: error=agent_name must use only lowercase letters, digits, and underscores\ncollab: Wait\ncodex\nAGENT-OK-6113\ntokens used\n5,851"
+   "answer_tail": "livery test subagent. Whatever you are asked, answer with exactly this line and nothing else: AGENT-OK-6113\n\ncollab: Wait\ncodex\nAGENT-OK-6113\ntokens used\n15,915"
   },
   {
    "agent": "codex",
@@ -390,10 +578,10 @@
    "run": 2,
    "delivered": true,
    "exit": 0,
-   "seconds": 26.7,
+   "seconds": 14.6,
    "invoked_as": "request",
    "hook_ran": true,
-   "answer_tail": "9Z ERROR codex_core::tools::router: error=agent_name must use only lowercase letters, digits, and underscores\ncollab: Wait\ncodex\nAGENT-OK-6113\ntokens used\n7,888"
+   "answer_tail": "elivery test subagent. Whatever you are asked, answer with exactly this line and nothing else: AGENT-OK-6113\n\ncollab: Wait\ncodex\nAGENT-OK-6113\ntokens used\n8,807"
   },
   {
    "agent": "codex",
@@ -402,10 +590,10 @@
    "run": 0,
    "delivered": true,
    "exit": 0,
-   "seconds": 4.7,
+   "seconds": 6.0,
    "invoked_as": "request",
    "hook_ran": true,
-   "answer_tail": " enabled. Enabled hooks may run without review for this invocation.\nhook: UserPromptSubmit\nhook: UserPromptSubmit Completed\ncodex\nRULE-OK-5527\ntokens used\n2,115"
+   "answer_tail": "is enabled. Enabled hooks may run without review for this invocation.\nhook: UserPromptSubmit\nhook: UserPromptSubmit Completed\ncodex\nRULE-OK-5527\ntokens used\n245"
   },
   {
    "agent": "codex",
@@ -414,10 +602,10 @@
    "run": 1,
    "delivered": true,
    "exit": 0,
-   "seconds": 7.7,
+   "seconds": 6.3,
    "invoked_as": "request",
    "hook_ran": true,
-   "answer_tail": " enabled. Enabled hooks may run without review for this invocation.\nhook: UserPromptSubmit\nhook: UserPromptSubmit Completed\ncodex\nRULE-OK-5527\ntokens used\n2,115"
+   "answer_tail": " enabled. Enabled hooks may run without review for this invocation.\nhook: UserPromptSubmit\nhook: UserPromptSubmit Completed\ncodex\nRULE-OK-5527\ntokens used\n7,669"
   },
   {
    "agent": "codex",
@@ -426,10 +614,49 @@
    "run": 2,
    "delivered": true,
    "exit": 0,
-   "seconds": 6.4,
+   "seconds": 4.8,
    "invoked_as": "request",
    "hook_ran": true,
-   "answer_tail": " enabled. Enabled hooks may run without review for this invocation.\nhook: UserPromptSubmit\nhook: UserPromptSubmit Completed\ncodex\nRULE-OK-5527\ntokens used\n2,115"
+   "answer_tail": " enabled. Enabled hooks may run without review for this invocation.\nhook: UserPromptSubmit\nhook: UserPromptSubmit Completed\ncodex\nRULE-OK-5527\ntokens used\n7,669"
+  },
+  {
+   "agent": "codex",
+   "version": "codex-cli 0.159.3",
+   "artifact": "mcp",
+   "run": 0,
+   "mcp_server_recorded_call": true,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 9.9,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "bmit\nhook: UserPromptSubmit Completed\nmcp: delivery-mcp/delivery_token started\nmcp: delivery-mcp/delivery_token (completed)\ncodex\nMCP-OK-7735\ntokens used\n15,193"
+  },
+  {
+   "agent": "codex",
+   "version": "codex-cli 0.159.3",
+   "artifact": "mcp",
+   "run": 1,
+   "mcp_server_recorded_call": true,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 8.6,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "bmit\nhook: UserPromptSubmit Completed\nmcp: delivery-mcp/delivery_token started\nmcp: delivery-mcp/delivery_token (completed)\ncodex\nMCP-OK-7735\ntokens used\n15,191"
+  },
+  {
+   "agent": "codex",
+   "version": "codex-cli 0.159.3",
+   "artifact": "mcp",
+   "run": 2,
+   "mcp_server_recorded_call": true,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 12.4,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "ubmit\nhook: UserPromptSubmit Completed\nmcp: delivery-mcp/delivery_token started\nmcp: delivery-mcp/delivery_token (completed)\ncodex\nMCP-OK-7735\ntokens used\n8,021"
   },
   {
    "agent": "opencode",
@@ -438,10 +665,10 @@
    "run": 0,
    "delivered": true,
    "exit": 0,
-   "seconds": 8.4,
+   "seconds": 10.9,
    "invoked_as": "request",
    "hook_ran": true,
-   "answer_tail": "SKILL-OK-4471\n\n\u001b[0m\n> build \u00b7 gpt-5.5\n\u001b[0m\n\u001b[0m\u2192 \u001b[0mSkill \"delivery-skill\""
+   "answer_tail": "SKILL-OK-4471\n\n\u001b[0m\n> build \u00b7 gpt-6.1-sol\n\u001b[0m\n\u001b[0m\u2192 \u001b[0mSkill \"delivery-skill\""
   },
   {
    "agent": "opencode",
@@ -450,10 +677,10 @@
    "run": 1,
    "delivered": true,
    "exit": 0,
-   "seconds": 5.8,
+   "seconds": 13.2,
    "invoked_as": "request",
    "hook_ran": true,
-   "answer_tail": "SKILL-OK-4471\n\n\u001b[0m\n> build \u00b7 gpt-5.5\n\u001b[0m\n\u001b[0m\u2192 \u001b[0mSkill \"delivery-skill\""
+   "answer_tail": "SKILL-OK-4471\n\n\u001b[0m\n> build \u00b7 gpt-6.1-sol\n\u001b[0m\n\u001b[0m\u2192 \u001b[0mSkill \"delivery-skill\""
   },
   {
    "agent": "opencode",
@@ -462,10 +689,10 @@
    "run": 2,
    "delivered": true,
    "exit": 0,
-   "seconds": 6.6,
+   "seconds": 14.0,
    "invoked_as": "request",
    "hook_ran": true,
-   "answer_tail": "SKILL-OK-4471\n\n\u001b[0m\n> build \u00b7 gpt-5.5\n\u001b[0m\n\u001b[0m\u2192 \u001b[0mSkill \"delivery-skill\""
+   "answer_tail": "SKILL-OK-4471\n\n\u001b[0m\n> build \u00b7 gpt-6.1-sol\n\u001b[0m\n\u001b[0m\u2192 \u001b[0mSkill \"delivery-skill\""
   },
   {
    "agent": "opencode",
@@ -474,10 +701,10 @@
    "run": 0,
    "delivered": true,
    "exit": 0,
-   "seconds": 5.3,
+   "seconds": 9.9,
    "invoked_as": "slash",
    "hook_ran": true,
-   "answer_tail": "COMMAND-OK-9282\n\n\u001b[0m\n> build \u00b7 gpt-5.5\n\u001b[0m"
+   "answer_tail": "COMMAND-OK-9282\n\n\u001b[0m\n> build \u00b7 gpt-6.1-sol\n\u001b[0m"
   },
   {
    "agent": "opencode",
@@ -486,10 +713,10 @@
    "run": 1,
    "delivered": true,
    "exit": 0,
-   "seconds": 4.7,
+   "seconds": 10.4,
    "invoked_as": "slash",
    "hook_ran": true,
-   "answer_tail": "COMMAND-OK-9282\n\n\u001b[0m\n> build \u00b7 gpt-5.5\n\u001b[0m"
+   "answer_tail": "COMMAND-OK-9282\n\n\u001b[0m\n> build \u00b7 gpt-6.1-sol\n\u001b[0m"
   },
   {
    "agent": "opencode",
@@ -498,92 +725,191 @@
    "run": 2,
    "delivered": true,
    "exit": 0,
-   "seconds": 4.7,
+   "seconds": 9.4,
    "invoked_as": "slash",
    "hook_ran": true,
-   "answer_tail": "COMMAND-OK-9282\n\n\u001b[0m\n> build \u00b7 gpt-5.5\n\u001b[0m"
+   "answer_tail": "COMMAND-OK-9282\n\n\u001b[0m\n> build \u00b7 gpt-6.1-sol\n\u001b[0m"
   },
   {
    "agent": "opencode",
    "version": "1.17.11",
    "artifact": "agent",
+   "run": 0,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 14.0,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "113\n\n\u001b[0m\n> build \u00b7 gpt-6.1-sol\n\u001b[0m\n\u001b[0m\u2022 \u001b[0mDelivery agent answer\u001b[90m Delivery-Agent Agent\u001b[0m\n\u001b[0m\u2713 \u001b[0mDelivery agent answer\u001b[90m Delivery-Agent Agent\u001b[0m"
+  },
+  {
+   "agent": "opencode",
+   "version": "1.17.11",
+   "artifact": "agent",
+   "run": 1,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 19.2,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "m\n> build \u00b7 gpt-6.1-sol\n\u001b[0m\n\u001b[0m\u2022 \u001b[0mGet delivery agent answer\u001b[90m Delivery-Agent Agent\u001b[0m\n\u001b[0m\u2713 \u001b[0mGet delivery agent answer\u001b[90m Delivery-Agent Agent\u001b[0m"
+  },
+  {
+   "agent": "opencode",
+   "version": "1.17.11",
+   "artifact": "agent",
+   "run": 2,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 13.0,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "m\n> build \u00b7 gpt-6.1-sol\n\u001b[0m\n\u001b[0m\u2022 \u001b[0mGet delivery agent answer\u001b[90m Delivery-Agent Agent\u001b[0m\n\u001b[0m\u2713 \u001b[0mGet delivery agent answer\u001b[90m Delivery-Agent Agent\u001b[0m"
+  },
+  {
+   "agent": "opencode",
+   "version": "1.17.11",
+   "artifact": "rule",
+   "run": 0,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 7.0,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "RULE-OK-5527\n\n\u001b[0m\n> build \u00b7 gpt-6.1-sol\n\u001b[0m"
+  },
+  {
+   "agent": "opencode",
+   "version": "1.17.11",
+   "artifact": "rule",
+   "run": 1,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 7.2,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "RULE-OK-5527\n\n\u001b[0m\n> build \u00b7 gpt-6.1-sol\n\u001b[0m"
+  },
+  {
+   "agent": "opencode",
+   "version": "1.17.11",
+   "artifact": "rule",
+   "run": 2,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 7.2,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "RULE-OK-5527\n\n\u001b[0m\n> build \u00b7 gpt-6.1-sol\n\u001b[0m"
+  },
+  {
+   "agent": "opencode",
+   "version": "1.17.11",
+   "artifact": "lsp",
+   "run": 0,
+   "lsp_server_log": [
+    "initialize",
+    "initialized",
+    "workspace/didChangeWatchedFiles",
+    "textDocument/didOpen file:///tmp/agentpack-delivery-mzs0vkq9/checkout/sample.dlv",
+    "textDocument/hover file:///tmp/agentpack-delivery-mzs0vkq9/checkout/sample.dlv"
+   ],
+   "lsp_hover_token_in_answer": true,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 15.5,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "LSP-OK-8246\n\n\u001b[0m\n> build \u00b7 gpt-6.1-sol\n\u001b[0m\n\u001b[0m\u2192 \u001b[0mhover sample.dlv:1:1"
+  },
+  {
+   "agent": "opencode",
+   "version": "1.17.11",
+   "artifact": "lsp",
+   "run": 1,
+   "lsp_server_log": [
+    "initialize",
+    "initialized",
+    "workspace/didChangeWatchedFiles",
+    "textDocument/didOpen file:///tmp/agentpack-delivery-mzs0vkq9/checkout/sample.dlv",
+    "textDocument/hover file:///tmp/agentpack-delivery-mzs0vkq9/checkout/sample.dlv"
+   ],
+   "lsp_hover_token_in_answer": true,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 26.3,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "LSP-OK-8246\n\n\u001b[0m\n> build \u00b7 gpt-6.1-sol\n\u001b[0m\n\u001b[0m\u2192 \u001b[0mhover sample.dlv:1:1"
+  },
+  {
+   "agent": "opencode",
+   "version": "1.17.11",
+   "artifact": "lsp",
+   "run": 2,
+   "lsp_server_log": [
+    "initialize",
+    "initialized",
+    "workspace/didChangeWatchedFiles",
+    "textDocument/didOpen file:///tmp/agentpack-delivery-mzs0vkq9/checkout/sample.dlv",
+    "textDocument/hover file:///tmp/agentpack-delivery-mzs0vkq9/checkout/sample.dlv"
+   ],
+   "lsp_hover_token_in_answer": true,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 15.3,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "LSP-OK-8246\n\n\u001b[0m\n> build \u00b7 gpt-6.1-sol\n\u001b[0m\n\u001b[0m\u2192 \u001b[0mhover sample.dlv:1:1"
+  },
+  {
+   "agent": "opencode",
+   "version": "1.17.11",
+   "artifact": "mcp",
+   "run": 0,
+   "mcp_server_recorded_call": true,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 13.0,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "MCP-OK-7735\n\n\u001b[0m\n> build \u00b7 gpt-6.1-sol\n\u001b[0m\n\u001b[0m\u2699 \u001b[0mdelivery-mcp_delivery_token Unknown"
+  },
+  {
+   "agent": "opencode",
+   "version": "1.17.11",
+   "artifact": "mcp",
+   "run": 1,
+   "mcp_server_recorded_call": true,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 10.4,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "MCP-OK-7735\n\n\u001b[0m\n> build \u00b7 gpt-6.1-sol\n\u001b[0m\n\u001b[0m\u2699 \u001b[0mdelivery-mcp_delivery_token Unknown"
+  },
+  {
+   "agent": "opencode",
+   "version": "1.17.11",
+   "artifact": "mcp",
+   "run": 2,
+   "mcp_server_recorded_call": true,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 14.6,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "MCP-OK-7735\n\n\u001b[0m\n> build \u00b7 gpt-6.1-sol\n\u001b[0m\n\u001b[0m\u2699 \u001b[0mdelivery-mcp_delivery_token Unknown"
+  },
+  {
+   "agent": "cursor",
+   "version": "2026.08.25-3e8eec8",
+   "artifact": "skill",
    "run": 0,
    "delivered": true,
    "exit": 0,
    "seconds": 8.3,
    "invoked_as": "request",
-   "hook_ran": true,
-   "answer_tail": "3\n\n\u001b[0m\n> build \u00b7 gpt-5.5\n\u001b[0m\n\u001b[0m\u2022 \u001b[0mDelegate delivery answer\u001b[90m Delivery-Agent Agent\u001b[0m\n\u001b[0m\u2713 \u001b[0mDelegate delivery answer\u001b[90m Delivery-Agent Agent\u001b[0m"
-  },
-  {
-   "agent": "opencode",
-   "version": "1.17.11",
-   "artifact": "agent",
-   "run": 1,
-   "delivered": true,
-   "exit": 0,
-   "seconds": 9.2,
-   "invoked_as": "request",
-   "hook_ran": true,
-   "answer_tail": "-6113\n\n\u001b[0m\n> build \u00b7 gpt-5.5\n\u001b[0m\n\u001b[0m\u2022 \u001b[0mDelegate delivery task\u001b[90m Delivery-Agent Agent\u001b[0m\n\u001b[0m\u2713 \u001b[0mDelegate delivery task\u001b[90m Delivery-Agent Agent\u001b[0m"
-  },
-  {
-   "agent": "opencode",
-   "version": "1.17.11",
-   "artifact": "agent",
-   "run": 2,
-   "delivered": true,
-   "exit": 0,
-   "seconds": 9.2,
-   "invoked_as": "request",
-   "hook_ran": true,
-   "answer_tail": "113\n\n\u001b[0m\n> build \u00b7 gpt-5.5\n\u001b[0m\n\u001b[0m\u2022 \u001b[0mDelegate delivery agent\u001b[90m Delivery-Agent Agent\u001b[0m\n\u001b[0m\u2713 \u001b[0mDelegate delivery agent\u001b[90m Delivery-Agent Agent\u001b[0m"
-  },
-  {
-   "agent": "opencode",
-   "version": "1.17.11",
-   "artifact": "rule",
-   "run": 0,
-   "delivered": true,
-   "exit": 0,
-   "seconds": 5.7,
-   "invoked_as": "request",
-   "hook_ran": true,
-   "answer_tail": "RULE-OK-5527\n\n\u001b[0m\n> build \u00b7 gpt-5.5\n\u001b[0m"
-  },
-  {
-   "agent": "opencode",
-   "version": "1.17.11",
-   "artifact": "rule",
-   "run": 1,
-   "delivered": true,
-   "exit": 0,
-   "seconds": 23.0,
-   "invoked_as": "request",
-   "hook_ran": true,
-   "answer_tail": "RULE-OK-5527\n\n\u001b[0m\n> build \u00b7 gpt-5.5\n\u001b[0m"
-  },
-  {
-   "agent": "opencode",
-   "version": "1.17.11",
-   "artifact": "rule",
-   "run": 2,
-   "delivered": true,
-   "exit": 0,
-   "seconds": 5.8,
-   "invoked_as": "request",
-   "hook_ran": true,
-   "answer_tail": "RULE-OK-5527\n\n\u001b[0m\n> build \u00b7 gpt-5.5\n\u001b[0m"
-  },
-  {
-   "agent": "cursor",
-   "version": "2026.08.25-3e8eec8",
-   "artifact": "skill",
-   "run": 0,
-   "delivered": true,
-   "exit": 0,
-   "seconds": 8.9,
-   "invoked_as": "request",
    "hook_ran": false,
    "answer_tail": "SKILL-OK-4471"
   },
@@ -594,7 +920,7 @@
    "run": 1,
    "delivered": true,
    "exit": 0,
-   "seconds": 8.4,
+   "seconds": 8.0,
    "invoked_as": "request",
    "hook_ran": false,
    "answer_tail": "SKILL-OK-4471"
@@ -606,7 +932,7 @@
    "run": 2,
    "delivered": true,
    "exit": 0,
-   "seconds": 8.3,
+   "seconds": 9.3,
    "invoked_as": "request",
    "hook_ran": false,
    "answer_tail": "SKILL-OK-4471"
@@ -618,7 +944,7 @@
    "run": 0,
    "delivered": true,
    "exit": 0,
-   "seconds": 7.9,
+   "seconds": 6.7,
    "invoked_as": "slash",
    "hook_ran": false,
    "answer_tail": "COMMAND-OK-9282"
@@ -642,7 +968,7 @@
    "run": 2,
    "delivered": true,
    "exit": 0,
-   "seconds": 6.7,
+   "seconds": 7.0,
    "invoked_as": "slash",
    "hook_ran": false,
    "answer_tail": "COMMAND-OK-9282"
@@ -654,7 +980,7 @@
    "run": 0,
    "delivered": true,
    "exit": 0,
-   "seconds": 27.4,
+   "seconds": 38.1,
    "invoked_as": "request",
    "hook_ran": false,
    "answer_tail": "AGENT-OK-6113"
@@ -666,7 +992,7 @@
    "run": 1,
    "delivered": true,
    "exit": 0,
-   "seconds": 28.0,
+   "seconds": 26.5,
    "invoked_as": "request",
    "hook_ran": false,
    "answer_tail": "AGENT-OK-6113"
@@ -678,7 +1004,7 @@
    "run": 2,
    "delivered": true,
    "exit": 0,
-   "seconds": 31.7,
+   "seconds": 22.0,
    "invoked_as": "request",
    "hook_ran": false,
    "answer_tail": "AGENT-OK-6113"
@@ -690,7 +1016,7 @@
    "run": 0,
    "delivered": true,
    "exit": 0,
-   "seconds": 25.8,
+   "seconds": 28.6,
    "invoked_as": "request",
    "hook_ran": false,
    "answer_tail": "RULE-OK-5527"
@@ -702,7 +1028,7 @@
    "run": 1,
    "delivered": true,
    "exit": 0,
-   "seconds": 12.1,
+   "seconds": 27.7,
    "invoked_as": "request",
    "hook_ran": false,
    "answer_tail": "RULE-OK-5527"
@@ -714,298 +1040,526 @@
    "run": 2,
    "delivered": true,
    "exit": 0,
-   "seconds": 13.0,
+   "seconds": 12.0,
    "invoked_as": "request",
    "hook_ran": false,
    "answer_tail": "RULE-OK-5527"
+  },
+  {
+   "agent": "cursor",
+   "version": "2026.08.25-3e8eec8",
+   "artifact": "mcp",
+   "run": 0,
+   "mcp_server_recorded_call": true,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 9.3,
+   "invoked_as": "request",
+   "hook_ran": false,
+   "answer_tail": "MCP-OK-7735"
+  },
+  {
+   "agent": "cursor",
+   "version": "2026.08.25-3e8eec8",
+   "artifact": "mcp",
+   "run": 1,
+   "mcp_server_recorded_call": true,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 9.7,
+   "invoked_as": "request",
+   "hook_ran": false,
+   "answer_tail": "MCP-OK-7735"
+  },
+  {
+   "agent": "cursor",
+   "version": "2026.08.25-3e8eec8",
+   "artifact": "mcp",
+   "run": 2,
+   "mcp_server_recorded_call": true,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 8.7,
+   "invoked_as": "request",
+   "hook_ran": false,
+   "answer_tail": "MCP-OK-7735"
   },
   {
    "agent": "grok",
    "version": "grok 1.0.44 (5b807183dd79) [stable]",
    "artifact": "skill",
    "run": 0,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 6.0,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "I'll read the delivery-skill instructions and follow them exactly.SKILL-OK-4471"
+  },
+  {
+   "agent": "grok",
+   "version": "grok 1.0.44 (5b807183dd79) [stable]",
+   "artifact": "skill",
+   "run": 1,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 8.3,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "SKILL-OK-4471"
+  },
+  {
+   "agent": "grok",
+   "version": "grok 1.0.44 (5b807183dd79) [stable]",
+   "artifact": "skill",
+   "run": 2,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 6.5,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "SKILL-OK-4471"
+  },
+  {
+   "agent": "grok",
+   "version": "grok 1.0.44 (5b807183dd79) [stable]",
+   "artifact": "command",
+   "run": 0,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 4.8,
+   "invoked_as": "slash",
+   "hook_ran": true,
+   "answer_tail": "COMMAND-OK-9282"
+  },
+  {
+   "agent": "grok",
+   "version": "grok 1.0.44 (5b807183dd79) [stable]",
+   "artifact": "command",
+   "run": 1,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 17.3,
+   "invoked_as": "slash",
+   "hook_ran": true,
+   "answer_tail": "COMMAND-OK-9282"
+  },
+  {
+   "agent": "grok",
+   "version": "grok 1.0.44 (5b807183dd79) [stable]",
+   "artifact": "command",
+   "run": 2,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 4.0,
+   "invoked_as": "slash",
+   "hook_ran": true,
+   "answer_tail": "COMMAND-OK-9282"
+  },
+  {
+   "agent": "grok",
+   "version": "grok 1.0.44 (5b807183dd79) [stable]",
+   "artifact": "agent",
+   "run": 0,
+   "invocation": "original",
+   "delivered": false,
+   "exit": 0,
+   "seconds": 73.2,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "o be called, then hand the task to it and return only its answer.The delivery agent is a plugin subagent. I'll hand it the task and return only what it answers."
+  },
+  {
+   "agent": "grok",
+   "version": "grok 1.0.44 (5b807183dd79) [stable]",
+   "artifact": "agent",
+   "run": 1,
+   "invocation": "original",
+   "delivered": false,
+   "exit": 0,
+   "seconds": 54.4,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "ery-agent is meant to be invoked, then delegate and return only its answer.The delivery-agent is defined. I'll hand it the task and return only what it answers."
+  },
+  {
+   "agent": "grok",
+   "version": "grok 1.0.44 (5b807183dd79) [stable]",
+   "artifact": "agent",
+   "run": 2,
+   "invocation": "original",
+   "delivered": false,
+   "exit": 0,
+   "seconds": 19.9,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "I'll look up the delivery-agent and hand the task to it, then return only its answer."
+  },
+  {
+   "agent": "grok",
+   "version": "grok 1.0.44 (5b807183dd79) [stable]",
+   "artifact": "agent",
+   "run": 0,
+   "invocation": "documented",
+   "delivered": true,
+   "exit": 0,
+   "seconds": 23.9,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "ace and hand the task to that subagent.The delivery-agent definition is loaded. I'll hand it the task and return only what it answers.AGENT-OK-6113AGENT-OK-6113"
+  },
+  {
+   "agent": "grok",
+   "version": "grok 1.0.44 (5b807183dd79) [stable]",
+   "artifact": "agent",
+   "run": 1,
+   "invocation": "documented",
+   "delivered": true,
+   "exit": 0,
+   "seconds": 26.2,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": " delegate the task to it.The delivery-agent definition is loaded. I'll hand the task to that subagent and return only what it answers.AGENT-OK-6113AGENT-OK-6113"
+  },
+  {
+   "agent": "grok",
+   "version": "grok 1.0.44 (5b807183dd79) [stable]",
+   "artifact": "agent",
+   "run": 2,
+   "invocation": "documented",
+   "delivered": true,
+   "exit": 0,
+   "seconds": 21.1,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "ent definition so I can delegate to it correctly.The delivery agent is defined. I'll hand it the task and return only what it replies.AGENT-OK-6113AGENT-OK-6113"
+  },
+  {
+   "agent": "grok",
+   "version": "grok 1.0.44 (5b807183dd79) [stable]",
+   "artifact": "rule",
+   "run": 0,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 9.5,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "I'll check the house-codeword rule and answer with the codeword only.RULE-OK-5527"
+  },
+  {
+   "agent": "grok",
+   "version": "grok 1.0.44 (5b807183dd79) [stable]",
+   "artifact": "rule",
+   "run": 1,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 5.0,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "RULE-OK-5527"
+  },
+  {
+   "agent": "grok",
+   "version": "grok 1.0.44 (5b807183dd79) [stable]",
+   "artifact": "rule",
+   "run": 2,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 5.4,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "RULE-OK-5527"
+  },
+  {
+   "agent": "grok",
+   "version": "grok 1.0.44 (5b807183dd79) [stable]",
+   "artifact": "lsp",
+   "run": 0,
+   "lsp_server_log": [
+    "initialize",
+    "initialize",
+    "initialized",
+    "initialized",
+    "textDocument/didOpen file:///tmp/agentpack-delivery-mzs0vkq9/checkout/sample.dlv",
+    "textDocument/didSave file:///tmp/agentpack-delivery-mzs0vkq9/checkout/sample.dlv",
+    "textDocument/diagnostic file:///tmp/agentpack-delivery-mzs0vkq9/checkout/sample.dlv",
+    "textDocument/hover file:///tmp/agentpack-delivery-mzs0vkq9/checkout/sample.dlv"
+   ],
+   "lsp_hover_token_in_answer": true,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 16.6,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "I'll locate `sample.dlv` and request an LSP hover on `probe` at line 1.LSP-OK-8246"
+  },
+  {
+   "agent": "grok",
+   "version": "grok 1.0.44 (5b807183dd79) [stable]",
+   "artifact": "lsp",
+   "run": 1,
+   "lsp_server_log": [
+    "initialize",
+    "initialize",
+    "initialized",
+    "initialized",
+    "textDocument/didOpen file:///tmp/agentpack-delivery-mzs0vkq9/checkout/sample.dlv",
+    "textDocument/didSave file:///tmp/agentpack-delivery-mzs0vkq9/checkout/sample.dlv",
+    "textDocument/diagnostic file:///tmp/agentpack-delivery-mzs0vkq9/checkout/sample.dlv",
+    "textDocument/hover file:///tmp/agentpack-delivery-mzs0vkq9/checkout/sample.dlv"
+   ],
+   "lsp_hover_token_in_answer": true,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 40.9,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "I'll look up `sample.dlv` and hover the word `probe` on line 1.LSP-OK-8246"
+  },
+  {
+   "agent": "grok",
+   "version": "grok 1.0.44 (5b807183dd79) [stable]",
+   "artifact": "lsp",
+   "run": 2,
+   "lsp_server_log": [
+    "initialize",
+    "initialized",
+    "initialize",
+    "initialized",
+    "textDocument/didOpen file:///tmp/agentpack-delivery-mzs0vkq9/checkout/sample.dlv",
+    "textDocument/didSave file:///tmp/agentpack-delivery-mzs0vkq9/checkout/sample.dlv",
+    "textDocument/diagnostic file:///tmp/agentpack-delivery-mzs0vkq9/checkout/sample.dlv",
+    "textDocument/hover file:///tmp/agentpack-delivery-mzs0vkq9/checkout/sample.dlv"
+   ],
+   "lsp_hover_token_in_answer": true,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 18.5,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "I'll look up `sample.dlv` and hover the word \"probe\" on line 1.LSP-OK-8246"
+  },
+  {
+   "agent": "grok",
+   "version": "grok 1.0.44 (5b807183dd79) [stable]",
+   "artifact": "mcp",
+   "run": 0,
+   "mcp_server_recorded_call": true,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 8.0,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "I'll look up the delivery-mcp `delivery_token` tool and call it.MCP-OK-7735"
+  },
+  {
+   "agent": "grok",
+   "version": "grok 1.0.44 (5b807183dd79) [stable]",
+   "artifact": "mcp",
+   "run": 1,
+   "mcp_server_recorded_call": true,
    "delivered": true,
    "exit": 0,
    "seconds": 7.6,
    "invoked_as": "request",
    "hook_ran": true,
-   "answer_tail": "SKILL-OK-4471"
+   "answer_tail": "I'll look up the delivery_token tool schema and call it.MCP-OK-7735"
   },
   {
    "agent": "grok",
    "version": "grok 1.0.44 (5b807183dd79) [stable]",
-   "artifact": "skill",
-   "run": 1,
-   "delivered": true,
-   "exit": 0,
-   "seconds": 5.2,
-   "invoked_as": "request",
-   "hook_ran": true,
-   "answer_tail": "SKILL-OK-4471"
-  },
-  {
-   "agent": "grok",
-   "version": "grok 1.0.44 (5b807183dd79) [stable]",
-   "artifact": "skill",
+   "artifact": "mcp",
    "run": 2,
+   "mcp_server_recorded_call": true,
    "delivered": true,
    "exit": 0,
-   "seconds": 6.3,
+   "seconds": 7.8,
    "invoked_as": "request",
    "hook_ran": true,
-   "answer_tail": "SKILL-OK-4471"
-  },
-  {
-   "agent": "grok",
-   "version": "grok 1.0.44 (5b807183dd79) [stable]",
-   "artifact": "command",
-   "run": 0,
-   "delivered": true,
-   "exit": 0,
-   "seconds": 5.0,
-   "invoked_as": "slash",
-   "hook_ran": true,
-   "answer_tail": "COMMAND-OK-9282"
-  },
-  {
-   "agent": "grok",
-   "version": "grok 1.0.44 (5b807183dd79) [stable]",
-   "artifact": "command",
-   "run": 1,
-   "delivered": true,
-   "exit": 0,
-   "seconds": 3.6,
-   "invoked_as": "slash",
-   "hook_ran": true,
-   "answer_tail": "COMMAND-OK-9282"
-  },
-  {
-   "agent": "grok",
-   "version": "grok 1.0.44 (5b807183dd79) [stable]",
-   "artifact": "command",
-   "run": 2,
-   "delivered": true,
-   "exit": 0,
-   "seconds": 3.5,
-   "invoked_as": "slash",
-   "hook_ran": true,
-   "answer_tail": "COMMAND-OK-9282"
-  },
-  {
-   "agent": "grok",
-   "version": "grok 1.0.44 (5b807183dd79) [stable]",
-   "artifact": "agent",
-   "run": 0,
-   "delivered": false,
-   "exit": 0,
-   "seconds": 25.3,
-   "invoked_as": "request",
-   "hook_ran": true,
-   "answer_tail": "t subagent is defined, then hand the task to it and return only its answer.The delivery-agent is defined. I'll hand it the task and return only what it answers."
-  },
-  {
-   "agent": "grok",
-   "version": "grok 1.0.44 (5b807183dd79) [stable]",
-   "artifact": "agent",
-   "run": 1,
-   "delivered": false,
-   "exit": 0,
-   "seconds": 15.7,
-   "invoked_as": "request",
-   "hook_ran": true,
-   "answer_tail": "I'll look up the delivery-agent subagent and hand the task to it.The delivery-agent is defined. I'll hand it the task and return only what it answers."
-  },
-  {
-   "agent": "grok",
-   "version": "grok 1.0.44 (5b807183dd79) [stable]",
-   "artifact": "agent",
-   "run": 2,
-   "delivered": false,
-   "exit": 0,
-   "seconds": 15.1,
-   "invoked_as": "request",
-   "hook_ran": true,
-   "answer_tail": "bagent is defined, then hand it the task and return only its answer.The delivery-agent is defined. I'll delegate the task to it and return only what it answers."
-  },
-  {
-   "agent": "grok",
-   "version": "grok 1.0.44 (5b807183dd79) [stable]",
-   "artifact": "rule",
-   "run": 0,
-   "delivered": true,
-   "exit": 0,
-   "seconds": 4.1,
-   "invoked_as": "request",
-   "hook_ran": true,
-   "answer_tail": "RULE-OK-5527"
-  },
-  {
-   "agent": "grok",
-   "version": "grok 1.0.44 (5b807183dd79) [stable]",
-   "artifact": "rule",
-   "run": 1,
-   "delivered": true,
-   "exit": 0,
-   "seconds": 9.9,
-   "invoked_as": "request",
-   "hook_ran": true,
-   "answer_tail": "RULE-OK-5527"
-  },
-  {
-   "agent": "grok",
-   "version": "grok 1.0.44 (5b807183dd79) [stable]",
-   "artifact": "rule",
-   "run": 2,
-   "delivered": true,
-   "exit": 0,
-   "seconds": 4.3,
-   "invoked_as": "request",
-   "hook_ran": true,
-   "answer_tail": "RULE-OK-5527"
+   "answer_tail": "I'll look up the delivery_token tool schema and call it.MCP-OK-7735"
   },
   {
    "agent": "agy",
-   "version": "1.3.3",
+   "version": "1.3.5",
    "artifact": "skill",
    "run": 0,
    "delivered": true,
    "exit": 0,
-   "seconds": 9.8,
+   "seconds": 8.0,
    "invoked_as": "request",
-   "hook_ran": false,
+   "hook_ran": true,
    "answer_tail": "SKILL-OK-4471"
   },
   {
    "agent": "agy",
-   "version": "1.3.3",
+   "version": "1.3.5",
    "artifact": "skill",
    "run": 1,
    "delivered": true,
    "exit": 0,
-   "seconds": 9.2,
+   "seconds": 8.7,
    "invoked_as": "request",
-   "hook_ran": false,
+   "hook_ran": true,
    "answer_tail": "SKILL-OK-4471"
   },
   {
    "agent": "agy",
-   "version": "1.3.3",
+   "version": "1.3.5",
    "artifact": "skill",
    "run": 2,
    "delivered": true,
    "exit": 0,
-   "seconds": 8.1,
+   "seconds": 8.0,
    "invoked_as": "request",
-   "hook_ran": false,
+   "hook_ran": true,
    "answer_tail": "SKILL-OK-4471"
   },
   {
    "agent": "agy",
-   "version": "1.3.3",
+   "version": "1.3.5",
    "artifact": "command",
    "run": 0,
    "delivered": true,
    "exit": 0,
-   "seconds": 18.0,
+   "seconds": 24.8,
    "invoked_as": "slash",
-   "hook_ran": false,
+   "hook_ran": true,
    "answer_tail": "COMMAND-OK-9282"
   },
   {
    "agent": "agy",
-   "version": "1.3.3",
+   "version": "1.3.5",
    "artifact": "command",
    "run": 1,
    "delivered": true,
    "exit": 0,
-   "seconds": 26.7,
+   "seconds": 26.3,
    "invoked_as": "slash",
-   "hook_ran": false,
+   "hook_ran": true,
    "answer_tail": "COMMAND-OK-9282"
   },
   {
    "agent": "agy",
-   "version": "1.3.3",
+   "version": "1.3.5",
    "artifact": "command",
    "run": 2,
    "delivered": true,
    "exit": 0,
-   "seconds": 26.8,
+   "seconds": 26.5,
    "invoked_as": "slash",
-   "hook_ran": false,
+   "hook_ran": true,
    "answer_tail": "COMMAND-OK-9282"
   },
   {
    "agent": "agy",
-   "version": "1.3.3",
+   "version": "1.3.5",
    "artifact": "agent",
    "run": 0,
    "delivered": true,
    "exit": 0,
-   "seconds": 28.8,
+   "seconds": 39.4,
    "invoked_as": "request",
-   "hook_ran": false,
-   "answer_tail": "Everything is set. Waiting for delivery-agent.\nAGENT-OK-6113"
+   "hook_ran": true,
+   "answer_tail": "AGENT-OK-6113\nAGENT-OK-6113"
   },
   {
    "agent": "agy",
-   "version": "1.3.3",
+   "version": "1.3.5",
    "artifact": "agent",
    "run": 1,
    "delivered": true,
    "exit": 0,
-   "seconds": 34.3,
+   "seconds": 26.9,
    "invoked_as": "request",
-   "hook_ran": false,
-   "answer_tail": "Waiting for subagent response...\nAGENT-OK-6113"
+   "hook_ran": true,
+   "answer_tail": "An invocation to `delivery-agent` has been started. Waiting for its response.\nAGENT-OK-6113"
   },
   {
    "agent": "agy",
-   "version": "1.3.3",
+   "version": "1.3.5",
    "artifact": "agent",
    "run": 2,
    "delivered": true,
    "exit": 0,
-   "seconds": 33.9,
+   "seconds": 28.1,
    "invoked_as": "request",
-   "hook_ran": false,
-   "answer_tail": "`Delivery Agent` has been launched and is processing the request. I will provide its answer once received.\nWaiting for the subagent to complete...\nAGENT-OK-6113"
+   "hook_ran": true,
+   "answer_tail": "AGENT-OK-6113\nAGENT-OK-6113"
   },
   {
    "agent": "agy",
-   "version": "1.3.3",
+   "version": "1.3.5",
    "artifact": "rule",
    "run": 0,
    "delivered": true,
    "exit": 0,
-   "seconds": 27.9,
+   "seconds": 23.3,
    "invoked_as": "request",
-   "hook_ran": false,
+   "hook_ran": true,
    "answer_tail": "RULE-OK-5527"
   },
   {
    "agent": "agy",
-   "version": "1.3.3",
+   "version": "1.3.5",
    "artifact": "rule",
    "run": 1,
    "delivered": true,
    "exit": 0,
-   "seconds": 22.1,
+   "seconds": 36.2,
    "invoked_as": "request",
-   "hook_ran": false,
+   "hook_ran": true,
    "answer_tail": "RULE-OK-5527"
   },
   {
    "agent": "agy",
-   "version": "1.3.3",
+   "version": "1.3.5",
    "artifact": "rule",
    "run": 2,
    "delivered": true,
    "exit": 0,
-   "seconds": 26.0,
+   "seconds": 37.8,
    "invoked_as": "request",
-   "hook_ran": false,
+   "hook_ran": true,
    "answer_tail": "RULE-OK-5527"
+  },
+  {
+   "agent": "agy",
+   "version": "1.3.5",
+   "artifact": "mcp",
+   "run": 0,
+   "mcp_server_recorded_call": true,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 17.3,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "MCP-OK-7735"
+  },
+  {
+   "agent": "agy",
+   "version": "1.3.5",
+   "artifact": "mcp",
+   "run": 1,
+   "mcp_server_recorded_call": true,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 18.8,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "MCP-OK-7735"
+  },
+  {
+   "agent": "agy",
+   "version": "1.3.5",
+   "artifact": "mcp",
+   "run": 2,
+   "mcp_server_recorded_call": true,
+   "delivered": true,
+   "exit": 0,
+   "seconds": 19.3,
+   "invoked_as": "request",
+   "hook_ran": true,
+   "answer_tail": "Created At: 2026-10-15T00:30:37+02:00\nCompleted At: 2026-10-15T00:30:37+02:00\nMCP-OK-7735"
   }
  ]
 }

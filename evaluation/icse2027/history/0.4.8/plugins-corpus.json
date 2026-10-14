@@ -1,0 +1,497 @@
+{
+ "selected_on": "2026-10-13",
+ "rule": {
+  "claude-official": {
+   "repo": "anthropics/claude-plugins-official",
+   "commit": "f359d43b406057f1a8cdbc4ea93b827642c162e6",
+   "rule": "every 5th directory of plugins/ in the official Claude Code marketplace repository"
+  },
+  "claude-official-external": {
+   "repo": "anthropics/claude-plugins-official",
+   "commit": "f359d43b406057f1a8cdbc4ea93b827642c162e6",
+   "rule": "every 2nd directory of external_plugins/ in the same repository"
+  },
+  "anthropic-skills": {
+   "repo": "anthropics/skills",
+   "commit": "dbd4588f9e1033efb41dad4bef2f7947c8993d44",
+   "rule": "every 5th directory of skills/ in anthropics/skills"
+  },
+  "cursor-official": {
+   "repo": "cursor/plugins",
+   "commit": "1dcc2bacde73ddd284803b7af28164d0436198fc",
+   "rule": "every 4th top-level directory with .cursor-plugin/plugin.json in the official Cursor marketplace repository"
+  },
+  "cursor-third-party": {
+   "repo": "cursor/plugins",
+   "commit": "1dcc2bacde73ddd284803b7af28164d0436198fc",
+   "rule": "every 17th directory of third_party/ in the same repository"
+  },
+  "codex-official": {
+   "repo": "openai/plugins",
+   "commit": "0722921d5542fc593105c27bd52630babd8b8c2a",
+   "rule": "every 12th directory of plugins/ in the official Codex plugin repository"
+  },
+  "community": {
+   "rule": "the three most-starred repositories with the GitHub topic claude-code-plugins on 2026-10-13: the repository root, and for a root catalog with several plugins also its first plugin with a local source",
+   "repositories": [
+    {
+     "repo": "alirezarezvani/claude-skills",
+     "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+     "stars": 28107
+    },
+    {
+     "repo": "mksglu/context-mode",
+     "commit": "1a1bed139906ecc048233583bb2fd29290603b7a",
+     "stars": 27874
+    },
+    {
+     "repo": "phuryn/pm-skills",
+     "commit": "c68487d721e419ec87af1ae6412a842978eab785",
+     "stars": 26955
+    }
+   ]
+  }
+ },
+ "packages": [
+  {
+   "id": "claude-official/agent-sdk-dev",
+   "source": "claude-official",
+   "format": "Claude Code plugin",
+   "repo": "anthropics/claude-plugins-official",
+   "path": "plugins/agent-sdk-dev",
+   "commit": "f359d43b406057f1a8cdbc4ea93b827642c162e6",
+   "url": "https://github.com/anthropics/claude-plugins-official/tree/f359d43b406057f1a8cdbc4ea93b827642c162e6/plugins/agent-sdk-dev",
+   "universe": 40,
+   "stars": null
+  },
+  {
+   "id": "claude-official/code-modernization",
+   "source": "claude-official",
+   "format": "Claude Code plugin",
+   "repo": "anthropics/claude-plugins-official",
+   "path": "plugins/code-modernization",
+   "commit": "f359d43b406057f1a8cdbc4ea93b827642c162e6",
+   "url": "https://github.com/anthropics/claude-plugins-official/tree/f359d43b406057f1a8cdbc4ea93b827642c162e6/plugins/code-modernization",
+   "universe": 40,
+   "stars": null
+  },
+  {
+   "id": "claude-official/cwc-makers",
+   "source": "claude-official",
+   "format": "Claude Code plugin",
+   "repo": "anthropics/claude-plugins-official",
+   "path": "plugins/cwc-makers",
+   "commit": "f359d43b406057f1a8cdbc4ea93b827642c162e6",
+   "url": "https://github.com/anthropics/claude-plugins-official/tree/f359d43b406057f1a8cdbc4ea93b827642c162e6/plugins/cwc-makers",
+   "universe": 40,
+   "stars": null
+  },
+  {
+   "id": "claude-official/gopls-lsp",
+   "source": "claude-official",
+   "format": "Claude Code plugin",
+   "repo": "anthropics/claude-plugins-official",
+   "path": "plugins/gopls-lsp",
+   "commit": "f359d43b406057f1a8cdbc4ea93b827642c162e6",
+   "url": "https://github.com/anthropics/claude-plugins-official/tree/f359d43b406057f1a8cdbc4ea93b827642c162e6/plugins/gopls-lsp",
+   "universe": 40,
+   "stars": null
+  },
+  {
+   "id": "claude-official/lua-lsp",
+   "source": "claude-official",
+   "format": "Claude Code plugin",
+   "repo": "anthropics/claude-plugins-official",
+   "path": "plugins/lua-lsp",
+   "commit": "f359d43b406057f1a8cdbc4ea93b827642c162e6",
+   "url": "https://github.com/anthropics/claude-plugins-official/tree/f359d43b406057f1a8cdbc4ea93b827642c162e6/plugins/lua-lsp",
+   "universe": 40,
+   "stars": null
+  },
+  {
+   "id": "claude-official/php-lsp",
+   "source": "claude-official",
+   "format": "Claude Code plugin",
+   "repo": "anthropics/claude-plugins-official",
+   "path": "plugins/php-lsp",
+   "commit": "f359d43b406057f1a8cdbc4ea93b827642c162e6",
+   "url": "https://github.com/anthropics/claude-plugins-official/tree/f359d43b406057f1a8cdbc4ea93b827642c162e6/plugins/php-lsp",
+   "universe": 40,
+   "stars": null
+  },
+  {
+   "id": "claude-official/pyright-lsp",
+   "source": "claude-official",
+   "format": "Claude Code plugin",
+   "repo": "anthropics/claude-plugins-official",
+   "path": "plugins/pyright-lsp",
+   "commit": "f359d43b406057f1a8cdbc4ea93b827642c162e6",
+   "url": "https://github.com/anthropics/claude-plugins-official/tree/f359d43b406057f1a8cdbc4ea93b827642c162e6/plugins/pyright-lsp",
+   "universe": 40,
+   "stars": null
+  },
+  {
+   "id": "claude-official/security-guidance",
+   "source": "claude-official",
+   "format": "Claude Code plugin",
+   "repo": "anthropics/claude-plugins-official",
+   "path": "plugins/security-guidance",
+   "commit": "f359d43b406057f1a8cdbc4ea93b827642c162e6",
+   "url": "https://github.com/anthropics/claude-plugins-official/tree/f359d43b406057f1a8cdbc4ea93b827642c162e6/plugins/security-guidance",
+   "universe": 40,
+   "stars": null
+  },
+  {
+   "id": "claude-official-external/asana",
+   "source": "claude-official-external",
+   "format": "Claude Code plugin",
+   "repo": "anthropics/claude-plugins-official",
+   "path": "external_plugins/asana",
+   "commit": "f359d43b406057f1a8cdbc4ea93b827642c162e6",
+   "url": "https://github.com/anthropics/claude-plugins-official/tree/f359d43b406057f1a8cdbc4ea93b827642c162e6/external_plugins/asana",
+   "universe": 14,
+   "stars": null
+  },
+  {
+   "id": "claude-official-external/discord",
+   "source": "claude-official-external",
+   "format": "Claude Code plugin",
+   "repo": "anthropics/claude-plugins-official",
+   "path": "external_plugins/discord",
+   "commit": "f359d43b406057f1a8cdbc4ea93b827642c162e6",
+   "url": "https://github.com/anthropics/claude-plugins-official/tree/f359d43b406057f1a8cdbc4ea93b827642c162e6/external_plugins/discord",
+   "universe": 14,
+   "stars": null
+  },
+  {
+   "id": "claude-official-external/firebase",
+   "source": "claude-official-external",
+   "format": "Claude Code plugin",
+   "repo": "anthropics/claude-plugins-official",
+   "path": "external_plugins/firebase",
+   "commit": "f359d43b406057f1a8cdbc4ea93b827642c162e6",
+   "url": "https://github.com/anthropics/claude-plugins-official/tree/f359d43b406057f1a8cdbc4ea93b827642c162e6/external_plugins/firebase",
+   "universe": 14,
+   "stars": null
+  },
+  {
+   "id": "claude-official-external/gitlab",
+   "source": "claude-official-external",
+   "format": "Claude Code plugin",
+   "repo": "anthropics/claude-plugins-official",
+   "path": "external_plugins/gitlab",
+   "commit": "f359d43b406057f1a8cdbc4ea93b827642c162e6",
+   "url": "https://github.com/anthropics/claude-plugins-official/tree/f359d43b406057f1a8cdbc4ea93b827642c162e6/external_plugins/gitlab",
+   "universe": 14,
+   "stars": null
+  },
+  {
+   "id": "claude-official-external/laravel-boost",
+   "source": "claude-official-external",
+   "format": "Claude Code plugin",
+   "repo": "anthropics/claude-plugins-official",
+   "path": "external_plugins/laravel-boost",
+   "commit": "f359d43b406057f1a8cdbc4ea93b827642c162e6",
+   "url": "https://github.com/anthropics/claude-plugins-official/tree/f359d43b406057f1a8cdbc4ea93b827642c162e6/external_plugins/laravel-boost",
+   "universe": 14,
+   "stars": null
+  },
+  {
+   "id": "claude-official-external/playwright",
+   "source": "claude-official-external",
+   "format": "Claude Code plugin",
+   "repo": "anthropics/claude-plugins-official",
+   "path": "external_plugins/playwright",
+   "commit": "f359d43b406057f1a8cdbc4ea93b827642c162e6",
+   "url": "https://github.com/anthropics/claude-plugins-official/tree/f359d43b406057f1a8cdbc4ea93b827642c162e6/external_plugins/playwright",
+   "universe": 14,
+   "stars": null
+  },
+  {
+   "id": "claude-official-external/telegram",
+   "source": "claude-official-external",
+   "format": "Claude Code plugin",
+   "repo": "anthropics/claude-plugins-official",
+   "path": "external_plugins/telegram",
+   "commit": "f359d43b406057f1a8cdbc4ea93b827642c162e6",
+   "url": "https://github.com/anthropics/claude-plugins-official/tree/f359d43b406057f1a8cdbc4ea93b827642c162e6/external_plugins/telegram",
+   "universe": 14,
+   "stars": null
+  },
+  {
+   "id": "anthropic-skills/academy-guide",
+   "source": "anthropic-skills",
+   "format": "bare SKILL.md skill",
+   "repo": "anthropics/skills",
+   "path": "skills/academy-guide",
+   "commit": "dbd4588f9e1033efb41dad4bef2f7947c8993d44",
+   "url": "https://github.com/anthropics/skills/tree/dbd4588f9e1033efb41dad4bef2f7947c8993d44/skills/academy-guide",
+   "universe": 19,
+   "stars": null
+  },
+  {
+   "id": "anthropic-skills/discernment-nudge",
+   "source": "anthropic-skills",
+   "format": "bare SKILL.md skill",
+   "repo": "anthropics/skills",
+   "path": "skills/discernment-nudge",
+   "commit": "dbd4588f9e1033efb41dad4bef2f7947c8993d44",
+   "url": "https://github.com/anthropics/skills/tree/dbd4588f9e1033efb41dad4bef2f7947c8993d44/skills/discernment-nudge",
+   "universe": 19,
+   "stars": null
+  },
+  {
+   "id": "anthropic-skills/mcp-builder",
+   "source": "anthropic-skills",
+   "format": "bare SKILL.md skill",
+   "repo": "anthropics/skills",
+   "path": "skills/mcp-builder",
+   "commit": "dbd4588f9e1033efb41dad4bef2f7947c8993d44",
+   "url": "https://github.com/anthropics/skills/tree/dbd4588f9e1033efb41dad4bef2f7947c8993d44/skills/mcp-builder",
+   "universe": 19,
+   "stars": null
+  },
+  {
+   "id": "anthropic-skills/theme-factory",
+   "source": "anthropic-skills",
+   "format": "bare SKILL.md skill",
+   "repo": "anthropics/skills",
+   "path": "skills/theme-factory",
+   "commit": "dbd4588f9e1033efb41dad4bef2f7947c8993d44",
+   "url": "https://github.com/anthropics/skills/tree/dbd4588f9e1033efb41dad4bef2f7947c8993d44/skills/theme-factory",
+   "universe": 19,
+   "stars": null
+  },
+  {
+   "id": "cursor-official/advisor",
+   "source": "cursor-official",
+   "format": "Cursor plugin",
+   "repo": "cursor/plugins",
+   "path": "advisor",
+   "commit": "1dcc2bacde73ddd284803b7af28164d0436198fc",
+   "url": "https://github.com/cursor/plugins/tree/1dcc2bacde73ddd284803b7af28164d0436198fc/advisor",
+   "universe": 17,
+   "stars": null
+  },
+  {
+   "id": "cursor-official/create-plugin",
+   "source": "cursor-official",
+   "format": "Cursor plugin",
+   "repo": "cursor/plugins",
+   "path": "create-plugin",
+   "commit": "1dcc2bacde73ddd284803b7af28164d0436198fc",
+   "url": "https://github.com/cursor/plugins/tree/1dcc2bacde73ddd284803b7af28164d0436198fc/create-plugin",
+   "universe": 17,
+   "stars": null
+  },
+  {
+   "id": "cursor-official/dyl-stack",
+   "source": "cursor-official",
+   "format": "Cursor plugin",
+   "repo": "cursor/plugins",
+   "path": "dyl-stack",
+   "commit": "1dcc2bacde73ddd284803b7af28164d0436198fc",
+   "url": "https://github.com/cursor/plugins/tree/1dcc2bacde73ddd284803b7af28164d0436198fc/dyl-stack",
+   "universe": 17,
+   "stars": null
+  },
+  {
+   "id": "cursor-official/pr-review-canvas",
+   "source": "cursor-official",
+   "format": "Cursor plugin",
+   "repo": "cursor/plugins",
+   "path": "pr-review-canvas",
+   "commit": "1dcc2bacde73ddd284803b7af28164d0436198fc",
+   "url": "https://github.com/cursor/plugins/tree/1dcc2bacde73ddd284803b7af28164d0436198fc/pr-review-canvas",
+   "universe": 17,
+   "stars": null
+  },
+  {
+   "id": "cursor-official/thermos",
+   "source": "cursor-official",
+   "format": "Cursor plugin",
+   "repo": "cursor/plugins",
+   "path": "thermos",
+   "commit": "1dcc2bacde73ddd284803b7af28164d0436198fc",
+   "url": "https://github.com/cursor/plugins/tree/1dcc2bacde73ddd284803b7af28164d0436198fc/thermos",
+   "universe": 17,
+   "stars": null
+  },
+  {
+   "id": "cursor-third-party/ahrefs",
+   "source": "cursor-third-party",
+   "format": "Cursor plugin",
+   "repo": "cursor/plugins",
+   "path": "third_party/ahrefs",
+   "commit": "1dcc2bacde73ddd284803b7af28164d0436198fc",
+   "url": "https://github.com/cursor/plugins/tree/1dcc2bacde73ddd284803b7af28164d0436198fc/third_party/ahrefs",
+   "universe": 84,
+   "stars": null
+  },
+  {
+   "id": "cursor-third-party/etoro-trading",
+   "source": "cursor-third-party",
+   "format": "Cursor plugin",
+   "repo": "cursor/plugins",
+   "path": "third_party/etoro-trading",
+   "commit": "1dcc2bacde73ddd284803b7af28164d0436198fc",
+   "url": "https://github.com/cursor/plugins/tree/1dcc2bacde73ddd284803b7af28164d0436198fc/third_party/etoro-trading",
+   "universe": 84,
+   "stars": null
+  },
+  {
+   "id": "cursor-third-party/guru",
+   "source": "cursor-third-party",
+   "format": "Cursor plugin",
+   "repo": "cursor/plugins",
+   "path": "third_party/guru",
+   "commit": "1dcc2bacde73ddd284803b7af28164d0436198fc",
+   "url": "https://github.com/cursor/plugins/tree/1dcc2bacde73ddd284803b7af28164d0436198fc/third_party/guru",
+   "universe": 84,
+   "stars": null
+  },
+  {
+   "id": "cursor-third-party/plaud",
+   "source": "cursor-third-party",
+   "format": "Cursor plugin",
+   "repo": "cursor/plugins",
+   "path": "third_party/plaud",
+   "commit": "1dcc2bacde73ddd284803b7af28164d0436198fc",
+   "url": "https://github.com/cursor/plugins/tree/1dcc2bacde73ddd284803b7af28164d0436198fc/third_party/plaud",
+   "universe": 84,
+   "stars": null
+  },
+  {
+   "id": "cursor-third-party/tailscale",
+   "source": "cursor-third-party",
+   "format": "Cursor plugin",
+   "repo": "cursor/plugins",
+   "path": "third_party/tailscale",
+   "commit": "1dcc2bacde73ddd284803b7af28164d0436198fc",
+   "url": "https://github.com/cursor/plugins/tree/1dcc2bacde73ddd284803b7af28164d0436198fc/third_party/tailscale",
+   "universe": 84,
+   "stars": null
+  },
+  {
+   "id": "codex-official/adobe",
+   "source": "codex-official",
+   "format": "Codex plugin",
+   "repo": "openai/plugins",
+   "path": "plugins/adobe",
+   "commit": "0722921d5542fc593105c27bd52630babd8b8c2a",
+   "url": "https://github.com/openai/plugins/tree/0722921d5542fc593105c27bd52630babd8b8c2a/plugins/adobe",
+   "universe": 62,
+   "stars": null
+  },
+  {
+   "id": "codex-official/cloudflare",
+   "source": "codex-official",
+   "format": "Codex plugin",
+   "repo": "openai/plugins",
+   "path": "plugins/cloudflare",
+   "commit": "0722921d5542fc593105c27bd52630babd8b8c2a",
+   "url": "https://github.com/openai/plugins/tree/0722921d5542fc593105c27bd52630babd8b8c2a/plugins/cloudflare",
+   "universe": 62,
+   "stars": null
+  },
+  {
+   "id": "codex-official/gmail",
+   "source": "codex-official",
+   "format": "Codex plugin",
+   "repo": "openai/plugins",
+   "path": "plugins/gmail",
+   "commit": "0722921d5542fc593105c27bd52630babd8b8c2a",
+   "url": "https://github.com/openai/plugins/tree/0722921d5542fc593105c27bd52630babd8b8c2a/plugins/gmail",
+   "universe": 62,
+   "stars": null
+  },
+  {
+   "id": "codex-official/ngs-analysis",
+   "source": "codex-official",
+   "format": "Codex plugin",
+   "repo": "openai/plugins",
+   "path": "plugins/ngs-analysis",
+   "commit": "0722921d5542fc593105c27bd52630babd8b8c2a",
+   "url": "https://github.com/openai/plugins/tree/0722921d5542fc593105c27bd52630babd8b8c2a/plugins/ngs-analysis",
+   "universe": 62,
+   "stars": null
+  },
+  {
+   "id": "codex-official/sentry",
+   "source": "codex-official",
+   "format": "Codex plugin",
+   "repo": "openai/plugins",
+   "path": "plugins/sentry",
+   "commit": "0722921d5542fc593105c27bd52630babd8b8c2a",
+   "url": "https://github.com/openai/plugins/tree/0722921d5542fc593105c27bd52630babd8b8c2a/plugins/sentry",
+   "universe": 62,
+   "stars": null
+  },
+  {
+   "id": "codex-official/zoom",
+   "source": "codex-official",
+   "format": "Codex plugin",
+   "repo": "openai/plugins",
+   "path": "plugins/zoom",
+   "commit": "0722921d5542fc593105c27bd52630babd8b8c2a",
+   "url": "https://github.com/openai/plugins/tree/0722921d5542fc593105c27bd52630babd8b8c2a/plugins/zoom",
+   "universe": 62,
+   "stars": null
+  },
+  {
+   "id": "community/claude-skills",
+   "source": "community",
+   "format": "marketplace repository root",
+   "repo": "alirezarezvani/claude-skills",
+   "path": "",
+   "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+   "url": "https://github.com/alirezarezvani/claude-skills/tree/19392f7a08264ed00486a251f5b2098321771f94",
+   "universe": null,
+   "stars": 28107
+  },
+  {
+   "id": "community/claude-skills/marketing-skill",
+   "source": "community",
+   "format": "Claude Code plugin",
+   "repo": "alirezarezvani/claude-skills",
+   "path": "marketing-skill",
+   "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+   "url": "https://github.com/alirezarezvani/claude-skills/tree/19392f7a08264ed00486a251f5b2098321771f94/marketing-skill",
+   "universe": null,
+   "stars": 28107
+  },
+  {
+   "id": "community/context-mode",
+   "source": "community",
+   "format": "marketplace repository root",
+   "repo": "mksglu/context-mode",
+   "path": "",
+   "commit": "1a1bed139906ecc048233583bb2fd29290603b7a",
+   "url": "https://github.com/mksglu/context-mode/tree/1a1bed139906ecc048233583bb2fd29290603b7a",
+   "universe": null,
+   "stars": 27874
+  },
+  {
+   "id": "community/pm-skills",
+   "source": "community",
+   "format": "marketplace repository root",
+   "repo": "phuryn/pm-skills",
+   "path": "",
+   "commit": "c68487d721e419ec87af1ae6412a842978eab785",
+   "url": "https://github.com/phuryn/pm-skills/tree/c68487d721e419ec87af1ae6412a842978eab785",
+   "universe": null,
+   "stars": 26955
+  },
+  {
+   "id": "community/pm-skills/pm-product-discovery",
+   "source": "community",
+   "format": "Claude Code plugin",
+   "repo": "phuryn/pm-skills",
+   "path": "pm-product-discovery",
+   "commit": "c68487d721e419ec87af1ae6412a842978eab785",
+   "url": "https://github.com/phuryn/pm-skills/tree/c68487d721e419ec87af1ae6412a842978eab785/pm-product-discovery",
+   "universe": null,
+   "stars": 26955
+  }
+ ]
+}
