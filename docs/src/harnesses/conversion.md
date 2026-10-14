@@ -82,7 +82,7 @@ A plugin declares language servers in Claude Code's format: `.lsp.json` at the p
 | Agent | Where the servers go |
 |---|---|
 | Claude Code | `.lsp.json` at the root of the staged bundle |
-| Grok | `$GROK_HOME/lsp.json` (Grok reads a plugin's `.lsp.json` only after the plugin is trusted) |
+| Grok | `$GROK_HOME/lsp.json` (Grok reads a plugin's `.lsp.json` only after the plugin is trusted), and `[features] lsp_tools = true` in its `config.toml` so that the model gets Grok's `lsp` tool, unless the user's configuration sets it |
 | OpenCode | the `lsp` map of the staged `opencode.json`: `command` as `[command, args...]`, `extensions` from the keys of `extensionToLanguage`, `env`, and `initialization` from `initializationOptions`; other fields are left out with a warning |
 | Codex, Cursor, Antigravity | not written: Codex has no language server setting, Cursor and Antigravity run only their built-in servers; a warning names them |
 

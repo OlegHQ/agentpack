@@ -617,6 +617,9 @@ func TestLanguageServersReachEveryAgentThatHasASetting(t *testing.T) {
 			}
 		}
 	}
+	if text := read(filepath.Join(grokHome, "config.toml")); !strings.Contains(text, "lsp_tools = true") {
+		t.Errorf("grok config.toml does not give the model the lsp tool:\n%s", text)
+	}
 	// A server that ships in its package runs from the staged copy of the package, in every agent.
 	for _, path := range []string{filepath.Join(fixture.bundle(), ".lsp.json"), filepath.Join(grokHome, "lsp.json"), fixture.stagedDir("opencode/opencode.json")} {
 		text := read(path)
