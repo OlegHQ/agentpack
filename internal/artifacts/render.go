@@ -2,6 +2,7 @@ package artifacts
 
 import (
 	"fmt"
+	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -110,7 +111,23 @@ func (artifact Markdown) renderAgent(target harness.Target) Rendered {
 	} else if target != harness.Agy {
 		fields = mergeExtra(fields, artifact.ExtraFrontmatter, agentExtraKeys)
 	}
-	return Rendered{RelativePath: "agents/" + artifact.tailPath, Contents: renderMarkdown(fields, artifact.Body), Warnings: warnings}
+	return Rendered{RelativePath: artifact.agentPath(target), Contents: renderMarkdown(fields, artifact.Body), Warnings: warnings}
+}
+
+// agentPath is where an agent is staged for target. OpenCode finds agents in
+// subdirectories of agents/; Claude Code, Grok, Cursor and Antigravity read only
+// the top level, so an agent a package keeps in a subdirectory is staged there.
+func (artifact Markdown) agentPath(target harness.Target) string {
+	if target == harness.OpenCode || !strings.Contains(artifact.tailPath, "/") {
+		return "agents/" + artifact.tailPath
+	}
+	return "agents/" + path.Base(artifact.tailPath)
+}
+
+// NestedPath is where the artifact sits in its package's own layout, under its
+// kind's directory (agents/team/reviewer.md).
+func (artifact Markdown) NestedPath() string {
+	return artifact.Kind.Word() + "s/" + artifact.tailPath
 }
 
 // openCodeTools maps Claude Code tool names to the OpenCode tools they

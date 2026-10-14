@@ -113,6 +113,10 @@ func stageSourceTree(sourceRoot string, roots []HarnessRoot, bareSkillName, modu
 	// A command, agent or rule that a target only has as a skill must not
 	// take the place of a skill of the same name, or of another converted item.
 	names := NewConvertedNames(skillSources)
+	// An agent kept in a subdirectory is staged at the top of agents/ where the
+	// target reads only that level; a second agent of the same file name keeps
+	// its subdirectory rather than replace the first.
+	flattened := make(map[string]map[string]string)
 	for _, artifact := range parsed {
 		for _, root := range roots {
 			staged := names.For(artifact, root.Target)
@@ -120,6 +124,17 @@ func stageSourceTree(sourceRoot string, roots []HarnessRoot, bareSkillName, modu
 				log.Printf("warning: %s: %s stages %ss as skills and the skill name %s is taken; %s %s is staged as skill %s", module, root.Target, artifact.Kind.Word(), artifact.StorageName, artifact.Kind.Word(), artifact.StorageName, staged.StorageName)
 			}
 			rendered := staged.Render(root.Target)
+			if nested := staged.NestedPath(); staged.Kind == artifacts.Agent && rendered.RelativePath != nested {
+				if flattened[root.Path] == nil {
+					flattened[root.Path] = make(map[string]string)
+				}
+				if first, taken := flattened[root.Path][rendered.RelativePath]; taken {
+					log.Printf("warning: %s: agents %s and %s have the same file name; %s reads agents only at the top of agents/, so it finds the first", module, first, nested, harness.DisplayName(root.Target))
+					rendered.RelativePath = nested
+				} else {
+					flattened[root.Path][rendered.RelativePath] = nested
+				}
+			}
 			for _, warning := range rendered.Warnings {
 				log.Printf("warning: %s: %s", module, warning)
 			}

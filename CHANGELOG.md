@@ -19,6 +19,7 @@ Found by adding 40 published packages (Claude Code, Cursor and Codex plugins, sk
 
 ### Fixed
 
+- A subagent that a package keeps in a subdirectory of `agents/` is staged at the top of `agents/` for Claude Code, Grok, Cursor and Antigravity, which read only that level; Claude Code, Grok and Antigravity listed none of the 33 subagents of alirezarezvani/claude-skills. OpenCode keeps the subdirectory. A second subagent with the same file name keeps its subdirectory, with a warning.
 - A fetched directory that turned out not to be a package stayed in the cache.
 - A launched agent started in the workspace, but `PWD` still named the directory agentpack was started from; OpenCode took its project from `PWD` and worked in the wrong directory under `--workspace`. `PWD` names the workspace.
 - `agentpack probe` accepted only the exact Claude Code, Codex and OpenCode releases it was validated on, so it reported nothing after an agent updated itself (Claude Code 2.1.299). It accepts later releases of the same series; a parser that cannot read one says so.

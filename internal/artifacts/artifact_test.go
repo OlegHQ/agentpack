@@ -237,3 +237,27 @@ func TestDocumentationInAComponentDirectoryIsNotAnArtifact(t *testing.T) {
 		}
 	}
 }
+
+// alirezarezvani/claude-skills keeps its agents in agents/<team>/; Claude Code,
+// Grok and Antigravity listed none of them while they were staged there.
+func TestAgentInASubdirectoryIsStagedWhereTheTargetReadsIt(t *testing.T) {
+	t.Parallel()
+	artifact, err := Parse("agents/engineering/cs-backend-engineer.md", "---\nname: cs-backend-engineer\ndescription: Backend work\n---\n\nBuild it.\n", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for target, want := range map[harness.Target]string{
+		harness.Claude:   "agents/cs-backend-engineer.md",
+		harness.Grok:     "agents/cs-backend-engineer.md",
+		harness.Agy:      "agents/cs-backend-engineer.md",
+		harness.Cursor:   "agents/cs-backend-engineer.md",
+		harness.OpenCode: "agents/engineering/cs-backend-engineer.md",
+	} {
+		if got := artifact.Render(target).RelativePath; got != want {
+			t.Errorf("%s: %s, want %s", target, got, want)
+		}
+	}
+	if got := artifact.NestedPath(); got != "agents/engineering/cs-backend-engineer.md" {
+		t.Errorf("NestedPath = %s", got)
+	}
+}
