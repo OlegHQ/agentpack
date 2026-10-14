@@ -20,6 +20,7 @@ Found by adding 40 published packages (Claude Code, Cursor and Codex plugins, sk
 ### Fixed
 
 - A fetched directory that turned out not to be a package stayed in the cache.
+- A launched agent started in the workspace, but `PWD` still named the directory agentpack was started from; OpenCode took its project from `PWD` and worked in the wrong directory under `--workspace`. `PWD` names the workspace.
 - `agentpack probe` accepted only the exact Claude Code, Codex and OpenCode releases it was validated on, so it reported nothing after an agent updated itself (Claude Code 2.1.299). It accepts later releases of the same series; a parser that cannot read one says so.
 - A command hook written in Claude Code's exec form (`"command": "node", "args": [...]`, the stripe plugin) lost its arguments and ran the program alone. The arguments are kept and the hook runs without a shell.
 - Subagents are also staged as Codex custom agent files (`agents/<name>.toml`), next to the skill fallback.

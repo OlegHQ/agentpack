@@ -462,6 +462,10 @@ func (runner Runner) launch(ctx context.Context, packContext paths.Context, invo
 		return 1, err
 	}
 	command.Dir = packContext.WorkspaceRoot
+	// The agent starts in the workspace; PWD must say so too, because some
+	// agents (OpenCode) take the project directory from PWD, which would
+	// otherwise still name the directory agentpack was started from.
+	command.Env = withPWD(command.Env, packContext.WorkspaceRoot)
 	launch.Command = command
 	command.Stdin, command.Stdout, command.Stderr = runner.Stdin, runner.Stdout, runner.Stderr
 	if invocation.Global.Proxy {
@@ -479,6 +483,21 @@ func (runner Runner) launch(ctx context.Context, packContext paths.Context, invo
 	}
 	code, runErr := runProcess(command)
 	return code, errors.Join(runErr, harness.AfterLaunch(launch))
+}
+
+// withPWD returns env (the inherited environment when env is nil) with PWD
+// set to directory.
+func withPWD(env []string, directory string) []string {
+	if env == nil {
+		env = os.Environ()
+	}
+	out := make([]string, 0, len(env)+1)
+	for _, entry := range env {
+		if !strings.HasPrefix(entry, "PWD=") {
+			out = append(out, entry)
+		}
+	}
+	return append(out, "PWD="+directory)
 }
 
 func noArgs(arguments []string) error {

@@ -6,6 +6,7 @@ import (
 	"image/color"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -151,5 +152,16 @@ func TestRenderedCLIUsesTerminalDefaultColors(t *testing.T) {
 				t.Errorf("dark=%t error header overrides the terminal color: %#v", dark, scheme.ErrorHeader)
 			}
 		}
+	}
+}
+
+func TestWithPWDNamesTheWorkspace(t *testing.T) {
+	got := withPWD([]string{"A=1", "PWD=/elsewhere", "B=2"}, "/work")
+	if strings.Join(got, " ") != "A=1 B=2 PWD=/work" {
+		t.Fatalf("env = %v", got)
+	}
+	t.Setenv("PWD", "/started-here")
+	if inherited := withPWD(nil, "/work"); inherited[len(inherited)-1] != "PWD=/work" || slices.Contains(inherited, "PWD=/started-here") {
+		t.Fatalf("inherited env keeps the old PWD")
 	}
 }
