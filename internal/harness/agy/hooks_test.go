@@ -1,6 +1,7 @@
 package agy
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -33,7 +34,7 @@ func TestRendererWritesAntigravityHooksAtThePluginRoot(t *testing.T) {
 		t.Fatal(err)
 	}
 	file := output.Files[len(output.Files)-1]
-	if file.Path != "/staged/bundle/hooks.json" {
+	if file.Path != filepath.Join("/staged/bundle", "hooks.json") {
 		t.Fatalf("hooks file at %s", file.Path)
 	}
 	named := file.JSON.(map[string]any)["agentpack"].(map[string]any)

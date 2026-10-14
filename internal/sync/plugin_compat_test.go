@@ -251,7 +251,7 @@ func TestPluginRootVariableBecomesAStagedCopyOfThePluginForEveryAgent(t *testing
 		if strings.Contains(text, "PLUGIN_ROOT") || strings.Contains(text, "PLUGIN_DATA") {
 			t.Errorf("%s configuration still holds a plugin variable:\n%s", agent, text)
 		}
-		if !strings.Contains(text, root) || !strings.Contains(text, filepath.Join(root, "start.mjs")) {
+		if !containsPath(text, root) || !containsPath(text, filepath.Join(root, "start.mjs")) {
 			t.Errorf("%s configuration does not name the staged plugin directory %s:\n%s", agent, root, text)
 		}
 	}
@@ -432,6 +432,8 @@ func TestSyncRemovesTheTempDirectoriesOfProjectsThatAreGone(t *testing.T) {
 	fixture := newIntegrityFixture(t)
 	temporary := t.TempDir()
 	t.Setenv("TMPDIR", temporary)
+	t.Setenv("TMP", temporary) // Windows takes the temporary directory from TMP and TEMP
+	t.Setenv("TEMP", temporary)
 	t.Setenv("AGENTPACK_STAGING_ROOT", "")
 	os.Unsetenv("AGENTPACK_STAGING_ROOT")
 	fixture.manifest(demoKey, commitOne)
@@ -535,8 +537,8 @@ func TestRemoteServerHeadersOAuthAndCwdReachEveryAgentThatHasThem(t *testing.T) 
 	}{
 		"claude":   {filepath.Join(fixture.bundle(), ".mcp.json"), []string{`"headers": { "Authorization": "Bearer header-token" }`, `"clientId": "client-id"`, `"callbackPort": 12798`, `"scopes": "https://mail.google.com/"`}, []string{"client-secret", `"cwd"`}},
 		"cursor":   {fixture.stagedDir("cursor/agentpack-bundle/mcp.json"), []string{`"Authorization": "Bearer header-token"`, `"CLIENT_ID": "client-id"`, `"CLIENT_SECRET": "client-secret"`, `"scopes": [ "https://mail.google.com/" ]`}, []string{`"cwd"`, "12798"}},
-		"opencode": {fixture.stagedDir("opencode/opencode.json"), []string{`"Authorization": "Bearer header-token"`, `"clientId": "client-id"`, `"clientSecret": "client-secret"`, `"scope": "https://mail.google.com/"`, `"cwd": "` + pluginRoot + `"`}, nil},
-		"agy":      {fixture.stagedDir("agy/agentpack-bundle/mcp_config.json"), []string{`"Authorization": "Bearer header-token"`, `"clientId": "client-id"`, `"clientSecret": "client-secret"`, `"cwd": "` + pluginRoot + `"`, `"serverUrl"`}, nil},
+		"opencode": {fixture.stagedDir("opencode/opencode.json"), []string{`"Authorization": "Bearer header-token"`, `"clientId": "client-id"`, `"clientSecret": "client-secret"`, `"scope": "https://mail.google.com/"`, `"cwd": "` + jsonEscaped(pluginRoot) + `"`}, nil},
+		"agy":      {fixture.stagedDir("agy/agentpack-bundle/mcp_config.json"), []string{`"Authorization": "Bearer header-token"`, `"clientId": "client-id"`, `"clientSecret": "client-secret"`, `"cwd": "` + jsonEscaped(pluginRoot) + `"`, `"serverUrl"`}, nil},
 		"codex":    {filepath.Join(codexHome, "config.toml"), []string{"http_headers", "Bearer header-token", "client_id = 'client-id'", "callback_port = 12798", "scopes = ['https://mail.google.com/']", "cwd = '" + pluginRoot + "'"}, []string{"client-secret"}},
 		"grok":     {filepath.Join(grokHome, "config.toml"), []string{"headers", "Bearer header-token"}, []string{"client-id", "cwd"}},
 	} {
@@ -623,7 +625,7 @@ func TestLanguageServersReachEveryAgentThatHasASetting(t *testing.T) {
 	// A server that ships in its package runs from the staged copy of the package, in every agent.
 	for _, path := range []string{filepath.Join(fixture.bundle(), ".lsp.json"), filepath.Join(grokHome, "lsp.json"), fixture.stagedDir("opencode/opencode.json")} {
 		text := read(path)
-		if strings.Contains(text, "${CLAUDE_PLUGIN_ROOT}") || !strings.Contains(text, fixture.stagedDir("plugin-roots")) {
+		if strings.Contains(text, "${CLAUDE_PLUGIN_ROOT}") || !containsPath(text, fixture.stagedDir("plugin-roots")) {
 			t.Errorf("%s does not name the staged package:\n%s", path, text)
 		}
 	}
@@ -637,4 +639,17 @@ func TestLanguageServersReachEveryAgentThatHasASetting(t *testing.T) {
 			t.Errorf("log lacks %q:\n%s", part, logged.String())
 		}
 	}
+}
+
+// jsonEscaped is path as it appears inside a JSON string: on Windows its
+// backslashes are doubled.
+func jsonEscaped(path string) string {
+	data, _ := json.Marshal(path)
+	return string(data[1 : len(data)-1])
+}
+
+// containsPath reports whether text names path, raw (TOML literal strings) or
+// as a JSON string.
+func containsPath(text, path string) bool {
+	return strings.Contains(text, path) || strings.Contains(text, jsonEscaped(path))
 }
