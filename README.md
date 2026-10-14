@@ -110,6 +110,15 @@ agentpack add anthropics/skills/skills/canvas-design
 # Pin to a branch, tag, or commit with an @ref, or edit the entry to a table like { version = "^1.0.0" }
 agentpack add anthropics/claude-plugins-official/plugins/hookify@main
 
+# A plugin's MCP server started with npx ...@latest is pinned to the exact version in pack.lock
+agentpack add anthropics/claude-plugins-official/external_plugins/playwright
+agentpack mcp list          # playwright: npx @playwright/mcp@latest [from plugin] (pinned @playwright/mcp@0.0.83)
+agentpack codex mcp list    # Codex itself reports @playwright/mcp@0.0.83
+
+# A marketplace catalog adds every plugin it lists; --plugin adds one
+agentpack add phuryn/pm-skills
+agentpack add anthropics/claude-plugins-official --plugin pyright-lsp
+
 # Launch Claude Code with everything bundled
 agentpack claude
 
@@ -153,14 +162,17 @@ Proxy diagnostics are written as JSONL under
 
 agentpack does not just copy files — it **parses** each artifact and **re-renders** it in the target format:
 
-| Source artifact | Claude Code | Cursor | OpenCode | Codex |
-|---|---|---|---|---|
-| **Commands** | Claude frontmatter | Plain markdown | OpenCode frontmatter | Skill fallback |
-| **Agents** | Claude agent MD | Cursor agent MD | OpenCode agent MD | Skill fallback |
-| **Skills** | Normalized skill | Normalized skill | Normalized skill | Codex skill |
-| **Rules** | Skill fallback | `.mdc` preserved | Skill fallback | Skill fallback |
+| Kind | Native form for | Converted to |
+|---|---|---|
+| **Skills** | all six agents | |
+| **Slash commands** | Claude Code, OpenCode, Cursor, Grok | Codex: skill; Antigravity: loaded as a skill |
+| **Subagents** | all six agents (Codex: custom agent file `agents/<name>.toml`) | Codex: also a skill |
+| **Rules** | Cursor, Antigravity; Codex, OpenCode (`AGENTS.md` and a skill) | Claude Code, Grok: skill |
+| **Hooks** | Claude Code, Codex, Cursor, Grok, Antigravity | OpenCode: generated plugin |
+| **MCP servers** | all six agents, each in its own MCP configuration file | |
+| **Language servers** | Claude Code, OpenCode, Grok | none (warning: no setting) |
 
-Grok mirrors Claude's command/agent formats; Antigravity preserves rules natively like Cursor. See the [conversion guide](https://github.com/OlegHQ/agentpack/blob/dev/docs/src/harnesses/conversion.md) for the full matrix.
+Conversions are reported as warnings. Subagents a package keeps in subdirectories of `agents/` are staged at the top of `agents/` for agents that read only that level. See the [conversion guide](https://github.com/OlegHQ/agentpack/blob/dev/docs/src/harnesses/conversion.md) for the full matrix.
 
 ## Manifest Example
 
