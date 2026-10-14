@@ -188,6 +188,7 @@ disable = ["mcp:filesystem"]
 - **Deterministic lockfile** — `pack.lock` pins every package, direct and transitive, to an exact commit and content hash, so resolution matches across machines and CI.
 - **Verified on every use** — The cache is re-hashed against the lock before anything is staged; a changed file stops `sync` and the launchers, and `sync --repair` re-fetches the pinned commit.
 - **MCP servers in the lock** — `npx`-style servers are resolved to an exact version and staged as that version; other launchers are recorded with an explicit `pinned` / `unpinned` / `unpinnable` status.
+- **Whole marketplaces and language servers** — `agentpack add <marketplace>` adds every plugin a catalog lists (or one, with `--plugin`); a plugin's language servers are written for Claude Code, OpenCode and Grok.
 - **Transitive resolution** — A package can declare its own `agentpack.toml`; agentpack walks the full graph and resolves conflicts.
 - **Shared cache** — Each package is fetched once into `$AGENTPACK_HOME/cache/<cache_key>/`, keyed by repository, path and commit, and shared by every project on the machine.
 - **No workspace pollution** — Pack content stays in staging trees outside your repo, and never symlinks into your real `~/.claude` or `~/.cursor`.
