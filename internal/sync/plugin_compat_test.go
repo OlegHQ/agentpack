@@ -580,7 +580,8 @@ func TestLanguageServersReachEveryAgentThatHasASetting(t *testing.T) {
 	fixture := newIntegrityFixture(t)
 	fixture.upstream.tarballs[commitTwo] = map[string]string{
 		"lsp/.claude-plugin/plugin.json": `{"name":"lsp","version":"1.0.0","lspServers":{"gopls":{"command":"gopls","extensionToLanguage":{".go":"go"},"restartOnCrash":true}}}`,
-		"lsp/.lsp.json":                  `{"pyright":{"command":"pyright-langserver","args":["--stdio"],"extensionToLanguage":{".py":"python",".pyi":"python"},"env":{"A":"1"}}}`,
+		"lsp/.lsp.json":                  `{"pyright":{"command":"pyright-langserver","args":["--stdio"],"extensionToLanguage":{".py":"python",".pyi":"python"},"env":{"A":"1"}},"own":{"command":"node","args":["${CLAUDE_PLUGIN_ROOT}/lsp/server.mjs"],"extensionToLanguage":{".dlv":"delivery"}}}`,
+		"lsp/lsp/server.mjs":             "// server\n",
 	}
 	fixture.manifest("github.com/acme/skills/lsp", commitTwo)
 	var logged bytes.Buffer
@@ -616,10 +617,17 @@ func TestLanguageServersReachEveryAgentThatHasASetting(t *testing.T) {
 			}
 		}
 	}
+	// A server that ships in its package runs from the staged copy of the package, in every agent.
+	for _, path := range []string{filepath.Join(fixture.bundle(), ".lsp.json"), filepath.Join(grokHome, "lsp.json"), fixture.stagedDir("opencode/opencode.json")} {
+		text := read(path)
+		if strings.Contains(text, "${CLAUDE_PLUGIN_ROOT}") || !strings.Contains(text, fixture.stagedDir("plugin-roots")) {
+			t.Errorf("%s does not name the staged package:\n%s", path, text)
+		}
+	}
 	for _, part := range []string{
-		"skipping language server(s) gopls, pyright for Codex: it has no language server setting",
-		"skipping language server(s) gopls, pyright for Cursor: it has no language server setting",
-		"skipping language server(s) gopls, pyright for Antigravity: it has no language server setting",
+		"skipping language server(s) gopls, own, pyright for Codex: it has no language server setting",
+		"skipping language server(s) gopls, own, pyright for Cursor: it has no language server setting",
+		"skipping language server(s) gopls, own, pyright for Antigravity: it has no language server setting",
 		`OpenCode: language server "gopls": leaving out [restartOnCrash]`,
 	} {
 		if !strings.Contains(logged.String(), part) {

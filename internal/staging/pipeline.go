@@ -139,7 +139,11 @@ func (pipeline Pipeline) Rebuild() (_ []string, rebuildErr error) {
 			}
 		}
 	}
-	languageServers, err := CollectLSP(pipeline.Lock, &pipeline.Mode)
+	declaredServers, err := CollectLSP(pipeline.Lock, &pipeline.Mode)
+	if err != nil {
+		return nil, err
+	}
+	languageServers, err := pipeline.stageLSPRoots(declaredServers)
 	if err != nil {
 		return nil, err
 	}
