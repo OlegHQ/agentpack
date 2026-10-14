@@ -27,7 +27,7 @@ func Capability() map[string]string {
 	return map[string]string{
 		"adapter_revision":    adapterRevision,
 		"capability_revision": capabilityRevision,
-		"validated_versions":  "2.1.295, 2.1.296",
+		"validated_versions":  "2.1.295 and later 2.1 releases (session catalog: 2.1.296 and later)",
 		"plugin_presence":     "observed via `claude --bare --plugin-dir <bundle> plugin list --json`",
 		"skill_presence":      "observed via `claude plugin details <id>` inventory (names only; no source bytes)",
 		"skill_source_digest": "unknown — native interface does not attribute source bytes",
@@ -97,7 +97,7 @@ func ProbeBundle(ctx context.Context, bundleDir, workspace, sourceID, lockDigest
 		return receipt, nil
 	}
 
-	if version != "2.1.295 (Claude Code)" && version != "2.1.295" && version != "2.1.296 (Claude Code)" && version != "2.1.296" {
+	if !base.SeriesFrom(version, "2.1", 295) {
 		receipt.Coverage = []environment.CoverageNote{{Category: "plugin", Scope: "controlled_projection", Completeness: "none", Reason: "native version is outside validated parser coverage"}}
 		receipt.Findings = append(receipt.Findings, environment.Finding{Code: "OBSERVATION_UNAVAILABLE", Severity: environment.SeverityWarning, Target: "claude", Message: "Claude native version is not validated: " + version, Evidence: environment.EvidenceUnknown, Remedy: "use the documented validated native version or validate and update parser fixtures"})
 		receipt.OverallStatus = "unknown"
@@ -272,14 +272,14 @@ func ProbeBundle(ctx context.Context, bundleDir, workspace, sourceID, lockDigest
 		}
 		observeSession(ctx, exe, bundleDir, workspace, diagnosticEnv, plan, &receipt)
 	} else {
-		receipt.Coverage = append(receipt.Coverage, environment.CoverageNote{Category: "skill", Scope: "workspace_session", Completeness: "none", Reason: "session catalog parser is validated for 2.1.296 only"})
+		receipt.Coverage = append(receipt.Coverage, environment.CoverageNote{Category: "skill", Scope: "workspace_session", Completeness: "none", Reason: "session catalog parser is validated for 2.1.296 and later 2.1 releases"})
 	}
 	receipt.OverallStatus = "ready_with_warnings"
 	return receipt, nil
 }
 
 func sessionValidated(version string) bool {
-	return version == "2.1.296 (Claude Code)" || version == "2.1.296"
+	return base.SeriesFrom(version, "2.1", 296)
 }
 
 // observeSession starts a print-mode session in the checkout with the staged bundle and an empty

@@ -22,7 +22,7 @@ func Capability() map[string]string {
 	return map[string]string{
 		"adapter_revision":    adapterRevision,
 		"capability_revision": capabilityRevision,
-		"validated_versions":  "0.159.2, 0.159.3",
+		"validated_versions":  "0.159.2 and later 0.159 releases",
 		"native_version":      "observed via `codex --version`",
 		"skill_presence":      "positive names via controlled debug prompt-input in 0.159.2 and 0.159.3; partial, no absence or model use proof",
 		"command_agent":       "slash commands and subagents are rendered as skills for Codex and observed in the same listing, reported under their own category",
@@ -110,8 +110,7 @@ func ProbeHome(ctx context.Context, codexHome, workspace, sourceID, lockDigest, 
 		Category: "runtime", Property: "native_version", Value: receipt.Target.NativeVersion,
 		Evidence: environment.EvidenceObserved, Method: "codex --version", EvidenceRef: versionEvidence,
 	})
-	switch strings.TrimPrefix(receipt.Target.NativeVersion, "codex-cli ") {
-	case "0.159.2", "0.159.3":
+	if base.SeriesFrom(strings.TrimPrefix(receipt.Target.NativeVersion, "codex-cli "), "0.159", 2) {
 		observePromptSkills(ctx, exe, codexHome, workspace, plan, &receipt)
 		return receipt, nil
 	}

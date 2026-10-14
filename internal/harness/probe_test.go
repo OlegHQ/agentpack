@@ -78,3 +78,13 @@ func TestProbeEvidenceIsPrivateAndRejectsTraversal(t *testing.T) {
 		t.Fatal("existing evidence overwritten")
 	}
 }
+
+func TestSeriesFromAcceptsLaterReleasesOfTheValidatedSeries(t *testing.T) {
+	for version, want := range map[string]bool{
+		"2.1.296 (Claude Code)": true, "2.1.299 (Claude Code)": true, "2.1.295": false, "2.2.0": false, "12.1.300": false, "2.1.x": false,
+	} {
+		if got := SeriesFrom(version, "2.1", 296); got != want {
+			t.Errorf("SeriesFrom(%q) = %v, want %v", version, got, want)
+		}
+	}
+}

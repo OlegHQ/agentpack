@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -174,4 +175,19 @@ func SaveProbeEvidence(workspace, receiptID, phase string, result ProbeResult) (
 	}
 	_, writeErr := file.Write(append(data, '\n'))
 	return path, errors.Join(writeErr, file.Close())
+}
+
+// SeriesFrom says whether version (its first word, as `--version` prints it)
+// is <series>.<patch> with patch at least from: a release of the validated
+// series, the validated one or later. Probes gate their parsers on it rather
+// than on one exact release, which the agents' auto-updates leave behind
+// within days; a parser that cannot read a later release reports that itself.
+func SeriesFrom(version, series string, from int) bool {
+	number, _, _ := strings.Cut(strings.TrimSpace(version), " ")
+	rest, found := strings.CutPrefix(number, series+".")
+	if !found {
+		return false
+	}
+	patch, err := strconv.Atoi(rest)
+	return err == nil && patch >= from
 }

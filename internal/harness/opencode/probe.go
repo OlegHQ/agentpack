@@ -18,7 +18,7 @@ import (
 const (
 	capabilityRevision = "opencode-probe-v1"
 	adapterRevision    = "opencode-observe-2026-10"
-	validatedVersion   = "1.17.11"
+	validatedVersion   = "1.17.11 and later 1.17 releases"
 	// OpenCode 1.17.11 lists one skill per name, and with two same-named skills the listed one
 	// differs between runs in a few percent of them. One listing cannot show that, so the probe
 	// samples. 60 runs miss a 4% effect with probability 0.96^60, about 9%.
@@ -102,7 +102,7 @@ func ProbeConfigDir(ctx context.Context, configDir, workspace, sourceID, lockDig
 	}
 	receipt.Target.NativeVersion = version
 	receipt.Properties = append(receipt.Properties, environment.ObservedProperty{Scope: "workspace_session", Category: "runtime", Property: "native_version", Value: version, Evidence: environment.EvidenceObserved, Method: "opencode --version", EvidenceRef: versionEvidence})
-	if version != validatedVersion {
+	if !base.SeriesFrom(version, "1.17", 11) {
 		receipt.Coverage = []environment.CoverageNote{{Category: "skill", Scope: "workspace_session", Completeness: "none", Reason: "native version is outside validated parser coverage"}}
 		return stop("unknown", "OBSERVATION_UNAVAILABLE", "OpenCode native version is not validated: "+version)
 	}
