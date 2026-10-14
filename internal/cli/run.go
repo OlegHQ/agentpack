@@ -103,14 +103,21 @@ func (runner Runner) Run(ctx context.Context, arguments []string) (int, error) {
 					fmt.Fprintf(runner.Stdout, "Adding: %s\n", args[0])
 				}
 			}
-			var pkg lockfile.Package
+			var added []lockfile.Package
 			if hasPlugin {
+				var pkg lockfile.Package
 				pkg, err = runner.Service.AddPlugin(ctx, root, args[0], plugin, noSync)
+				added = []lockfile.Package{pkg}
 			} else {
-				pkg, err = runner.Service.Add(ctx, root, args[0], noSync)
+				added, err = runner.Service.AddAll(ctx, root, args[0], noSync)
 			}
 			if err == nil && !invocation.Global.Quiet {
-				fmt.Fprintf(runner.Stdout, "Recorded %s in agentpack.toml and refreshed pack.lock.\n", pkg.Module)
+				if len(added) > 1 {
+					fmt.Fprintf(runner.Stdout, "The marketplace lists %d plugins; added each one.\n", len(added))
+				}
+				for _, pkg := range added {
+					fmt.Fprintf(runner.Stdout, "Recorded %s in agentpack.toml and refreshed pack.lock.\n", pkg.Module)
+				}
 			}
 		} else {
 			var key string

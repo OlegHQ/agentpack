@@ -14,6 +14,7 @@ Found by adding 40 published packages (Claude Code, Cursor and Codex plugins, sk
 ### Added
 
 - `agentpack add <marketplace> --plugin <name>` adds one named plugin of a marketplace catalog, following relative-path, `local`, `github`, `url` and `git-subdir` entries (`sha` before `ref`, `renames` honoured). The manifest records the plugin's own repository and path; `pack.lock` pins its commit.
+- `agentpack add <marketplace>` without `--plugin`, on a catalog that lists several plugins, adds every plugin it lists, each as its own package, or none of them if one cannot be added. It used to stop and ask for `--plugin`.
 
 ### Fixed
 

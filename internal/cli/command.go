@@ -102,7 +102,7 @@ func (runner Runner) rootCommand(original []string, exitCode *int) *cobra.Comman
 	flag(lock, "allow-unpinned-mcp", "", "record an MCP server as unpinned when its registry is unreachable")
 	add := leaf("add SPEC", "Add and pin a package dependency")
 	flag(add, "no-sync", "", "record the change without staging")
-	value(add, "plugin", "NAME", "add the plugin of this name from the marketplace catalog at SPEC")
+	value(add, "plugin", "NAME", "add only the plugin of this name from the marketplace catalog at SPEC (without it, every plugin the catalog lists is added)")
 	remove := leaf("remove SPEC", "Remove a direct package dependency")
 	flag(remove, "no-sync", "", "record the change without staging")
 	update := leaf("update [SPEC...]", "Refresh one dependency, or every floating dependency")

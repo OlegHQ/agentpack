@@ -2,6 +2,7 @@ package sync
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -109,4 +110,49 @@ func keepProjectFiles(projectRoot string) func() error {
 		}
 		return nil
 	}
+}
+
+// AddAll adds spec like Add. When spec is a marketplace catalog that lists
+// several plugins, it adds every plugin the catalog lists, each as its own
+// package, and syncs once at the end. Either all of them are added or the
+// project files are left as they were.
+func (service Service) AddAll(ctx context.Context, projectRoot, spec string, noSync bool) ([]lockfile.Package, error) {
+	pkg, err := service.Add(ctx, projectRoot, spec, noSync)
+	var several *cache.MultiplePluginsError
+	if !errors.As(err, &several) {
+		if err != nil {
+			return nil, err
+		}
+		return []lockfile.Package{pkg}, nil
+	}
+	restore := keepProjectFiles(projectRoot)
+	packages, err := service.addCatalog(ctx, projectRoot, spec, several.Names, noSync)
+	if err != nil {
+		if restoreErr := restore(); restoreErr != nil {
+			return nil, errors.Join(err, fmt.Errorf("restore agentpack.toml and pack.lock: %w", restoreErr))
+		}
+		return nil, err
+	}
+	return packages, nil
+}
+
+func (service Service) addCatalog(ctx context.Context, projectRoot, marketplace string, names []string, noSync bool) ([]lockfile.Package, error) {
+	packages := make([]lockfile.Package, 0, len(names))
+	for _, name := range names {
+		spec, err := service.catalogPluginSpec(ctx, marketplace, name)
+		if err != nil {
+			return nil, fmt.Errorf("plugin %s of %s: %w", name, marketplace, err)
+		}
+		pkg, err := service.add(ctx, projectRoot, spec, true)
+		if err != nil {
+			return nil, fmt.Errorf("plugin %s of %s: %w", name, marketplace, err)
+		}
+		packages = append(packages, pkg)
+	}
+	if !noSync {
+		if _, err := service.Sync(ctx, projectRoot, SyncOptions{}); err != nil {
+			return nil, err
+		}
+	}
+	return packages, nil
 }

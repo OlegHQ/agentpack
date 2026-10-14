@@ -39,6 +39,18 @@ type marketplacePlugin struct {
 	Source json.RawMessage `json:"source"`
 }
 
+// MultiplePluginsError reports a marketplace catalog that lists more than one
+// plugin where a single package was expected. `agentpack add` answers it by
+// adding every plugin the catalog lists.
+type MultiplePluginsError struct {
+	Root  string
+	Names []string
+}
+
+func (err *MultiplePluginsError) Error() string {
+	return fmt.Sprintf("marketplace at %s contains multiple plugins (%s); name one with `agentpack add <marketplace> --plugin <name>`, or add its source directory", err.Root, strings.Join(err.Names, ", "))
+}
+
 type localPluginSource struct {
 	path     string
 	priority uint8
@@ -97,8 +109,7 @@ func materializeSinglePluginMarketplace(root string) (bool, error) {
 		return false, fmt.Errorf("marketplace at %s contains no plugins", root)
 	}
 	if len(pluginNames) != 1 {
-		names := mapKeys(pluginNames)
-		return false, fmt.Errorf("marketplace at %s contains multiple plugins (%s); name one with `agentpack add <marketplace> --plugin <name>`, or add its source directory", root, strings.Join(names, ", "))
+		return false, &MultiplePluginsError{Root: root, Names: mapKeys(pluginNames)}
 	}
 	if len(localSources) == 0 {
 		return false, fmt.Errorf("marketplace plugin %q at %s has no local source; add its Git or package source directly", mapKeys(pluginNames)[0], root)

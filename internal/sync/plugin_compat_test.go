@@ -383,6 +383,48 @@ func TestAddPluginResolvesAMarketplaceEntryToItsOwnRepositoryAndCommit(t *testin
 	}
 }
 
+// phuryn/pm-skills is a marketplace of nine plugins. `add` without --plugin
+// adds every plugin the catalog lists, or none of them.
+func TestAddAllAddsEveryPluginOfAMarketplace(t *testing.T) {
+	fixture := newIntegrityFixture(t)
+	fixture.upstream.tarballs[commitOne] = map[string]string{
+		".claude-plugin/marketplace.json": `{"name":"pm","plugins":[{"name":"one","source":"./one"},{"name":"two","source":"./two"}]}`,
+		"one/.claude-plugin/plugin.json":  `{"name":"one","version":"1.0.0"}`,
+		"one/skills/first/SKILL.md":       "---\nname: first\ndescription: First\n---\nFirst.\n",
+		"two/.claude-plugin/plugin.json":  `{"name":"two","version":"1.0.0"}`,
+		"two/commands/second.md":          "---\ndescription: Second\n---\nSecond.\n",
+	}
+	fixture.upstream.tarballs[commitTwo] = map[string]string{
+		".claude-plugin/marketplace.json": `{"name":"pm","plugins":[{"name":"one","source":"./one"},{"name":"registry","source":{"source":"npm","package":"acme-plugin"}}]}`,
+		"one/.claude-plugin/plugin.json":  `{"name":"one","version":"1.0.0"}`,
+		"one/skills/first/SKILL.md":       "---\nname: first\ndescription: First\n---\nFirst.\n",
+	}
+	fixture.writeManifest("\n[dependencies]\n")
+	if _, err := fixture.service.AddAll(context.Background(), fixture.project, "acme/pm@"+commitTwo, false); err == nil || !strings.Contains(err.Error(), `"npm" source`) {
+		t.Fatalf("add of a marketplace with an npm entry: %v", err)
+	}
+	if !fixtureMissing(paths.LockPath(fixture.project)) {
+		t.Fatal("a failed add of a marketplace left pack.lock behind")
+	}
+	added, err := fixture.service.AddAll(context.Background(), fixture.project, "acme/pm@"+commitOne, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var modules []string
+	for _, pkg := range added {
+		modules = append(modules, pkg.Module)
+	}
+	if got := strings.Join(modules, " "); got != "github.com/acme/pm/one github.com/acme/pm/two" {
+		t.Fatalf("added = %s", got)
+	}
+	if lock := fixture.loadLock(); len(lock.Packages) != 2 {
+		t.Fatalf("packages = %#v", lock.Packages)
+	}
+	if _, err := os.Stat(filepath.Join(fixture.bundle(), "skills", "first", "SKILL.md")); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // Deleted projects left their /tmp/agentpack-<hash> staging and their Codex
 // homes behind for good. A sync removes the ones agentpack marked whose
 // project is gone, and nothing else.
