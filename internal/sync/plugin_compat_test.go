@@ -572,3 +572,58 @@ func TestRemoteServerHeadersOAuthAndCwdReachEveryAgentThatHasThem(t *testing.T) 
 		t.Fatalf("pack.lock holds credentials:\n%s", text)
 	}
 }
+
+// A plugin's language servers (.lsp.json, or lspServers in plugin.json, as
+// Claude Code's language server plugins declare them) reach the three agents
+// that have a language server setting; the other three are named in a warning.
+func TestLanguageServersReachEveryAgentThatHasASetting(t *testing.T) {
+	fixture := newIntegrityFixture(t)
+	fixture.upstream.tarballs[commitTwo] = map[string]string{
+		"lsp/.claude-plugin/plugin.json": `{"name":"lsp","version":"1.0.0","lspServers":{"gopls":{"command":"gopls","extensionToLanguage":{".go":"go"},"restartOnCrash":true}}}`,
+		"lsp/.lsp.json":                  `{"pyright":{"command":"pyright-langserver","args":["--stdio"],"extensionToLanguage":{".py":"python",".pyi":"python"},"env":{"A":"1"}}}`,
+	}
+	fixture.manifest("github.com/acme/skills/lsp", commitTwo)
+	var logged bytes.Buffer
+	previous := log.Writer()
+	log.SetOutput(&logged)
+	t.Cleanup(func() { log.SetOutput(previous) })
+	fixture.lock()
+	fixture.sync(SyncOptions{})
+
+	grokHome, err := paths.StagingGrokHomeDirForMode(fixture.project, "default")
+	if err != nil {
+		t.Fatal(err)
+	}
+	read := func(path string) string {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return strings.Join(strings.Fields(string(data)), " ")
+	}
+	for agent, check := range map[string]struct {
+		path string
+		want []string
+	}{
+		"claude":   {filepath.Join(fixture.bundle(), ".lsp.json"), []string{`"pyright": {`, `"gopls": {`, `"extensionToLanguage": { ".py": "python"`, `"restartOnCrash": true`}},
+		"grok":     {filepath.Join(grokHome, "lsp.json"), []string{`"pyright": {`, `"gopls": {`}},
+		"opencode": {fixture.stagedDir("opencode/opencode.json"), []string{`"command": [ "pyright-langserver", "--stdio" ]`, `"extensions": [ ".py", ".pyi" ]`, `"env": { "A": "1" }`, `"command": [ "gopls" ]`}},
+	} {
+		text := read(check.path)
+		for _, part := range check.want {
+			if !strings.Contains(text, part) {
+				t.Errorf("%s configuration lacks %s:\n%s", agent, part, text)
+			}
+		}
+	}
+	for _, part := range []string{
+		"skipping language server(s) gopls, pyright for Codex: it has no language server setting",
+		"skipping language server(s) gopls, pyright for Cursor: it has no language server setting",
+		"skipping language server(s) gopls, pyright for Antigravity: it has no language server setting",
+		`OpenCode: language server "gopls": leaving out [restartOnCrash]`,
+	} {
+		if !strings.Contains(logged.String(), part) {
+			t.Errorf("log lacks %q:\n%s", part, logged.String())
+		}
+	}
+}

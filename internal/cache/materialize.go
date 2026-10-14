@@ -85,15 +85,19 @@ func MaterializeGitHubTree(ctx context.Context, client *http.Client, source gith
 			return lockfile.Package{}, fmt.Errorf("no files matched repository path %q in %s/%s archive at %.8s", effective.Path, effective.Owner, effective.Repo, commit)
 		}
 		if !IsPackageRoot(out) {
-			// Not a package by itself: say what the repository's catalog
-			// makes of it, and leave nothing in the cache.
-			if err := catalogOnlyEntry(prefetched, effective); err != nil {
+			// Not a package by itself: the repository's catalog entry may
+			// define it. Leave nothing in the cache if that fails.
+			if _, err := writeCatalogManifest(prefetched, effective, out); err != nil {
 				_ = os.RemoveAll(out)
 				return lockfile.Package{}, err
 			}
 		}
 	}
 	pkg, err := ClassifyMaterialized(out, githubsource.CanonicalTreeURL(effective), effective, commit, cacheKey)
+	if err != nil && fetched {
+		// Nothing that failed to classify stays where a later command would take it for a package.
+		_ = os.RemoveAll(out)
+	}
 	if err != nil || !fetched {
 		return pkg, err
 	}
@@ -124,6 +128,12 @@ func GitHubRestore(ctx context.Context, client *http.Client) RemoteRestoreFunc {
 		if written == 0 && pkg.Path != "" {
 			_ = os.RemoveAll(destination)
 			return fmt.Errorf("no files matched repository path %q", pkg.Path)
+		}
+		if !IsPackageRoot(destination) {
+			source := githubsource.Source{Owner: pkg.Owner, Repo: pkg.Repo, GitRef: pkg.Commit, Path: pkg.Path}
+			if _, err := writeCatalogManifest(data, source, destination); err != nil {
+				return err
+			}
 		}
 		return nil
 	}

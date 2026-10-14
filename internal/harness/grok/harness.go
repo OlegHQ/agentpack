@@ -15,7 +15,7 @@ import (
 )
 
 func New() base.Harness {
-	return base.Definition{Target: base.Grok, Root: stagedRoot, Reset: resetPaths, BeforeReset: preReset, Setup: prepare, MCP: writeMCP, Guidance: injectGuidance, Check: verify, Launch: launch, LaunchFinished: persistCredentials}
+	return base.Definition{Target: base.Grok, Root: stagedRoot, Reset: resetPaths, BeforeReset: preReset, Setup: prepare, MCP: writeMCP, LSP: writeLSP, Guidance: injectGuidance, Check: verify, Launch: launch, LaunchFinished: persistCredentials}
 }
 
 func launch(ctx base.LaunchContext) (*exec.Cmd, error) {

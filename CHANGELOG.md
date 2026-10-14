@@ -15,9 +15,11 @@ Found by adding 40 published packages (Claude Code, Cursor and Codex plugins, sk
 
 - `agentpack add <marketplace> --plugin <name>` adds one named plugin of a marketplace catalog, following relative-path, `local`, `github`, `url` and `git-subdir` entries (`sha` before `ref`, `renames` honoured). The manifest records the plugin's own repository and path; `pack.lock` pins its commit.
 - `agentpack add <marketplace>` without `--plugin`, on a catalog that lists several plugins, adds every plugin it lists, each as its own package, or none of them if one cannot be added. It used to stop and ask for `--plugin`.
+- Language servers. A plugin's `.lsp.json` or `lspServers` is written into Claude Code's bundle (`.lsp.json`), Grok's home (`lsp.json`) and OpenCode's `opencode.json` (`lsp`); a warning names Codex, Cursor and Antigravity, which have no language server setting. A marketplace entry that defines its plugin in the catalog itself (`gopls-lsp`, `pyright-lsp` and the other language server plugins of the official Claude Code marketplace) is installed with the entry as its manifest; it used to be refused.
 
 ### Fixed
 
+- A fetched directory that turned out not to be a package stayed in the cache.
 - A command hook written in Claude Code's exec form (`"command": "node", "args": [...]`, the stripe plugin) lost its arguments and ran the program alone. The arguments are kept and the hook runs without a shell.
 - Subagents are also staged as Codex custom agent files (`agents/<name>.toml`), next to the skill fallback.
 - A failed `add` left the package in `agentpack.toml` and `pack.lock` although nothing was staged. Both files are now put back as they were.

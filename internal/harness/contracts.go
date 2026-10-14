@@ -1,6 +1,8 @@
 package harness
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"os/exec"
 
@@ -43,6 +45,9 @@ type Harness interface {
 	BeginRebuild(StageContext) (RebuildTransaction, error)
 	Prepare(StageContext) error
 	WriteMCP(mcp.Entries, StageContext) error
+	// WriteLSP writes language servers (Claude Code format, by name); it
+	// returns ErrNoLSP when the agent has no language server setting.
+	WriteLSP(map[string]json.RawMessage, StageContext) error
 	InjectGuidance(string, StageContext) error
 	Finalize(mcp.Entries, StageContext) error
 	FinalizeWorkspaceOverlay(StageContext) error
@@ -59,6 +64,7 @@ type Definition struct {
 	Begin            func(StageContext) (RebuildTransaction, error)
 	Setup            func(StageContext) error
 	MCP              func(mcp.Entries, StageContext) error
+	LSP              func(map[string]json.RawMessage, StageContext) error
 	Guidance         func(string, StageContext) error
 	AfterStage       func(mcp.Entries, StageContext) error
 	WorkspaceOverlay func(StageContext) error
@@ -104,6 +110,17 @@ func (definition Definition) WriteMCP(entries mcp.Entries, ctx StageContext) err
 		return definition.MCP(entries, ctx)
 	}
 	return nil
+}
+
+// ErrNoLSP says an agent has no setting through which a language server can
+// be configured for it.
+var ErrNoLSP = errors.New("no language server setting")
+
+func (definition Definition) WriteLSP(servers map[string]json.RawMessage, ctx StageContext) error {
+	if definition.LSP == nil {
+		return ErrNoLSP
+	}
+	return definition.LSP(servers, ctx)
 }
 func (definition Definition) InjectGuidance(blob string, ctx StageContext) error {
 	if definition.Guidance != nil {

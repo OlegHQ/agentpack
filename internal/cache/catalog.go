@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -11,37 +12,45 @@ import (
 	githubsource "github.com/OlegHQ/agentpack/internal/github"
 )
 
-// CatalogOnlyError reports a repository directory that is not a package by
-// itself: the repository's marketplace catalog lists it as a plugin and
-// defines the plugin in the catalog entry.
+// CatalogOnlyError reports a marketplace catalog entry that defines a plugin
+// in the catalog itself (Claude Code's "strict": false) and names component
+// paths that its directory does not hold.
 type CatalogOnlyError struct {
-	Spec     string
-	Name     string
-	Catalog  string
-	Fields   []string
-	Language []string
+	Spec    string
+	Name    string
+	Catalog string
+	Missing []string
 }
 
 func (err *CatalogOnlyError) Error() string {
-	if len(err.Language) != 0 {
-		return fmt.Sprintf("cannot install %s: it is the marketplace catalog entry %q, a language server configuration for Claude Code (%s defines lspServers: %s) with no plugin files of its own; its directory holds no skills, commands, agents, rules, hooks or MCP servers, and agentpack has no language server setting to write for the agents, so there is nothing to stage; to use it, install the language server and add the plugin in Claude Code from that marketplace",
-			err.Spec, err.Name, err.Catalog, strings.Join(err.Language, "; "))
-	}
-	return fmt.Sprintf("cannot install %s: it is the marketplace catalog entry %q, which %s defines in the catalog itself (%s) and whose directory has no plugin manifest or SKILL.md; agentpack installs a plugin from its own directory and does not build one from a catalog entry; add the directories the entry points to instead",
-		err.Spec, err.Name, err.Catalog, strings.Join(err.Fields, ", "))
+	return fmt.Sprintf("cannot install %s: it is the marketplace catalog entry %q, which %s defines in the catalog itself, and its directory has no %s; agentpack installs a plugin from its own directory and does not follow catalog paths outside it; add the directories the entry points to instead",
+		err.Spec, err.Name, err.Catalog, strings.Join(err.Missing, ", "))
 }
 
-// catalogOnlyEntry looks the fetched directory up in the repository's
-// marketplace catalogs. It returns a CatalogOnlyError when a catalog lists
-// the directory as a plugin, and nil when no catalog mentions it.
-func catalogOnlyEntry(archive []byte, source githubsource.Source) error {
+// pluginManifestFields are the keys of a catalog entry that Claude Code's
+// plugin.json also has. The others (source, category, tags, strict) only
+// describe the entry in the catalog.
+var pluginManifestFields = []string{"name", "version", "description", "author", "homepage", "repository", "license", "keywords",
+	"commands", "agents", "skills", "hooks", "mcpServers", "lspServers", "outputStyles"}
+
+// componentFields hold paths, relative to the plugin directory, that must exist.
+var componentFields = map[string]bool{"commands": true, "agents": true, "skills": true, "hooks": true, "outputStyles": true}
+
+// writeCatalogManifest handles a repository directory that is a plugin only
+// through its marketplace catalog entry, as anthropics/claude-plugins-official
+// does for its language server plugins (pyright-lsp holds a LICENSE and a
+// README; the catalog entry carries lspServers). Claude Code then takes the
+// entry as the plugin's manifest; so does agentpack, by writing the entry's
+// manifest fields to .claude-plugin/plugin.json in out. It returns false when
+// no catalog lists the directory.
+func writeCatalogManifest(archive []byte, source githubsource.Source, out string) (bool, error) {
 	catalogs := make([]string, 0, len(marketplaceManifestPaths))
 	for _, relative := range marketplaceManifestPaths {
 		catalogs = append(catalogs, filepath.ToSlash(relative))
 	}
 	files, err := githubsource.ReadRepoFiles(bytes.NewReader(archive), catalogs...)
 	if err != nil {
-		return nil
+		return false, nil
 	}
 	wanted := strings.Trim(source.Path, "/")
 	for _, catalog := range catalogs {
@@ -67,27 +76,47 @@ func catalogOnlyEntry(archive []byte, source githubsource.Source) error {
 			if local != wanted {
 				continue
 			}
-			result := &CatalogOnlyError{Spec: source.Owner + "/" + source.Repo + "/" + wanted, Catalog: catalog}
-			_ = json.Unmarshal(entry["name"], &result.Name)
-			for _, field := range []string{"lspServers", "mcpServers", "skills", "commands", "agents", "hooks", "outputStyles", "strict"} {
-				if _, found := entry[field]; found {
-					result.Fields = append(result.Fields, field)
+			var name string
+			_ = json.Unmarshal(entry["name"], &name)
+			manifest := make(map[string]json.RawMessage)
+			var missing []string
+			for _, field := range pluginManifestFields {
+				value, found := entry[field]
+				if !found {
+					continue
+				}
+				manifest[field] = value
+				if !componentFields[field] {
+					continue
+				}
+				var one string
+				var several []string
+				if json.Unmarshal(value, &one) == nil {
+					several = []string{one}
+				} else if json.Unmarshal(value, &several) != nil {
+					continue // an inline object (hooks), nothing to look for
+				}
+				for _, relative := range several {
+					if _, err := os.Stat(filepath.Join(out, filepath.FromSlash(relative))); err != nil {
+						missing = append(missing, field+" "+relative)
+					}
 				}
 			}
-			var servers map[string]struct {
-				Command string   `json:"command"`
-				Args    []string `json:"args"`
+			if len(missing) != 0 {
+				sort.Strings(missing)
+				return false, &CatalogOnlyError{Spec: source.Owner + "/" + source.Repo + "/" + wanted, Name: name, Catalog: catalog, Missing: missing}
 			}
-			if json.Unmarshal(entry["lspServers"], &servers) == nil {
-				for name, server := range servers {
-					result.Language = append(result.Language, fmt.Sprintf("%s runs `%s`", name, strings.TrimSpace(server.Command+" "+strings.Join(server.Args, " "))))
-				}
-				sort.Strings(result.Language)
+			data, err := json.MarshalIndent(manifest, "", "  ")
+			if err != nil {
+				return false, err
 			}
-			return result
+			if err := os.MkdirAll(filepath.Join(out, ".claude-plugin"), 0o755); err != nil {
+				return false, err
+			}
+			return true, os.WriteFile(filepath.Join(out, ".claude-plugin", "plugin.json"), append(data, '\n'), 0o644)
 		}
 	}
-	return nil
+	return false, nil
 }
 
 // CatalogPlugin is where one named plugin of a marketplace catalog lives.

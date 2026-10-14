@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -131,13 +132,14 @@ func TestCopyMergeTreeStopsAtALinkBackToADirectoryBeingCopied(t *testing.T) {
 
 // gopls-lsp, lua-lsp, php-lsp and pyright-lsp of anthropics/claude-plugins-official
 // exist as catalog entries with an lspServers map; their directories hold a
-// LICENSE and a README. The error used to be "Invalid cache layout: <path>".
-func TestMaterializeExplainsAMarketplaceEntryThatOnlyConfiguresALanguageServer(t *testing.T) {
+// LICENSE and a README. Claude Code takes such an entry as the plugin's
+// manifest, and so does agentpack.
+func TestMaterializeTakesAMarketplaceEntryAsThePluginManifest(t *testing.T) {
 	t.Setenv("AGENTPACK_HOME", t.TempDir())
 	sha := "c123456789abcdef0123456789abcdef01234567"
 	archive := materializeTarball(t, map[string]string{
 		"repo-sha/.claude-plugin/marketplace.json": `{"name":"official","plugins":[
-			{"name":"pyright-lsp","source":"./plugins/pyright-lsp","strict":false,"lspServers":{"pyright":{"command":"pyright-langserver","args":["--stdio"],"extensionToLanguage":{".py":"python"}}}},
+			{"name":"pyright-lsp","source":"./plugins/pyright-lsp","category":"development","strict":false,"description":"Python","lspServers":{"pyright":{"command":"pyright-langserver","args":["--stdio"],"extensionToLanguage":{".py":"python"}}}},
 			{"name":"bundle","source":"./plugins/bundle","strict":false,"skills":["./skills/a"]},
 			{"name":"remote","source":{"source":"github","repo":"o/r"}}]}`,
 		"repo-sha/plugins/pyright-lsp/README.md": "# pyright",
@@ -148,32 +150,47 @@ func TestMaterializeExplainsAMarketplaceEntryThatOnlyConfiguresALanguageServer(t
 	client := &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
 		return &http.Response{StatusCode: 200, Status: "200 OK", Header: make(http.Header), Body: io.NopCloser(bytes.NewReader(archive)), Request: request}, nil
 	})}
-	fetch := func(path string) error {
+	fetch := func(path string) (lockfile.Package, error) {
 		source := githubsource.Source{Owner: "owner", Repo: "repo", GitRef: sha, Path: path}
-		_, err := MaterializeGitHubTree(context.Background(), client, source, "url", false)
-		return err
+		return MaterializeGitHubTree(context.Background(), client, source, "url", false)
 	}
-	err := fetch("plugins/pyright-lsp")
+	pkg, err := fetch("plugins/pyright-lsp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, _ := EntryDir(pkg.CacheKey)
+	data, err := os.ReadFile(filepath.Join(out, ".claude-plugin", "plugin.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var manifest map[string]json.RawMessage
+	if err := json.Unmarshal(data, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	if _, found := manifest["lspServers"]; !found || manifest["category"] != nil || manifest["strict"] != nil || manifest["source"] != nil {
+		t.Fatalf("plugin.json = %s", data)
+	}
+	// Restoring the entry from the archive gives the same tree, so the lock verifies.
+	restored := t.TempDir()
+	restore := GitHubRestore(context.Background(), client)
+	if err := restore(lockfile.Package{Owner: "owner", Repo: "repo", Commit: sha, Path: "plugins/pyright-lsp"}, restored); err != nil {
+		t.Fatal(err)
+	}
+	if again, _ := os.ReadFile(filepath.Join(restored, ".claude-plugin", "plugin.json")); string(again) != string(data) {
+		t.Fatalf("restored plugin.json = %s", again)
+	}
 	var catalogOnly *CatalogOnlyError
-	if !errors.As(err, &catalogOnly) {
-		t.Fatalf("error = %v", err)
+	if _, err := fetch("plugins/bundle"); !errors.As(err, &catalogOnly) || !strings.Contains(err.Error(), "skills ./skills/a") {
+		t.Fatalf("catalog entry with a missing path: %v", err)
 	}
-	for _, part := range []string{"cannot install owner/repo/plugins/pyright-lsp", `catalog entry "pyright-lsp"`, "language server configuration for Claude Code", ".claude-plugin/marketplace.json", "pyright runs `pyright-langserver --stdio`", "nothing to stage"} {
-		if !strings.Contains(err.Error(), part) {
-			t.Errorf("error lacks %q:\n%v", part, err)
-		}
-	}
-	if err := fetch("plugins/bundle"); !errors.As(err, &catalogOnly) || !strings.Contains(err.Error(), "skills, strict") || strings.Contains(err.Error(), "language server") {
-		t.Fatalf("catalog-only plugin error = %v", err)
-	}
-	if err := fetch("plugins/unlisted"); err == nil || errors.As(err, &catalogOnly) || !strings.Contains(err.Error(), "is not a package") {
+	if _, err := fetch("plugins/unlisted"); err == nil || errors.As(err, &catalogOnly) || !strings.Contains(err.Error(), "is not a package") {
 		t.Fatalf("unlisted directory error = %v", err)
 	}
 	// A rejected entry leaves nothing behind that a later command could take for a package.
 	root, _ := paths.CacheDir()
 	entries, _ := os.ReadDir(root)
 	for _, entry := range entries {
-		if entry.IsDir() && regularFile(filepath.Join(root, entry.Name(), "LICENSE")) {
+		if entry.IsDir() && regularFile(filepath.Join(root, entry.Name(), "README.md")) && !regularFile(filepath.Join(root, entry.Name(), "LICENSE")) {
 			t.Fatalf("cache kept the rejected entry %s", entry.Name())
 		}
 	}

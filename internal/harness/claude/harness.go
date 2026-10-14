@@ -13,7 +13,7 @@ import (
 )
 
 func New() base.Harness {
-	return base.Definition{Target: base.Claude, Root: stagedRoot, Reset: resetPaths, Setup: prepare, MCP: writeMCP, Guidance: injectGuidance, AfterStage: finalize, Check: verify, Launch: launch}
+	return base.Definition{Target: base.Claude, Root: stagedRoot, Reset: resetPaths, Setup: prepare, MCP: writeMCP, LSP: writeLSP, Guidance: injectGuidance, AfterStage: finalize, Check: verify, Launch: launch}
 }
 
 func launch(ctx base.LaunchContext) (*exec.Cmd, error) {

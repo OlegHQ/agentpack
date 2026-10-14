@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"slices"
@@ -135,6 +136,27 @@ func (pipeline Pipeline) Rebuild() (_ []string, rebuildErr error) {
 		for _, candidate := range harnesses {
 			if err := candidate.WriteMCP(merged, ctx); err != nil {
 				return nil, fmt.Errorf("write MCP %s: %w", candidate.ID(), err)
+			}
+		}
+	}
+	languageServers, err := CollectLSP(pipeline.Lock, &pipeline.Mode)
+	if err != nil {
+		return nil, err
+	}
+	if len(languageServers) != 0 {
+		names := make([]string, 0, len(languageServers))
+		for name := range languageServers {
+			names = append(names, name)
+		}
+		sort.Strings(names)
+		for _, candidate := range harnesses {
+			err := candidate.WriteLSP(languageServers, ctx)
+			if errors.Is(err, base.ErrNoLSP) {
+				log.Printf("warning: skipping language server(s) %s for %s: it has no language server setting", strings.Join(names, ", "), base.DisplayName(candidate.ID()))
+				continue
+			}
+			if err != nil {
+				return nil, fmt.Errorf("write language servers %s: %w", candidate.ID(), err)
 			}
 		}
 	}

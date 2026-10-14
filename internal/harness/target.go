@@ -40,3 +40,22 @@ func (target Target) RawPluginSubdirs() []string {
 		return nil
 	}
 }
+
+// DisplayName is the agent's product name, as messages name it.
+func DisplayName(target Target) string {
+	switch target {
+	case Claude:
+		return "Claude Code"
+	case Cursor:
+		return "Cursor"
+	case Codex:
+		return "Codex"
+	case OpenCode:
+		return "OpenCode"
+	case Grok:
+		return "Grok"
+	case Agy:
+		return "Antigravity"
+	}
+	return string(target)
+}

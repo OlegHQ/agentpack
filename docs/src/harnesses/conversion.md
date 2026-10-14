@@ -75,6 +75,19 @@ Cursor has 21: `sessionStart`, `sessionEnd`, `preToolUse`, `postToolUse`, `postT
 
 How each hook was rendered is reported as an information line (`hook for <agent>: …`), which `--quiet` leaves out. A hook whose event the target agent has no equivalent for is skipped for that agent, with a warning that names the event and the hook file; the package's other hooks and its other content are staged. The same holds for an event name no agent documents, a handler `type` agentpack cannot run (`mcp_tool`), and a hook file that does not parse. Command hooks run with `CLAUDE_PLUGIN_ROOT`, `CURSOR_PLUGIN_ROOT` and `PLUGIN_ROOT` set to the staged copy of their package. A command hook in Claude Code's exec form (`"command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/hook.mjs"]`) keeps its arguments and runs without a shell, with those variables substituted in the program and its arguments. Every staged hook calls agentpack by the absolute path of the executable that staged it, not by whatever `agentpack` is on the agent's `PATH`.
 
+## Language servers
+
+A plugin declares language servers in Claude Code's format: `.lsp.json` at the plugin root, or `lspServers` in `plugin.json` (a path or inline). Anthropic's language server plugins (`pyright-lsp`, `gopls-lsp` and the like) are defined only by their marketplace catalog entry; agentpack takes such an entry as the plugin's manifest, as Claude Code does, and writes it to the cached package's `.claude-plugin/plugin.json`.
+
+| Agent | Where the servers go |
+|---|---|
+| Claude Code | `.lsp.json` at the root of the staged bundle |
+| Grok | `$GROK_HOME/lsp.json` (Grok reads a plugin's `.lsp.json` only after the plugin is trusted) |
+| OpenCode | the `lsp` map of the staged `opencode.json`: `command` as `[command, args...]`, `extensions` from the keys of `extensionToLanguage`, `env`, and `initialization` from `initializationOptions`; other fields are left out with a warning |
+| Codex, Cursor, Antigravity | not written: Codex has no language server setting, Cursor and Antigravity run only their built-in servers; a warning names them |
+
+The language server program itself (for example `pyright-langserver`) is not installed by agentpack; the agent starts it from `PATH`.
+
 ## Skill shadowing
 
 A full plugin at repo path `P` (same owner / repo / commit) shadows any **skill** whose path is `P` or sits under `P/`. An empty `P` shadows every skill for that repo at that commit. This keeps a plugin and its bundled skills from staging duplicate copies of the same content.
