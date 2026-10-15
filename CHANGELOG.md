@@ -7,6 +7,14 @@ window.
 
 ## Unreleased
 
+## [0.5.1] - 2026-10-15
+
+No change to what agentpack stages; the binaries behave as 0.5.0.
+
+### Fixed
+
+- The test suite passes on Windows again. Three tests removed the directory above their Codex home when they finished; on Windows that directory holds the Codex homes of every project, so tests running at the same time lost theirs. Other tests compared paths as written to JSON with unescaped backslashes, or set `TMPDIR`, which Windows does not read.
+
 ## [0.5.0] - 2026-10-13
 
 Found by adding 40 published packages (Claude Code, Cursor and Codex plugins, skills, community marketplaces) with 0.4.8, and by comparing what Agentpack and other tools deliver from the same nine packages.
