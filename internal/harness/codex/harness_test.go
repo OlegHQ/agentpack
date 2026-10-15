@@ -798,7 +798,14 @@ func TestLaunchFinishesAgainstOriginalGenerationAfterSwitch(t *testing.T) {
 		return transaction.Root()
 	}
 	first := build()
-	t.Cleanup(func() { _ = os.RemoveAll(filepath.Dir(filepath.Dir(first))) })
+	// Remove this mode's homes, not the directory above them: on Windows that
+	// holds the homes of every project, including tests running in parallel.
+	t.Cleanup(func() {
+		_ = os.RemoveAll(filepath.Dir(first))
+		if homes, err := ProjectHomes(project); err == nil {
+			_ = os.RemoveAll(homes)
+		}
+	})
 	launchCtx := base.LaunchContext{ProjectRoot: project, Mode: mode.ImplicitEffective()}
 	command, err := harness.LaunchCommand(launchCtx)
 	if err != nil {

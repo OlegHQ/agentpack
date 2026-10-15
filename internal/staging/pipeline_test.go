@@ -62,7 +62,14 @@ func TestCodexGenerationSwitchPreservesRunningHome(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { _ = os.RemoveAll(filepath.Dir(filepath.Dir(first))) })
+	// Remove this mode's homes, not the directory above them: on Windows that
+	// holds the homes of every project, including tests running in parallel.
+	t.Cleanup(func() {
+		_ = os.RemoveAll(filepath.Dir(first))
+		if homes, err := codex.ProjectHomes(project); err == nil {
+			_ = os.RemoveAll(homes)
+		}
+	})
 	if err := os.WriteFile(filepath.Join(first, "running-session.marker"), []byte("still here"), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -136,7 +143,14 @@ func TestFailedCodexRebuildKeepsPublishedGeneration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { _ = os.RemoveAll(filepath.Dir(filepath.Dir(first))) })
+	// Remove this mode's homes, not the directory above them: on Windows that
+	// holds the homes of every project, including tests running in parallel.
+	t.Cleanup(func() {
+		_ = os.RemoveAll(filepath.Dir(first))
+		if homes, err := codex.ProjectHomes(project); err == nil {
+			_ = os.RemoveAll(homes)
+		}
+	})
 	if err := os.WriteFile(nativeConfig, []byte("[invalid\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
