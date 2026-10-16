@@ -48,6 +48,14 @@ func staged(t *testing.T) (string, string) {
 	put(t, filepath.Join(bundle, ".claude-plugin", "plugin.json"), `{"name": "agentpack-bundle"}`)
 	put(t, filepath.Join(bundle, "skills", "demo", "SKILL.md"), "---\nname: demo\n---\nBody\n")
 	put(t, filepath.Join(bundle, ".mcp.json"), mcpJSON)
+	put(t, filepath.Join(bundle, "agentpack-settings.json"), `{"enabledMcpjsonServers": ["demo"]}`)
+	put(t, filepath.Join(bundle, "hooks", "hooks.json"),
+		`{"hooks": {"SessionStart": [{"hooks": [{"type": "command", "command": "agentpack hook-exec inject-guidance --file `+bundle+`/_agentpack/guidance.md"}]}],`+
+			` "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "agentpack hook-exec command --spec `+bundle+`/hooks/_packages/x/specs/0.json"}]}]}}`)
+	put(t, filepath.Join(bundle, "rules", "always.mdc"), "---\ndescription: Always\nalwaysApply: true\n---\n\nAlways do this.\n")
+	put(t, filepath.Join(bundle, "rules", "go.mdc"), "---\ndescription: Go files\nglobs: \"**/*.go\"\n---\n\nGo rule.\n")
+	put(t, filepath.Join(bundle, "rules", "maybe.mdc"), "---\ndescription: When asked\n---\n\nMaybe.\n")
+	put(t, filepath.Join(bundle, ".lsp.json"), `{}`)
 	cursor := filepath.Join(stage, "cursor", "agentpack-bundle")
 	put(t, filepath.Join(cursor, "skills", "demo", "SKILL.md"), "---\nname: demo\n---\nBody\n")
 	put(t, filepath.Join(cursor, "commands", "go.md"), "Go\n")
@@ -73,22 +81,41 @@ func all(project string) Options {
 
 func TestEjectCopiesRewritesAndRegisters(t *testing.T) {
 	project, stage := staged(t)
-	if _, err := Eject(all(project)); err != nil {
+	result, err := Eject(all(project))
+	if err != nil {
 		t.Fatal(err)
 	}
+	if len(result.Notes) != 1 || !strings.Contains(result.Notes[0], "language servers are not ejected for Claude Code") {
+		t.Fatalf("notes %v", result.Notes)
+	}
 	copy := filepath.Join(project, Dir, "stage")
-	settings := map[string]map[string]any{}
+	settings := map[string]any{}
 	if err := json.Unmarshal([]byte(read(t, filepath.Join(project, ".claude", "settings.json"))), &settings); err != nil {
 		t.Fatal(err)
 	}
-	if settings["enabledPlugins"][pluginKey] != true {
-		t.Fatalf("plugin not enabled: %v", settings)
+	if servers := settings["enabledMcpjsonServers"].([]any); len(servers) != 1 || servers[0] != "demo" {
+		t.Fatalf("servers not approved: %v", settings)
 	}
-	source := settings["extraKnownMarketplaces"][marketplace].(map[string]any)["source"].(map[string]any)
-	if source["path"] != filepath.Join(copy, "plugins") {
-		t.Fatalf("marketplace path %v", source["path"])
+	claudeSettings := read(t, filepath.Join(project, ".claude", "settings.json"))
+	if !strings.Contains(claudeSettings, filepath.Join(copy, "plugins", "agentpack-bundle", "hooks")) || strings.Contains(claudeSettings, "inject-guidance") {
+		t.Fatalf("Claude Code hooks: %s", claudeSettings)
 	}
-	if _, err := os.Stat(filepath.Join(copy, "plugins", ".claude-plugin", "marketplace.json")); err != nil {
+	if strings.Contains(claudeSettings, "enabledPlugins") || strings.Contains(claudeSettings, "extraKnownMarketplaces") {
+		t.Fatal("Claude Code plugin registration written")
+	}
+	if got := read(t, filepath.Join(project, ".claude", "rules", "always.md")); got != "Always do this.\n" {
+		t.Fatalf("always-on rule: %q", got)
+	}
+	if got := read(t, filepath.Join(project, ".claude", "rules", "go.md")); !strings.Contains(got, "paths:\n  - \"**/*.go\"") {
+		t.Fatalf("scoped rule: %q", got)
+	}
+	if _, err := os.Stat(filepath.Join(project, ".claude", "rules", "maybe.md")); !os.IsNotExist(err) {
+		t.Fatal("a rule the model applies by description was written as a rules file")
+	}
+	if !strings.Contains(read(t, filepath.Join(project, ".mcp.json")), filepath.Join(copy, "plugin-roots")) {
+		t.Fatal("Claude Code servers not written")
+	}
+	if _, err := os.Stat(filepath.Join(project, ".claude", "skills", "demo", "SKILL.md")); err != nil {
 		t.Fatal(err)
 	}
 	cursorMCP := read(t, filepath.Join(project, ".cursor", "mcp.json"))
@@ -148,9 +175,9 @@ func TestEjectRefusesToReplaceAUserFile(t *testing.T) {
 
 func TestEjectRefusesAConflictingSetting(t *testing.T) {
 	project, _ := staged(t)
-	put(t, filepath.Join(project, ".claude", "settings.json"), `{"enabledPlugins": {"agentpack-bundle@agentpack": false}}`)
+	put(t, filepath.Join(project, ".mcp.json"), `{"mcpServers": {"demo": {"command": "mine"}}}`)
 	_, err := Eject(Options{ProjectRoot: project, WorkspaceRoot: project, Mode: "default", Targets: []base.Target{base.Claude}})
-	if err == nil || !strings.Contains(err.Error(), "already sets enabledPlugins.agentpack-bundle@agentpack") {
+	if err == nil || !strings.Contains(err.Error(), ".mcp.json already sets mcpServers.demo") {
 		t.Fatalf("err=%v", err)
 	}
 }

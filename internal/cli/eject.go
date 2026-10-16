@@ -57,6 +57,9 @@ func (runner Runner) runEject(ctx context.Context, root, workspace string, invoc
 	if err != nil {
 		return err
 	}
+	for _, note := range ejected.Notes {
+		fmt.Fprintln(runner.Stderr, "note: "+note)
+	}
 	if !quiet {
 		names := make([]string, len(targets))
 		for index, target := range targets {

@@ -185,12 +185,14 @@ reads project configuration:
 
 | Agent | Written |
 |---|---|
-| Claude Code | `.claude/settings.json`: a directory marketplace `agentpack` and `enabledPlugins` for its bundle |
+| Claude Code | `.claude/skills`, `commands`, `agents`; rules in `.claude/rules` (always-on as they are, file-scoped with `paths`); servers in `.mcp.json`, approved by name in `.claude/settings.json`; hooks in `.claude/settings.json`. Language servers can only come in a plugin and are not ejected |
 | Cursor | `.cursor/skills`, `commands`, `agents`, `rules`; servers merged into `.cursor/mcp.json`, hooks into `.cursor/hooks.json` |
 | Codex | skills in `.agents/skills`, subagents in `.codex/agents`, servers in `.codex/config.toml`, hooks in `.codex/hooks.json`, always-on rules in a marked block of `AGENTS.md` |
 | Antigravity | the bundle copied to `.agents/plugins/agentpack-bundle` |
 
-OpenCode and Grok run in a terminal; use their launchers. Eject refuses, before writing anything, to
+Claude Code is given plain project files rather than a plugin: a project-declared marketplace is
+installed only after a person accepts it in an interactive session. OpenCode and Grok run in a
+terminal; use their launchers. Cursor does not run hooks in non-interactive (`-p`) runs. Eject refuses, before writing anything, to
 replace a file or a setting it did not write. Every file and key it adds is recorded in
 `.agentpack/eject/manifest.json`; `--remove` takes out exactly those, keeping the rest of each file.
 Run it again after changing `agentpack.toml`.

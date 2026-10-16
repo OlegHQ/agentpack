@@ -23,6 +23,7 @@ import (
 	"github.com/pelletier/go-toml/v2"
 	"github.com/tailscale/hujson"
 
+	"github.com/olegpustovit/agentpack/internal/artifacts"
 	base "github.com/olegpustovit/agentpack/internal/harness"
 	"github.com/olegpustovit/agentpack/internal/harness/codex"
 	"github.com/olegpustovit/agentpack/internal/paths"
@@ -33,8 +34,6 @@ const Dir = ".agentpack/eject"
 
 const (
 	manifestName  = "manifest.json"
-	marketplace   = "agentpack"
-	pluginKey     = paths.StagedAgentpackBundleName + "@" + marketplace
 	blockBegin    = "<!-- agentpack:eject:begin -->"
 	blockEnd      = "<!-- agentpack:eject:end -->"
 	guidanceBegin = "<!-- agentpack:guidance:begin -->"
@@ -95,6 +94,8 @@ type tomlKey struct {
 type plan struct {
 	workspace string
 	copies    map[string]string // project-relative destination -> source
+	generated map[string][]byte // project-relative destination -> content
+	notes     []string
 	keys      []keyWrite
 	entries   []entryWrite
 	tomls     []tomlWrite
@@ -172,7 +173,7 @@ func Eject(opts Options) (Result, error) {
 	if err := rewritePaths(root, rewrites); err != nil {
 		return result, err
 	}
-	p := plan{workspace: workspace, copies: map[string]string{}, blocks: map[string]string{}}
+	p := plan{workspace: workspace, copies: map[string]string{}, generated: map[string][]byte{}, blocks: map[string]string{}}
 	for _, target := range opts.Targets {
 		var err error
 		switch target {
@@ -208,6 +209,7 @@ func Eject(opts Options) (Result, error) {
 	if err := writeManifest(root, manifest); err != nil {
 		return result, err
 	}
+	result.Notes = p.notes
 	result.Written = append(append([]string(nil), manifest.Files...), manifest.Blocks...)
 	for _, key := range manifest.JSONKeys {
 		result.Written = append(result.Written, key.File+" "+strings.Join(key.Path, "."))
@@ -289,25 +291,91 @@ func Remove(workspace string) (Result, error) {
 
 // ------------------------------------------------------------- per agent
 
+// planClaude writes the bundle as plain project configuration, which the CLI,
+// the IDE extensions and the desktop app all read. A project marketplace in
+// .claude/settings.json is not installed until a person accepts it in an
+// interactive session, so the bundle is not registered as a plugin.
 func planClaude(p *plan, stage string) error {
-	plugins := filepath.Join(stage, "plugins")
-	if _, err := os.Stat(filepath.Join(plugins, paths.StagedAgentpackBundleName, ".claude-plugin", "plugin.json")); err != nil {
+	bundle := filepath.Join(stage, "plugins", paths.StagedAgentpackBundleName)
+	if _, err := os.Stat(filepath.Join(bundle, ".claude-plugin", "plugin.json")); err != nil {
 		return fmt.Errorf("no Claude Code bundle is staged: %w", err)
 	}
-	catalog := map[string]any{"name": marketplace, "owner": map[string]any{"name": "agentpack"},
-		"plugins": []any{map[string]any{"name": paths.StagedAgentpackBundleName, "source": "./" + paths.StagedAgentpackBundleName,
-			"description": "Content pinned by agentpack (ejected)"}}}
-	data, err := json.MarshalIndent(catalog, "", "  ")
-	if err != nil {
+	for _, kind := range []string{"skills", "commands", "agents"} {
+		if err := p.copyDir(filepath.Join(bundle, kind), filepath.Join(".claude", kind)); err != nil {
+			return err
+		}
+	}
+	if err := p.claudeRules(filepath.Join(bundle, "rules")); err != nil {
 		return err
 	}
-	if err := writeFile(filepath.Join(plugins, ".claude-plugin", "marketplace.json"), append(data, '\n')); err != nil {
+	if err := p.mergeServers(filepath.Join(bundle, ".mcp.json"), ".mcp.json"); err != nil {
 		return err
 	}
 	settings := filepath.Join(".claude", "settings.json")
-	p.keys = append(p.keys,
-		keyWrite{settings, []string{"extraKnownMarketplaces", marketplace}, map[string]any{"source": map[string]any{"source": "directory", "path": plugins}}},
-		keyWrite{settings, []string{"enabledPlugins", pluginKey}, true})
+	// Claude Code starts a project's .mcp.json servers only once they are approved. The servers the pack
+	// declares are approved by name, as the launcher does; enableAllProjectMcpServers would also approve
+	// servers the user adds to .mcp.json later, so it is not set.
+	if data, err := os.ReadFile(filepath.Join(bundle, "agentpack-settings.json")); err == nil {
+		var staged struct {
+			Servers []string `json:"enabledMcpjsonServers"`
+		}
+		if err := json.Unmarshal(data, &staged); err != nil {
+			return fmt.Errorf("parse staged Claude Code settings: %w", err)
+		}
+		for _, name := range staged.Servers {
+			p.entries = append(p.entries, entryWrite{settings, []string{"enabledMcpjsonServers"}, name})
+		}
+	}
+	if _, err := os.Stat(filepath.Join(bundle, ".lsp.json")); err == nil {
+		p.notes = append(p.notes, "language servers are not ejected for Claude Code: only a plugin can declare them; start it with `agentpack claude` to use them")
+	}
+	// the rules are files now, so the hook that injects them at session start is left out
+	return p.mergeHooks(filepath.Join(bundle, "hooks", "hooks.json"), settings, func(item any) bool {
+		data, _ := json.Marshal(item)
+		return bytes.Contains(data, []byte("hook-exec inject-guidance"))
+	})
+}
+
+// claudeRules writes each rule where Claude Code reads project rules: an
+// always-on rule as it is, a rule for some files with their paths. A rule the
+// model applies by its description is already in the bundle as a skill.
+func (p *plan) claudeRules(source string) error {
+	entries, err := os.ReadDir(source)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		extension := strings.ToLower(filepath.Ext(entry.Name()))
+		if entry.IsDir() || extension != ".md" && extension != ".mdc" {
+			continue
+		}
+		data, err := os.ReadFile(filepath.Join(source, entry.Name()))
+		if err != nil {
+			return err
+		}
+		rule, err := artifacts.Parse("rules/"+entry.Name(), string(data), "")
+		if err != nil || rule == nil || rule.Kind != artifacts.Rule {
+			continue
+		}
+		var text strings.Builder
+		switch {
+		case rule.AlwaysApply:
+		case len(rule.Globs) != 0:
+			text.WriteString("---\npaths:\n")
+			for _, glob := range rule.Globs {
+				quoted, _ := json.Marshal(glob)
+				fmt.Fprintf(&text, "  - %s\n", quoted)
+			}
+			text.WriteString("---\n\n")
+		default:
+			continue
+		}
+		text.WriteString(strings.TrimSpace(rule.Body) + "\n")
+		p.generated[filepath.Join(".claude", "rules", rule.Name+".md")] = []byte(text.String())
+	}
 	return nil
 }
 
@@ -324,7 +392,7 @@ func planCursor(p *plan, stage string) error {
 	if err := p.mergeServers(filepath.Join(bundle, "mcp.json"), filepath.Join(".cursor", "mcp.json")); err != nil {
 		return err
 	}
-	return p.mergeHooks(filepath.Join(stage, "cursor-home", ".cursor", "hooks.json"), filepath.Join(".cursor", "hooks.json"))
+	return p.mergeHooks(filepath.Join(stage, "cursor-home", ".cursor", "hooks.json"), filepath.Join(".cursor", "hooks.json"), nil)
 }
 
 func planCodex(p *plan, copied string) error {
@@ -352,7 +420,7 @@ func planCodex(p *plan, copied string) error {
 			p.tomls = append(p.tomls, tomlWrite{filepath.Join(".codex", "config.toml"), []string{"mcp_servers", name}, servers[name]})
 		}
 	}
-	if err := p.mergeHooks(filepath.Join(copied, "hooks.json"), filepath.Join(".codex", "hooks.json")); err != nil {
+	if err := p.mergeHooks(filepath.Join(copied, "hooks.json"), filepath.Join(".codex", "hooks.json"), nil); err != nil {
 		return err
 	}
 	// Rules Codex gets as always-on guidance; other agents reading AGENTS.md see them too.
@@ -421,7 +489,7 @@ func (p *plan) mergeServers(source, destination string) error {
 }
 
 // mergeHooks appends each staged hook entry to the same event's list.
-func (p *plan) mergeHooks(source, destination string) error {
+func (p *plan) mergeHooks(source, destination string, skip func(any) bool) error {
 	data, err := os.ReadFile(source)
 	if os.IsNotExist(err) {
 		return nil
@@ -437,6 +505,9 @@ func (p *plan) mergeHooks(source, destination string) error {
 	for _, event := range sortedKeys(events) {
 		list, _ := events[event].([]any)
 		for _, item := range list {
+			if skip != nil && skip(item) {
+				continue
+			}
 			p.entries = append(p.entries, entryWrite{destination, []string{"hooks", event}, item})
 		}
 	}
@@ -450,7 +521,7 @@ func (p *plan) mergeHooks(source, destination string) error {
 // user wrote.
 func (p *plan) check() error {
 	var conflicts []string
-	for _, destination := range sortedKeys(p.copies) {
+	for _, destination := range append(sortedKeys(p.copies), sortedKeys(p.generated)...) {
 		if _, err := os.Lstat(filepath.Join(p.workspace, destination)); err == nil {
 			conflicts = append(conflicts, destination+" exists")
 		}
@@ -505,6 +576,12 @@ func (p *plan) apply(manifest *Manifest) error {
 			return err
 		}
 		if err := writeFile(filepath.Join(p.workspace, destination), data); err != nil {
+			return err
+		}
+		manifest.Files = append(manifest.Files, destination)
+	}
+	for _, destination := range sortedKeys(p.generated) {
+		if err := writeFile(filepath.Join(p.workspace, destination), p.generated[destination]); err != nil {
 			return err
 		}
 		manifest.Files = append(manifest.Files, destination)
