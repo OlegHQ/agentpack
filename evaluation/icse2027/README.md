@@ -54,13 +54,13 @@ The nine inputs above were chosen by the authors, and the 40 packages below were
 - **Sources:** the official Claude Code, Cursor and Codex plugin repositories at the commits pinned in `ecosystem.py`.
 - **Exclusions:** every input above and every package of `plugins-corpus.json`.
 - **Eligibility:** a plugin directory that holds at least one item of the six kinds.
-- **Order:** sha256 of a fixed seed plus repository plus path, taking the first 4 per repository.
+- **Order:** sha256 of the seed `icse2027-heldout-2026-10-16`, the repository and the path, ascending, taking the first 4 eligible packages per repository (`heldout-inputs.json` lists every directory drawn, in order).
 
 The draw is in `heldout-inputs.json`. `ecosystem.py` ran them unchanged, with the same scoring rule and agent versions (Claude Code 2.1.299 first on `PATH`):
 
 ```sh
 uv run heldout.py --src WORK/src
-uv run ecosystem.py run --inputs-file heldout-inputs.json --output heldout-results.json --tool agentpack --tool apm --tool rulesync --tool vercel-skills --tool native ...
+GITHUB_TOKEN=$(gh auth token) uv run ecosystem.py run --inputs-file heldout-inputs.json --output heldout-results.json --tools-dir TOOLS --agentpack bin/agentpack --agentpack-sha256 089f2dada14209c86ccf94f889bb5c27c4e0054bdcc74940455818d6882b34b1 --work WORK --tool agentpack --tool apm --tool rulesync --tool vercel-skills --tool native --jobs 4
 ```
 
 The 12 packages hold 90 cells: skills in 7 packages, MCP servers in 6, one command and one rule, and no hooks or subagents.
@@ -73,6 +73,7 @@ The 12 packages hold 90 cells: skills in 7 packages, MCP servers in 6, one comma
 | rulesync 33.0.0 | 12 (content delivered for 4) | 28 | 2 | 0 | 60 |
 | Each agent's own install command | 12 | 27 | 1 | 0 | 62 |
 
+- **Scoring:** a cell counts as delivered only when every item of it arrives (partial counts as not delivered).
 - **The partial cell** is the same for Agentpack, APM and Vercel skills: Codex lists 1 of the 23 skills of `public-equity-investing`, which is the skill-list budget Codex documents.
 - **Agentpack's conversions:** one command on Codex and Antigravity, and one rule on Claude Code and Grok, as in Table I of the paper.
 - **MCP servers started through npm:** there are two, `xcodebuildmcp@latest` and `@xeroapi/xero-mcp-server@latest`.
