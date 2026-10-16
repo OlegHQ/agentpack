@@ -7,6 +7,20 @@ window.
 
 ## Unreleased
 
+## [0.6.0] - 2026-10-17
+
+### Added
+
+- `agentpack eject [claude|cursor|codex|agy ...]` writes what Agentpack stages into the project, for IDEs and other front ends that are not started through `agentpack <agent>`. Claude Code gets plain project files (`.claude/skills`, `.claude/commands`, `.claude/agents`, `.claude/rules`, servers in `.mcp.json` approved by name, hooks in `.claude/settings.json`); Cursor gets `.cursor/` (skills, commands, subagents, rules, `mcp.json`, `hooks.json`); Codex gets `.agents/skills`, `.codex/agents`, `.codex/config.toml`, `.codex/hooks.json` and a marked block in `AGENTS.md`; Antigravity gets the bundle in `.agents/plugins/agentpack-bundle`. Server and hook paths point at a copy in `.agentpack/eject/`, so nothing refers to the staging directory. Eject refuses to replace a file or setting it did not write, records everything in `.agentpack/eject/manifest.json`, and `agentpack eject --remove` takes out exactly that. Language servers are not ejected for Claude Code, which reads them only from plugins; OpenCode and Grok are refused (use the launcher).
+
+### Fixed
+
+- Starting another agent while one launched by Agentpack is running. The launch digest covered the agent, so `agentpack codex` next to a running `agentpack claude` asked for a full rebuild of the staging that session holds and stopped with "staging for mode is in use by an active launch". Agents without a workspace overlay now share one digest; Cursor and Antigravity keep their own and, when the staged tree is current, write only their overlay.
+
+## [0.5.2] - 2026-10-16
+
+No change to what agentpack stages: the GitHub owner in import paths, links and installers is now `olegpustovit`.
+
 ## [0.5.1] - 2026-10-15
 
 No change to what agentpack stages; the binaries behave as 0.5.0.
