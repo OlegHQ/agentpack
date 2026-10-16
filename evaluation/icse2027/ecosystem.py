@@ -1151,9 +1151,13 @@ def main():
     ap.add_argument('--input', action='append', choices=sorted(INPUTS))
     ap.add_argument('--output', type=Path, default=HERE / 'ecosystem-results.json')
     ap.add_argument('--resume', action='store_true', help='keep valid runs already in --output')
+    ap.add_argument('--inputs-file', type=Path, help='replace the nine inputs with those in this file (heldout.py output)')
     ap.add_argument('--runs', type=Path, help='directory for the per-run homes and checkouts (default: WORK/runs)')
     ap.add_argument('--keep-runs', action='store_true', help='keep each run directory (about 50 MB each) instead of deleting it')
     args = ap.parse_args()
+    if args.inputs_file:
+        INPUTS.clear()
+        INPUTS.update(json.loads(args.inputs_file.read_text())['inputs'])
     if args.action == 'rescore':
         data = json.loads(args.output.read_text())
         changed = []

@@ -48,6 +48,39 @@ Nine inputs pinned by commit (three Claude Code plugins, two Cursor plugins, a C
 - Where files go: Agentpack writes `agentpack.toml` and `pack.lock` to the checkout and one link at launch; the rest is in its own home and staging directory, a Codex home under `/var/tmp/ap-c`, and an empty `~/.codex/history.jsonl`. APM writes up to 137 files into the checkout, rulesync up to 264.
 - Limits: hooks are one item per input (a hook file that names one of the input's scripts counts; events are not compared). Cursor skills, commands, subagents, rules and hooks, and Antigravity skills, subagents and rules, have no listing without a model and are decided by files. Cursor's own install command needs a login and was not run.
 
+## Held-out comparison (`heldout.py`, 2026-10-16)
+
+The nine inputs above were chosen by the authors, and the 40 packages below were used during development. After the code was frozen (release 0.5.2, which prints `0.5.2`; sha256 of the linux arm64 binary `089f2dada14209c86ccf94f889bb5c27c4e0054bdcc74940455818d6882b34b1`), `heldout.py` drew 12 new packages by a fixed rule:
+- **Sources:** the official Claude Code, Cursor and Codex plugin repositories at the commits pinned in `ecosystem.py`.
+- **Exclusions:** every input above and every package of `plugins-corpus.json`.
+- **Eligibility:** a plugin directory that holds at least one item of the six kinds.
+- **Order:** sha256 of a fixed seed plus repository plus path, taking the first 4 per repository.
+
+The draw is in `heldout-inputs.json`. `ecosystem.py` ran them unchanged, with the same scoring rule and agent versions (Claude Code 2.1.299 first on `PATH`):
+
+```sh
+uv run heldout.py --src WORK/src
+uv run ecosystem.py run --inputs-file heldout-inputs.json --output heldout-results.json --tool agentpack --tool apm --tool rulesync --tool vercel-skills --tool native ...
+```
+
+The 12 packages hold 90 cells: skills in 7 packages, MCP servers in 6, one command and one rule, and no hooks or subagents.
+
+| Tool | Inputs accepted | Native | Converted | Partial | Absent |
+|---|---|---|---|---|---|
+| Agentpack 0.5.2 | 12 | 85 | 4 | 1 | 0 |
+| Microsoft APM 0.33.0 | 11 | 69 | 0 | 1 | 20 |
+| Vercel skills 1.7.2 | 7 | 41 | 0 | 1 | 48 |
+| rulesync 33.0.0 | 12 (content delivered for 4) | 28 | 2 | 0 | 60 |
+| Each agent's own install command | 12 | 27 | 1 | 0 | 62 |
+
+- **The partial cell** is the same for Agentpack, APM and Vercel skills: Codex lists 1 of the 23 skills of `public-equity-investing`, which is the skill-list budget Codex documents.
+- **Agentpack's conversions:** one command on Codex and Antigravity, and one rule on Claude Code and Grok, as in Table I of the paper.
+- **MCP servers started through npm:** there are two, `xcodebuildmcp@latest` and `@xeroapi/xero-mcp-server@latest`.
+  - Agentpack delivered them as `xcodebuildmcp@2.7.0` and `@xeroapi/xero-mcp-server@0.0.17` to every agent.
+  - APM and the agents' own commands kept `@latest`.
+  - rulesync and Vercel skills wrote neither.
+- **Files written into the checkout:** Agentpack wrote `agentpack.toml` and `pack.lock` and nothing else. APM wrote up to 1,476 files, Vercel skills up to 538 and rulesync up to 71.
+
 ## Forty published packages (`plugins.py`)
 
 Forty packages chosen by a fixed rule from the official Claude Code, Cursor and Codex plugin repositories, `anthropics/skills` and the three most-starred community marketplaces (`plugins-corpus.json`) are each added, locked and synced in a fresh project. Numbers are in `summary`.
