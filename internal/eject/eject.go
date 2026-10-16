@@ -699,10 +699,18 @@ func copyTree(source, destination string, skip func(string, fs.DirEntry) bool) e
 // rewritePaths points every staged path in the copied text files at the copy.
 func rewritePaths(root string, rewrites []rewrite) error {
 	var pairs []string
+	add := func(from, to string) {
+		// JSON writes a Windows path with each backslash escaped; that form is
+		// rewritten with an escaped replacement so the file stays valid JSON.
+		if escaped := strings.ReplaceAll(from, `\`, `\\`); escaped != from {
+			pairs = append(pairs, escaped, strings.ReplaceAll(to, `\`, `\\`))
+		}
+		pairs = append(pairs, from, to)
+	}
 	for _, r := range rewrites {
-		pairs = append(pairs, r.from, r.to)
+		add(r.from, r.to)
 		if resolved, err := filepath.EvalSymlinks(r.from); err == nil && resolved != r.from {
-			pairs = append(pairs, resolved, r.to)
+			add(resolved, r.to)
 		}
 	}
 	replacer := strings.NewReplacer(pairs...)

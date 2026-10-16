@@ -220,3 +220,27 @@ func TestRemoveTakesOutExactlyWhatEjectAdded(t *testing.T) {
 		t.Fatal("a second remove found something to remove")
 	}
 }
+
+// A Windows staging path appears JSON-escaped in .mcp.json; the rewrite must keep the file valid JSON.
+func TestRewriteKeepsEscapedWindowsPathsValid(t *testing.T) {
+	root := t.TempDir()
+	from, to := `C:\Users\me\Temp\agentpack-1\modes\default`, `C:\work\proj\.agentpack\eject\stage`
+	escaped := strings.ReplaceAll(from, `\`, `\\`)
+	path := filepath.Join(root, ".mcp.json")
+	if err := os.WriteFile(path, []byte(`{"mcpServers":{"x":{"command":"node","args":["`+escaped+`\\plugin-roots\\a\\server.mjs"]}}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := rewritePaths(root, []rewrite{{from: from, to: to}}); err != nil {
+		t.Fatal(err)
+	}
+	data, _ := os.ReadFile(path)
+	var parsed struct {
+		MCPServers map[string]struct{ Args []string } `json:"mcpServers"`
+	}
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		t.Fatalf("not valid JSON after rewrite: %v\n%s", err, data)
+	}
+	if got, want := parsed.MCPServers["x"].Args[0], to+`\plugin-roots\a\server.mjs`; got != want {
+		t.Fatalf("arg=%q want %q", got, want)
+	}
+}

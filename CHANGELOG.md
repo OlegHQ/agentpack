@@ -7,6 +7,12 @@ window.
 
 ## Unreleased
 
+## [0.6.1] - 2026-10-17
+
+### Fixed
+
+- `agentpack eject` on Windows. The staging paths it rewrites appear JSON-escaped in `.mcp.json` and the other JSON files (`C:\\Users\\...`); they were rewritten with single backslashes, which left the files invalid. Both forms are now rewritten, each with its own escaping.
+
 ## [0.6.0] - 2026-10-17
 
 ### Added
