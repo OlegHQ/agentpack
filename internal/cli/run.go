@@ -233,6 +233,8 @@ func (runner Runner) Run(ctx context.Context, arguments []string) (int, error) {
 		err = runner.runMode(root, invocation.Args, invocation.Global.Quiet)
 	case "extra":
 		err = runner.runExtra(workspace, invocation.Args, invocation.Global.Quiet)
+	case "eject":
+		err = runner.runEject(ctx, root, workspace, invocation)
 	default:
 		return 2, fmt.Errorf("unknown command %q", invocation.Command)
 	}

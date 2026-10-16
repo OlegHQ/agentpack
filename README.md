@@ -232,6 +232,7 @@ disable = ["mcp:filesystem"]
 | `mode ...` | Create, inspect, edit, and manage project-local modes |
 | `mcp ...` | Add, remove, and list MCP servers |
 | `extra sync-claude` | Reconcile local skills between `.claude/skills` and `.agents/skills` |
+| `eject [AGENT...]` | Write staged content into the project for IDEs and agents started without agentpack (`--remove` undoes it) |
 | `claude` | Sync + launch Claude Code with `--plugin-dir` |
 | `agent` | Sync + launch Cursor Agent with staged `HOME` (alias: `cursor-agent`) |
 | `opencode` | Sync + launch OpenCode with `OPENCODE_CONFIG_DIR` |

@@ -176,6 +176,31 @@ agentpack --mode writing claude
 
 See the [harness guides](../harnesses/claude.md) for what each one stages.
 
+## `agentpack eject`
+
+IDE extensions and desktop apps (Claude Code in VS Code, the Cursor editor, the Codex extension, the
+Antigravity editor) do not start through a launcher. `eject` syncs, copies the staged tree to
+`.agentpack/eject/` in the project, points its paths at that copy, and registers it where each agent
+reads project configuration:
+
+| Agent | Written |
+|---|---|
+| Claude Code | `.claude/settings.json`: a directory marketplace `agentpack` and `enabledPlugins` for its bundle |
+| Cursor | `.cursor/skills`, `commands`, `agents`, `rules`; servers merged into `.cursor/mcp.json`, hooks into `.cursor/hooks.json` |
+| Codex | skills in `.agents/skills`, subagents in `.codex/agents`, servers in `.codex/config.toml`, hooks in `.codex/hooks.json`, always-on rules in a marked block of `AGENTS.md` |
+| Antigravity | the bundle copied to `.agents/plugins/agentpack-bundle` |
+
+OpenCode and Grok run in a terminal; use their launchers. Eject refuses, before writing anything, to
+replace a file or a setting it did not write. Every file and key it adds is recorded in
+`.agentpack/eject/manifest.json`; `--remove` takes out exactly those, keeping the rest of each file.
+Run it again after changing `agentpack.toml`.
+
+```sh
+agentpack eject                 # every supported agent
+agentpack eject claude cursor   # only these
+agentpack eject --remove
+```
+
 ## `agentpack mcp`
 
 Manage `[mcp.servers]` in the manifest. `add`/`remove` update the server records in `pack.lock` and sync afterward unless `--no-sync`.

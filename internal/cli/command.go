@@ -201,6 +201,10 @@ func (runner Runner) rootCommand(original []string, exitCode *int) *cobra.Comman
 	)
 	root.AddCommand(env)
 
+	eject := leaf("eject [AGENT...]", "Write staged content into the project for IDEs and agents started without agentpack")
+	flag(eject, "remove", "", "take out everything the last eject wrote")
+	root.AddCommand(eject)
+
 	extra := &cobra.Command{Use: "extra", Short: "Optional, non-core commands"}
 	syncClaude := leaf("sync-claude", "Reconcile .claude/skills and .agents/skills")
 	flag(syncClaude, "dry-run", "", "show what would change")
