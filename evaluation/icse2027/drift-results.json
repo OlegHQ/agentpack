@@ -1,0 +1,788 @@
+{
+ "summary": {
+  "as_of": "2026-10-16",
+  "window_days": 90,
+  "catalogs": {
+   "claude": {
+    "repo": "anthropics/claude-plugins-official",
+    "commit": "f359d43b406057f1a8cdbc4ea93b827642c162e6"
+   },
+   "cursor": {
+    "repo": "cursor/plugins",
+    "commit": "1dcc2bacde73ddd284803b7af28164d0436198fc"
+   },
+   "codex": {
+    "repo": "openai/plugins",
+    "commit": "0722921d5542fc593105c27bd52630babd8b8c2a"
+   }
+  },
+  "server_definitions": 126,
+  "remote_servers": 110,
+  "local_servers": 16,
+  "local_commands": {
+   "bun": 4,
+   "docker": 1,
+   "launch_codex_security_mcp": 1,
+   "node": 3,
+   "npx": 5,
+   "php": 1,
+   "uvx": 1
+  },
+  "npm_runner_servers": 5,
+  "floating_servers": 5,
+  "pinned_servers": 0,
+  "distinct_floating_packages": 4,
+  "packages_with_new_version_in_window": 3,
+  "upper_middle_versions_in_window": 28,
+  "not_in_registry": []
+ },
+ "servers": [
+  {
+   "catalog": "claude",
+   "file": "external_plugins/firebase/.mcp.json",
+   "server": "firebase",
+   "package": "firebase-tools",
+   "requested": "latest"
+  },
+  {
+   "catalog": "claude",
+   "file": "external_plugins/playwright/.mcp.json",
+   "server": "playwright",
+   "package": "@playwright/mcp",
+   "requested": "latest"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/playwright/mcp.json",
+   "server": "playwright",
+   "package": "@playwright/mcp",
+   "requested": "latest"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/xero/mcp.json",
+   "server": "xero",
+   "package": "@xeroapi/xero-mcp-server",
+   "requested": "latest"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/build-ios-apps/.mcp.json",
+   "server": "xcodebuildmcp",
+   "package": "xcodebuildmcp",
+   "requested": "latest"
+  }
+ ],
+ "floating": [
+  {
+   "catalog": "claude",
+   "file": "external_plugins/firebase/.mcp.json",
+   "server": "firebase",
+   "package": "firebase-tools",
+   "requested": "latest",
+   "versions_total": 564,
+   "versions_in_window": 28,
+   "first_in_window": "15.25.0",
+   "last_in_window": "15.34.0",
+   "latest_tag": "15.34.0"
+  },
+  {
+   "catalog": "claude",
+   "file": "external_plugins/playwright/.mcp.json",
+   "server": "playwright",
+   "package": "@playwright/mcp",
+   "requested": "latest",
+   "versions_total": 436,
+   "versions_in_window": 45,
+   "first_in_window": "0.0.78-alpha-2026-07-18",
+   "last_in_window": "0.0.83",
+   "latest_tag": "0.0.83"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/playwright/mcp.json",
+   "server": "playwright",
+   "package": "@playwright/mcp",
+   "requested": "latest",
+   "versions_total": 436,
+   "versions_in_window": 45,
+   "first_in_window": "0.0.78-alpha-2026-07-18",
+   "last_in_window": "0.0.83",
+   "latest_tag": "0.0.83"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/xero/mcp.json",
+   "server": "xero",
+   "package": "@xeroapi/xero-mcp-server",
+   "requested": "latest",
+   "versions_total": 17,
+   "versions_in_window": 0,
+   "first_in_window": null,
+   "last_in_window": null,
+   "latest_tag": "0.0.17"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/build-ios-apps/.mcp.json",
+   "server": "xcodebuildmcp",
+   "package": "xcodebuildmcp",
+   "requested": "latest",
+   "versions_total": 80,
+   "versions_in_window": 1,
+   "first_in_window": "2.7.0",
+   "last_in_window": "2.7.0",
+   "latest_tag": "2.7.0"
+  }
+ ],
+ "remote": [
+  {
+   "catalog": "claude",
+   "file": "external_plugins/context7/.mcp.json",
+   "server": "context7"
+  },
+  {
+   "catalog": "claude",
+   "file": "external_plugins/github/.mcp.json",
+   "server": "github"
+  },
+  {
+   "catalog": "claude",
+   "file": "external_plugins/gitlab/.mcp.json",
+   "server": "gitlab"
+  },
+  {
+   "catalog": "claude",
+   "file": "external_plugins/linear/.mcp.json",
+   "server": "linear"
+  },
+  {
+   "catalog": "claude",
+   "file": "plugins/example-plugin/.mcp.json",
+   "server": "example-server"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/ahrefs/mcp.json",
+   "server": "ahrefs"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/amplemarket/mcp.json",
+   "server": "amplemarket"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/ashby/mcp.json",
+   "server": "ashby"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/attio/mcp.json",
+   "server": "attio"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/beehiiv/mcp.json",
+   "server": "beehiiv"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/brevo/mcp.json",
+   "server": "brevo"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/brex/mcp.json",
+   "server": "brex"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/buffer/mcp.json",
+   "server": "buffer"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/calendly/mcp.json",
+   "server": "calendly"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/circleback/mcp.json",
+   "server": "circleback"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/clay/mcp.json",
+   "server": "clay"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/coda/mcp.json",
+   "server": "coda"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/coinbase/mcp.json",
+   "server": "coinbase"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/craft/mcp.json",
+   "server": "craft"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/customer-io/mcp.json",
+   "server": "customer-io"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/daloopa/mcp.json",
+   "server": "daloopa"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/docusign/mcp.json",
+   "server": "docusign"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/etoro-trading/mcp.json",
+   "server": "etoro-trading"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/excalidraw/mcp.json",
+   "server": "excalidraw"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/fathom/mcp.json",
+   "server": "fathom"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/finance/mcp.json",
+   "server": "finance"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/fireflies/mcp.json",
+   "server": "fireflies"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/gamma/mcp.json",
+   "server": "gamma"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/github/mcp.json",
+   "server": "github"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/gmail/mcp.json",
+   "server": "gmail"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/godaddy/mcp.json",
+   "server": "godaddy"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/gong/mcp.json",
+   "server": "gong"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/google-calendar/mcp.json",
+   "server": "google-calendar"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/google-cloud-bigquery/mcp.json",
+   "server": "google-cloud-bigquery"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/google-docs/mcp.json",
+   "server": "google-docs"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/google-drive/mcp.json",
+   "server": "google-drive"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/google-sheets/mcp.json",
+   "server": "google-sheets"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/google-slides/mcp.json",
+   "server": "google-slides"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/greenhouse/mcp.json",
+   "server": "greenhouse"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/guru/mcp.json",
+   "server": "guru"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/hubspot/mcp.json",
+   "server": "hubspot"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/hunter/mcp.json",
+   "server": "hunter"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/interactive-brokers/mcp.json",
+   "server": "interactive-brokers"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/intercom/mcp.json",
+   "server": "intercom"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/jotform/mcp.json",
+   "server": "jotform"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/juicebox/mcp.json",
+   "server": "juicebox"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/klaviyo/mcp.json",
+   "server": "klaviyo"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/mailerlite/mcp.json",
+   "server": "mailerlite"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/meltwater/mcp.json",
+   "server": "meltwater"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/mem/mcp.json",
+   "server": "mem"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/navan/mcp.json",
+   "server": "navan"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/onedrive/mcp.json",
+   "server": "onedrive"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/otter/mcp.json",
+   "server": "otter"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/outlook/mcp.json",
+   "server": "outlook"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/outlook-calendar/mcp.json",
+   "server": "outlook-calendar"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/outreach/mcp.json",
+   "server": "outreach"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/plaud/mcp.json",
+   "server": "plaud"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/posthog-mcp/mcp.json",
+   "server": "posthog"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/profound/mcp.json",
+   "server": "profound"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/readwise/mcp.json",
+   "server": "readwise"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/robinhood/mcp.json",
+   "server": "robinhood"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/salesforce/mcp.json",
+   "server": "salesforce"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/salesforce-headless-360/mcp.json",
+   "server": "salesforce-headless-360"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/semrush/mcp.json",
+   "server": "semrush"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/sharepoint/mcp.json",
+   "server": "sharepoint"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/shopify-store/mcp.json",
+   "server": "shopify"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/similarweb/mcp.json",
+   "server": "similarweb"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/smartsheet/mcp.json",
+   "server": "smartsheet"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/sp-global/mcp.json",
+   "server": "sp-global"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/square/mcp.json",
+   "server": "square"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/statsig/mcp.json",
+   "server": "statsig"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/teams/mcp.json",
+   "server": "teams"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/tinyfish/mcp.json",
+   "server": "tinyfish"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/todoist/mcp.json",
+   "server": "todoist"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/trello/mcp.json",
+   "server": "trello"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/typeform/mcp.json",
+   "server": "typeform"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/upwork/mcp.json",
+   "server": "upwork"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/webull/mcp.json",
+   "server": "webull"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/workable/mcp.json",
+   "server": "workable"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/wrike/mcp.json",
+   "server": "wrike"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/x/mcp.json",
+   "server": "x"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/x-ads/mcp.json",
+   "server": "x-ads"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/x-money/mcp.json",
+   "server": "x-money"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/zoom/mcp.json",
+   "server": "zoom"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/airtable/.mcp.json",
+   "server": "airtable"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/atlassian-rovo/.mcp.json",
+   "server": "atlassian-rovo"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/canva/.mcp.json",
+   "server": "canva"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/clickup/.mcp.json",
+   "server": "clickup"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/cloudflare/.mcp.json",
+   "server": "cloudflare-api"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/consensus/.mcp.json",
+   "server": "consensus"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/datadog/.mcp.json",
+   "server": "datadog"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/dropbox/.mcp.json",
+   "server": "dropbox"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/figma/.mcp.json",
+   "server": "figma"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/github/.mcp.json",
+   "server": "github"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/gmail/.mcp.json",
+   "server": "gmail"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/google-calendar/.mcp.json",
+   "server": "google-calendar"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/google-drive/.mcp.json",
+   "server": "google-drive"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/granola/.mcp.json",
+   "server": "granola"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/higgsfield/.mcp.json",
+   "server": "higgsfield"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/linear/.mcp.json",
+   "server": "linear"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/monday-com/.mcp.json",
+   "server": "monday-com"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/notion/.mcp.json",
+   "server": "notion"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/posthog/.mcp.json",
+   "server": "posthog"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/sentry/.mcp.json",
+   "server": "sentry"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/shopify/.mcp.json",
+   "server": "shopify"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/slack/.mcp.json",
+   "server": "slack"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/stripe/.mcp.json",
+   "server": "stripe"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/supabase/.mcp.json",
+   "server": "supabase"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/vercel/.mcp.json",
+   "server": "vercel"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/zoom/.mcp.json",
+   "server": "zoom"
+  }
+ ],
+ "local": [
+  {
+   "catalog": "claude",
+   "file": "external_plugins/discord/.mcp.json",
+   "server": "discord",
+   "command": "bun"
+  },
+  {
+   "catalog": "claude",
+   "file": "external_plugins/fakechat/.mcp.json",
+   "server": "fakechat",
+   "command": "bun"
+  },
+  {
+   "catalog": "claude",
+   "file": "external_plugins/firebase/.mcp.json",
+   "server": "firebase",
+   "command": "npx"
+  },
+  {
+   "catalog": "claude",
+   "file": "external_plugins/imessage/.mcp.json",
+   "server": "imessage",
+   "command": "bun"
+  },
+  {
+   "catalog": "claude",
+   "file": "external_plugins/laravel-boost/.mcp.json",
+   "server": "laravel-boost",
+   "command": "php"
+  },
+  {
+   "catalog": "claude",
+   "file": "external_plugins/playwright/.mcp.json",
+   "server": "playwright",
+   "command": "npx"
+  },
+  {
+   "catalog": "claude",
+   "file": "external_plugins/serena/.mcp.json",
+   "server": "serena",
+   "command": "uvx"
+  },
+  {
+   "catalog": "claude",
+   "file": "external_plugins/telegram/.mcp.json",
+   "server": "telegram",
+   "command": "bun"
+  },
+  {
+   "catalog": "claude",
+   "file": "external_plugins/terraform/.mcp.json",
+   "server": "terraform",
+   "command": "docker"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/playwright/mcp.json",
+   "server": "playwright",
+   "command": "npx"
+  },
+  {
+   "catalog": "cursor",
+   "file": "third_party/xero/mcp.json",
+   "server": "xero",
+   "command": "npx"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/build-ios-apps/.mcp.json",
+   "server": "xcodebuildmcp",
+   "command": "npx"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/codex-security/.mcp.json",
+   "server": "codex-security",
+   "command": "launch_codex_security_mcp"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/creative-production/.mcp.json",
+   "server": "creative_production_mcp",
+   "command": "node"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/data-analytics/.mcp.json",
+   "server": "dataAnalyticsWidgets",
+   "command": "node"
+  },
+  {
+   "catalog": "codex",
+   "file": "plugins/openai-developers/.mcp.json",
+   "server": "openai-api-key-local-confirmation",
+   "command": "node"
+  }
+ ]
+}

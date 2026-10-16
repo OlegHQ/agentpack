@@ -1,0 +1,175 @@
+{
+ "source": "ecosystem-results.json",
+ "targets": {
+  "skills-lock": [
+   "claude",
+   "cursor",
+   "opencode",
+   "codex",
+   "agy"
+  ],
+  "retr0h-agentpack": [
+   "claude",
+   "codex",
+   "opencode",
+   "cursor",
+   "agy"
+  ],
+  "ruler": [
+   "claude",
+   "codex",
+   "opencode",
+   "cursor",
+   "agy"
+  ],
+  "dotagents": [
+   "claude",
+   "cursor",
+   "codex",
+   "grok",
+   "opencode"
+  ]
+ },
+ "tools": {
+  "agentpack": {
+   "skills_all_agents": [
+    42,
+    42
+   ],
+   "skills_own_targets": [
+    42,
+    42
+   ]
+  },
+  "apm": {
+   "skills_all_agents": [
+    41,
+    42
+   ],
+   "skills_own_targets": [
+    41,
+    42
+   ]
+  },
+  "dotagents": {
+   "skills_all_agents": [
+    6,
+    42
+   ],
+   "skills_own_targets": [
+    6,
+    35
+   ]
+  },
+  "liqiongyu-agentpack": {
+   "skills_all_agents": [
+    14,
+    42
+   ],
+   "skills_own_targets": [
+    14,
+    42
+   ]
+  },
+  "native": {
+   "skills_all_agents": [
+    19,
+    42
+   ],
+   "skills_own_targets": [
+    19,
+    42
+   ]
+  },
+  "openskills": {
+   "skills_all_agents": [
+    8,
+    42
+   ],
+   "skills_own_targets": [
+    8,
+    42
+   ]
+  },
+  "retr0h-agentpack": {
+   "skills_all_agents": [
+    5,
+    42
+   ],
+   "skills_own_targets": [
+    4,
+    35
+   ]
+  },
+  "ruler": {
+   "skills_all_agents": [
+    42,
+    42
+   ],
+   "skills_own_targets": [
+    35,
+    35
+   ]
+  },
+  "rulesync": {
+   "skills_all_agents": [
+    30,
+    42
+   ],
+   "skills_own_targets": [
+    30,
+    42
+   ]
+  },
+  "rulesync-claude-importer": {
+   "skills_all_agents": [
+    42,
+    42
+   ],
+   "skills_own_targets": [
+    42,
+    42
+   ]
+  },
+  "skillpm": {
+   "skills_all_agents": [
+    25,
+    42
+   ],
+   "skills_own_targets": [
+    25,
+    42
+   ]
+  },
+  "skills-lock": {
+   "skills_all_agents": [
+    36,
+    42
+   ],
+   "skills_own_targets": [
+    30,
+    35
+   ]
+  },
+  "skillshare": {
+   "skills_all_agents": [
+    6,
+    42
+   ],
+   "skills_own_targets": [
+    6,
+    42
+   ]
+  },
+  "vercel-skills": {
+   "skills_all_agents": [
+    36,
+    42
+   ],
+   "skills_own_targets": [
+    36,
+    42
+   ]
+  }
+ }
+}

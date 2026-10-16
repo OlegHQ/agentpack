@@ -1,0 +1,62 @@
+{
+ "what": "agentpack eject, then each IDE opened on the project by the owner on his Mac (macOS 27.0.1, arm64); no Agentpack launcher involved. Prompts and tokens in CHECK.md of the test project.",
+ "agentpack_build": "feat/eject 8bcfcf6 (released as 0.6.0); Cursor IDE checked on fb97f97, whose Cursor part is unchanged",
+ "tokens": {
+  "command": "COMMAND-OK-890438",
+  "skill": "SKILL-OK-862619",
+  "rule": "RULE-OK-276766",
+  "agent": "AGENT-OK-273831",
+  "mcp": "MCP-OK-414890"
+ },
+ "results": {
+  "cursor_ide": {
+   "date": "2026-10-17",
+   "command": true,
+   "skill": true,
+   "rule": true,
+   "agent": true,
+   "mcp": true,
+   "mcp_note": "first ask: server not available until approved; Cursor then asked for approval and the second ask returned the token"
+  },
+  "vscode_claude_code": {
+   "date": "2026-10-17",
+   "agentpack_build": "feat/eject 8bcfcf6 (plain .claude/ project files)",
+   "command": true,
+   "skill": true,
+   "rule": true,
+   "agent": true,
+   "mcp": true,
+   "earlier": "build fb97f97 registered a project-enabled plugin, which the extension did not load without an interactive /plugin install; eject was changed to plain project files"
+  },
+  "vscode_codex": {
+   "date": "2026-10-17",
+   "agentpack_build": "feat/eject 8bcfcf6 (Codex part unchanged from fb97f97)",
+   "skill": true,
+   "rule": true,
+   "mcp": true,
+   "command": null,
+   "agent": null,
+   "note": "prompts 2, 3, 5 asked (Codex has no slash commands)"
+  },
+  "antigravity_ide": {
+   "date": "2026-10-17",
+   "agentpack_build": "feat/eject 8bcfcf6",
+   "command": true,
+   "skill": true,
+   "rule": true,
+   "agent": true,
+   "mcp": true,
+   "note": "command asked as \"delivery-command\" (Antigravity has no command kind; eject gives it as a skill)"
+  },
+  "codex_app": {
+   "date": "2026-10-17",
+   "agentpack_build": "feat/eject 8bcfcf6",
+   "skill": true,
+   "rule": true,
+   "mcp": true,
+   "command": null,
+   "agent": null,
+   "note": "prompts 2, 3, 5 asked"
+  }
+ }
+}

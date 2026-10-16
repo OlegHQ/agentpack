@@ -1,25 +1,34 @@
 # Agentpack ICSE 2027 evaluation artifact
 
-Scripts and recorded results for the three experiments of the paper's evaluation. All three were recorded on 2026-10-14 and 2026-10-15 on Linux 6.8 aarch64 with one binary, the Agentpack 0.5.0 release candidate (sha256 `8592b2cf2c8d157a349165fba52ecb5f370cae7b68ba4b17b21affac9759e96a`), and these agents: Claude Code 2.1.299, Codex 0.159.3, OpenCode 1.17.11, Cursor 2026.08.25-3e8eec8, Grok 1.0.44, Antigravity 1.3.5. Claude Code updated itself to 2.1.300 during the work; the runs put the 2.1.299 binary first on `PATH` with `DISABLE_AUTOUPDATER=1`.
-
-The release candidate was built with `make release` from commit ee0ffb3 of olegpustovit/agentpack. The published release v0.5.0 (https://github.com/olegpustovit/agentpack/releases/tag/v0.5.0) was built by CI (GoReleaser) from tag commit 215a1cf, which differs from ee0ffb3 only in `README.md`; its binaries therefore have other checksums (linux arm64: `3fabcebbde9409cb14118842edd1128847bbc5186a6908f3b03b30e83e726e8f`). With that binary, the demonstration commands without model calls gave the same pinned version, catalog and language-server output on 2026-10-15. To rerun the scripts against the release, pass its binary and its own checksum. Release v0.5.1 (2026-10-15, tag commit daa8fee) changes only tests, so that the suite passes on Windows, and the version string; it stages exactly what 0.5.0 stages (linux arm64: `5c764a8fe3174c863d6107460b181d8a5c3733a5362b14ca4247bc865c76a943`), and the commands typed in the demonstration video, model calls included, gave the expected output with it. Release v0.5.2 (2026-10-16, tag commit 4f66624) changes only the GitHub username in import paths, links and installers (OlegHQ → olegpustovit) and the version string; no other Go code changed since 0.5.1. With its linux arm64 binary (sha256 `089f2dada14209c86ccf94f889bb5c27c4e0054bdcc74940455818d6882b34b1`) the commands of the paper's Fig. 1 were run again on 2026-10-16 in a fresh repository: `agentpack mcp list` showed `pinned @playwright/mcp@0.0.83`, `agentpack codex mcp list` listed `@playwright/mcp@0.0.83`, the lockfile recorded version 0.0.83 with npm integrity `sha512-oNcl+Ae2/IAjhfPeP46BfIkSakfmprY+aOtkv5MjrQ4lPav4/yNtPhL0iq8SlIM90oApWgBDUxaNKvktazUKOg==`, and only `agentpack.toml` and `pack.lock` were added to the repository.
+Scripts and recorded results for the paper's evaluation. Every Agentpack number in the paper was measured with the released **Agentpack 0.6.1** (https://github.com/olegpustovit/agentpack/releases/tag/v0.6.1; linux arm64 binary sha256 `4bf10e9955ee46e10880c469af7efe428db39150ae99d01d10020abbf38e4fcf`) on 2026-10-17, on Linux 6.8 aarch64, with Claude Code 2.1.299, Codex 0.159.3, OpenCode 1.17.11, Cursor 2026.08.25-3e8eec8, Grok 1.0.44 and Antigravity 1.4.0. Claude Code 2.1.299 is put first on `PATH` with `DISABLE_AUTOUPDATER=1`. Antigravity updated itself from 1.3.5 to 1.4.0 on 2026-10-16; every tool's rows were run again with 1.4.0. The one exception to 0.6.1 is the Antigravity row of the model-call test (below), run with build `9952a1f`: the account's Antigravity quota was used up before the 0.6.1 rerun, and `9952a1f` differs from `v0.6.1` only in the `eject` command and the version string (`git diff 9952a1f v0.6.1 -- internal/ ':!internal/eject'`).
 
 | Experiment | Script | Results | Calls a model |
 |---|---|---|---|
-| What 13 tools deliver from 9 pinned published inputs | `ecosystem.py` | `ecosystem-results.json` | no |
-| 40 published packages through Agentpack | `plugins.py` | `plugins-results.json`, `plugins-corpus.json` | no |
-| One package on six agents, item by item | `delivery.py` | `delivery-results.json` | yes |
+| What 13 tools deliver from 9 pinned published inputs (Table II) | `ecosystem.py` | `ecosystem-results.json` | no |
+| The same on 12 packages drawn after the code was frozen | `heldout.py`, `ecosystem.py` | `heldout-inputs.json`, `heldout-results.json` | no |
+| Table II and the held-out sample on skills alone | `scope.py` | `ecosystem-scope.json`, `heldout-scope.json` | no |
+| One test package, installed by five tools, used by six agents (Table III) | `competitors_model.py`, `competitors_summary.py` | `competitors-model-results.json` | yes |
+| IDE front ends on an ejected project | `agentpack eject`, by hand | `ide-check.json` | yes |
+| How often the official catalogs' npx-started MCP servers change | `drift.py` | `drift-results.json` | no |
+| The commands of Fig. 1 | by hand | `fig1-0.6.1.txt` | no |
 
 ```sh
-SHA=8592b2cf2c8d157a349165fba52ecb5f370cae7b68ba4b17b21affac9759e96a
+SHA=4bf10e9955ee46e10880c469af7efe428db39150ae99d01d10020abbf38e4fcf
 uv run ecosystem.py setup --tools-dir TOOLS            # downloads the pinned tools
-GITHUB_TOKEN=$(gh auth token) uv run ecosystem.py run --tools-dir TOOLS --agentpack bin/agentpack --agentpack-sha256 $SHA --work WORK --jobs 4
+GITHUB_TOKEN=$(gh auth token) uv run ecosystem.py run --tools-dir TOOLS --agentpack bin/agentpack --agentpack-sha256 $SHA --work WORK --jobs 3
+GITHUB_TOKEN=$(gh auth token) uv run ecosystem.py run --inputs-file heldout-inputs.json --output heldout-results.json --tools-dir TOOLS --agentpack bin/agentpack --agentpack-sha256 $SHA --work WORK3 --jobs 3
 uv run ecosystem.py rescore                            # recomputes every cell and the summary from the stored evidence
-uv run plugins.py  --agentpack bin/agentpack --agentpack-sha256 $SHA --work WORK2 --jobs 3
-uv run delivery.py --agentpack bin/agentpack --agentpack-sha256 $SHA --runs 3 --codex-unsandboxed   # real model calls on your accounts
+uv run scope.py && uv run scope.py --results heldout-results.json
+uv run competitors_model.py --tools-dir TOOLS --agentpack bin/agentpack --agentpack-sha256 $SHA --runs 3 --jobs 1 --backup-dir BACKUP   # real model calls on your accounts
+uv run competitors_summary.py --rescore WORK4/*-result.json
+uv run drift.py
 ```
 
-`ecosystem.py` and `plugins.py` run every tool and agent in empty temporary homes; no account or user setting is read. `delivery.py` uses your signed-in agents through the Agentpack launcher, in a temporary checkout.
+`ecosystem.py` runs every tool and agent in empty temporary homes; no account or user setting is read. `competitors_model.py` copies the agents' logins into its temporary homes (and copies a refreshed token back), runs your signed-in agents and calls their models.
+
+Antigravity 1.4.0 prints its plugin check as one summary line (`skills 1 · agents 1 · rules 1 · hooks 1 · mcpServers 0`) where 1.3.5 printed `hooks : 1 processed`; `ecosystem.py` reads both (`agy_hooks`), and `rescore` parses the stored output again. With the old parser alone, Agentpack's four Antigravity hook cells read as absent.
+
+Earlier builds: Table II and the functional test of the previous version of the paper used the 0.5.0 release candidate `ee0ffb3`, and the held-out comparison release 0.5.2; every number they gave is unchanged with 0.6.1 (Table II, all 13 rows; held-out 89 of 90). Their recordings are in `history/`.
 
 ## What each tool delivers (`ecosystem.py`)
 
@@ -27,7 +36,7 @@ Nine inputs pinned by commit (three Claude Code plugins, two Cursor plugins, a C
 
 | Tool | Inputs accepted (and something delivered) | Native | Converted | Absent |
 |---|---|---|---|---|
-| Agentpack 0.5.0 | 9 (9) | 148 | 14 | 0 |
+| Agentpack 0.6.1 | 9 (9) | 148 | 14 | 0 |
 | Microsoft APM 0.33.0 | 9 (8) | 124 | 0 | 38 |
 | rulesync 33.0.0 | 9 (5) | 99 | 9 | 54 |
 | Ruler 0.3.44 (content copied in by hand) | 0 | 81 | 0 | 81 |
@@ -82,6 +91,36 @@ The 12 packages hold 90 cells: skills in 7 packages, MCP servers in 6, one comma
   - rulesync and Vercel skills wrote neither.
 - **Files written into the checkout:** Agentpack wrote `agentpack.toml` and `pack.lock` and nothing else. APM wrote up to 1,476 files, Vercel skills up to 538 and rulesync up to 71.
 
+## Skills alone (`scope.py`)
+
+Every compared tool installs skills, so `scope.py` counts the skill cells only, over the six agents and over the agents each tool was given as targets. Table II: Agentpack, Ruler and rulesync's plugin importer 42 of 42, APM 41, skills-lock and Vercel skills 36 (skills-lock 30 of its 35). Held-out: Agentpack and Vercel skills 41 of 42, APM 35. Agentpack's lead in Table II comes from the other kinds on every agent.
+
+## Does the content reach the model? (`competitors_model.py`, 2026-10-17)
+
+The package of `delivery.py` (a skill, a slash command, a subagent, a rule, a prompt hook, a local MCP server and a language server, each answering with its own token) is put in a local marketplace repository and installed by Agentpack, APM, rulesync, Vercel skills and the agents' own install commands, each with its documented command for a local source, into an empty home and a fresh checkout. The agents are then started with real model calls, three runs per item; every tool gets its own random tokens, so a file of another tool's run cannot answer.
+
+Strict rule. Before each agent runs, every file that holds a token outside the locations that agent loads content from (`OWN` in the script) is made unreadable, and the package repository's git history is removed (an agent was seen reading a hidden file with `git show`). A run counts only when the token is in the agent's final answer (parsed from its JSON events) and the agent did not touch the package source. Agentpack reads a local package live at every launch, and Claude Code and Cursor load a plugin from a local marketplace in place, so for those the source stays readable; for Agentpack, a run that opens it is not counted. A combination works in at least 2 of 3 runs.
+
+| Installed by | Claude Code | Codex | OpenCode | Cursor | Grok | Antigravity | All |
+|---|---|---|---|---|---|---|---|
+| Agentpack 0.6.1 | 7/7 | 6/6 | 7/7 | 4/6 | 6/7 | 5/6 | 35/39 |
+| Agents' own commands | 6/7 | 5/6 | 0/7 | 5/6 | 4/7 | 2/6 | 22/39 |
+| rulesync 33.0.0 | 4/7 | 4/6 | 4/7 | 3/6 | 0/7 | 3/6 | 18/39 |
+| APM 0.33.0 | 4/7 | 3/6 | 3/7 | 4/6 | 1/7 | 1/6 | 16/39 |
+| Vercel skills 1.7.2 | 0/7 | 1/6 | 1/7 | 1/6 | 0/7 | 1/6 | 4/39 |
+
+- Agentpack's misses: Cursor does not fire the prompt hook in non-interactive mode (https://forum.cursor.com/t/169059); Cursor and Antigravity found the rule's token, but in two of three runs by opening the package source; Grok answered the subagent item by reading the subagent's file instead of delegating, in two of three runs.
+- OpenCode hung at the model call when five tools used one ChatGPT account at once; its rows for Agentpack, rulesync and Vercel skills were run again alone and replace the hung ones (`sources` in the results). Native Claude Code and Cursor were run again after the source of an in-place plugin had been hidden from them by mistake.
+- Options every tool gets: Codex without its sandbox and with hook review skipped; Grok `--always-approve` for subagent and MCP items; Cursor `--force` and `--approve-mcps` for MCP; Claude Code project MCP servers enabled. Logins copied, and tokens refreshed during the run copied back.
+
+## IDE front ends (`agentpack eject`, 2026-10-17)
+
+`agentpack eject` (new in 0.6.0) writes the staged content into each agent's own project files, for front ends that are not started through a launcher. On a MacBook (macOS 27.0.1, arm64) a project was prepared with `agentpack add` and `agentpack eject` (build `8bcfcf6`, released as 0.6.0; Cursor checked on `fb97f97`, whose Cursor part is the same), and the owner asked the test prompts in each IDE. VS Code with the Claude Code extension, Cursor and Antigravity returned the token for skill, command, subagent, rule and MCP server; VS Code with the Codex extension and the Codex app for skill, rule and MCP server (prompts asked). Cursor ran the project's MCP server after the user approved it. `ide-check.json` has each answer. Before that, an eject that registered the bundle as a Claude Code project plugin was not loaded by the VS Code extension without an interactive install; eject now writes plain `.claude/` files. The same eject, checked with each agent's CLI and only the ejected files present (staging and package source deleted), delivered every kind on Claude Code, Codex, Cursor and Antigravity except Cursor's hook.
+
+## How often npx-started servers change (`drift.py`)
+
+The three official catalogs at the commits of Table II declare 126 MCP servers: 110 remote, 16 local commands. The 5 started through npx all request no exact version; their 4 npm packages published versions in the 90 days before 2026-10-16 as follows: `@playwright/mcp` 45, `firebase-tools` 28, `xcodebuildmcp` 1, `@xeroapi/xero-mcp-server` 0 (3 of 4 changed).
+
 ## Forty published packages (`plugins.py`)
 
 Forty packages chosen by a fixed rule from the official Claude Code, Cursor and Codex plugin repositories, `anthropics/skills` and the three most-starred community marketplaces (`plugins-corpus.json`) are each added, locked and synced in a fresh project. Numbers are in `summary`.
@@ -104,7 +143,7 @@ Forty packages chosen by a fixed rule from the official Claude Code, Cursor and 
 - Every listing finished in this recording (`packages_without_observation` is empty for every agent and kind). In the run on the previous candidate, three experiments shared the host and three packages' listings timed out; those rows are kept in `history/0.5.0-rc-b9330796/`.
 - Six MCP servers in these repositories start through an npm launcher. Locked through the package that ships them, 5 get an exact version; locked as a manifest entry, 6. The sixth package also defines its server as a local `node` command, which Agentpack uses and does not pin. In every pinned case the exact version is in all six agents' configurations, and sync with the network blocked changes nothing.
 
-## One package on six agents (`delivery.py`)
+## One package on six agents through Agentpack (`delivery.py`, 0.5.0 release candidate, superseded by the table above)
 
 A package with a skill, a slash command, a subagent, a rule, a prompt hook, a local stdio MCP server and a language server is locked and restored once, and each agent is started through Agentpack in non-interactive mode, three times per item. Each item makes the agent answer with its own token; the hook appends a line to a file; the MCP server (Node, inside the package, declared once in `.mcp.json`) returns a token that is nowhere in the package as text and records each call it receives. The language server (Node, declared in `.lsp.json` for the file extension `.dlv`) logs every request and answers a hover with its own token; the prompt asks for the hover text of a word in `sample.dlv`, and the item counts when the server logged the agent's `initialize` (the answer containing the hover token is recorded as `lsp_hover_token_in_answer`). It runs only on the three agents that have a language-server setting. Numbers are in `matrix`.
 
@@ -132,7 +171,7 @@ A package with a skill, a slash command, a subagent, a rule, a prompt hook, a lo
 
 ## Limits
 
-One author wrote the tool and the scripts, with AI assistance; this is not an independent replication. One version of each agent, one host. The functional test has three runs per item, one prompt and one model per agent.
+One author wrote the tool and the scripts, with AI assistance; this is not an independent replication. One version of each agent, one Linux host, and one Mac for the IDE check. The model-call test has three runs per item, one prompt and one model per agent. No user study.
 
 ## mcp-lock on the two Playwright packages (2026-10-15)
 

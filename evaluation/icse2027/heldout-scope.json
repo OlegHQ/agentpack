@@ -1,0 +1,85 @@
+{
+ "source": "heldout-results.json",
+ "targets": {
+  "skills-lock": [
+   "claude",
+   "cursor",
+   "opencode",
+   "codex",
+   "agy"
+  ],
+  "retr0h-agentpack": [
+   "claude",
+   "codex",
+   "opencode",
+   "cursor",
+   "agy"
+  ],
+  "ruler": [
+   "claude",
+   "codex",
+   "opencode",
+   "cursor",
+   "agy"
+  ],
+  "dotagents": [
+   "claude",
+   "cursor",
+   "codex",
+   "grok",
+   "opencode"
+  ]
+ },
+ "tools": {
+  "agentpack": {
+   "skills_all_agents": [
+    41,
+    42
+   ],
+   "skills_own_targets": [
+    41,
+    42
+   ]
+  },
+  "apm": {
+   "skills_all_agents": [
+    35,
+    42
+   ],
+   "skills_own_targets": [
+    35,
+    42
+   ]
+  },
+  "native": {
+   "skills_all_agents": [
+    16,
+    42
+   ],
+   "skills_own_targets": [
+    16,
+    42
+   ]
+  },
+  "rulesync": {
+   "skills_all_agents": [
+    12,
+    42
+   ],
+   "skills_own_targets": [
+    12,
+    42
+   ]
+  },
+  "vercel-skills": {
+   "skills_all_agents": [
+    41,
+    42
+   ],
+   "skills_own_targets": [
+    41,
+    42
+   ]
+  }
+ }
+}

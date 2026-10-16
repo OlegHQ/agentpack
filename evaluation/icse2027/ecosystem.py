@@ -68,7 +68,7 @@ AGENTS = ['claude', 'codex', 'opencode', 'cursor', 'grok', 'agy']
 KINDS = ['skill', 'command', 'agent', 'rule', 'hook', 'mcp']
 EXE = {'claude': 'claude', 'codex': 'codex', 'opencode': 'opencode', 'cursor': 'cursor-agent', 'grok': 'grok', 'agy': 'agy'}
 AGENT_VERSIONS = {'claude': '2.1.299 (Claude Code)', 'codex': 'codex-cli 0.159.3', 'opencode': '1.17.11',
-                  'cursor': '2026.08.25-3e8eec8', 'grok': 'grok 1.0.44 (5b807183dd79)', 'agy': '1.3.5'}
+                  'cursor': '2026.08.25-3e8eec8', 'grok': 'grok 1.0.44 (5b807183dd79)', 'agy': '1.4.0'}
 
 # ---------------------------------------------------------------- inputs (pinned)
 STRIPE = ('stripe/ai', '97b2164821c378f246c3903852057b36a8bd0296')
@@ -590,6 +590,20 @@ def first_json(text, opener):
     return None
 
 
+def agy_hooks(raw):
+    """Hooks that Antigravity's own plugin commands report, from their stored output. Antigravity 1.3.5 prints
+    "hooks : 1 processed" (validate) and "Components: ... 1 hooks" (list); 1.4.0 prints one summary line,
+    "skills 1 · agents 1 · rules 1 · hooks 1 · mcpServers 0"."""
+    m = re.search(r'Components:[^\n]*?(\d+) hooks?', raw.get('plugin_list') or '')
+    if m and int(m.group(1)) > 0:
+        return f'agy plugin list: {m.group(0)}'
+    for d, text in (raw.get('plugin_validate') or {}).items():
+        m = re.search(r'hooks\s*:\s*(\d+) processed', text) or re.search(r'(?:^|·)\s*hooks (\d+)\b', text, re.M)
+        if m and int(m.group(1)) > 0:
+            return f'agy plugin validate {d}: {m.group(0).strip(" ·")}'
+    return None
+
+
 def listing(agent, env, cwd, wrap, exp, tmp, plugins=()):
     """Names the agent itself lists, per kind. wrap(agent) is the argv prefix (the bare binary, or a launcher)."""
     seen = {k: {} for k in KINDS}
@@ -693,17 +707,13 @@ def listing(agent, env, cwd, wrap, exp, tmp, plugins=()):
         elif agent == 'agy':
             p = run([*wrap('agy'), 'plugin', 'list'], cwd, env, 60)
             raw = {'plugin_list': tail(p['stdout'], 400), 'covers': [], 'plugin_validate': {}}
-            m = re.search(r'Components:[^\n]*?(\d+) hooks?', raw['plugin_list'])     # an installed plugin, as Antigravity lists it
-            if m and int(m.group(1)) > 0:
-                seen['hook']['hooks'] = f'agy plugin list: {m.group(0)}'
             for d in plugins:       # rule 6: Antigravity's own check of each plugin directory decides the plugin's hooks
                 v = run([*wrap('agy'), 'plugin', 'validate', d], cwd, env, 60)
-                text = tail(v['stdout'] + v['stderr'], 600)
-                raw['plugin_validate'][str(d)] = text
-                m = re.search(r'hooks\s*:\s*(\d+) processed', text)
-                if m and int(m.group(1)) > 0:
-                    seen['hook']['hooks'] = f'agy plugin validate {d}: hooks : {m.group(1)} processed'
+                raw['plugin_validate'][str(d)] = tail(v['stdout'] + v['stderr'], 600)
                 raw['covers'] = ['hook']
+            found = agy_hooks(raw)
+            if found:
+                seen['hook']['hooks'] = found
         raw['error'] = None
     except Exception as e:      # a probe that fails makes the run invalid (rule 7)
         raw = {'error': f'{type(e).__name__}: {e}'[:300], 'covers': []}
@@ -1162,6 +1172,10 @@ def main():
         data = json.loads(args.output.read_text())
         changed = []
         for key, r in data['runs'].items():
+            probe = (r.get('probes') or {}).get('agy') or {}
+            if 'hook' in (probe.get('covers') or []) and 'agy' in r['evidence']:    # Antigravity's output parsed again (agy_hooks)
+                found = agy_hooks(probe)
+                r['evidence']['agy']['listed']['hook'] = {'hooks': found} if found else {}
             cells = score(r['expected_items'], r['evidence'])
             changed += [f"{key} {a} {k}: {r['cells'][a][k]['status']} -> {cells[a][k]['status']}"
                         for a in AGENTS for k in KINDS if cells[a][k]['status'] != r['cells'][a][k]['status']]

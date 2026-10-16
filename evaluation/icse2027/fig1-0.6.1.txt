@@ -1,0 +1,27 @@
+$ agentpack init
+Initializing agentpack…
+Created ~/team-app/agentpack.toml and ~/team-app/pack.lock
+$ agentpack add anthropics/claude-plugins-official/external_plugins/playwright@f359d43
+Adding: anthropics/claude-plugins-official/external_plugins/playwright@f359d43
+Recorded github.com/anthropics/claude-plugins-official/external_plugins/playwright in agentpack.toml and refreshed pack.lock.
+$ agentpack mcp list
+  playwright: npx @playwright/mcp@latest [from plugin] (pinned @playwright/mcp@0.0.83)
+$ agentpack codex mcp list
+Name        Command  Args                    Env  Cwd  Status   Auth       
+playwright  npx      @playwright/mcp@0.0.83  -    -    enabled  Unsupported
+$ git status --short
+?? agentpack.toml
+?? pack.lock
+$ grep -A8 mcp pack.lock
+19:[[mcp_servers]]
+20-name = 'playwright'
+21-source = 'plugin'
+22-launcher = 'npm'
+23-status = 'pinned'
+24-definition = 'sha256:39f1fe8018e119b3502f48ee4c78784d31bba2dd0bc2a4982fc71b32bbf29bf8'
+25:requested = '@playwright/mcp@latest'
+26:package = '@playwright/mcp'
+27-version = '0.0.83'
+28-integrity = 'sha512-oNcl+Ae2/IAjhfPeP46BfIkSakfmprY+aOtkv5MjrQ4lPav4/yNtPhL0iq8SlIM90oApWgBDUxaNKvktazUKOg=='
+29-registry = 'https://registry.npmjs.org'
+(agentpack 0.6.1, linux arm64 sha256 4bf10e9955ee46e10880c469af7efe428db39150ae99d01d10020abbf38e4fcf, 2026-10-17)

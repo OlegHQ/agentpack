@@ -1,0 +1,1289 @@
+{
+ "rule": "A combination is one agent and one kind of content (skill, command, subagent, rule, hook, MCP server, language\nserver where the agent has a language-server setting). It works when the agent answered with the item's token in\nat least 2 of its 3 runs (the hook: when the hook's line was written in at least 2 of 3 runs of any item). Runs\nwhose transcript names the package source do not count. A later file's rows for a tool and agent replace an\nearlier file's (used to rerun OpenCode alone, which hung when five tools used one account at once).",
+ "sources": [
+  "agentpack-result.json",
+  "apm-result.json",
+  "native-result.json",
+  "rulesync-result.json",
+  "vercel-skills-result.json",
+  "native-result.json",
+  "rulesync-result.json",
+  "vercel-skills-result.json",
+  "agentpack-result.json",
+  "agentpack-result.json"
+ ],
+ "summary": {
+  "agentpack": {
+   "combinations": 39,
+   "works": 35,
+   "all_runs": 35,
+   "agents_not_run": []
+  },
+  "apm": {
+   "combinations": 39,
+   "works": 16,
+   "all_runs": 12,
+   "agents_not_run": []
+  },
+  "native": {
+   "combinations": 39,
+   "works": 22,
+   "all_runs": 20,
+   "agents_not_run": []
+  },
+  "rulesync": {
+   "combinations": 39,
+   "works": 18,
+   "all_runs": 18,
+   "agents_not_run": []
+  },
+  "vercel-skills": {
+   "combinations": 39,
+   "works": 4,
+   "all_runs": 4,
+   "agents_not_run": []
+  }
+ },
+ "table": {
+  "agentpack": {
+   "claude": {
+    "skill": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "hook": {
+     "runs": 18,
+     "delivered": 18,
+     "works": true,
+     "all_runs": true
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "lsp": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    }
+   },
+   "codex": {
+    "skill": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "hook": {
+     "runs": 15,
+     "delivered": 15,
+     "works": true,
+     "all_runs": true
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    }
+   },
+   "cursor": {
+    "skill": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 1,
+     "works": false,
+     "all_runs": false
+    },
+    "hook": {
+     "runs": 15,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    }
+   },
+   "grok": {
+    "skill": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 1,
+     "works": false,
+     "all_runs": false
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "hook": {
+     "runs": 18,
+     "delivered": 18,
+     "works": true,
+     "all_runs": true
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "lsp": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    }
+   },
+   "agy": {
+    "skill": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "hook": {
+     "runs": 15,
+     "delivered": 15,
+     "works": true,
+     "all_runs": true
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    }
+   },
+   "opencode": {
+    "skill": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "hook": {
+     "runs": 18,
+     "delivered": 18,
+     "works": true,
+     "all_runs": true
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "lsp": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    }
+   }
+  },
+  "apm": {
+   "claude": {
+    "skill": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "hook": {
+     "runs": 18,
+     "delivered": 18,
+     "works": true,
+     "all_runs": true
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "lsp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    }
+   },
+   "codex": {
+    "skill": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 1,
+     "works": false,
+     "all_runs": false
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "hook": {
+     "runs": 15,
+     "delivered": 15,
+     "works": true,
+     "all_runs": true
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    }
+   },
+   "opencode": {
+    "skill": {
+     "runs": 3,
+     "delivered": 2,
+     "works": true,
+     "all_runs": false
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 2,
+     "works": true,
+     "all_runs": false
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "hook": {
+     "runs": 18,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "lsp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    }
+   },
+   "cursor": {
+    "skill": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 2,
+     "works": true,
+     "all_runs": false
+    },
+    "hook": {
+     "runs": 15,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    }
+   },
+   "grok": {
+    "skill": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 2,
+     "works": true,
+     "all_runs": false
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "hook": {
+     "runs": 18,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "lsp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    }
+   },
+   "agy": {
+    "skill": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "hook": {
+     "runs": 15,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    }
+   }
+  },
+  "native": {
+   "claude": {
+    "skill": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "hook": {
+     "runs": 18,
+     "delivered": 18,
+     "works": true,
+     "all_runs": true
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "lsp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    }
+   },
+   "codex": {
+    "skill": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 2,
+     "works": true,
+     "all_runs": false
+    },
+    "hook": {
+     "runs": 15,
+     "delivered": 15,
+     "works": true,
+     "all_runs": true
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    }
+   },
+   "opencode": {
+    "skill": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "hook": {
+     "runs": 18,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "lsp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    }
+   },
+   "cursor": {
+    "skill": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 2,
+     "works": true,
+     "all_runs": false
+    },
+    "hook": {
+     "runs": 15,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    }
+   },
+   "grok": {
+    "skill": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 1,
+     "works": false,
+     "all_runs": false
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "hook": {
+     "runs": 18,
+     "delivered": 18,
+     "works": true,
+     "all_runs": true
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "lsp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    }
+   },
+   "agy": {
+    "skill": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 1,
+     "works": false,
+     "all_runs": false
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "hook": {
+     "runs": 15,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    }
+   }
+  },
+  "rulesync": {
+   "claude": {
+    "skill": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "hook": {
+     "runs": 18,
+     "delivered": 18,
+     "works": true,
+     "all_runs": true
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "lsp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    }
+   },
+   "codex": {
+    "skill": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "hook": {
+     "runs": 15,
+     "delivered": 15,
+     "works": true,
+     "all_runs": true
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    }
+   },
+   "cursor": {
+    "skill": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "hook": {
+     "runs": 15,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    }
+   },
+   "grok": {
+    "skill": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 1,
+     "works": false,
+     "all_runs": false
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "hook": {
+     "runs": 18,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "lsp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    }
+   },
+   "agy": {
+    "skill": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 1,
+     "works": false,
+     "all_runs": false
+    },
+    "hook": {
+     "runs": 15,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    }
+   },
+   "opencode": {
+    "skill": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "hook": {
+     "runs": 18,
+     "delivered": 18,
+     "works": true,
+     "all_runs": true
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "lsp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    }
+   }
+  },
+  "vercel-skills": {
+   "claude": {
+    "skill": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "hook": {
+     "runs": 18,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "lsp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    }
+   },
+   "codex": {
+    "skill": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "hook": {
+     "runs": 15,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    }
+   },
+   "cursor": {
+    "skill": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "hook": {
+     "runs": 15,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    }
+   },
+   "grok": {
+    "skill": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "hook": {
+     "runs": 18,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "lsp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    }
+   },
+   "agy": {
+    "skill": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "hook": {
+     "runs": 15,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    }
+   },
+   "opencode": {
+    "skill": {
+     "runs": 3,
+     "delivered": 3,
+     "works": true,
+     "all_runs": true
+    },
+    "command": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "agent": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "rule": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "hook": {
+     "runs": 18,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "mcp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    },
+    "lsp": {
+     "runs": 3,
+     "delivered": 0,
+     "works": false,
+     "all_runs": false
+    }
+   }
+  }
+ }
+}
