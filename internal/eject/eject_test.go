@@ -30,6 +30,12 @@ func read(t *testing.T, path string) string {
 	return string(data)
 }
 
+// esc is a path as it appears inside a JSON string (backslashes escaped on Windows).
+func esc(path string) string {
+	data, _ := json.Marshal(path)
+	return string(data[1 : len(data)-1])
+}
+
 // staged builds a small staged tree like the one sync writes, with absolute
 // paths into it, and returns the project and its staging directory.
 func staged(t *testing.T) (string, string) {
@@ -43,15 +49,15 @@ func staged(t *testing.T) (string, string) {
 	}
 	server := filepath.Join(stage, "plugin-roots", "abc", "mcp", "server.mjs")
 	put(t, server, "// server\n")
-	mcpJSON := `{"mcpServers": {"demo": {"command": "node", "args": ["` + server + `"]}}}`
+	mcpJSON := `{"mcpServers": {"demo": {"command": "node", "args": ["` + esc(server) + `"]}}}`
 	bundle := filepath.Join(stage, "plugins", "agentpack-bundle")
 	put(t, filepath.Join(bundle, ".claude-plugin", "plugin.json"), `{"name": "agentpack-bundle"}`)
 	put(t, filepath.Join(bundle, "skills", "demo", "SKILL.md"), "---\nname: demo\n---\nBody\n")
 	put(t, filepath.Join(bundle, ".mcp.json"), mcpJSON)
 	put(t, filepath.Join(bundle, "agentpack-settings.json"), `{"enabledMcpjsonServers": ["demo"]}`)
 	put(t, filepath.Join(bundle, "hooks", "hooks.json"),
-		`{"hooks": {"SessionStart": [{"hooks": [{"type": "command", "command": "agentpack hook-exec inject-guidance --file `+bundle+`/_agentpack/guidance.md"}]}],`+
-			` "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "agentpack hook-exec command --spec `+bundle+`/hooks/_packages/x/specs/0.json"}]}]}}`)
+		`{"hooks": {"SessionStart": [{"hooks": [{"type": "command", "command": "agentpack hook-exec inject-guidance --file `+esc(bundle)+`/_agentpack/guidance.md"}]}],`+
+			` "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "agentpack hook-exec command --spec `+esc(bundle)+`/hooks/_packages/x/specs/0.json"}]}]}}`)
 	put(t, filepath.Join(bundle, "rules", "always.mdc"), "---\ndescription: Always\nalwaysApply: true\n---\n\nAlways do this.\n")
 	put(t, filepath.Join(bundle, "rules", "go.mdc"), "---\ndescription: Go files\nglobs: \"**/*.go\"\n---\n\nGo rule.\n")
 	put(t, filepath.Join(bundle, "rules", "maybe.mdc"), "---\ndescription: When asked\n---\n\nMaybe.\n")
@@ -62,7 +68,7 @@ func staged(t *testing.T) (string, string) {
 	put(t, filepath.Join(cursor, "mcp.json"), mcpJSON)
 	put(t, filepath.Join(cursor, "cli-config.json"), `{"private": true}`)
 	put(t, filepath.Join(stage, "cursor-home", ".cursor", "hooks.json"),
-		`{"version": 1, "hooks": {"beforeSubmitPrompt": [{"command": "agentpack hook-exec --specs-dir `+cursor+`/hooks"}]}}`)
+		`{"version": 1, "hooks": {"beforeSubmitPrompt": [{"command": "agentpack hook-exec --specs-dir `+esc(cursor)+`/hooks"}]}}`)
 	agy := filepath.Join(stage, "agy", "agentpack-bundle")
 	put(t, filepath.Join(agy, "plugin.json"), `{"name": "agentpack-bundle"}`)
 	put(t, filepath.Join(agy, "mcp_config.json"), mcpJSON)
@@ -97,7 +103,7 @@ func TestEjectCopiesRewritesAndRegisters(t *testing.T) {
 		t.Fatalf("servers not approved: %v", settings)
 	}
 	claudeSettings := read(t, filepath.Join(project, ".claude", "settings.json"))
-	if !strings.Contains(claudeSettings, filepath.Join(copy, "plugins", "agentpack-bundle", "hooks")) || strings.Contains(claudeSettings, "inject-guidance") {
+	if !strings.Contains(claudeSettings, esc(filepath.Join(copy, "plugins", "agentpack-bundle", "hooks"))) || strings.Contains(claudeSettings, "inject-guidance") {
 		t.Fatalf("Claude Code hooks: %s", claudeSettings)
 	}
 	if strings.Contains(claudeSettings, "enabledPlugins") || strings.Contains(claudeSettings, "extraKnownMarketplaces") {
@@ -112,17 +118,17 @@ func TestEjectCopiesRewritesAndRegisters(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(project, ".claude", "rules", "maybe.md")); !os.IsNotExist(err) {
 		t.Fatal("a rule the model applies by description was written as a rules file")
 	}
-	if !strings.Contains(read(t, filepath.Join(project, ".mcp.json")), filepath.Join(copy, "plugin-roots")) {
+	if !strings.Contains(read(t, filepath.Join(project, ".mcp.json")), esc(filepath.Join(copy, "plugin-roots"))) {
 		t.Fatal("Claude Code servers not written")
 	}
 	if _, err := os.Stat(filepath.Join(project, ".claude", "skills", "demo", "SKILL.md")); err != nil {
 		t.Fatal(err)
 	}
 	cursorMCP := read(t, filepath.Join(project, ".cursor", "mcp.json"))
-	if strings.Contains(cursorMCP, stage) || !strings.Contains(cursorMCP, filepath.Join(copy, "plugin-roots", "abc", "mcp", "server.mjs")) {
+	if strings.Contains(cursorMCP, esc(stage)) || !strings.Contains(cursorMCP, esc(filepath.Join(copy, "plugin-roots", "abc", "mcp", "server.mjs"))) {
 		t.Fatalf("cursor mcp.json not rewritten: %s", cursorMCP)
 	}
-	if !strings.Contains(read(t, filepath.Join(project, ".cursor", "hooks.json")), filepath.Join(copy, "cursor")) {
+	if !strings.Contains(read(t, filepath.Join(project, ".cursor", "hooks.json")), esc(filepath.Join(copy, "cursor"))) {
 		t.Fatal("cursor hooks not rewritten")
 	}
 	if read(t, filepath.Join(project, ".cursor", "commands", "go.md")) != "Go\n" {
@@ -160,7 +166,7 @@ func TestEjectRefusesToReplaceAUserFile(t *testing.T) {
 	project, _ := staged(t)
 	put(t, filepath.Join(project, ".cursor", "commands", "go.md"), "mine\n")
 	_, err := Eject(all(project))
-	if err == nil || !strings.Contains(err.Error(), ".cursor/commands/go.md exists") {
+	if err == nil || !strings.Contains(filepath.ToSlash(err.Error()), ".cursor/commands/go.md exists") {
 		t.Fatalf("err=%v", err)
 	}
 	if read(t, filepath.Join(project, ".cursor", "commands", "go.md")) != "mine\n" {
