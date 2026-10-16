@@ -103,7 +103,7 @@ func TestEjectCopiesRewritesAndRegisters(t *testing.T) {
 		t.Fatalf("servers not approved: %v", settings)
 	}
 	claudeSettings := read(t, filepath.Join(project, ".claude", "settings.json"))
-	if !strings.Contains(claudeSettings, esc(filepath.Join(copy, "plugins", "agentpack-bundle", "hooks"))) || strings.Contains(claudeSettings, "inject-guidance") {
+	if !strings.Contains(claudeSettings, esc(filepath.Join(copy, "plugins", "agentpack-bundle"))+"/hooks") || strings.Contains(claudeSettings, "inject-guidance") {
 		t.Fatalf("Claude Code hooks: %s", claudeSettings)
 	}
 	if strings.Contains(claudeSettings, "enabledPlugins") || strings.Contains(claudeSettings, "extraKnownMarketplaces") {
