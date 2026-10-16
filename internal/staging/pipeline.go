@@ -208,6 +208,22 @@ func (pipeline Pipeline) Rebuild() (_ []string, rebuildErr error) {
 	return []string{filepath.Join(plugins, paths.StagedAgentpackBundleName)}, nil
 }
 
+// FinalizeOverlay writes the launch target's workspace overlay from the
+// staged tree as published, without rebuilding it.
+func (pipeline Pipeline) FinalizeOverlay() error {
+	if pipeline.Target == nil || !pipeline.Target.UsesWorkspaceOverlay() {
+		return nil
+	}
+	if pipeline.StrictExternal {
+		return fmt.Errorf("%s requires a workspace overlay write; refuse under --strict-external (use claude/opencode, or omit --strict-external)", *pipeline.Target)
+	}
+	candidate, err := registry.ByTarget(*pipeline.Target)
+	if err != nil {
+		return err
+	}
+	return candidate.FinalizeWorkspaceOverlay(pipeline.context())
+}
+
 func (pipeline Pipeline) Verify() error {
 	return pipeline.verify(pipeline.context())
 }

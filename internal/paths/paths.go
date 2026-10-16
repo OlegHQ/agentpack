@@ -207,8 +207,8 @@ func StagedManifestPath(projectRoot, modeName string) (string, error) {
 	return projectStateFile(projectRoot, "staged-"+ModePathComponent(modeName)+".json")
 }
 
-func LaunchSyncStatePath(projectRoot, modeName string) (string, error) {
-	return projectStateFile(projectRoot, "launch-sync-"+ModePathComponent(modeName)+".state")
+func LaunchSyncStatePath(projectRoot, modeName, key string) (string, error) {
+	return projectStateFile(projectRoot, "launch-sync-"+ModePathComponent(modeName)+"."+ModePathComponent(key)+".state")
 }
 
 func stagingRootBase(projectRoot string) (string, error) {

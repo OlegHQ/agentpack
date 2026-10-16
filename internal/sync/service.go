@@ -534,7 +534,7 @@ func (service Service) SyncForLaunchOptions(ctx context.Context, projectRoot str
 	if err != nil {
 		return mode.Effective{}, false, err
 	}
-	if stored, found, err := ReadLaunchDigest(projectRoot, effective.Name()); err != nil {
+	if stored, found, err := ReadLaunchDigest(projectRoot, effective.Name(), target); err != nil {
 		return mode.Effective{}, false, err
 	} else if found && stored == current && !pending {
 		// Nothing is staged on this path, so the harness keeps the tree built
@@ -555,6 +555,32 @@ func (service Service) SyncForLaunchOptions(ctx context.Context, projectRoot str
 			return effective, true, nil
 		}
 	}
+	if target.UsesWorkspaceOverlay() && !pending {
+		// The staged tree may already be current from a launch of another agent,
+		// possibly still running. Then only this agent's workspace overlay is
+		// written, and the tree that session uses is left alone.
+		if shared, err := launchDigest(projectRoot, workspace, effective, &sharedLaunchTarget, lock); err == nil {
+			if stored, found, err := ReadLaunchDigest(projectRoot, effective.Name(), sharedLaunchTarget); err == nil && found && stored == shared {
+				pipeline := staging.Pipeline{
+					ProjectRoot: projectRoot, WorkspaceRoot: workspace, Lock: lock, Manifest: project,
+					Mode: effective, Target: &target, StrictExternal: options.StrictExternal,
+				}
+				if cache.VerifyLockCacheLayout(lock) == nil && pipeline.FinalizeOverlay() == nil {
+					if err := service.checkLockRecords(projectRoot, project, lock); err != nil {
+						return mode.Effective{}, false, err
+					}
+					// the overlay is in the workspace, so the digest is taken after it is written
+					if current, err = launchDigest(projectRoot, workspace, effective, &target, lock); err != nil {
+						return mode.Effective{}, false, err
+					}
+					if err := WriteLaunchDigest(projectRoot, effective.Name(), target, current); err != nil {
+						return mode.Effective{}, false, err
+					}
+					return effective, true, nil
+				}
+			}
+		}
+	}
 	result, err := service.Sync(ctx, projectRoot, SyncOptions{
 		Mode: effective.Name(), Target: &target,
 		WorkspaceRoot: workspace, StrictExternal: options.StrictExternal,
@@ -572,8 +598,18 @@ func (service Service) SyncForLaunchOptions(ctx context.Context, projectRoot str
 	if err != nil {
 		return mode.Effective{}, false, err
 	}
-	if err := WriteLaunchDigest(projectRoot, effective.Name(), digest); err != nil {
+	if err := WriteLaunchDigest(projectRoot, effective.Name(), target, digest); err != nil {
 		return mode.Effective{}, false, err
+	}
+	// A full sync stages every agent, so the shared tree is current too.
+	if target.UsesWorkspaceOverlay() {
+		shared, err := launchDigest(projectRoot, workspace, effective, &sharedLaunchTarget, lock)
+		if err != nil {
+			return mode.Effective{}, false, err
+		}
+		if err := WriteLaunchDigest(projectRoot, effective.Name(), sharedLaunchTarget, shared); err != nil {
+			return mode.Effective{}, false, err
+		}
 	}
 	return effective, false, nil
 }

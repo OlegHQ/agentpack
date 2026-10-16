@@ -280,7 +280,7 @@ func (service *Service) ValidateLaunchInputs(definition, workspace string, effec
 	if err != nil {
 		return err
 	}
-	stored, found, err := ReadLaunchDigest(definition, effective.Name())
+	stored, found, err := ReadLaunchDigest(definition, effective.Name(), target)
 	if err != nil {
 		return err
 	}

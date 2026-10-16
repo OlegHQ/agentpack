@@ -11,6 +11,7 @@ import (
 	"github.com/olegpustovit/agentpack/internal/lockfile"
 	"github.com/olegpustovit/agentpack/internal/manifest"
 	"github.com/olegpustovit/agentpack/internal/paths"
+	"github.com/olegpustovit/agentpack/internal/staging"
 )
 
 func TestServiceAddsPathDependencyAndStagesIt(t *testing.T) {
@@ -78,6 +79,48 @@ func TestSyncForLaunchUsesVerifiedFastPath(t *testing.T) {
 	}
 	if _, skipped, err := service.SyncForLaunch(context.Background(), project, "", base.Claude); err != nil || !skipped {
 		t.Fatalf("second skipped=%v err=%v", skipped, err)
+	}
+}
+
+// A launch of another agent must not need the staging a running session holds.
+func TestSyncForLaunchOfAnotherAgentWhileOneIsRunning(t *testing.T) {
+	project, home := t.TempDir(), t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("AGENTPACK_HOME", t.TempDir())
+	t.Setenv("AGENTPACK_STAGING_ROOT", t.TempDir())
+	if err := manifest.WriteStub(project, "demo", "0.0.1"); err != nil {
+		t.Fatal(err)
+	}
+	if err := lockfile.Init(project, "demo", "0.0.1"); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{filepath.Join(home, ".codex", "auth.json"), filepath.Join(home, ".grok", "auth.json")} {
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte("{}"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	service := NewService()
+	effective, _, err := service.SyncForLaunch(context.Background(), project, "", base.Claude)
+	if err != nil {
+		t.Fatal(err)
+	}
+	running, err := staging.AcquireLaunchShared(project, "default")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer running.Unlock()
+	// twice round, so that a launch after Cursor's or Antigravity's overlay is covered too
+	for _, target := range []base.Target{base.Claude, base.Codex, base.OpenCode, base.Grok, base.Cursor, base.Agy,
+		base.Claude, base.Codex, base.Agy, base.Cursor, base.Claude} {
+		if _, skipped, err := service.SyncForLaunch(context.Background(), project, "", target); err != nil || !skipped {
+			t.Fatalf("%s while claude runs: skipped=%v err=%v", target, skipped, err)
+		}
+		if err := service.ValidateLaunchInputs(project, project, effective, target); err != nil {
+			t.Fatalf("%s: %v", target, err)
+		}
 	}
 }
 

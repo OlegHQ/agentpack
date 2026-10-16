@@ -34,7 +34,7 @@ func ComputeLaunchDigest(projectRoot, workspace string, effective mode.Effective
 	hash.Write([]byte("mode\x00" + effective.FingerprintMaterial()))
 	name := "__none__"
 	if target != nil {
-		name = string(*target)
+		name = launchKey(*target)
 	}
 	hash.Write([]byte("target\x00" + name))
 	hash.Write([]byte("workspace\x00"))
@@ -58,10 +58,19 @@ func hashDotAgents(root string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Antigravity's launch puts the staged bundle here (a link, or a copy where
+	// links are refused). It is Agentpack's own output, not an input.
+	overlay := filepath.Join(root, "plugins", paths.StagedAgentpackBundleName)
 	var files []string
 	if err := filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
+		}
+		if path == overlay {
+			if entry.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
 		}
 		if !entry.IsDir() {
 			info, err := entry.Info()
@@ -72,6 +81,9 @@ func hashDotAgents(root string) ([]byte, error) {
 		return nil
 	}); err != nil {
 		return nil, err
+	}
+	if len(files) == 0 {
+		return []byte("__dot_agents_absent__"), nil
 	}
 	sort.Strings(files)
 	hash := sha256.New()
@@ -98,15 +110,32 @@ func hashDotAgents(root string) ([]byte, error) {
 	}
 	return hash.Sum(nil), nil
 }
-func ReadLaunchDigest(projectRoot, modeName string) (string, bool, error) {
-	path, err := paths.LaunchSyncStatePath(projectRoot, modeName)
+
+// launchKey names the staged state a launch of target depends on. Every agent
+// is started from the same staged tree; only Cursor and Antigravity add a
+// workspace overlay of their own. Launches that share a key share one digest,
+// so starting Codex next to a running Claude Code session does not rebuild
+// the staging that session is using.
+func launchKey(target base.Target) string {
+	if target.UsesWorkspaceOverlay() {
+		return string(target)
+	}
+	return "shared"
+}
+
+// sharedLaunchTarget is any target without a workspace overlay; its digest
+// describes the staged tree alone.
+var sharedLaunchTarget = base.Claude
+
+func ReadLaunchDigest(projectRoot, modeName string, target base.Target) (string, bool, error) {
+	path, err := paths.LaunchSyncStatePath(projectRoot, modeName, launchKey(target))
 	if err != nil {
 		return "", false, err
 	}
 	return readDigestState(path)
 }
-func WriteLaunchDigest(projectRoot, modeName, digest string) error {
-	path, err := paths.LaunchSyncStatePath(projectRoot, modeName)
+func WriteLaunchDigest(projectRoot, modeName string, target base.Target, digest string) error {
+	path, err := paths.LaunchSyncStatePath(projectRoot, modeName, launchKey(target))
 	if err != nil {
 		return err
 	}

@@ -38,10 +38,10 @@ func TestLaunchDigestTracksInputsModeAndTarget(t *testing.T) {
 func TestLaunchStateRoundTrip(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("AGENTPACK_HOME", t.TempDir())
-	if err := WriteLaunchDigest(root, "default", "abc"); err != nil {
+	if err := WriteLaunchDigest(root, "default", base.Claude, "abc"); err != nil {
 		t.Fatal(err)
 	}
-	got, found, err := ReadLaunchDigest(root, "default")
+	got, found, err := ReadLaunchDigest(root, "default", base.Claude)
 	if err != nil || !found || got != "abc" {
 		t.Fatalf("got=%q found=%v err=%v", got, found, err)
 	}
