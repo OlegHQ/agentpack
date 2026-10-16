@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/OlegHQ/agentpack/internal/manifest"
-	"github.com/OlegHQ/agentpack/internal/paths"
+	"github.com/olegpustovit/agentpack/internal/manifest"
+	"github.com/olegpustovit/agentpack/internal/paths"
 )
 
 func NormalizePluginLayout(root string) error {

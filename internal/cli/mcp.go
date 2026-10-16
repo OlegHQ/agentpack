@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/OlegHQ/agentpack/internal/lockfile"
-	"github.com/OlegHQ/agentpack/internal/manifest"
-	"github.com/OlegHQ/agentpack/internal/mcp"
-	"github.com/OlegHQ/agentpack/internal/staging"
-	packSync "github.com/OlegHQ/agentpack/internal/sync"
+	"github.com/olegpustovit/agentpack/internal/lockfile"
+	"github.com/olegpustovit/agentpack/internal/manifest"
+	"github.com/olegpustovit/agentpack/internal/mcp"
+	"github.com/olegpustovit/agentpack/internal/staging"
+	packSync "github.com/olegpustovit/agentpack/internal/sync"
 )
 
 func (runner Runner) runMCP(ctx context.Context, root string, arguments []string, quiet bool) error {

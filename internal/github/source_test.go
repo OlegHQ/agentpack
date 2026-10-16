@@ -40,8 +40,8 @@ func TestParseURLRejectsUnsupportedHostsAndPaths(t *testing.T) {
 
 func TestNormalizedIdentityIgnoresRefAndOwnerRepoCase(t *testing.T) {
 	t.Parallel()
-	a := Source{Owner: "OlegHQ", Repo: "AgentPack", GitRef: "main", Path: "skills/x"}
-	b := Source{Owner: "oleghq", Repo: "agentpack", GitRef: "HEAD", Path: "skills/x"}
+	a := Source{Owner: "OlegPustovit", Repo: "AgentPack", GitRef: "main", Path: "skills/x"}
+	b := Source{Owner: "olegpustovit", Repo: "agentpack", GitRef: "HEAD", Path: "skills/x"}
 	if NormalizedIdentity(a, "ABC") != NormalizedIdentity(b, "abc") {
 		t.Fatal("normalized identities differ")
 	}

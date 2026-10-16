@@ -14,9 +14,9 @@ import (
 	"strings"
 	"sync"
 
-	base "github.com/OlegHQ/agentpack/internal/harness"
-	"github.com/OlegHQ/agentpack/internal/harness/registry"
-	"github.com/OlegHQ/agentpack/internal/paths"
+	base "github.com/olegpustovit/agentpack/internal/harness"
+	"github.com/olegpustovit/agentpack/internal/harness/registry"
+	"github.com/olegpustovit/agentpack/internal/paths"
 )
 
 // stagedContentDirs and stagedContentFiles are the parts of every harness

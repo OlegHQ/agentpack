@@ -11,14 +11,14 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/OlegHQ/agentpack/internal/cache"
-	base "github.com/OlegHQ/agentpack/internal/harness"
-	"github.com/OlegHQ/agentpack/internal/lockfile"
-	"github.com/OlegHQ/agentpack/internal/manifest"
-	"github.com/OlegHQ/agentpack/internal/mcp"
-	"github.com/OlegHQ/agentpack/internal/mode"
-	"github.com/OlegHQ/agentpack/internal/paths"
-	"github.com/OlegHQ/agentpack/internal/staging"
+	"github.com/olegpustovit/agentpack/internal/cache"
+	base "github.com/olegpustovit/agentpack/internal/harness"
+	"github.com/olegpustovit/agentpack/internal/lockfile"
+	"github.com/olegpustovit/agentpack/internal/manifest"
+	"github.com/olegpustovit/agentpack/internal/mcp"
+	"github.com/olegpustovit/agentpack/internal/mode"
+	"github.com/olegpustovit/agentpack/internal/paths"
+	"github.com/olegpustovit/agentpack/internal/staging"
 )
 
 // RequireVerifiedEnv makes sync and the launchers refuse a lock that still has

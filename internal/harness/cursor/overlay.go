@@ -7,8 +7,8 @@ import (
 	"sort"
 	"strings"
 
-	base "github.com/OlegHQ/agentpack/internal/harness"
-	"github.com/OlegHQ/agentpack/internal/paths"
+	base "github.com/olegpustovit/agentpack/internal/harness"
+	"github.com/olegpustovit/agentpack/internal/paths"
 )
 
 func readOverlayManifest(project string) ([]string, error) {

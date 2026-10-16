@@ -3,8 +3,8 @@ package agy
 import (
 	"path/filepath"
 
-	"github.com/OlegHQ/agentpack/internal/harness"
-	"github.com/OlegHQ/agentpack/internal/hooks"
+	"github.com/olegpustovit/agentpack/internal/harness"
+	"github.com/olegpustovit/agentpack/internal/hooks"
 )
 
 // HookRenderer writes Antigravity's own hooks file: hooks.json at the plugin

@@ -3,7 +3,7 @@ package cli
 import (
 	"fmt"
 
-	"github.com/OlegHQ/agentpack/internal/environment"
+	"github.com/olegpustovit/agentpack/internal/environment"
 )
 
 func (runner Runner) runSupport(workspace string, arguments []string, quiet bool) (int, error) {

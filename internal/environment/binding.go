@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/OlegHQ/agentpack/internal/paths"
+	"github.com/olegpustovit/agentpack/internal/paths"
 	"github.com/pelletier/go-toml/v2"
 )
 

@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/OlegHQ/agentpack/internal/cache"
-	githubsource "github.com/OlegHQ/agentpack/internal/github"
-	"github.com/OlegHQ/agentpack/internal/lockfile"
+	"github.com/olegpustovit/agentpack/internal/cache"
+	githubsource "github.com/olegpustovit/agentpack/internal/github"
+	"github.com/olegpustovit/agentpack/internal/lockfile"
 )
 
 func TestAddResolverReusesSlashAliasAndHostForm(t *testing.T) {
@@ -59,7 +59,7 @@ func TestAddResolverPreservesGitHubURLRef(t *testing.T) {
 	resolver := AddResolver{Materialize: func(_ context.Context, _ *http.Client, source githubsource.Source, _ string, _ bool) (lockfile.Package, error) {
 		return lockfile.Package{Kind: lockfile.PackageSkill, Commit: source.GitRef}, nil
 	}}
-	resolved, err := resolver.Resolve(context.Background(), t.TempDir(), "https://github.com/OlegHQ/agent-configs/blob/dev/skills/nudge-cli/SKILL.md")
+	resolved, err := resolver.Resolve(context.Background(), t.TempDir(), "https://github.com/olegpustovit/agent-configs/blob/dev/skills/nudge-cli/SKILL.md")
 	if err != nil {
 		t.Fatal(err)
 	}

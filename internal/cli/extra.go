@@ -3,7 +3,7 @@ package cli
 import (
 	"fmt"
 
-	"github.com/OlegHQ/agentpack/internal/staging"
+	"github.com/olegpustovit/agentpack/internal/staging"
 )
 
 // runExtra dispatches agentpack's optional, non-core "extra" commands.

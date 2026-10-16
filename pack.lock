@@ -26,22 +26,22 @@ commit = 'f39fe2d067844a21b2efc20976831f265c1f5f5c'
 cache_key = 'ed850325c375ee6a8556209f42e05faaa0c5e064683a50a44c5807172885fbca'
 
 [[packages]]
-module = 'github.com/oleghq/agent-configs/mcps/linear'
+module = 'github.com/olegpustovit/agent-configs/mcps/linear'
 direct = true
 kind = 'plugin'
-url = 'https://github.com/oleghq/agent-configs/tree/281d30f17f215d5d6cdb55cbcb7456ae4ca952f1/mcps/linear'
-owner = 'oleghq'
+url = 'https://github.com/olegpustovit/agent-configs/tree/281d30f17f215d5d6cdb55cbcb7456ae4ca952f1/mcps/linear'
+owner = 'olegpustovit'
 repo = 'agent-configs'
 path = 'mcps/linear'
 commit = '281d30f17f215d5d6cdb55cbcb7456ae4ca952f1'
 cache_key = 'af38e50122e8da8dc3fd6fdc20ea217bf94361a17d8744573b727d7efe6cf12d'
 
 [[packages]]
-module = 'github.com/oleghq/agent-configs/plugins/simplifier'
+module = 'github.com/olegpustovit/agent-configs/plugins/simplifier'
 direct = true
 kind = 'plugin'
-url = 'https://github.com/oleghq/agent-configs/tree/281d30f17f215d5d6cdb55cbcb7456ae4ca952f1/plugins/simplifier'
-owner = 'oleghq'
+url = 'https://github.com/olegpustovit/agent-configs/tree/281d30f17f215d5d6cdb55cbcb7456ae4ca952f1/plugins/simplifier'
+owner = 'olegpustovit'
 repo = 'agent-configs'
 path = 'plugins/simplifier'
 commit = '281d30f17f215d5d6cdb55cbcb7456ae4ca952f1'

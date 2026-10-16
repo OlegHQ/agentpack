@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/OlegHQ/agentpack/internal/mcp"
-	"github.com/OlegHQ/agentpack/internal/mode"
+	"github.com/olegpustovit/agentpack/internal/mcp"
+	"github.com/olegpustovit/agentpack/internal/mode"
 )
 
 func writeManifest(t *testing.T, root, extra string) {

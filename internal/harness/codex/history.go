@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	base "github.com/OlegHQ/agentpack/internal/harness"
-	"github.com/OlegHQ/agentpack/internal/paths"
 	"github.com/gofrs/flock"
+	base "github.com/olegpustovit/agentpack/internal/harness"
+	"github.com/olegpustovit/agentpack/internal/paths"
 )
 
 var durableDirectories = []string{"sessions", "archived_sessions"}

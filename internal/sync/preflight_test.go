@@ -2,18 +2,18 @@ package sync
 
 import (
 	"context"
-	"github.com/OlegHQ/agentpack/internal/mode"
+	"github.com/olegpustovit/agentpack/internal/mode"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/OlegHQ/agentpack/internal/environment"
-	base "github.com/OlegHQ/agentpack/internal/harness"
-	"github.com/OlegHQ/agentpack/internal/lockfile"
-	"github.com/OlegHQ/agentpack/internal/manifest"
-	"github.com/OlegHQ/agentpack/internal/paths"
+	"github.com/olegpustovit/agentpack/internal/environment"
+	base "github.com/olegpustovit/agentpack/internal/harness"
+	"github.com/olegpustovit/agentpack/internal/lockfile"
+	"github.com/olegpustovit/agentpack/internal/manifest"
+	"github.com/olegpustovit/agentpack/internal/paths"
 )
 
 func TestPreflightDoesNotMutateLockOrCheckout(t *testing.T) {

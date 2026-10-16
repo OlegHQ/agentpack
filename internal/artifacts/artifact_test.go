@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/OlegHQ/agentpack/internal/harness"
+	"github.com/olegpustovit/agentpack/internal/harness"
 	"github.com/pelletier/go-toml/v2"
 )
 

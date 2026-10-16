@@ -9,8 +9,8 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 
-	githubsource "github.com/OlegHQ/agentpack/internal/github"
-	"github.com/OlegHQ/agentpack/internal/manifest"
+	githubsource "github.com/olegpustovit/agentpack/internal/github"
+	"github.com/olegpustovit/agentpack/internal/manifest"
 )
 
 var bareVersionConstraint = regexp.MustCompile(`^[0-9]+(?:\.[0-9]+){0,2}(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$`)

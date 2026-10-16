@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	base "github.com/OlegHQ/agentpack/internal/harness"
-	"github.com/OlegHQ/agentpack/internal/mode"
-	"github.com/OlegHQ/agentpack/internal/paths"
+	base "github.com/olegpustovit/agentpack/internal/harness"
+	"github.com/olegpustovit/agentpack/internal/mode"
+	"github.com/olegpustovit/agentpack/internal/paths"
 )
 
 func TestHarnessLaunchCommandsOwnArgumentsAndEnvironment(t *testing.T) {

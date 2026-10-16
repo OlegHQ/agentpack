@@ -14,10 +14,10 @@ import (
 	"strings"
 	"sync"
 
-	base "github.com/OlegHQ/agentpack/internal/harness"
-	"github.com/OlegHQ/agentpack/internal/mcp"
-	"github.com/OlegHQ/agentpack/internal/paths"
 	"github.com/gofrs/flock"
+	base "github.com/olegpustovit/agentpack/internal/harness"
+	"github.com/olegpustovit/agentpack/internal/mcp"
+	"github.com/olegpustovit/agentpack/internal/paths"
 )
 
 var pendingLoginHomes sync.Map

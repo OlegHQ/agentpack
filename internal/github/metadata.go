@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/OlegHQ/agentpack/internal/database"
+	"github.com/olegpustovit/agentpack/internal/database"
 	bolt "go.etcd.io/bbolt"
 )
 

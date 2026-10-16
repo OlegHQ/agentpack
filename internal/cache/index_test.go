@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/OlegHQ/agentpack/internal/lockfile"
-	"github.com/OlegHQ/agentpack/internal/paths"
+	"github.com/olegpustovit/agentpack/internal/lockfile"
+	"github.com/olegpustovit/agentpack/internal/paths"
 )
 
 func TestCacheIndexRoundTrip(t *testing.T) {

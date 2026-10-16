@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/OlegHQ/agentpack/internal/paths"
+	"github.com/olegpustovit/agentpack/internal/paths"
 )
 
 func TestMCPAuthLastLogoutDoesNotRestoreCredential(t *testing.T) {

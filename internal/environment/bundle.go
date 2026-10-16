@@ -14,10 +14,10 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/OlegHQ/agentpack/internal/lockfile"
-	"github.com/OlegHQ/agentpack/internal/manifest"
-	"github.com/OlegHQ/agentpack/internal/paths"
 	"github.com/gofrs/flock"
+	"github.com/olegpustovit/agentpack/internal/lockfile"
+	"github.com/olegpustovit/agentpack/internal/manifest"
+	"github.com/olegpustovit/agentpack/internal/paths"
 	"github.com/pelletier/go-toml/v2"
 )
 

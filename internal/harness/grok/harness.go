@@ -8,9 +8,9 @@ import (
 	"slices"
 	"strings"
 
-	base "github.com/OlegHQ/agentpack/internal/harness"
-	"github.com/OlegHQ/agentpack/internal/mcp"
-	"github.com/OlegHQ/agentpack/internal/paths"
+	base "github.com/olegpustovit/agentpack/internal/harness"
+	"github.com/olegpustovit/agentpack/internal/mcp"
+	"github.com/olegpustovit/agentpack/internal/paths"
 	"github.com/pelletier/go-toml/v2"
 )
 

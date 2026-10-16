@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/OlegHQ/agentpack/internal/harness"
+	"github.com/olegpustovit/agentpack/internal/harness"
 )
 
 type SupportKind string

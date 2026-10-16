@@ -25,7 +25,7 @@ SKILL_REPO = 'anthropics/skills'
 SKILL_SHA = 'dbd4588f9e1033efb41dad4bef2f7947c8993d44'
 SKILL = 'webapp-testing'
 SPEC = f'{SKILL_REPO}/skills/{SKILL}@{SKILL_SHA}'
-CHECKOUT_REPO = 'https://github.com/OlegHQ/agentpack.git'
+CHECKOUT_REPO = 'https://github.com/olegpustovit/agentpack.git'
 CHECKOUT_TAG = 'v0.4.8'
 CLAUDE_VERSION = '2.1.296 (Claude Code)'
 

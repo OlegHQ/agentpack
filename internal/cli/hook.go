@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"os"
 
-	base "github.com/OlegHQ/agentpack/internal/harness"
-	"github.com/OlegHQ/agentpack/internal/hooks"
+	base "github.com/olegpustovit/agentpack/internal/harness"
+	"github.com/olegpustovit/agentpack/internal/hooks"
 )
 
 func (runner Runner) runHook(ctx context.Context, arguments []string) (int, error) {

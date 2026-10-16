@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/OlegHQ/agentpack/internal/mcp"
+	"github.com/olegpustovit/agentpack/internal/mcp"
 )
 
 // WriteMCP writes the servers as Antigravity's mcp_config.json. A remote

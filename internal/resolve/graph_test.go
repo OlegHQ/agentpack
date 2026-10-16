@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/OlegHQ/agentpack/internal/cache"
-	githubsource "github.com/OlegHQ/agentpack/internal/github"
-	"github.com/OlegHQ/agentpack/internal/lockfile"
-	"github.com/OlegHQ/agentpack/internal/manifest"
+	"github.com/olegpustovit/agentpack/internal/cache"
+	githubsource "github.com/olegpustovit/agentpack/internal/github"
+	"github.com/olegpustovit/agentpack/internal/lockfile"
+	"github.com/olegpustovit/agentpack/internal/manifest"
 )
 
 func TestResolverTraversesNestedDependenciesAndMarksDirectPackages(t *testing.T) {

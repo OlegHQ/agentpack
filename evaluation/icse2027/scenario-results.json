@@ -7,7 +7,7 @@
  "claude_version": "2.1.296 (Claude Code)",
  "claude_sha256": "f1f6e96e0d8342b9dbf41d7e88255397a6a52ce3d8736ad6a4c6b59c9b62fefa",
  "skill_pin": "anthropics/skills/skills/webapp-testing@dbd4588f9e1033efb41dad4bef2f7947c8993d44",
- "checkout": "https://github.com/OlegHQ/agentpack.git@v0.4.8",
+ "checkout": "https://github.com/olegpustovit/agentpack.git@v0.4.8",
  "contract": {
   "schema_version": 1,
   "unknown_required": "fail",

@@ -3,14 +3,14 @@ package registry
 import (
 	"fmt"
 
-	base "github.com/OlegHQ/agentpack/internal/harness"
-	"github.com/OlegHQ/agentpack/internal/harness/agy"
-	"github.com/OlegHQ/agentpack/internal/harness/claude"
-	"github.com/OlegHQ/agentpack/internal/harness/codex"
-	"github.com/OlegHQ/agentpack/internal/harness/cursor"
-	"github.com/OlegHQ/agentpack/internal/harness/grok"
-	"github.com/OlegHQ/agentpack/internal/harness/opencode"
-	"github.com/OlegHQ/agentpack/internal/hooks"
+	base "github.com/olegpustovit/agentpack/internal/harness"
+	"github.com/olegpustovit/agentpack/internal/harness/agy"
+	"github.com/olegpustovit/agentpack/internal/harness/claude"
+	"github.com/olegpustovit/agentpack/internal/harness/codex"
+	"github.com/olegpustovit/agentpack/internal/harness/cursor"
+	"github.com/olegpustovit/agentpack/internal/harness/grok"
+	"github.com/olegpustovit/agentpack/internal/harness/opencode"
+	"github.com/olegpustovit/agentpack/internal/hooks"
 )
 
 func All() []base.Harness {

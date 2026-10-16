@@ -5,13 +5,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	base "github.com/OlegHQ/agentpack/internal/harness"
-	"github.com/OlegHQ/agentpack/internal/harness/codex"
-	"github.com/OlegHQ/agentpack/internal/harness/registry"
-	"github.com/OlegHQ/agentpack/internal/lockfile"
-	"github.com/OlegHQ/agentpack/internal/mode"
-	"github.com/OlegHQ/agentpack/internal/paths"
 	"github.com/gofrs/flock"
+	base "github.com/olegpustovit/agentpack/internal/harness"
+	"github.com/olegpustovit/agentpack/internal/harness/codex"
+	"github.com/olegpustovit/agentpack/internal/harness/registry"
+	"github.com/olegpustovit/agentpack/internal/lockfile"
+	"github.com/olegpustovit/agentpack/internal/mode"
+	"github.com/olegpustovit/agentpack/internal/paths"
 )
 
 func TestPipelineRebuildAndVerifyEmptyPack(t *testing.T) {

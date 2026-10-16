@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/OlegHQ/agentpack/internal/harness"
-	"github.com/OlegHQ/agentpack/internal/mode"
+	"github.com/olegpustovit/agentpack/internal/harness"
+	"github.com/olegpustovit/agentpack/internal/mode"
 )
 
 func StageOriginPackages(bundle Bundle, target harness.Target, targetRoot string, effective mode.Effective) (map[string]string, error) {

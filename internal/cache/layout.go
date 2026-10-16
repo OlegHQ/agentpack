@@ -14,7 +14,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/OlegHQ/agentpack/internal/paths"
+	"github.com/olegpustovit/agentpack/internal/paths"
 )
 
 var marketplaceManifestPaths = []string{

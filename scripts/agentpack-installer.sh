@@ -3,7 +3,7 @@ set -eu
 
 APP_NAME=agentpack
 APP_VERSION=${AGENTPACK_VERSION:-@AGENTPACK_VERSION@}
-REPOSITORY=${AGENTPACK_REPOSITORY:-OlegHQ/agentpack}
+REPOSITORY=${AGENTPACK_REPOSITORY:-olegpustovit/agentpack}
 
 usage() {
     cat <<EOF

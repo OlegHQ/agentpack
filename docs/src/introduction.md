@@ -53,4 +53,4 @@ Read on through [Core Concepts](./concepts/manifest.md) to understand each step,
 
 ## Source and license
 
-agentpack is MIT-licensed and developed at [github.com/OlegHQ/agentpack](https://github.com/OlegHQ/agentpack). It is pre-release: the CLI, lockfile shape, staging layout, and defaults may change without a migration path until a stable release is declared.
+agentpack is MIT-licensed and developed at [github.com/olegpustovit/agentpack](https://github.com/olegpustovit/agentpack). It is pre-release: the CLI, lockfile shape, staging layout, and defaults may change without a migration path until a stable release is declared.

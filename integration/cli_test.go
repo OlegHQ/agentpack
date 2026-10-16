@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/OlegHQ/agentpack/internal/cli"
-	"github.com/OlegHQ/agentpack/internal/harness/codex"
-	"github.com/OlegHQ/agentpack/internal/paths"
+	"github.com/olegpustovit/agentpack/internal/cli"
+	"github.com/olegpustovit/agentpack/internal/harness/codex"
+	"github.com/olegpustovit/agentpack/internal/paths"
 )
 
 var agentpackBinary string

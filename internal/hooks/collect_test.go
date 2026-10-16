@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/OlegHQ/agentpack/internal/cache"
-	"github.com/OlegHQ/agentpack/internal/harness"
-	"github.com/OlegHQ/agentpack/internal/lockfile"
-	"github.com/OlegHQ/agentpack/internal/mode"
+	"github.com/olegpustovit/agentpack/internal/cache"
+	"github.com/olegpustovit/agentpack/internal/harness"
+	"github.com/olegpustovit/agentpack/internal/lockfile"
+	"github.com/olegpustovit/agentpack/internal/mode"
 )
 
 func TestCollectOrdersLayersAndShadowsSkills(t *testing.T) {

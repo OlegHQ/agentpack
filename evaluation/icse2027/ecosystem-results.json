@@ -12,9 +12,9 @@
  },
  "tools": {
   "agentpack": {
-   "name": "Agentpack (OlegHQ/agentpack)",
+   "name": "Agentpack (olegpustovit/agentpack)",
    "version": "0.5.0",
-   "repo": "OlegHQ/agentpack",
+   "repo": "olegpustovit/agentpack",
    "binary_sha256": "8592b2cf2c8d157a349165fba52ecb5f370cae7b68ba4b17b21affac9759e96a"
   },
   "vercel-skills": {

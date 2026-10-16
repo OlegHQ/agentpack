@@ -49,7 +49,7 @@ This is an implementation specification, not authorization to modify code in thi
 
 First inspect the current checkout, repository instructions, working changes, and the external-lock/config/preflight implementation already underway. Preserve that work. Map these requirements to existing APIs and commands before adding abstractions. Do not reimplement a feature merely because this specification uses a different name. Record the actual starting commit and identify completed, partial, missing, and incompatible requirements. Then implement the smallest coherent workflow below, validate it, and return evidence and limitations.
 
-The reference audit used OlegHQ/agentpack revision 89f63b2801e3f907ee1b010a3a61407aab155075. New source takes precedence over the module observations in this specification. See the [reference revision](https://github.com/OlegHQ/agentpack/commit/89f63b2801e3f907ee1b010a3a61407aab155075).
+The reference audit used olegpustovit/agentpack revision 89f63b2801e3f907ee1b010a3a61407aab155075. New source takes precedence over the module observations in this specification. See the [reference revision](https://github.com/olegpustovit/agentpack/commit/89f63b2801e3f907ee1b010a3a61407aab155075).
 
 ### Product goal
 

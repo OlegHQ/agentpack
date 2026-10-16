@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/OlegHQ/agentpack/internal/paths"
+	"github.com/olegpustovit/agentpack/internal/paths"
 )
 
 func TestOpenCachePreservesLegacyRedDBAndCreatesBolt(t *testing.T) {

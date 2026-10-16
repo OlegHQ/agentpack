@@ -3,7 +3,7 @@ package modetui
 import (
 	"testing"
 
-	"github.com/OlegHQ/agentpack/internal/modecatalog"
+	"github.com/olegpustovit/agentpack/internal/modecatalog"
 )
 
 func TestTreeContainsPackageAndDotAgentsLeaves(t *testing.T) {

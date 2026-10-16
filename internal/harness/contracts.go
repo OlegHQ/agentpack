@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os/exec"
 
-	"github.com/OlegHQ/agentpack/internal/mcp"
-	"github.com/OlegHQ/agentpack/internal/mode"
+	"github.com/olegpustovit/agentpack/internal/mcp"
+	"github.com/olegpustovit/agentpack/internal/mode"
 )
 
 type StageContext struct {

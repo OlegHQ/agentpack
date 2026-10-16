@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/OlegHQ/agentpack/internal/lockfile"
+	"github.com/olegpustovit/agentpack/internal/lockfile"
 )
 
 const (

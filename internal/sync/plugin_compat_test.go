@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/OlegHQ/agentpack/internal/harness/codex"
-	"github.com/OlegHQ/agentpack/internal/paths"
+	"github.com/olegpustovit/agentpack/internal/harness/codex"
+	"github.com/olegpustovit/agentpack/internal/paths"
 )
 
 // Each test here adds a package in a form that is published in the official

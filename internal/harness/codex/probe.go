@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/OlegHQ/agentpack/internal/environment"
-	base "github.com/OlegHQ/agentpack/internal/harness"
+	"github.com/olegpustovit/agentpack/internal/environment"
+	base "github.com/olegpustovit/agentpack/internal/harness"
 )
 
 const (

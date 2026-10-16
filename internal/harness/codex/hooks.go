@@ -3,8 +3,8 @@ package codex
 import (
 	"path/filepath"
 
-	"github.com/OlegHQ/agentpack/internal/harness"
-	"github.com/OlegHQ/agentpack/internal/hooks"
+	"github.com/olegpustovit/agentpack/internal/harness"
+	"github.com/olegpustovit/agentpack/internal/hooks"
 )
 
 type HookRenderer struct{}

@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/OlegHQ/agentpack/internal/cli"
+	"github.com/olegpustovit/agentpack/internal/cli"
 )
 
 func main() {

@@ -15,13 +15,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/OlegHQ/agentpack/internal/cache"
-	githubsource "github.com/OlegHQ/agentpack/internal/github"
-	base "github.com/OlegHQ/agentpack/internal/harness"
-	"github.com/OlegHQ/agentpack/internal/harness/codex"
-	"github.com/OlegHQ/agentpack/internal/lockfile"
-	"github.com/OlegHQ/agentpack/internal/paths"
-	"github.com/OlegHQ/agentpack/internal/staging"
+	"github.com/olegpustovit/agentpack/internal/cache"
+	githubsource "github.com/olegpustovit/agentpack/internal/github"
+	base "github.com/olegpustovit/agentpack/internal/harness"
+	"github.com/olegpustovit/agentpack/internal/harness/codex"
+	"github.com/olegpustovit/agentpack/internal/lockfile"
+	"github.com/olegpustovit/agentpack/internal/paths"
+	"github.com/olegpustovit/agentpack/internal/staging"
 )
 
 const (

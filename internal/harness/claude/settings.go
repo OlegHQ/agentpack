@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	base "github.com/OlegHQ/agentpack/internal/harness"
+	base "github.com/olegpustovit/agentpack/internal/harness"
 )
 
 func KeepAttribution() bool {

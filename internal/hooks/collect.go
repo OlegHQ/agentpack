@@ -8,11 +8,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/OlegHQ/agentpack/internal/cache"
-	"github.com/OlegHQ/agentpack/internal/lockfile"
-	"github.com/OlegHQ/agentpack/internal/mode"
-	"github.com/OlegHQ/agentpack/internal/paths"
-	"github.com/OlegHQ/agentpack/internal/slug"
+	"github.com/olegpustovit/agentpack/internal/cache"
+	"github.com/olegpustovit/agentpack/internal/lockfile"
+	"github.com/olegpustovit/agentpack/internal/mode"
+	"github.com/olegpustovit/agentpack/internal/paths"
+	"github.com/olegpustovit/agentpack/internal/slug"
 )
 
 func Collect(projectRoot string, lock lockfile.PackLock, seededCodexHooks string, effective mode.Effective) (Bundle, error) {

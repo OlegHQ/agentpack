@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	base "github.com/OlegHQ/agentpack/internal/harness"
-	"github.com/OlegHQ/agentpack/internal/mode"
+	base "github.com/olegpustovit/agentpack/internal/harness"
+	"github.com/olegpustovit/agentpack/internal/mode"
 )
 
 func TestPrepareWritesManifestAndAttributionRule(t *testing.T) {

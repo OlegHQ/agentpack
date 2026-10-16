@@ -10,7 +10,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/OlegHQ/agentpack/internal/slug"
+	"github.com/olegpustovit/agentpack/internal/slug"
 )
 
 const (

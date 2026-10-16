@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/OlegHQ/agentpack/internal/harness"
+	"github.com/olegpustovit/agentpack/internal/harness"
 )
 
 func TestNormalizeResponseAliasesAndMetadata(t *testing.T) {

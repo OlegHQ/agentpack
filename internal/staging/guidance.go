@@ -7,11 +7,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/OlegHQ/agentpack/internal/artifacts"
-	"github.com/OlegHQ/agentpack/internal/cache"
-	"github.com/OlegHQ/agentpack/internal/lockfile"
-	"github.com/OlegHQ/agentpack/internal/mode"
-	"github.com/OlegHQ/agentpack/internal/paths"
+	"github.com/olegpustovit/agentpack/internal/artifacts"
+	"github.com/olegpustovit/agentpack/internal/cache"
+	"github.com/olegpustovit/agentpack/internal/lockfile"
+	"github.com/olegpustovit/agentpack/internal/mode"
+	"github.com/olegpustovit/agentpack/internal/paths"
 )
 
 func CollectGuidance(projectRoot string, lock lockfile.PackLock, effective mode.Effective) (string, error) {

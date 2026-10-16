@@ -7,11 +7,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/OlegHQ/agentpack/internal/cache"
-	githubsource "github.com/OlegHQ/agentpack/internal/github"
-	"github.com/OlegHQ/agentpack/internal/lockfile"
-	"github.com/OlegHQ/agentpack/internal/paths"
-	"github.com/OlegHQ/agentpack/internal/resolve"
+	"github.com/olegpustovit/agentpack/internal/cache"
+	githubsource "github.com/olegpustovit/agentpack/internal/github"
+	"github.com/olegpustovit/agentpack/internal/lockfile"
+	"github.com/olegpustovit/agentpack/internal/paths"
+	"github.com/olegpustovit/agentpack/internal/resolve"
 )
 
 // AddPlugin adds one named plugin of a marketplace catalog. The catalog entry

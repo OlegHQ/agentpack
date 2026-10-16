@@ -3,7 +3,7 @@ package staging
 import (
 	"testing"
 
-	"github.com/OlegHQ/agentpack/internal/paths"
+	"github.com/olegpustovit/agentpack/internal/paths"
 )
 
 func TestRebuildExclusiveBlockedByLaunchShared(t *testing.T) {

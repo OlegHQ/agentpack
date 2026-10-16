@@ -6,14 +6,14 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/OlegHQ/agentpack/internal/environment"
-	base "github.com/OlegHQ/agentpack/internal/harness"
-	"github.com/OlegHQ/agentpack/internal/harness/claude"
-	"github.com/OlegHQ/agentpack/internal/harness/codex"
-	"github.com/OlegHQ/agentpack/internal/harness/opencode"
-	"github.com/OlegHQ/agentpack/internal/paths"
-	"github.com/OlegHQ/agentpack/internal/staging"
-	packSync "github.com/OlegHQ/agentpack/internal/sync"
+	"github.com/olegpustovit/agentpack/internal/environment"
+	base "github.com/olegpustovit/agentpack/internal/harness"
+	"github.com/olegpustovit/agentpack/internal/harness/claude"
+	"github.com/olegpustovit/agentpack/internal/harness/codex"
+	"github.com/olegpustovit/agentpack/internal/harness/opencode"
+	"github.com/olegpustovit/agentpack/internal/paths"
+	"github.com/olegpustovit/agentpack/internal/staging"
+	packSync "github.com/olegpustovit/agentpack/internal/sync"
 )
 
 func (runner Runner) runProbe(ctx context.Context, definitionRoot, workspaceRoot, mode string, arguments []string, quiet bool) (int, error) {

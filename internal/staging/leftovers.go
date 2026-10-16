@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/OlegHQ/agentpack/internal/harness/codex"
-	"github.com/OlegHQ/agentpack/internal/paths"
 	"github.com/gofrs/flock"
+	"github.com/olegpustovit/agentpack/internal/harness/codex"
+	"github.com/olegpustovit/agentpack/internal/paths"
 )
 
 // MarkProjectDirectories records the project's path in the directories its

@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/OlegHQ/agentpack/internal/mcp"
+	"github.com/olegpustovit/agentpack/internal/mcp"
 	"github.com/tailscale/hujson"
 )
 

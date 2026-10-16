@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/OlegHQ/agentpack/internal/lockfile"
+	"github.com/olegpustovit/agentpack/internal/lockfile"
 )
 
 func TestEnsureLockCachedRestoresFileSource(t *testing.T) {

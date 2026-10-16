@@ -3,9 +3,9 @@ package cli
 import (
 	"fmt"
 
-	"github.com/OlegHQ/agentpack/internal/environment"
-	base "github.com/OlegHQ/agentpack/internal/harness"
-	packSync "github.com/OlegHQ/agentpack/internal/sync"
+	"github.com/olegpustovit/agentpack/internal/environment"
+	base "github.com/olegpustovit/agentpack/internal/harness"
+	packSync "github.com/olegpustovit/agentpack/internal/sync"
 )
 
 func (runner Runner) runPreflight(definitionRoot, workspaceRoot, mode string, arguments []string, quiet bool) (code int, resultErr error) {

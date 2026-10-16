@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	githubsource "github.com/OlegHQ/agentpack/internal/github"
-	"github.com/OlegHQ/agentpack/internal/lockfile"
+	githubsource "github.com/olegpustovit/agentpack/internal/github"
+	"github.com/olegpustovit/agentpack/internal/lockfile"
 )
 
 func TestClassifyMaterializedDistinguishesSkillAndPlugin(t *testing.T) {

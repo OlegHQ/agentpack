@@ -1,6 +1,6 @@
 package hooks
 
-import "github.com/OlegHQ/agentpack/internal/harness"
+import "github.com/olegpustovit/agentpack/internal/harness"
 
 func GuidanceHookSpecific(body string, event Event) map[string]any {
 	return map[string]any{"hookSpecificOutput": map[string]any{"hookEventName": string(event), "additionalContext": body}}

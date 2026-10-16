@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/OlegHQ/agentpack/internal/paths"
+	"github.com/olegpustovit/agentpack/internal/paths"
 )
 
 // Receipt is a local native observation record (not a publisher attestation).

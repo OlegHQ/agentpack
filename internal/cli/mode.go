@@ -3,11 +3,11 @@ package cli
 import (
 	"fmt"
 
-	"github.com/OlegHQ/agentpack/internal/lockfile"
-	"github.com/OlegHQ/agentpack/internal/manifest"
-	"github.com/OlegHQ/agentpack/internal/mode"
-	"github.com/OlegHQ/agentpack/internal/modecatalog"
-	"github.com/OlegHQ/agentpack/internal/modetui"
+	"github.com/olegpustovit/agentpack/internal/lockfile"
+	"github.com/olegpustovit/agentpack/internal/manifest"
+	"github.com/olegpustovit/agentpack/internal/mode"
+	"github.com/olegpustovit/agentpack/internal/modecatalog"
+	"github.com/olegpustovit/agentpack/internal/modetui"
 )
 
 func (runner Runner) runMode(root string, arguments []string, quiet bool) error {

@@ -118,7 +118,7 @@ INPUTS = {
 REL = 'https://github.com/{repo}/releases/download/{tag}/{asset}'
 TOOLS = {
     # version and binary_sha256 are filled in at run time from --agentpack and --agentpack-sha256
-    'agentpack': dict(name='Agentpack (OlegHQ/agentpack)', version=None, repo='OlegHQ/agentpack', binary_sha256=None),
+    'agentpack': dict(name='Agentpack (olegpustovit/agentpack)', version=None, repo='olegpustovit/agentpack', binary_sha256=None),
     'vercel-skills': dict(name='Vercel skills', version='1.7.2', repo='vercel-labs/skills', npm='skills',
                           commit='13e4063a1cf913f5606d57d42ab83a86f5001e04',
                           integrity='sha512-j+GzyF/oNahsjjjup6y3lJpFkC1lQjIkf4kAMXICA1hboBqi0fAGXAGoE4x9FRZiP1br/YE9+L3/Tqq6PIAe0A=='),

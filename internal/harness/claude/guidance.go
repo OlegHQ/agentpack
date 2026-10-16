@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	hookexec "github.com/OlegHQ/agentpack/internal/hooks"
+	hookexec "github.com/olegpustovit/agentpack/internal/hooks"
 )
 
 func InjectGuidance(bundle, blob string) error {

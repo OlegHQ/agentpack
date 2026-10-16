@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/OlegHQ/agentpack/internal/mcp"
+	"github.com/olegpustovit/agentpack/internal/mcp"
 )
 
 func TestMergeMCPPreservesUserAndConvertsStdio(t *testing.T) {

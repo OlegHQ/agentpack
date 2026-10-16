@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/OlegHQ/agentpack/internal/environment"
-	"github.com/OlegHQ/agentpack/internal/paths"
-	packSync "github.com/OlegHQ/agentpack/internal/sync"
+	"github.com/olegpustovit/agentpack/internal/environment"
+	"github.com/olegpustovit/agentpack/internal/paths"
+	packSync "github.com/olegpustovit/agentpack/internal/sync"
 )
 
 func (runner Runner) runEnv(ctx context.Context, definition, workspace, mode string, arguments []string, quiet bool) error {

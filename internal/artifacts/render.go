@@ -8,8 +8,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/OlegHQ/agentpack/internal/harness"
 	"github.com/goccy/go-yaml"
+	"github.com/olegpustovit/agentpack/internal/harness"
 	"github.com/pelletier/go-toml/v2"
 )
 

@@ -27,7 +27,7 @@ builds:
     flags:
       - -trimpath
     ldflags:
-      - -s -w -X github.com/OlegHQ/agentpack/internal/cli.Version={{ .Version }}
+      - -s -w -X github.com/olegpustovit/agentpack/internal/cli.Version={{ .Version }}
 
 archives:
   - id: agentpack
@@ -59,7 +59,7 @@ changelog:
 
 release:
   github:
-    owner: OlegHQ
+    owner: olegpustovit
     name: agentpack
   header: |
     ## Install agentpack {{ .Version }}
@@ -67,13 +67,13 @@ release:
     ### macOS and Linux
 
     ```sh
-    curl --proto '=https' --tlsv1.2 -LsSf https://github.com/OlegHQ/agentpack/releases/download/{{ .Tag }}/agentpack-installer.sh | sh
+    curl --proto '=https' --tlsv1.2 -LsSf https://github.com/olegpustovit/agentpack/releases/download/{{ .Tag }}/agentpack-installer.sh | sh
     ```
 
     ### Windows PowerShell
 
     ```powershell
-    powershell -ExecutionPolicy ByPass -c "irm https://github.com/OlegHQ/agentpack/releases/download/{{ .Tag }}/agentpack-installer.ps1 | iex"
+    powershell -ExecutionPolicy ByPass -c "irm https://github.com/olegpustovit/agentpack/releases/download/{{ .Tag }}/agentpack-installer.ps1 | iex"
     ```
 
     The installers detect the host architecture, verify the archive against `checksums.txt`, and write only to `$HOME/.local/bin`. They do not modify shell profiles or `PATH`.
@@ -88,11 +88,11 @@ homebrew_casks:
     binaries:
       - agentpack
     repository:
-      owner: OlegHQ
+      owner: olegpustovit
       name: homebrew-tap
       token: '{{ .Env.HOMEBREW_TAP_TOKEN }}'
     directory: Casks
-    homepage: https://github.com/OlegHQ/agentpack
+    homepage: https://github.com/olegpustovit/agentpack
     description: Pin and stage agent skills and plugins reproducibly
     commit_author:
       name: agentpack release bot

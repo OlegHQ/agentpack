@@ -7,13 +7,13 @@ agentpack ships as a single binary. The recommended path is Homebrew; source bui
 On macOS or Linux, download, checksum-verify, and install the latest binary with:
 
 ```sh
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/OlegHQ/agentpack/releases/latest/download/agentpack-installer.sh | sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/olegpustovit/agentpack/releases/latest/download/agentpack-installer.sh | sh
 ```
 
 On Windows PowerShell:
 
 ```powershell
-irm https://github.com/OlegHQ/agentpack/releases/latest/download/agentpack-installer.ps1 | iex
+irm https://github.com/olegpustovit/agentpack/releases/latest/download/agentpack-installer.ps1 | iex
 ```
 
 Both installers write only the executable to `$HOME/.local/bin` by default and
@@ -24,13 +24,13 @@ release's `checksums.txt` before installation.
 ## Homebrew (macOS and Linux)
 
 ```sh
-brew install --cask OlegHQ/tap/agentpack
+brew install --cask olegpustovit/tap/agentpack
 ```
 
-That one line taps `OlegHQ/homebrew-tap` and installs the cask. The two-step form works too:
+That one line taps `olegpustovit/homebrew-tap` and installs the cask. The two-step form works too:
 
 ```sh
-brew tap OlegHQ/tap
+brew tap olegpustovit/tap
 brew install --cask agentpack
 ```
 
@@ -44,14 +44,14 @@ brew upgrade --cask agentpack
 
 Each release publishes GoReleaser archives for macOS (arm64, x86_64), Linux (x86_64, arm64), and Windows (x86_64), plus a SHA-256 `checksums.txt` file.
 
-Pick a specific version from the [releases page](https://github.com/OlegHQ/agentpack/releases) if you don't want `latest`.
+Pick a specific version from the [releases page](https://github.com/olegpustovit/agentpack/releases) if you don't want `latest`.
 
 ## From source
 
 You need Go 1.26 or newer, then:
 
 ```sh
-git clone https://github.com/OlegHQ/agentpack.git
+git clone https://github.com/olegpustovit/agentpack.git
 cd agentpack
 go install ./cmd/agentpack
 ```

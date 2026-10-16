@@ -6,11 +6,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/OlegHQ/agentpack/internal/cache"
+	"github.com/olegpustovit/agentpack/internal/cache"
 
-	"github.com/OlegHQ/agentpack/internal/lockfile"
-	"github.com/OlegHQ/agentpack/internal/manifest"
-	"github.com/OlegHQ/agentpack/internal/mcp"
+	"github.com/olegpustovit/agentpack/internal/lockfile"
+	"github.com/olegpustovit/agentpack/internal/manifest"
+	"github.com/olegpustovit/agentpack/internal/mcp"
 )
 
 func TestCollectMCPPrecedenceAndJSONC(t *testing.T) {

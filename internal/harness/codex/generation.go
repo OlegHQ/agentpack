@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	base "github.com/OlegHQ/agentpack/internal/harness"
-	"github.com/OlegHQ/agentpack/internal/paths"
 	"github.com/gofrs/flock"
+	base "github.com/olegpustovit/agentpack/internal/harness"
+	"github.com/olegpustovit/agentpack/internal/paths"
 )
 
 // CurrentHome resolves the fully published home for new launches. The pointer

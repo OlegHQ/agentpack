@@ -10,8 +10,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/OlegHQ/agentpack/internal/artifacts"
-	"github.com/OlegHQ/agentpack/internal/cache"
+	"github.com/olegpustovit/agentpack/internal/artifacts"
+	"github.com/olegpustovit/agentpack/internal/cache"
 )
 
 // PackageFile is one file of a cached package as staging sees it. Virtual is

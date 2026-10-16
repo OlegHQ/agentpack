@@ -17,8 +17,8 @@ func TestReleaseDescriptionIncludesInstallCommandsAndAssets(t *testing.T) {
 	configuration := string(contents)
 	required := []string{
 		"## Install agentpack {{ .Version }}",
-		"https://github.com/OlegHQ/agentpack/releases/download/{{ .Tag }}/agentpack-installer.sh | sh",
-		`powershell -ExecutionPolicy ByPass -c "irm https://github.com/OlegHQ/agentpack/releases/download/{{ .Tag }}/agentpack-installer.ps1 | iex"`,
+		"https://github.com/olegpustovit/agentpack/releases/download/{{ .Tag }}/agentpack-installer.sh | sh",
+		`powershell -ExecutionPolicy ByPass -c "irm https://github.com/olegpustovit/agentpack/releases/download/{{ .Tag }}/agentpack-installer.ps1 | iex"`,
 		"./scripts/render-installers.sh {{ .Version }} ./.release-assets/installers",
 		"glob: ./.release-assets/installers/agentpack-installer.sh",
 		"glob: ./.release-assets/installers/agentpack-installer.ps1",

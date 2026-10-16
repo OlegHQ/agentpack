@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	githubsource "github.com/OlegHQ/agentpack/internal/github"
+	githubsource "github.com/olegpustovit/agentpack/internal/github"
 )
 
 // CatalogOnlyError reports a marketplace catalog entry that defines a plugin

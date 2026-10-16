@@ -1,8 +1,8 @@
 package cursor
 
 import (
-	base "github.com/OlegHQ/agentpack/internal/harness"
-	"github.com/OlegHQ/agentpack/internal/mode"
+	base "github.com/olegpustovit/agentpack/internal/harness"
+	"github.com/olegpustovit/agentpack/internal/mode"
 	"os"
 	"path/filepath"
 	"testing"

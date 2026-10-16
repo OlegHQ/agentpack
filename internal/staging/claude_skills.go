@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/OlegHQ/agentpack/internal/paths"
+	"github.com/olegpustovit/agentpack/internal/paths"
 )
 
 // ProjectClaudeSkillNames returns the case-insensitive names of skills Claude

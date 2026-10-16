@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/OlegHQ/agentpack/internal/lockfile"
+	"github.com/olegpustovit/agentpack/internal/lockfile"
 )
 
 func TestDescribeClassifiesLaunchersWithoutPretending(t *testing.T) {

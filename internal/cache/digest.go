@@ -13,9 +13,9 @@ import (
 	"strconv"
 	"strings"
 
-	githubsource "github.com/OlegHQ/agentpack/internal/github"
-	"github.com/OlegHQ/agentpack/internal/lockfile"
-	"github.com/OlegHQ/agentpack/internal/paths"
+	githubsource "github.com/olegpustovit/agentpack/internal/github"
+	"github.com/olegpustovit/agentpack/internal/lockfile"
+	"github.com/olegpustovit/agentpack/internal/paths"
 )
 
 // IntegrityError reports a package tree that does not match its lock entry.

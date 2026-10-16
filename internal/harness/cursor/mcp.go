@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/OlegHQ/agentpack/internal/mcp"
+	"github.com/olegpustovit/agentpack/internal/mcp"
 )
 
 // WriteMCP writes the servers as Cursor's mcp.json. A remote server keeps

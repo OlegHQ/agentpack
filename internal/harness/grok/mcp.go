@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/OlegHQ/agentpack/internal/mcp"
+	"github.com/olegpustovit/agentpack/internal/mcp"
 	"github.com/pelletier/go-toml/v2"
 )
 

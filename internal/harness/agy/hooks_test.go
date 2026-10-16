@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/OlegHQ/agentpack/internal/hooks"
+	"github.com/olegpustovit/agentpack/internal/hooks"
 )
 
 // Antigravity reads <plugin>/hooks.json as {"<hook name>": {"<Event>": [...]}},

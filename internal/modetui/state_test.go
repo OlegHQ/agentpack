@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/OlegHQ/agentpack/internal/manifest"
-	"github.com/OlegHQ/agentpack/internal/mode"
+	"github.com/olegpustovit/agentpack/internal/manifest"
+	"github.com/olegpustovit/agentpack/internal/mode"
 )
 
 func TestStateReducerProtectsDefaultAndMovesSelectors(t *testing.T) {

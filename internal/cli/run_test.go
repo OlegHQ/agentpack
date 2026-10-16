@@ -11,8 +11,8 @@ import (
 	"testing"
 
 	lipgloss "charm.land/lipgloss/v2"
-	"github.com/OlegHQ/agentpack/internal/lockfile"
-	"github.com/OlegHQ/agentpack/internal/manifest"
+	"github.com/olegpustovit/agentpack/internal/lockfile"
+	"github.com/olegpustovit/agentpack/internal/manifest"
 )
 
 func TestInitMCPAndModeCommands(t *testing.T) {

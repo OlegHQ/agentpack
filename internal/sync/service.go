@@ -10,15 +10,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/OlegHQ/agentpack/internal/cache"
-	base "github.com/OlegHQ/agentpack/internal/harness"
-	"github.com/OlegHQ/agentpack/internal/lockfile"
-	"github.com/OlegHQ/agentpack/internal/manifest"
-	"github.com/OlegHQ/agentpack/internal/mode"
-	"github.com/OlegHQ/agentpack/internal/modecatalog"
-	"github.com/OlegHQ/agentpack/internal/paths"
-	"github.com/OlegHQ/agentpack/internal/resolve"
-	"github.com/OlegHQ/agentpack/internal/staging"
+	"github.com/olegpustovit/agentpack/internal/cache"
+	base "github.com/olegpustovit/agentpack/internal/harness"
+	"github.com/olegpustovit/agentpack/internal/lockfile"
+	"github.com/olegpustovit/agentpack/internal/manifest"
+	"github.com/olegpustovit/agentpack/internal/mode"
+	"github.com/olegpustovit/agentpack/internal/modecatalog"
+	"github.com/olegpustovit/agentpack/internal/paths"
+	"github.com/olegpustovit/agentpack/internal/resolve"
+	"github.com/olegpustovit/agentpack/internal/staging"
 )
 
 type Service struct {

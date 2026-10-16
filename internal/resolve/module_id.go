@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	githubsource "github.com/OlegHQ/agentpack/internal/github"
+	githubsource "github.com/olegpustovit/agentpack/internal/github"
 )
 
 // ModuleID is a canonical Go-style GitHub module path without an @ref suffix.

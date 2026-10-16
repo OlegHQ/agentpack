@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/OlegHQ/agentpack/internal/harness"
+	"github.com/olegpustovit/agentpack/internal/harness"
 )
 
 type Event string

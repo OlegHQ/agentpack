@@ -8,8 +8,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/OlegHQ/agentpack/internal/lockfile"
-	"github.com/OlegHQ/agentpack/internal/paths"
+	"github.com/olegpustovit/agentpack/internal/lockfile"
+	"github.com/olegpustovit/agentpack/internal/paths"
 )
 
 type RemoteRestoreFunc func(pkg lockfile.Package, destination string) error

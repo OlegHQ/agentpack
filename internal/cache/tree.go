@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/OlegHQ/agentpack/internal/paths"
+	"github.com/olegpustovit/agentpack/internal/paths"
 )
 
 func CopyPackageDirToCache(source, identityPrefix string) (cacheKey, commit, destination string, err error) {

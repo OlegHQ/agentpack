@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	githubsource "github.com/OlegHQ/agentpack/internal/github"
-	"github.com/OlegHQ/agentpack/internal/lockfile"
+	githubsource "github.com/olegpustovit/agentpack/internal/github"
+	"github.com/olegpustovit/agentpack/internal/lockfile"
 )
 
 func TestTreeDigestFollowsTheDocumentedRecordFormat(t *testing.T) {

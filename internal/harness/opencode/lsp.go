@@ -10,7 +10,7 @@ import (
 
 	"github.com/tailscale/hujson"
 
-	base "github.com/OlegHQ/agentpack/internal/harness"
+	base "github.com/olegpustovit/agentpack/internal/harness"
 )
 
 // writeLSP adds the language servers to the lsp map of opencode.json.

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	base "github.com/OlegHQ/agentpack/internal/harness"
+	base "github.com/olegpustovit/agentpack/internal/harness"
 )
 
 func TestWriteGuidancePreservesUserContentAndIsIdempotent(t *testing.T) {

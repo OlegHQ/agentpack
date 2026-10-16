@@ -5,8 +5,8 @@ import (
 	"slices"
 	"sort"
 
-	"github.com/OlegHQ/agentpack/internal/manifest"
-	"github.com/OlegHQ/agentpack/internal/mode"
+	"github.com/olegpustovit/agentpack/internal/manifest"
+	"github.com/olegpustovit/agentpack/internal/mode"
 )
 
 type SelectorState uint8

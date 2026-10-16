@@ -10,8 +10,8 @@ import (
 
 	"github.com/pelletier/go-toml/v2/unstable"
 
-	"github.com/OlegHQ/agentpack/internal/mcp"
-	"github.com/OlegHQ/agentpack/internal/mode"
+	"github.com/olegpustovit/agentpack/internal/mcp"
+	"github.com/olegpustovit/agentpack/internal/mode"
 )
 
 type expressionKind uint8

@@ -32,13 +32,13 @@ jobs:
       - name: Install Agentpack 0.4.8
         if: runner.os != 'Windows'
         run: |
-          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/OlegHQ/agentpack/releases/download/v0.4.8/agentpack-installer.sh | sh
+          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/olegpustovit/agentpack/releases/download/v0.4.8/agentpack-installer.sh | sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Install Agentpack 0.4.8 (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          irm https://github.com/OlegHQ/agentpack/releases/download/v0.4.8/agentpack-installer.ps1 | iex
+          irm https://github.com/olegpustovit/agentpack/releases/download/v0.4.8/agentpack-installer.ps1 | iex
           "$env:USERPROFILE\.local\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
       - name: Install the agents (no sign-in)
         run: npm install -g @anthropic-ai/claude-code@2.1.296 @openai/codex@0.159.3 opencode-ai@1.17.11

@@ -1,7 +1,7 @@
 package registry
 
 import (
-	base "github.com/OlegHQ/agentpack/internal/harness"
+	base "github.com/olegpustovit/agentpack/internal/harness"
 	"testing"
 )
 

@@ -6,10 +6,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/OlegHQ/agentpack/internal/cache"
-	githubsource "github.com/OlegHQ/agentpack/internal/github"
-	"github.com/OlegHQ/agentpack/internal/manifest"
-	"github.com/OlegHQ/agentpack/internal/resolve"
+	"github.com/olegpustovit/agentpack/internal/cache"
+	githubsource "github.com/olegpustovit/agentpack/internal/github"
+	"github.com/olegpustovit/agentpack/internal/manifest"
+	"github.com/olegpustovit/agentpack/internal/resolve"
 )
 
 func ResolveRemoveSpec(cwd, rawSpec string, project *manifest.Manifest) (string, error) {

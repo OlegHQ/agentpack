@@ -2,7 +2,7 @@ param([switch]$Help)
 
 $ErrorActionPreference = 'Stop'
 $Version = if ($env:AGENTPACK_VERSION) { $env:AGENTPACK_VERSION } else { '@AGENTPACK_VERSION@' }
-$Repository = if ($env:AGENTPACK_REPOSITORY) { $env:AGENTPACK_REPOSITORY } else { 'OlegHQ/agentpack' }
+$Repository = if ($env:AGENTPACK_REPOSITORY) { $env:AGENTPACK_REPOSITORY } else { 'olegpustovit/agentpack' }
 
 if ($Help) {
     Write-Output @"

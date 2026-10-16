@@ -8,8 +8,8 @@ import (
 
 	bolt "go.etcd.io/bbolt"
 
-	"github.com/OlegHQ/agentpack/internal/database"
-	"github.com/OlegHQ/agentpack/internal/lockfile"
+	"github.com/olegpustovit/agentpack/internal/database"
+	"github.com/olegpustovit/agentpack/internal/lockfile"
 )
 
 var (

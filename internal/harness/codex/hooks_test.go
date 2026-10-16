@@ -3,7 +3,7 @@ package codex
 import (
 	"testing"
 
-	"github.com/OlegHQ/agentpack/internal/hooks"
+	"github.com/olegpustovit/agentpack/internal/hooks"
 )
 
 func TestRendererMapsPermissionAndOmitsUnsupportedLifecycle(t *testing.T) {

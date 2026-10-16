@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"path/filepath"
 
-	base "github.com/OlegHQ/agentpack/internal/harness"
+	base "github.com/olegpustovit/agentpack/internal/harness"
 )
 
 // writeLSP puts the language servers in .lsp.json at the bundle root, where

@@ -4,8 +4,8 @@ import (
 	"os"
 	"path/filepath"
 
-	base "github.com/OlegHQ/agentpack/internal/harness"
-	"github.com/OlegHQ/agentpack/internal/paths"
+	base "github.com/olegpustovit/agentpack/internal/harness"
+	"github.com/olegpustovit/agentpack/internal/paths"
 )
 
 func nativeHome() (string, bool) {

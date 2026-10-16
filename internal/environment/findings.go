@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	base "github.com/OlegHQ/agentpack/internal/harness"
+	base "github.com/olegpustovit/agentpack/internal/harness"
 )
 
 // Severity ranks a preflight finding for CI policy.

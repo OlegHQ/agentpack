@@ -1,4 +1,4 @@
-module github.com/OlegHQ/agentpack
+module github.com/olegpustovit/agentpack
 
 go 1.26.0
 

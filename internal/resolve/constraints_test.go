@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/OlegHQ/agentpack/internal/manifest"
+	"github.com/olegpustovit/agentpack/internal/manifest"
 )
 
 type staticTagLister []Tag

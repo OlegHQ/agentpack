@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/OlegHQ/agentpack/internal/paths"
 	"github.com/gofrs/flock"
+	"github.com/olegpustovit/agentpack/internal/paths"
 )
 
 const rebuildLockName = ".rebuild.lock"

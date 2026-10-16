@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/OlegHQ/agentpack/internal/mcp"
+	"github.com/olegpustovit/agentpack/internal/mcp"
 )
 
 // WriteMCP writes the servers as Claude Code's .mcp.json. A remote server

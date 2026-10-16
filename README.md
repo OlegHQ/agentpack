@@ -9,23 +9,23 @@
 </p>
 
 <p align="center">
-  <a href="https://oleghq.github.io/agentpack"><img alt="Documentation" src="https://img.shields.io/badge/docs-oleghq.github.io-1f6feb.svg"></a>
+  <a href="https://olegpustovit.github.io/agentpack"><img alt="Documentation" src="https://img.shields.io/badge/docs-olegpustovit.github.io-1f6feb.svg"></a>
   <a href="https://olegpustovit.com/posts/agentpack/"><img alt="Writeup" src="https://img.shields.io/badge/writeup-olegpustovit.com-ff6b6b.svg"></a>
-  <a href="https://github.com/OlegHQ/agentpack/blob/dev/LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
-  <a href="https://github.com/OlegHQ/agentpack/releases"><img alt="Version" src="https://img.shields.io/badge/version-v0.5.1-blue.svg"></a>
-  <a href="https://github.com/OlegHQ/agentpack"><img alt="Built with Go" src="https://img.shields.io/badge/built_with-Go-00ADD8.svg"></a>
+  <a href="https://github.com/olegpustovit/agentpack/blob/dev/LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
+  <a href="https://github.com/olegpustovit/agentpack/releases"><img alt="Version" src="https://img.shields.io/badge/version-v0.5.1-blue.svg"></a>
+  <a href="https://github.com/olegpustovit/agentpack"><img alt="Built with Go" src="https://img.shields.io/badge/built_with-Go-00ADD8.svg"></a>
 </p>
 
 <p align="center">
-  <a href="https://oleghq.github.io/agentpack"><strong>Documentation</strong></a> ·
+  <a href="https://olegpustovit.github.io/agentpack"><strong>Documentation</strong></a> ·
   <a href="https://olegpustovit.com/posts/agentpack/"><strong>Writeup</strong></a> ·
   <a href="#quick-start">Quick Start</a> ·
   <a href="#how-it-works">How It Works</a> ·
-  <a href="https://oleghq.github.io/agentpack/reference/cli.html">CLI Reference</a>
+  <a href="https://olegpustovit.github.io/agentpack/reference/cli.html">CLI Reference</a>
 </p>
 
 ```sh
-brew install --cask OlegHQ/tap/agentpack
+brew install --cask olegpustovit/tap/agentpack
 ```
 
 <p align="center"><sub>Prefer a prebuilt binary or source build? See <a href="#install">all install options</a>.</sub></p>
@@ -38,7 +38,7 @@ Every coding agent manages skills, plugins, commands, and rules its own way — 
 
 ## What agentpack Does
 
-Declare your agent dependencies once in `agentpack.toml`. agentpack resolves them to exact commits, pins those in a lockfile, caches the content, re-renders each artifact into the target agent's native format, and launches the agent with everything staged. Your repo stays clean: nothing is copied into it, and nothing is written to your global agent config. Portable **external environments** can keep the manifest and lock outside the checkout (`env` / `--env` / `preflight` / `probe`); see the [environments docs](https://oleghq.github.io/agentpack/concepts/environments.html).
+Declare your agent dependencies once in `agentpack.toml`. agentpack resolves them to exact commits, pins those in a lockfile, caches the content, re-renders each artifact into the target agent's native format, and launches the agent with everything staged. Your repo stays clean: nothing is copied into it, and nothing is written to your global agent config. Portable **external environments** can keep the manifest and lock outside the checkout (`env` / `--env` / `preflight` / `probe`); see the [environments docs](https://olegpustovit.github.io/agentpack/concepts/environments.html).
 
 ```text
 agentpack.toml  ──>  pack.lock  ──>  staged bundles  ──>  launch
@@ -54,13 +54,13 @@ Prebuilt binaries are published for every release. Pick whichever fits your plat
 macOS and Linux:
 
 ```bash
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/OlegHQ/agentpack/releases/latest/download/agentpack-installer.sh | sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/olegpustovit/agentpack/releases/latest/download/agentpack-installer.sh | sh
 ```
 
 Windows PowerShell:
 
 ```powershell
-irm https://github.com/OlegHQ/agentpack/releases/latest/download/agentpack-installer.ps1 | iex
+irm https://github.com/olegpustovit/agentpack/releases/latest/download/agentpack-installer.ps1 | iex
 ```
 
 Both installers write only the executable to `$HOME/.local/bin` by default. They do not edit shell profiles or the user `PATH`; use `AGENTPACK_INSTALL_DIR` to select another userspace directory.
@@ -68,15 +68,15 @@ Both installers write only the executable to `$HOME/.local/bin` by default. They
 ### Homebrew — macOS & Linux (recommended)
 
 ```bash
-brew install --cask OlegHQ/tap/agentpack
+brew install --cask olegpustovit/tap/agentpack
 ```
 
 Upgrade with `brew upgrade --cask agentpack`. Served from the shared tap
-[OlegHQ/homebrew-tap](https://github.com/OlegHQ/homebrew-tap) (`brew tap OlegHQ/tap && brew install --cask agentpack` also works).
+[olegpustovit/homebrew-tap](https://github.com/olegpustovit/homebrew-tap) (`brew tap olegpustovit/tap && brew install --cask agentpack` also works).
 
 ### Prebuilt binaries
 
-Download an archive for your platform from the [latest release](https://github.com/OlegHQ/agentpack/releases/latest), extract it, and put `agentpack` on your `PATH`. Supported targets:
+Download an archive for your platform from the [latest release](https://github.com/olegpustovit/agentpack/releases/latest), extract it, and put `agentpack` on your `PATH`. Supported targets:
 
 | Platform | Target |
 | --- | --- |
@@ -172,7 +172,7 @@ agentpack does not just copy files — it **parses** each artifact and **re-rend
 | **MCP servers** | all six agents, each in its own MCP configuration file | |
 | **Language servers** | Claude Code, OpenCode, Grok | none (warning: no setting) |
 
-Conversions are reported as warnings. Subagents a package keeps in subdirectories of `agents/` are staged at the top of `agents/` for agents that read only that level. See the [conversion guide](https://github.com/OlegHQ/agentpack/blob/dev/docs/src/harnesses/conversion.md) for the full matrix.
+Conversions are reported as warnings. Subagents a package keeps in subdirectories of `agents/` are staged at the top of `agents/` for agents that read only that level. See the [conversion guide](https://github.com/olegpustovit/agentpack/blob/dev/docs/src/harnesses/conversion.md) for the full matrix.
 
 ## Manifest Example
 
@@ -244,7 +244,7 @@ Redirected harness homes do not make resume history temporary: Codex history is 
 
 ## Documentation
 
-Full docs live at **<https://oleghq.github.io/agentpack>** — getting started, core concepts (manifest, lockfile, resolution, cache, staging, modes, MCP), a guide per harness, and a complete CLI / manifest / environment reference.
+Full docs live at **<https://olegpustovit.github.io/agentpack>** — getting started, core concepts (manifest, lockfile, resolution, cache, staging, modes, MCP), a guide per harness, and a complete CLI / manifest / environment reference.
 
 The book source is in `docs/`. To preview changes locally, install [`mdbook`](https://rust-lang.github.io/mdBook/) and run:
 
@@ -259,7 +259,7 @@ For internals, [AGENTS.md](AGENTS.md) is the contributor-facing source of truth:
 Releases are automated by [GoReleaser](https://goreleaser.com): pushing a `v*` tag triggers
 `.github/workflows/release.yml`, which builds per-platform binaries (macOS arm64/x86_64, Linux
 x86_64/arm64, Windows x86_64), creates archives and checksums, publishes the GitHub Release, and
-pushes the generated Homebrew cask to [OlegHQ/homebrew-tap](https://github.com/OlegHQ/homebrew-tap).
+pushes the generated Homebrew cask to [olegpustovit/homebrew-tap](https://github.com/olegpustovit/homebrew-tap).
 
 | Goal | Command |
 |---|---|
@@ -267,7 +267,7 @@ pushes the generated Homebrew cask to [OlegHQ/homebrew-tap](https://github.com/O
 | Bump patch + tag + push (→ CI release) | `make ship-patch` |
 | Bump version only (no release) | `make minor` / `make patch` |
 
-Requires a repo secret **`HOMEBREW_TAP_TOKEN`** (a PAT with write access to `OlegHQ/homebrew-tap`) so
+Requires a repo secret **`HOMEBREW_TAP_TOKEN`** (a PAT with write access to `olegpustovit/homebrew-tap`) so
 CI can push the cask across repos.
 
 ## License

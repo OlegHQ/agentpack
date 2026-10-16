@@ -40,7 +40,7 @@ build:
 	$(GO) build -o "$(RELEASE_BIN)" ./cmd/agentpack
 
 release:
-	CGO_ENABLED=0 $(GO) build -trimpath -ldflags "-s -w -X github.com/OlegHQ/agentpack/internal/cli.Version=$(VERSION)" -o "$(RELEASE_BIN)" ./cmd/agentpack
+	CGO_ENABLED=0 $(GO) build -trimpath -ldflags "-s -w -X github.com/olegpustovit/agentpack/internal/cli.Version=$(VERSION)" -o "$(RELEASE_BIN)" ./cmd/agentpack
 
 fmt:
 	$(GOFMT) -w $$(find . -name '*.go' -not -path './vendor/*')

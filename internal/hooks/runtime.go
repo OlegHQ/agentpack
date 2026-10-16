@@ -16,7 +16,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/OlegHQ/agentpack/internal/harness"
+	"github.com/olegpustovit/agentpack/internal/harness"
 )
 
 type CommandOutput struct {
