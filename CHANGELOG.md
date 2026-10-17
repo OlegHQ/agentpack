@@ -7,6 +7,12 @@ window.
 
 ## Unreleased
 
+## [0.7.2] - 2026-10-17
+
+### Fixed
+
+- A Claude Code subagent restricted to tools that neither edit files nor run commands (for example `tools: Read, Grep, Glob`) is staged for Cursor with `readonly: true`. Cursor has no tools list for subagents and ignored the restriction, so such a subagent could write files there.
+
 ## [0.7.1] - 2026-10-17
 
 ### Fixed

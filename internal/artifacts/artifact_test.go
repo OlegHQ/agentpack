@@ -281,3 +281,20 @@ func TestAgentInASubdirectoryIsStagedWhereTheTargetReadsIt(t *testing.T) {
 		t.Errorf("NestedPath = %s", got)
 	}
 }
+
+func TestCursorSubagentWithoutWriteToolsIsReadonly(t *testing.T) {
+	t.Parallel()
+	for source, want := range map[string]bool{
+		"---\nname: reviewer\ndescription: Reviews\ntools: Read, Grep, Glob\n---\n\nRead only.\n": true,
+		"---\nname: fixer\ndescription: Fixes\ntools: Read, Edit\n---\n\nFixes.\n":                false,
+		"---\nname: any\ndescription: Anything\n---\n\nAll tools.\n":                              false,
+	} {
+		artifact, err := Parse("agents/a.md", source, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := strings.Contains(artifact.Render(harness.Cursor).Contents, "readonly: true"); got != want {
+			t.Errorf("%q: readonly %v", source, got)
+		}
+	}
+}

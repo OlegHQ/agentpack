@@ -12,7 +12,7 @@
   <a href="https://olegpustovit.github.io/agentpack"><img alt="Documentation" src="https://img.shields.io/badge/docs-olegpustovit.github.io-1f6feb.svg"></a>
   <a href="https://olegpustovit.com/posts/agentpack/"><img alt="Writeup" src="https://img.shields.io/badge/writeup-olegpustovit.com-ff6b6b.svg"></a>
   <a href="https://github.com/olegpustovit/agentpack/blob/dev/LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
-  <a href="https://github.com/olegpustovit/agentpack/releases"><img alt="Version" src="https://img.shields.io/badge/version-v0.7.1-blue.svg"></a>
+  <a href="https://github.com/olegpustovit/agentpack/releases"><img alt="Version" src="https://img.shields.io/badge/version-v0.7.2-blue.svg"></a>
   <a href="https://github.com/olegpustovit/agentpack"><img alt="Built with Go" src="https://img.shields.io/badge/built_with-Go-00ADD8.svg"></a>
 </p>
 

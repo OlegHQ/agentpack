@@ -110,6 +110,9 @@ func (artifact Markdown) renderAgent(target harness.Target) Rendered {
 		}
 	} else if target != harness.Agy {
 		fields = mergeExtra(fields, artifact.ExtraFrontmatter, agentExtraKeys)
+		if target == harness.Cursor && cursorReadonly(artifact.ExtraFrontmatter) {
+			fields = append(fields, yamlField{"readonly", true})
+		}
 	}
 	return Rendered{RelativePath: artifact.agentPath(target), Contents: renderMarkdown(fields, artifact.Body), Warnings: warnings}
 }
@@ -158,6 +161,24 @@ var hexColor = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
 // tool name to boolean; a color is a name, where OpenCode wants hex; a model
 // is an alias such as sonnet, where OpenCode wants provider/model. It returns
 // a note for each value that could not be carried over.
+// cursorReadonly reports whether a Claude Code subagent's tools list leaves
+// out every tool that edits files or runs commands. Cursor has no tools list
+// for subagents; its one restriction is readonly: true ("no file edits, no
+// state-changing shell commands"), which such a subagent gets.
+func cursorReadonly(source map[string]any) bool {
+	allowed, hasAllowed := claudeToolList(source["tools"])
+	if !hasAllowed || len(allowed) == 0 {
+		return false
+	}
+	for _, tool := range allowed {
+		switch tool {
+		case "Write", "Edit", "MultiEdit", "NotebookEdit", "Bash", "*":
+			return false
+		}
+	}
+	return true
+}
+
 func openCodeAgentExtras(source map[string]any) (map[string]any, []string) {
 	extras := make(map[string]any, len(source))
 	for key, value := range source {
