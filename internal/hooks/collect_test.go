@@ -152,3 +152,23 @@ func TestCollectReadsEveryHookLocationAndSurvivesABrokenOne(t *testing.T) {
 		}
 	}
 }
+
+// openai/plugins' figma keeps its hooks in hooks.json at the plugin root and
+// declares none in .codex-plugin/plugin.json; Codex reads that file.
+func TestCollectReadsACodexPluginsRootHooksFile(t *testing.T) {
+	t.Setenv("AGENTPACK_HOME", t.TempDir())
+	pkg := lockfile.Package{Module: "github.com/openai/plugins/plugins/figma", Kind: lockfile.PackagePlugin, CacheKey: "figma"}
+	root, _ := cache.EntryDir(pkg.CacheKey)
+	writeHookFile(t, filepath.Join(root, ".codex-plugin", "plugin.json"), `{"name":"figma","skills":"./skills/"}`)
+	writeHookFile(t, filepath.Join(root, "hooks.json"), nestedCommand("figma"))
+	bundle, err := Collect(t.TempDir(), lockfile.PackLock{Packages: []lockfile.Package{pkg}}, "", mode.ImplicitEffective())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, target := range []harness.Target{harness.Claude, harness.Codex, harness.Cursor} {
+		hooks := bundle.ForTarget(target).Hooks
+		if len(hooks) != 1 || hooks[0].Handler.Command != "figma" {
+			t.Fatalf("%s: hooks %+v", target, hooks)
+		}
+	}
+}

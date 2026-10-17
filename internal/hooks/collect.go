@@ -173,6 +173,11 @@ func packageSources(root string, pkg lockfile.Package, layer Layer, bundle *Bund
 	for _, manifest := range cache.ReadPluginManifests(root) {
 		dialect := dialects[manifest.Vendor]
 		paths, inline := manifest.Declared("hooks")
+		if manifest.Vendor == "codex" && len(paths) == 0 && len(inline) == 0 {
+			// Codex also reads a plugin's hooks from hooks.json at the plugin root
+			// when the manifest declares none (openai/plugins: figma).
+			file(filepath.Join(root, "hooks.json"), "hooks.json", dialect)
+		}
 		for _, declared := range paths {
 			resolved, err := cache.ResolveInside(root, declared)
 			if err != nil {

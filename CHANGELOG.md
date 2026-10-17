@@ -7,6 +7,12 @@ window.
 
 ## Unreleased
 
+## [0.6.2] - 2026-10-17
+
+### Fixed
+
+- Hooks of a Codex plugin that keeps them in `hooks.json` at the plugin root and declares none in `.codex-plugin/plugin.json` (openai/plugins: figma) are read; Codex reads that file. They were left out for every agent.
+
 ## [0.6.1] - 2026-10-17
 
 ### Fixed
