@@ -1,0 +1,255 @@
+{
+ "rule": "Draw a held-out sample of published plugins for the comparison of ecosystem.py.\n\nThe nine inputs of ecosystem.py were chosen by the authors, and the 40 packages of plugins.py were\nused during development. This draw is made after the code was frozen (release 0.5.2, 2026-10-16) by\na fixed rule, and excludes every package used before:\n\n  - sources: the three official plugin repositories at the commits pinned in ecosystem.py\n    (Claude Code: plugins/ and external_plugins/; Cursor: top-level plugin directories and\n    third_party/; Codex: plugins/);\n  - eligible: a directory with the vendor's plugin manifest that holds at least one item of the six\n    kinds ecosystem.py counts (skill, command, subagent, rule, hook, MCP server), as found by\n    ecosystem.expected(); plugins with only a language server give no cell and are not eligible;\n  - excluded: the nine inputs of ecosystem.py and the 40 packages of plugins-corpus.json;\n  - order: sha256(SEED + repository + path), ascending; the first N per source are taken.",
+ "seed": "icse2027-heldout-frozen-0.7.2-2026-10-17",
+ "need": [],
+ "excluded_draws": [
+  "heldout-inputs.json",
+  "heldout-kinds-inputs.json"
+ ],
+ "per_source": 4,
+ "drawn_in_order": [
+  {
+   "source": "claude",
+   "path": "external_plugins/github",
+   "items": {
+    "mcp": 1
+   },
+   "taken": true
+  },
+  {
+   "source": "claude",
+   "path": "external_plugins/context7",
+   "items": {
+    "mcp": 1
+   },
+   "taken": true
+  },
+  {
+   "source": "claude",
+   "path": "external_plugins/terraform",
+   "items": {
+    "mcp": 1
+   },
+   "taken": true
+  },
+  {
+   "source": "claude",
+   "path": "plugins/explanatory-output-style",
+   "items": {
+    "hook": 1
+   },
+   "taken": true
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/ashby",
+   "items": {
+    "mcp": 1
+   },
+   "taken": true
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/fathom",
+   "items": {
+    "mcp": 1
+   },
+   "taken": true
+  },
+  {
+   "source": "cursor",
+   "path": "docs-canvas",
+   "items": {
+    "skill": 1
+   },
+   "taken": true
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/gmail",
+   "items": {
+    "mcp": 1
+   },
+   "taken": true
+  },
+  {
+   "source": "codex",
+   "path": "plugins/google-calendar",
+   "items": {
+    "mcp": 1
+   },
+   "taken": true
+  },
+  {
+   "source": "codex",
+   "path": "plugins/superpowers",
+   "items": {
+    "skill": 14
+   },
+   "taken": true
+  },
+  {
+   "source": "codex",
+   "path": "plugins/creative-production",
+   "items": {
+    "skill": 2,
+    "mcp": 1
+   },
+   "taken": true
+  },
+  {
+   "source": "codex",
+   "path": "plugins/twilio-developer-kit",
+   "items": {
+    "skill": 55
+   },
+   "taken": true
+  }
+ ],
+ "inputs": {
+  "heldout-claude-github": {
+   "what": "held-out claude-plugin external_plugins/github",
+   "repo": "anthropics/claude-plugins-official",
+   "commit": "f359d43b406057f1a8cdbc4ea93b827642c162e6",
+   "path": "external_plugins/github",
+   "format": "claude-plugin",
+   "plugin": "github",
+   "marketplace": {
+    "repo": "anthropics/claude-plugins-official",
+    "name": "claude-plugins-official"
+   }
+  },
+  "heldout-claude-context7": {
+   "what": "held-out claude-plugin external_plugins/context7",
+   "repo": "anthropics/claude-plugins-official",
+   "commit": "f359d43b406057f1a8cdbc4ea93b827642c162e6",
+   "path": "external_plugins/context7",
+   "format": "claude-plugin",
+   "plugin": "context7",
+   "marketplace": {
+    "repo": "anthropics/claude-plugins-official",
+    "name": "claude-plugins-official"
+   }
+  },
+  "heldout-claude-terraform": {
+   "what": "held-out claude-plugin external_plugins/terraform",
+   "repo": "anthropics/claude-plugins-official",
+   "commit": "f359d43b406057f1a8cdbc4ea93b827642c162e6",
+   "path": "external_plugins/terraform",
+   "format": "claude-plugin",
+   "plugin": "terraform",
+   "marketplace": {
+    "repo": "anthropics/claude-plugins-official",
+    "name": "claude-plugins-official"
+   }
+  },
+  "heldout-claude-explanatory-output-style": {
+   "what": "held-out claude-plugin plugins/explanatory-output-style",
+   "repo": "anthropics/claude-plugins-official",
+   "commit": "f359d43b406057f1a8cdbc4ea93b827642c162e6",
+   "path": "plugins/explanatory-output-style",
+   "format": "claude-plugin",
+   "plugin": "explanatory-output-style",
+   "marketplace": {
+    "repo": "anthropics/claude-plugins-official",
+    "name": "claude-plugins-official"
+   }
+  },
+  "heldout-cursor-ashby": {
+   "what": "held-out cursor-plugin third_party/ashby",
+   "repo": "cursor/plugins",
+   "commit": "1dcc2bacde73ddd284803b7af28164d0436198fc",
+   "path": "third_party/ashby",
+   "format": "cursor-plugin",
+   "plugin": "ashby",
+   "marketplace": {
+    "repo": "cursor/plugins",
+    "name": "cursor-plugins"
+   }
+  },
+  "heldout-cursor-fathom": {
+   "what": "held-out cursor-plugin third_party/fathom",
+   "repo": "cursor/plugins",
+   "commit": "1dcc2bacde73ddd284803b7af28164d0436198fc",
+   "path": "third_party/fathom",
+   "format": "cursor-plugin",
+   "plugin": "fathom",
+   "marketplace": {
+    "repo": "cursor/plugins",
+    "name": "cursor-plugins"
+   }
+  },
+  "heldout-cursor-docs-canvas": {
+   "what": "held-out cursor-plugin docs-canvas",
+   "repo": "cursor/plugins",
+   "commit": "1dcc2bacde73ddd284803b7af28164d0436198fc",
+   "path": "docs-canvas",
+   "format": "cursor-plugin",
+   "plugin": "docs-canvas",
+   "marketplace": {
+    "repo": "cursor/plugins",
+    "name": "cursor-plugins"
+   }
+  },
+  "heldout-cursor-gmail": {
+   "what": "held-out cursor-plugin third_party/gmail",
+   "repo": "cursor/plugins",
+   "commit": "1dcc2bacde73ddd284803b7af28164d0436198fc",
+   "path": "third_party/gmail",
+   "format": "cursor-plugin",
+   "plugin": "gmail",
+   "marketplace": {
+    "repo": "cursor/plugins",
+    "name": "cursor-plugins"
+   }
+  },
+  "heldout-codex-google-calendar": {
+   "what": "held-out codex-plugin plugins/google-calendar",
+   "repo": "openai/plugins",
+   "commit": "0722921d5542fc593105c27bd52630babd8b8c2a",
+   "path": "plugins/google-calendar",
+   "format": "codex-plugin",
+   "plugin": "google-calendar",
+   "marketplace": {
+    "repo": "openai/plugins",
+    "name": "openai-curated"
+   }
+  },
+  "heldout-codex-superpowers": {
+   "what": "held-out codex-plugin plugins/superpowers",
+   "repo": "openai/plugins",
+   "commit": "0722921d5542fc593105c27bd52630babd8b8c2a",
+   "path": "plugins/superpowers",
+   "format": "codex-plugin",
+   "plugin": "superpowers",
+   "marketplace": {
+    "repo": "openai/plugins",
+    "name": "openai-curated"
+   }
+  },
+  "heldout-codex-creative-production": {
+   "what": "held-out codex-plugin plugins/creative-production",
+   "repo": "openai/plugins",
+   "commit": "0722921d5542fc593105c27bd52630babd8b8c2a",
+   "path": "plugins/creative-production",
+   "format": "codex-plugin",
+   "plugin": "creative-production",
+   "marketplace": {
+    "repo": "openai/plugins",
+    "name": "openai-curated"
+   }
+  },
+  "heldout-codex-twilio-developer-kit": {
+   "what": "held-out codex-plugin plugins/twilio-developer-kit",
+   "repo": "openai/plugins",
+   "commit": "0722921d5542fc593105c27bd52630babd8b8c2a",
+   "path": "plugins/twilio-developer-kit",
+   "format": "codex-plugin",
+   "plugin": "twilio-developer-kit",
+   "marketplace": {
+    "repo": "openai/plugins",
+    "name": "openai-curated"
+   }
+  }
+ }
+}

@@ -745,7 +745,7 @@ def listing(agent, env, cwd, wrap, exp, tmp, plugins=()):
             raw = {'plugins': [f"{x.get('name')} ({x.get('source')})" for x in init.get('plugins', [])], 'covers': ['skill', 'command', 'agent']}
             if not wrap('claude')[0].endswith('agentpack'):     # MCP servers of installed, enabled plugins, as Claude Code reports them
                 q = run(['claude', 'plugin', 'list', '--json'], cwd, env, 60)
-                raw['plugin_mcp'] = {name: f"claude plugin list --json: {x.get('id')}: {json.dumps(spec)[:300]}"
+                raw['plugin_mcp'] = {name: f"claude plugin list --json: {x.get('id')}: {ev_json(spec)}"
                                      for x in first_json(q['stdout'], '[') or [] if x.get('enabled')
                                      for name, spec in (x.get('mcpServers') or {}).items()}
         elif agent == 'codex':
@@ -765,7 +765,7 @@ def listing(agent, env, cwd, wrap, exp, tmp, plugins=()):
             raw['prompt_text'] = text
             q = run([*wrap('codex'), 'mcp', 'list', '--json'], cwd, env, 60)
             for s in first_json(q['stdout'], '[') or []:
-                seen['mcp'][s['name']] = 'mcp list: ' + json.dumps(s.get('transport'))[:300] + tree_note(s.get('transport'))
+                seen['mcp'][s['name']] = 'mcp list: ' + ev_json(s.get('transport')) + tree_note(s.get('transport'))
             raw['covers'] = ['skill', 'mcp']
         elif agent == 'opencode':
             # config first: on its first start in a checkout OpenCode installs what a written plugin needs, which can take minutes
@@ -784,7 +784,7 @@ def listing(agent, env, cwd, wrap, exp, tmp, plugins=()):
             for s in cfg.get('agent', {}):
                 seen['agent'][s] = 'debug config'
             for s, v in cfg.get('mcp', {}).items():
-                seen['mcp'][s] = 'debug config: ' + json.dumps(v)[:300] + tree_note(
+                seen['mcp'][s] = 'debug config: ' + ev_json(v) + tree_note(
                     {'args': v.get('command', [])[1:]} if isinstance(v, dict) and isinstance(v.get('command'), list) else v)
             raw.update({'plugin': cfg.get('plugin'), 'instructions': cfg.get('instructions'), 'covers': ['skill', 'command', 'agent', 'mcp']})
         elif agent == 'cursor':
@@ -902,7 +902,7 @@ def on_disk(agent, roots, exp):
                     elif kind == 'mcp':
                         data, _ = load(p)
                         for name, spec in find_servers(data).items():
-                            found['mcp'][name] = f"{p}: {json.dumps(spec)[:300]}{tree_note(spec)}"
+                            found['mcp'][name] = f"{p}: {ev_json(spec)}{tree_note(spec)}"
     return found
 
 
@@ -930,6 +930,14 @@ def agentpack_codex_home(root):
         if p.is_dir():
             return p
     return None
+
+
+def ev_json(spec, limit=300):
+    """A server definition as evidence text, identifying keys first, so that truncation keeps what mcp_same() reads."""
+    if isinstance(spec, dict):
+        first = {k: spec[k] for k in ('type', 'url', 'command', 'args', 'transport', 'target') if k in spec}
+        spec = {**first, **{k: v for k, v in spec.items() if k not in first}}
+    return json.dumps(spec)[:limit]
 
 
 def grok_tree_note(server):

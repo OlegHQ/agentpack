@@ -339,3 +339,19 @@ Ten npx-started MCP servers: the four npm packages the official plugin repositor
 | sqlite | failed | 8 | failed | 8 |
 
 `mcp-sqlite` depends on `sqlite3`, whose native binding is built by an install script; the locked tree runs no package scripts, so the binding is missing and the server exits. `npm ci` runs install scripts by default. On macOS (arm64, node 24.19.0) the lockfile written on Linux (aarch64) was used unchanged; the ten trees installed there have exactly the locked digests. `sync` rewrites two lines of `pack.lock` in this experiment only, because the plugin is a local path dependency whose absolute `file://` URL and cache key move with the copied bundle; the MCP records are byte-identical. Results: `realservers-linux.json`, `realservers-macos.json`; the lock inputs and outputs: `realservers-bundle/`. Windows was not tested.
+
+## Third draw, release frozen before the draw (`heldout.py`, `ecosystem.py`, 2026-10-17)
+
+`uv run heldout.py --src WORK/src --seed icse2027-heldout-frozen-0.7.2-2026-10-17 --exclude-inputs heldout-inputs.json heldout-kinds-inputs.json --out heldout-frozen-inputs.json`, drawn after release 0.7.2 was published, with no change to Agentpack afterwards; every tool was run on every package (`heldout-frozen-results.json`).
+
+| Tool | Delivered of 78 | Confirmed by the agent's own listing |
+|---|---|---|
+| Agentpack 0.7.2 | 77 | 48 |
+| Ruler (content copied in by hand) | 58 | 40 |
+| Microsoft APM 0.33.0 | 53 | 33 |
+| rulesync, Claude Code plugin importer on all plugins | 47 | |
+| Vercel skills | 24 | |
+| mars | 20 | |
+| Agents' own commands | 16 | |
+
+Agentpack's one miss: a hook event OpenCode lacks (`explanatory-output-style`). A scoring fault surfaced on this draw and was fixed before the table above: a remote server whose definition lists an `oauth` block before its `url` (`google-calendar`) had the URL cut off in the stored evidence, which keeps 300 characters, so its cells read as absent for every tool. Evidence now records a server's identifying keys (`type`, `url`, `command`, `args`) first (`ev_json`), and that package was run again for every tool and merged into the results file.
