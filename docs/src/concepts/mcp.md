@@ -117,6 +117,34 @@ staged for every harness      npx @playwright/mcp@0.0.83
 
 Your definition is not edited. `agentpack mcp list` shows both the definition and the pin.
 
+### The locked dependency tree of an npx server
+
+A version pin fixes the server's own package, not the packages it depends on. For a server started with `npx`, `lock` therefore also asks npm which packages it would install, without running any package script (`npm install --package-lock-only --ignore-scripts` in a temporary directory), and records every one of them in `pack.lock`: its path under `node_modules`, exact version and registry integrity, with npm's platform constraints for optional packages. `tree_digest` is a digest of that list.
+
+```toml
+[[mcp_servers]]
+name = "playwright"
+version = "0.0.83"
+bin = "cli.js"
+tree_digest = "sha256-npm-tree-v1:a856…"
+
+[[mcp_servers.tree]]
+path = "node_modules/playwright-core"
+version = "1.64.0-alpha-1790635538000"
+integrity = "sha512-pNwa…"
+```
+
+Such a server is staged to start through Agentpack instead of `npx`:
+
+```text
+agentpack.toml / mcp.json     npx -y @playwright/mcp@latest --headless
+staged for every harness      agentpack mcp-exec --spec …/mcp-trees/playwright.json -- --headless
+```
+
+The first time the server starts, `mcp-exec` downloads each tarball of the tree from the registry, checks it against its recorded integrity before writing anything, unpacks it into Agentpack's cache (`cache/npm-trees/<tree digest>`) and runs the package's executable with `node` and your arguments. No package script runs. Later starts reuse the unpacked tree after checking that its files are unchanged; a tree edited in the cache is unpacked again from the verified tarballs. A tarball whose integrity differs from the lock stops the server and nothing runs. `npm` is needed only by `lock`; starting the server needs `node` and the registry, once per tree.
+
+A teammate who runs the same `pack.lock` therefore starts the same files. The tree moves only with `agentpack lock --update`. Locks made before trees were recorded get them on the next `agentpack lock`, at the version they already pin. Without `npm` on PATH, or when npm cannot resolve the tree, the server keeps its top-level pin, `lock` says so, and it starts through `npx` as before. Servers started by `bunx`, `pnpm dlx` or `yarn dlx` keep their own runtime and are pinned at the top level only. A lock with a tree is written as `lockfile_version = 4`; earlier releases refuse it with an "unsupported lockfile_version" message rather than start an unlocked tree.
+
 The pin moves only when you ask: `agentpack lock --update` (or `agentpack update` with no arguments) resolves dist-tags again. A plain `lock`, `sync` or launch keeps the recorded version and needs no registry. If a refresh resolves to the version that is already locked but the registry now reports a different integrity for it, the lock fails and writes nothing.
 
 ### When the registry is unreachable
@@ -132,12 +160,13 @@ The server is then recorded with `status = "unpinned"` and `allow_unpinned = tru
 
 `agentpack add` does not fail on an unreachable registry: the package is added and locked, the server is left without a record, and a warning names it. It then runs as written until `agentpack lock` can pin it.
 
-`sync` and the launchers never contact a registry. A server with no current record runs as written, with a warning that names it.
+`sync` and the launchers never contact a registry; a locked tree is downloaded by the server's own start (`mcp-exec`), once. A server with no current record runs as written, with a warning that names it.
 
 ### Limits
 
-- **Only the top-level package is pinned.** `npx` still resolves that package's own dependencies when it installs it, and they can change. agentpack does not vendor or lock them.
-- **The integrity is recorded, not enforced at launch.** agentpack does not download or run the package; `npx` does, and checks the tarball against the registry itself. The recorded value lets `lock` notice a registry that changes a published version.
+- **Dependencies are locked for `npx` servers only.** For `bunx`, `pnpm dlx` and `yarn dlx`, and for an `npx` server whose tree npm could not resolve at lock time, only the top-level package is pinned; the runner still resolves its dependencies when it installs it.
+- **Integrity is enforced at launch for a locked tree**, by `mcp-exec`. For a server pinned at the top level only, the runner downloads the package and checks it against the registry itself; the recorded value lets `lock` notice a registry that changes a published version.
+- **Native addons and install scripts.** No package script runs when a tree is unpacked. A server that needs a compiled addon built by `install` or `postinstall` does not start from a locked tree; record it with `npx` arguments that bypass the tree (for example a version range, which stays `unpinned`).
 - **The registry is the one agentpack can see**: `npm_config_registry` in the server's `env`, then in your environment, then `https://registry.npmjs.org`. Per-user `.npmrc` files are not read; if yours points elsewhere, set the variable.
 - **Version ranges** (`pkg@^1.2`), Git and tarball specs, and `npx --package` are recorded as `unpinned`. Use an exact version or a dist-tag.
 - **PyPI and docker** servers are recorded but not resolved. Write `pkg==1.2.3` or `image@sha256:…` yourself to fix what runs.

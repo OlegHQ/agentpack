@@ -15,10 +15,13 @@ import (
 )
 
 // Version is the newest lockfile schema. Version 3 adds package content_hash
-// values and [[mcp_servers]] to version 2; a lock that uses neither is still
-// written as version 2 so binaries that predate version 3 keep reading it.
+// values and [[mcp_servers]] to version 2; version 4 adds the locked npm
+// dependency tree of an MCP server (tree, tree_digest, bin). A lock is written
+// at the oldest version that holds what it records, so binaries that predate
+// a version keep reading locks that do not need it.
 const (
-	Version     uint32 = 3
+	Version     uint32 = 4
+	version3    uint32 = 3
 	baseVersion uint32 = 2
 )
 
@@ -150,6 +153,25 @@ type MCPServer struct {
 	Command       string `toml:"command,omitempty"`
 	AllowUnpinned bool   `toml:"allow_unpinned,omitempty"`
 	Reason        string `toml:"reason,omitempty"`
+	// Bin is the package's executable that npx would run, relative to the
+	// package directory. TreeDigest and Tree lock every package npm installs
+	// for the server, so its dependencies cannot change between launches.
+	Bin        string         `toml:"bin,omitempty"`
+	TreeDigest string         `toml:"tree_digest,omitempty"`
+	Tree       []NPMTreeEntry `toml:"tree,omitempty"`
+}
+
+// NPMTreeEntry is one installed package of a locked npm tree: where npm puts
+// it (node_modules/...), the exact version and the registry tarball integrity.
+// OS and CPU hold npm's platform constraints of optional packages.
+type NPMTreeEntry struct {
+	Path      string   `toml:"path"`
+	Version   string   `toml:"version"`
+	Integrity string   `toml:"integrity"`
+	Resolved  string   `toml:"resolved,omitempty"`
+	Optional  bool     `toml:"optional,omitempty"`
+	OS        []string `toml:"os,omitempty"`
+	CPU       []string `toml:"cpu,omitempty"`
 }
 
 func (pkg Package) NeedsBackfill() bool {
@@ -222,8 +244,8 @@ func loadFromPath(path string) (PackLock, error) {
 	} else if disk.LegacyLockfileVersion != 0 && disk.LegacyLockfileVersion != disk.LockfileVersion {
 		return PackLock{}, fmt.Errorf("parse lockfile: conflicting lockfile_version values in %s", path)
 	}
-	if disk.LockfileVersion != baseVersion && disk.LockfileVersion != Version {
-		return PackLock{}, fmt.Errorf("parse lockfile: unsupported lockfile_version %d (expected %d or %d); run `agentpack lock` to regenerate %s", disk.LockfileVersion, baseVersion, Version, path)
+	if disk.LockfileVersion != baseVersion && disk.LockfileVersion != version3 && disk.LockfileVersion != Version {
+		return PackLock{}, fmt.Errorf("parse lockfile: unsupported lockfile_version %d (expected %d to %d); run `agentpack lock` to regenerate %s", disk.LockfileVersion, baseVersion, Version, path)
 	}
 	present, err := contentHashKeys(path)
 	if err != nil {
@@ -305,7 +327,12 @@ func (lock PackLock) Save(projectRoot string) error {
 	})
 	snapshot.LockfileVersion = baseVersion
 	if snapshot.usesVersion3() {
-		snapshot.LockfileVersion = Version
+		snapshot.LockfileVersion = version3
+	}
+	for _, server := range snapshot.MCPServers {
+		if len(server.Tree) != 0 {
+			snapshot.LockfileVersion = Version
+		}
 	}
 	disk := diskLock{LockfileVersion: snapshot.LockfileVersion, Meta: snapshot.Meta, Packages: snapshot.Packages, MCPServers: snapshot.MCPServers}
 	if len(snapshot.Config.DisabledPlugins) != 0 {

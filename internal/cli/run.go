@@ -59,6 +59,9 @@ func (runner Runner) Run(ctx context.Context, arguments []string) (int, error) {
 	if invocation.Command == "hook-exec" {
 		return runner.runHook(ctx, invocation.Args)
 	}
+	if invocation.Command == "mcp-exec" {
+		return runner.runMCPExec(ctx, invocation.Args)
+	}
 	if invocation.Command == "init" {
 		if err := runner.runInit(invocation); err != nil {
 			return 1, err

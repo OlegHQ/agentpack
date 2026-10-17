@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -220,7 +221,7 @@ func TestVersion3RoundTripsContentHashesAndMCPServers(t *testing.T) {
 	if loaded.LockfileVersion != 3 || len(loaded.UnverifiedPackages()) != 0 || loaded.Packages[0].ContentHash != lock.Packages[0].ContentHash {
 		t.Fatalf("loaded = %#v", loaded)
 	}
-	if server, found := loaded.MCPServer("playwright"); !found || server != lock.MCPServers[0] {
+	if server, found := loaded.MCPServer("playwright"); !found || !reflect.DeepEqual(server, lock.MCPServers[0]) {
 		t.Fatalf("MCPServer(playwright) = %#v, %v", server, found)
 	}
 }

@@ -214,5 +214,8 @@ func (runner Runner) rootCommand(original []string, exitCode *int) *cobra.Comman
 	hook := leaf("hook-exec", "Internal hook execution bridge")
 	hook.Hidden = true
 	root.AddCommand(hook)
+	mcpExec := leaf("mcp-exec", "Internal: start an MCP server from its locked npm tree")
+	mcpExec.Hidden = true
+	root.AddCommand(mcpExec)
 	return root
 }

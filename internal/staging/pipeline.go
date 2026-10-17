@@ -128,6 +128,9 @@ func (pipeline Pipeline) Rebuild() (_ []string, rebuildErr error) {
 	if err != nil {
 		return nil, err
 	}
+	if merged, err = mcp.ApplyTrees(merged, pipeline.Lock.MCPServers, hooks.Executable(), filepath.Join(bundle, "mcp-trees")); err != nil {
+		return nil, err
+	}
 	merged = mcp.ApplyPins(merged, pipeline.Lock.MCPServers)
 	if merged, err = pipeline.stagePluginRoots(merged); err != nil {
 		return nil, err

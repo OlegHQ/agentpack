@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -45,7 +46,7 @@ func TestDescribeClassifiesLaunchersWithoutPretending(t *testing.T) {
 			t.Errorf("%s: status %q without a reason %q", name, got.Status, got.Reason)
 		}
 		got.Name, got.Source, got.Definition, got.Reason = "", "", "", ""
-		if got != test.want {
+		if !reflect.DeepEqual(got, test.want) {
 			t.Errorf("%s:\n got %#v\nwant %#v", name, got, test.want)
 		}
 	}

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"maps"
 	"os"
+	"reflect"
 	"slices"
 	"sort"
 	"strings"
@@ -92,7 +93,7 @@ func sameLock(first, second lockfile.PackLock) bool {
 	}
 	return first.Meta == second.Meta && slices.Equal(first.Config.DisabledPlugins, second.Config.DisabledPlugins) &&
 		len(first.Packages) == len(second.Packages) && maps.Equal(packages(first), packages(second)) &&
-		len(first.MCPServers) == len(second.MCPServers) && maps.Equal(servers(first), servers(second))
+		len(first.MCPServers) == len(second.MCPServers) && maps.EqualFunc(servers(first), servers(second), func(a, b lockfile.MCPServer) bool { return reflect.DeepEqual(a, b) })
 }
 
 // lockChanges describes, one line each, how a resolve changed the lock: pins
@@ -179,6 +180,10 @@ func (service Service) settleMCPServers(ctx context.Context, projectRoot string,
 		if kept != nil && !retry {
 			carried := *kept
 			carried.Source = record.Source
+			// a pin made before trees were locked gets its tree at the version it already has
+			if pinMode != mcpCarry && carried.Status == lockfile.MCPPinned && carried.Launcher == mcp.LauncherNPM && len(carried.Tree) == 0 && mcp.StartsWithNPX(entry.Server) {
+				service.lockNPMTree(ctx, &carried)
+			}
 			records = append(records, carried)
 			continue
 		}
@@ -197,6 +202,9 @@ func (service Service) settleMCPServers(ctx context.Context, projectRoot string,
 				return nil, fmt.Errorf("MCP server %q: registry %s now reports integrity %s for %s@%s, but pack.lock recorded %s; nothing was written", name, record.Registry, integrity, record.Package, version, kept.Integrity)
 			}
 			record.Status, record.Version, record.Integrity = lockfile.MCPPinned, version, integrity
+			if mcp.StartsWithNPX(entry.Server) {
+				service.lockNPMTree(ctx, &record)
+			}
 		case kept != nil && (kept.Status == lockfile.MCPPinned || kept.AllowUnpinned):
 			service.notify("MCP server %q: kept its existing pack.lock record (%v)", name, err)
 			record = *kept
@@ -214,6 +222,18 @@ func (service Service) settleMCPServers(ctx context.Context, projectRoot string,
 		records = append(records, record)
 	}
 	return records, nil
+}
+
+// lockNPMTree records every package npm installs for a pinned server. Without
+// npm, or when npm cannot resolve the tree, the server keeps its top-level pin
+// and the reason is reported; its dependencies then resolve at start-up.
+func (service Service) lockNPMTree(ctx context.Context, record *lockfile.MCPServer) {
+	tree, bin, err := mcp.ResolveTree(ctx, record.Registry, record.Package, record.Version, record.Integrity)
+	if err != nil {
+		service.notify("MCP server %q: pinned to %s@%s, but its dependency tree is not locked (%v); its dependencies resolve when it starts", record.Name, record.Package, record.Version, err)
+		return
+	}
+	record.Tree, record.Bin, record.TreeDigest = tree, bin, mcp.TreeDigest(tree)
 }
 
 func (service Service) reportMCPServers(lock lockfile.PackLock) {
