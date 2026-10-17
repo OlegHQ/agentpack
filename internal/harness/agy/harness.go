@@ -68,7 +68,7 @@ func prepare(ctx base.StageContext) error {
 	if keepAttribution() {
 		return nil
 	}
-	rule := "---\ndescription: Disable AI attribution footers\nalwaysApply: true\n---\n\n" + strings.TrimSpace(base.NoAttributionBody) + "\n"
+	rule := "---\ndescription: Disable AI attribution footers\ntrigger: always_on\n---\n\n" + strings.TrimSpace(base.NoAttributionBody) + "\n"
 	path := filepath.Join(bundle, "rules", "agentpack-no-attribution.md")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err

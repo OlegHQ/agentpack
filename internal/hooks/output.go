@@ -58,9 +58,11 @@ func agyOutput(event Event, result Result) map[string]any {
 	value := make(map[string]any)
 	switch event {
 	case PreToolUse, PermissionRequest:
-		// For Antigravity "allow" approves the tool without asking the user.
-		// A hook that merely did not object must not do that, so only a
-		// refusal or a request to ask is passed on.
+		// Antigravity requires a decision and denies the call without one.
+		// "allow" passes the call on to the next hook or the default policy
+		// (it does not approve it: that is "auto_approve"), so a hook that did
+		// not object answers "allow".
+		value["decision"] = "allow"
 		if result.Decision == Deny || result.Decision == Ask {
 			value["decision"] = result.Decision
 			if result.Message != "" {

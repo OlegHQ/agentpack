@@ -36,7 +36,7 @@ func (artifact Markdown) Render(target harness.Target) Rendered {
 	case Agent:
 		return artifact.renderAgent(target)
 	default:
-		return artifact.renderRule()
+		return artifact.renderRule(target)
 	}
 }
 
@@ -263,7 +263,10 @@ func claudeToolList(value any) ([]string, bool) {
 	return names, true
 }
 
-func (artifact Markdown) renderRule() Rendered {
+func (artifact Markdown) renderRule(target harness.Target) Rendered {
+	if target == harness.Agy {
+		return artifact.renderAgyRule()
+	}
 	fields := []yamlField{{"description", artifact.Description}}
 	if len(artifact.Globs) == 1 {
 		fields = append(fields, yamlField{"globs", artifact.Globs[0]})
@@ -274,6 +277,29 @@ func (artifact Markdown) renderRule() Rendered {
 		fields = append(fields, yamlField{"alwaysApply", true})
 	}
 	return Rendered{RelativePath: "rules/" + artifact.tailPath, Contents: renderMarkdown(fields, artifact.Body)}
+}
+
+// renderAgyRule writes a rule the way Antigravity reads one: a .md file whose
+// frontmatter sets trigger (always_on, glob, model_decision or manual).
+// Antigravity silently discards a rule file without a valid trigger, which is
+// what a Cursor rule's alwaysApply and globs keys are to it.
+func (artifact Markdown) renderAgyRule() Rendered {
+	fields := []yamlField{{"description", artifact.Description}}
+	switch {
+	case artifact.AlwaysApply:
+		fields = append(fields, yamlField{"trigger", "always_on"})
+	case len(artifact.Globs) != 0:
+		fields = append(fields, yamlField{"trigger", "glob"}, yamlField{"globs", strings.Join(artifact.Globs, ",")})
+	case artifact.Description != "":
+		fields = append(fields, yamlField{"trigger", "model_decision"})
+	default:
+		fields = append(fields, yamlField{"trigger", "manual"})
+	}
+	name := artifact.tailPath
+	if extension := path.Ext(name); strings.EqualFold(extension, ".mdc") {
+		name = strings.TrimSuffix(name, extension) + ".md"
+	}
+	return Rendered{RelativePath: "rules/" + name, Contents: renderMarkdown(fields, artifact.Body)}
 }
 
 func (artifact Markdown) skillBody(target harness.Target) string {

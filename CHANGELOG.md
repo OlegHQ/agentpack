@@ -7,6 +7,13 @@ window.
 
 ## Unreleased
 
+## [0.7.1] - 2026-10-17
+
+### Fixed
+
+- Antigravity denied every tool call while a package had a `PreToolUse` hook. Antigravity requires a `decision` in a hook's answer and denies a call without one; Agentpack answered `{}` when no hook objected (or none matched the tool), on the belief that `"allow"` approves the call for the user. By Antigravity's documentation `"allow"` passes the call on to the next hook or the default policy (`"auto_approve"` is the value that skips approval), so Agentpack now answers `"allow"`.
+- Rules on Antigravity. Antigravity discards a rule file whose frontmatter has no `trigger`, so Cursor-style rules (`alwaysApply`, `globs`) staged for it were never applied. Rules are now written as `.md` with `trigger: always_on`, `glob` (with `globs`), `model_decision` or `manual`.
+
 ## [0.7.0] - 2026-10-17
 
 ### Added

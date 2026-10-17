@@ -37,10 +37,30 @@ func TestRuleFallsBackToScopedSkillExceptNativeTargets(t *testing.T) {
 	if codex.RelativePath != "skills/typescript/SKILL.md" || !strings.Contains(codex.Contents, "Original Cursor globs") || !strings.Contains(codex.Contents, "Applies in every session") {
 		t.Fatalf("codex = %#v", codex)
 	}
-	for _, target := range []harness.Target{harness.Cursor, harness.Agy} {
-		rendered := artifact.Render(target)
-		if rendered.RelativePath != "rules/typescript.mdc" || !strings.Contains(rendered.Contents, "alwaysApply: true") {
-			t.Fatalf("%s = %#v", target, rendered)
+	if cursor := artifact.Render(harness.Cursor); cursor.RelativePath != "rules/typescript.mdc" || !strings.Contains(cursor.Contents, "alwaysApply: true") {
+		t.Fatalf("cursor = %#v", cursor)
+	}
+	// Antigravity discards a rule file without a trigger, and reads .md files
+	if agy := artifact.Render(harness.Agy); agy.RelativePath != "rules/typescript.md" || !strings.Contains(agy.Contents, "trigger: always_on") || strings.Contains(agy.Contents, "alwaysApply") {
+		t.Fatalf("agy = %#v", agy)
+	}
+}
+
+func TestAgyRuleTriggerFollowsTheRuleScope(t *testing.T) {
+	t.Parallel()
+	cases := map[string]string{
+		"---\ndescription: TS\nglobs: \"**/*.ts\"\n---\n\nBody\n": "trigger: glob",
+		"---\ndescription: When reviewing\n---\n\nBody\n":         "trigger: model_decision",
+		// the parser takes a description from the body when the rule has none
+		"Body only\n": "trigger: model_decision",
+	}
+	for source, want := range cases {
+		artifact, err := Parse(".cursor/rules/r.mdc", source, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := artifact.Render(harness.Agy).Contents; !strings.Contains(got, want) {
+			t.Errorf("%q: %s", source, got)
 		}
 	}
 }

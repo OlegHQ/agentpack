@@ -200,8 +200,9 @@ func TestDispatchForAntigravityMatchesItsToolNamesAndAnswersInItsContract(t *tes
 	if denied["decision"] != Deny || denied["reason"] != "no shell" || code != 0 {
 		t.Fatalf("PreToolUse = %#v, exit %d", denied, code)
 	}
-	if other, _ := run(PreToolUse, `{"toolCall":{"name":"view_file"}}`); len(other) != 0 {
-		t.Fatalf("a Bash matcher fired for view_file: %#v", other)
+	// a hook that does not fire still answers: Antigravity denies a call whose hook gives no decision
+	if other, _ := run(PreToolUse, `{"toolCall":{"name":"view_file"}}`); len(other) != 1 || other["decision"] != "allow" {
+		t.Fatalf("a Bash matcher fired for view_file, or the answer has no decision: %#v", other)
 	}
 	injected, _ := run(UserPromptSubmit, `{"invocationNum":1}`)
 	steps, _ := injected["injectSteps"].([]any)
@@ -213,10 +214,16 @@ func TestDispatchForAntigravityMatchesItsToolNamesAndAnswersInItsContract(t *tes
 	}
 }
 
-func TestAntigravityPreToolUseNeverAutoApproves(t *testing.T) {
+// Antigravity requires a decision. "allow" hands the call on to the next hook
+// or the default policy; "auto_approve" would skip the user's approval and is
+// never sent for a hook that merely did not object.
+func TestAntigravityPreToolUseAllowsWithoutAutoApproving(t *testing.T) {
 	t.Parallel()
-	if output := HookOutput(harness.Agy, PreToolUse, Result{Decision: Allow, Message: "fine"}).(map[string]any); len(output) != 0 {
-		t.Fatalf("a hook without objection approved the tool for the user: %#v", output)
+	if output := HookOutput(harness.Agy, PreToolUse, Result{Decision: Allow, Message: "fine"}).(map[string]any); output["decision"] != "allow" || len(output) != 1 {
+		t.Fatalf("no objection = %#v", output)
+	}
+	if output := HookOutput(harness.Agy, PreToolUse, Result{}).(map[string]any); output["decision"] != "allow" {
+		t.Fatalf("empty result = %#v", output)
 	}
 	if output := HookOutput(harness.Agy, PreToolUse, Result{Decision: Ask, Message: "sure?"}).(map[string]any); output["decision"] != Ask || output["reason"] != "sure?" {
 		t.Fatalf("ask = %#v", output)

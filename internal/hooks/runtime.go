@@ -263,6 +263,10 @@ func Dispatch(ctx context.Context, arguments DispatchArgs) (DispatchOutcome, err
 		fired++
 	}
 	if fired == 0 && merged.Decision != Deny {
+		if arguments.Target == harness.Agy {
+			// Antigravity denies a tool call whose hook answers without a decision
+			return DispatchOutcome{JSON: HookOutput(arguments.Target, arguments.Event, Result{})}, nil
+		}
 		return DispatchOutcome{JSON: map[string]any{}}, nil
 	}
 	exitCode := 0
