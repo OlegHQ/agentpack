@@ -124,6 +124,14 @@
    "sha256": "323544db97a37a59969f29c9c1a87fa0278939ae7d40c92e4e5f28c55ca10060",
    "exe": "skillshare/bin/skillshare"
   },
+  "openpackage": {
+   "name": "OpenPackage (opkg)",
+   "version": "0.11.3",
+   "repo": "enulus/openpackage",
+   "npm_separate": "opkg",
+   "integrity": "sha512-yxoFBHatB0dt1/2EhXseYA32DirWWcE5wbP4aLtLuiQqZFXSLdxZZ0Xu/N7ST9tmvMfFQ9gbUWdxCXFIcFC3mw==",
+   "exe": "opkg/node_modules/.bin/opkg"
+  },
   "native": {
    "name": "Each agent's own install command (no tool)",
    "version": "agent versions above"
@@ -257,7 +265,7 @@
   "hook",
   "mcp"
  ],
- "script_sha256": "d29ec151c00eea31ddcda0b217da9113c1ca9f90f296aabe237417cbbb2c67d2",
+ "script_sha256": "4c566f58ba4b1cd2dee479928b6d1f5ea6ae3f73d1a0805e1701ca71c43c4daf",
  "cell_legend": "per agent, kinds in order skill, command, agent(subagent), rule, hook, mcp",
  "scoring_rule": "(one rule, applied by score() to the stored evidence of every tool, the no-tool route\nand Agentpack alike; no cell is edited afterwards):\n\n  1. A cell is one input x one agent x one kind of content, and exists when the input has items of\n     that kind. An item is found by name (or, for rules, by a distinctive line of its body). Hooks\n     are one item per input: the item is found when a hook file names at least one of the input's\n     hook scripts; single events are not compared.\n  2. Where the agent has a listing that needs no model (see listing(); \"covers\" names the kinds),\n     the item counts only if the agent lists it. A file that the agent does not list does not count.\n  3. Where the agent has no such listing for the kind, the item counts if a file holds it at a\n     location the agent documents (LOCATIONS), relative to the HOME the agent is started with.\n  4. MCP servers must also be the input's server: same launcher and package, or same URL host\n     (mcp_same()). Codex, OpenCode and Grok print the command or URL in their listing, so the listing\n     decides. Cursor's `mcp list` prints a name and a status only (\"the CLI uses the same\n     configuration as the editor\", cursor.com/docs/cli/mcp), so for Cursor the name must be listed\n     AND the mcp.json Cursor reads (project .cursor/mcp.json or ~/.cursor/mcp.json) must define that\n     name as the input's server. The status Cursor prints (needs approval, requires authentication)\n     is recorded and does not change the cell. For an input with a stdio server the Cursor listing\n     is not run (it would start the server), and rule 3 applies.\n  5. Status: native = every item of the cell counts; converted = every item is present, at least one\n     as another kind (a command as a skill); partial = some; absent = none. Two cells are conversions\n     by the agent's own design: hooks on OpenCode (it has plugins, not hook files) and commands on\n     Antigravity (it has no command kind: `agy plugin validate` reports a plugin's commands as\n     \"processed (converted to skills)\").\n  6. Two listings that decide cells in a non-obvious way. Grok's `inspect` puts commands in its\n     skills list with their source: an entry from a commands/ file is a command, one from a skills/\n     file is a skill, one whose source is a plugin counts for either. For Antigravity, hooks that\n     come in a plugin are decided by Antigravity's own plugin commands: `agy plugin list` (\"Components:\n     ... N hooks\" for an installed plugin) or `agy plugin validate <plugin directory>` (\"hooks : N\n     processed\" against \"hooks : skipped (not found)\"); hooks outside a plugin by rule 3.\n  7. A listing command that times out, or a probe that raises, makes the whole run invalid (it is\n     run again with --resume); it is never read as \"the agent lists nothing\". An agent that rejects\n     the configuration a tool wrote (exit status and message are stored) does list nothing.",
  "locations_for_file_checks": {
@@ -1694,6 +1702,102 @@
      ".claude/backups"
     ],
     "home_other_dirs": [],
+    "outside_dirs": []
+   }
+  },
+  "openpackage": {
+   "inputs_run": 9,
+   "invalid_runs": [],
+   "inputs_accepted_as_published": 6,
+   "inputs_accepted_and_something_delivered": 4,
+   "inputs_accepted_and_nothing_delivered": [
+    "claude-plugin-playwright-mcp",
+    "cursor-plugin-create-plugin"
+   ],
+   "inputs_not_accepted": {
+    "codex-plugin-sentry": "no",
+    "cursor-plugin-playwright-mcp": "no",
+    "marketplace-catalog-stripe": "no"
+   },
+   "cells": {
+    "native": 50,
+    "converted": 0,
+    "partial": 0,
+    "absent": 112,
+    "total": 162
+   },
+   "kind_coverage": {
+    "skill": {
+     "inputs_with_kind": 7,
+     "agents_in_every_input": 0,
+     "agents_native_in_every_input": 0,
+     "agents_in_some_input": 6
+    },
+    "command": {
+     "inputs_with_kind": 4,
+     "agents_in_every_input": 0,
+     "agents_native_in_every_input": 0,
+     "agents_in_some_input": 3
+    },
+    "agent": {
+     "inputs_with_kind": 5,
+     "agents_in_every_input": 0,
+     "agents_native_in_every_input": 0,
+     "agents_in_some_input": 4
+    },
+    "rule": {
+     "inputs_with_kind": 1,
+     "agents_in_every_input": 0,
+     "agents_native_in_every_input": 0,
+     "agents_in_some_input": 0
+    },
+    "hook": {
+     "inputs_with_kind": 4,
+     "agents_in_every_input": 0,
+     "agents_native_in_every_input": 0,
+     "agents_in_some_input": 0
+    },
+    "mcp": {
+     "inputs_with_kind": 6,
+     "agents_in_every_input": 0,
+     "agents_native_in_every_input": 0,
+     "agents_in_some_input": 4
+    }
+   },
+   "lockfile": {
+    "inputs_with_a_lockfile": 7,
+    "inputs_where_it_records_the_pinned_commit": 0,
+    "inputs_where_it_records_a_content_hash": 0,
+    "paths": [
+     "project/.openpackage/openpackage.lock"
+    ]
+   },
+   "npx_mcp_package_as_delivered": {
+    "claude-plugin-playwright-mcp": [
+     "@playwright/mcp@latest"
+    ]
+   },
+   "npx_mcp_exact_version_everywhere": {
+    "claude-plugin-playwright-mcp": false
+   },
+   "writes": {
+    "project_files_max": 2198,
+    "runs_writing_to_project": 7,
+    "project_top_level": [
+     ".agent",
+     ".agents",
+     ".claude",
+     ".codex",
+     ".cursor",
+     ".mcp.json",
+     ".opencode",
+     ".openpackage"
+    ],
+    "home_agent_config_files_max": 0,
+    "home_agent_config_dirs": [],
+    "home_other_dirs": [
+     ".openpackage"
+    ],
     "outside_dirs": []
    }
   },
@@ -39141,6 +39245,6724 @@
    },
    "project_files_written": [
     ".claude/settings.json"
+   ],
+   "project_writes_at_launch": [],
+   "writes_outside_run_root": null,
+   "agentpack_sha256": null
+  },
+  "openpackage--bare-skill-webapp-testing": {
+   "tool": "openpackage",
+   "input": "bare-skill-webapp-testing",
+   "run_root": "/tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/eco-opkg-t2/runs/openpackage--bare-skill-webapp-testing",
+   "github_token_passed_to_steps": true,
+   "invalid": null,
+   "steps_timed_out": [],
+   "rate_limit_notices_on_successful_steps": [],
+   "documented_usage": "README: opkg install <GitHub URL to a resource> [--plugins NAME] --platforms ...; no Grok platform",
+   "note": null,
+   "accepted_as_published": "yes",
+   "reason": null,
+   "native_per_agent": null,
+   "repackaging": null,
+   "needs_local_clone": false,
+   "steps": [
+    {
+     "argv": [
+      "/tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/eco-tools/opkg/node_modules/.bin/opkg",
+      "install",
+      "https://github.com/anthropics/skills/tree/dbd4588f9e1033efb41dad4bef2f7947c8993d44/skills/webapp-testing",
+      "--platforms",
+      "claude",
+      "codex",
+      "opencode",
+      "cursor",
+      "antigravity"
+     ],
+     "exit": 0,
+     "seconds": 183.5,
+     "output_tail": ".opencode/skills/xlsx/scripts/office/validate.py\n  \u251c\u2500\u2500 .opencode/skills/xlsx/scripts/office/validators/__init__.py\n  \u251c\u2500\u2500 .opencode/skills/xlsx/scripts/office/validators/base.py\n  \u251c\u2500\u2500 .opencode/skills/xlsx/scripts/office/validators/docx.py\n  \u251c\u2500\u2500 .opencode/skills/xlsx/scripts/office/validators/pptx.py\n  \u251c\u2500\u2500 .opencode/skills/xlsx/scripts/office/validators/redlining.py\n  \u251c\u2500\u2500 .opencode/skills/xlsx/scripts/recalc.py\n  \u2514\u2500\u2500 .opencode/skills/xlsx/SKILL.md\n- Loading https://github.com/anthropics/skills/tree/dbd4588f9e1033efb41dad4bef2f7947c8993d44/skills/webapp-testing\n\u2714 Loaded https://github.com/anthropics/skills/tree/dbd4588f9e1033efb41dad4bef2f7947c8993d44/skills/webapp-testing\n- Installing gh@anthropics/skills/skills/webapp-testing\n\u2714 Prepared gh@anthropics/skills/skills/webapp-testing\n- Installing gh@anthropics/skills/skills/webapp-testing\n\u2714 Installed gh@anthropics/skills/skills/webapp-testing",
+     "optional": false
+    }
+   ],
+   "expected": {
+    "skill": [
+     "webapp-testing"
+    ]
+   },
+   "expected_items": {
+    "skill": {
+     "webapp-testing": {
+      "aliases": [
+       "webapp-testing"
+      ],
+      "marker": "**Always run scripts with `--help` first** to see usage. DO NOT read the source until you try running the script first a"
+     }
+    },
+    "command": {},
+    "agent": {},
+    "rule": {},
+    "hook": {},
+    "mcp": {}
+   },
+   "evidence": {
+    "claude": {
+     "covers": [
+      "skill",
+      "command",
+      "agent"
+     ],
+     "listed": {
+      "skill": {
+       "slack-gif-creator": "init.skills",
+       "pptx": "init.skills",
+       "mcp-builder": "init.skills",
+       "doc-coauthoring": "init.skills",
+       "canvas-design": "init.skills",
+       "academy-guide": "init.skills",
+       "theme-factory": "init.skills",
+       "algorithmic-art": "init.skills",
+       "webapp-testing": "init.skills",
+       "docx": "init.skills",
+       "frontend-design": "init.skills",
+       "web-artifacts-builder": "init.skills",
+       "skill-creator": "init.skills",
+       "discernment-nudge": "init.skills",
+       "xlsx": "init.skills",
+       "pdf": "init.skills",
+       "internal-comms": "init.skills",
+       "brand-guidelines": "init.skills"
+      },
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "codex": {
+     "covers": [
+      "skill",
+      "mcp"
+     ],
+     "listed": {
+      "skill": {
+       "academy-guide": "debug prompt-input",
+       "algorithmic-art": "debug prompt-input",
+       "brand-guidelines": "debug prompt-input",
+       "canvas-design": "debug prompt-input",
+       "claude-api": "debug prompt-input",
+       "discernment-nudge": "debug prompt-input",
+       "doc-coauthoring": "debug prompt-input",
+       "docx": "debug prompt-input",
+       "frontend-design": "debug prompt-input",
+       "internal-comms": "debug prompt-input",
+       "mcp-builder": "debug prompt-input",
+       "pdf": "debug prompt-input",
+       "pptx": "debug prompt-input",
+       "slack-gif-creator": "debug prompt-input",
+       "theme-factory": "debug prompt-input",
+       "web-artifacts-builder": "debug prompt-input",
+       "webapp-testing": "debug prompt-input",
+       "xlsx": "debug prompt-input"
+      },
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "opencode": {
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp"
+     ],
+     "listed": {
+      "skill": {
+       "xlsx": "debug skill: ns/openpackage--bare-skill-webapp-testing/project/.opencode/skills/xlsx/SKILL.md",
+       "webapp-testing": "debug skill: ackage--bare-skill-webapp-testing/project/.agents/skills/webapp-testing/SKILL.md",
+       "algorithmic-art": "debug skill: ckage--bare-skill-webapp-testing/project/.agents/skills/algorithmic-art/SKILL.md",
+       "frontend-design": "debug skill: ckage--bare-skill-webapp-testing/project/.agents/skills/frontend-design/SKILL.md",
+       "brand-guidelines": "debug skill: kage--bare-skill-webapp-testing/project/.agents/skills/brand-guidelines/SKILL.md",
+       "theme-factory": "debug skill: package--bare-skill-webapp-testing/project/.agents/skills/theme-factory/SKILL.md",
+       "canvas-design": "debug skill: package--bare-skill-webapp-testing/project/.agents/skills/canvas-design/SKILL.md",
+       "academy-guide": "debug skill: package--bare-skill-webapp-testing/project/.agents/skills/academy-guide/SKILL.md",
+       "slack-gif-creator": "debug skill: age--bare-skill-webapp-testing/project/.agents/skills/slack-gif-creator/SKILL.md",
+       "claude-api": "debug skill: penpackage--bare-skill-webapp-testing/project/.agents/skills/claude-api/SKILL.md",
+       "mcp-builder": "debug skill: enpackage--bare-skill-webapp-testing/project/.agents/skills/mcp-builder/SKILL.md",
+       "internal-comms": "debug skill: ackage--bare-skill-webapp-testing/project/.agents/skills/internal-comms/SKILL.md",
+       "pptx": "debug skill: ns/openpackage--bare-skill-webapp-testing/project/.opencode/skills/pptx/SKILL.md",
+       "doc-coauthoring": "debug skill: age--bare-skill-webapp-testing/project/.opencode/skills/doc-coauthoring/SKILL.md",
+       "discernment-nudge": "debug skill: e--bare-skill-webapp-testing/project/.opencode/skills/discernment-nudge/SKILL.md",
+       "docx": "debug skill: ns/openpackage--bare-skill-webapp-testing/project/.opencode/skills/docx/SKILL.md",
+       "skill-creator": "debug skill: ckage--bare-skill-webapp-testing/project/.opencode/skills/skill-creator/SKILL.md",
+       "pdf": "debug skill: uns/openpackage--bare-skill-webapp-testing/project/.opencode/skills/pdf/SKILL.md",
+       "web-artifacts-builder": "debug skill: -bare-skill-webapp-testing/project/.agents/skills/web-artifacts-builder/SKILL.md"
+      },
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "cursor": {
+     "covers": [
+      "mcp"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {
+       "webapp-testing": "project/.claude/skills/webapp-testing/SKILL.md",
+       "algorithmic-art": "project/.claude/skills/algorithmic-art/SKILL.md",
+       "frontend-design": "project/.claude/skills/frontend-design/SKILL.md",
+       "brand-guidelines": "project/.claude/skills/brand-guidelines/SKILL.md",
+       "theme-factory": "project/.claude/skills/theme-factory/SKILL.md",
+       "canvas-design": "project/.claude/skills/canvas-design/SKILL.md",
+       "academy-guide": "project/.claude/skills/academy-guide/SKILL.md",
+       "slack-gif-creator": "project/.claude/skills/slack-gif-creator/SKILL.md",
+       "claude-api": "project/.claude/skills/claude-api/SKILL.md",
+       "mcp-builder": "project/.claude/skills/mcp-builder/SKILL.md",
+       "internal-comms": "project/.claude/skills/internal-comms/SKILL.md",
+       "web-artifacts-builder": "project/.claude/skills/web-artifacts-builder/SKILL.md",
+       "pptx": "project/.claude/skills/pptx/SKILL.md",
+       "doc-coauthoring": "project/.claude/skills/doc-coauthoring/SKILL.md",
+       "discernment-nudge": "project/.claude/skills/discernment-nudge/SKILL.md",
+       "docx": "project/.claude/skills/docx/SKILL.md",
+       "skill-creator": "project/.claude/skills/skill-creator/SKILL.md",
+       "pdf": "project/.claude/skills/pdf/SKILL.md",
+       "xlsx": "project/.claude/skills/xlsx/SKILL.md"
+      },
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "grok": {
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp",
+      "hook"
+     ],
+     "listed": {
+      "skill": {
+       "academy-guide": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk",
+       "algorithmic-art": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk",
+       "brand-guidelines": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk",
+       "canvas-design": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk",
+       "claude-api": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk",
+       "discernment-nudge": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk",
+       "doc-coauthoring": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk",
+       "docx": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk",
+       "frontend-design": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk",
+       "internal-comms": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk",
+       "mcp-builder": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk",
+       "pdf": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk",
+       "pptx": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk",
+       "skill-creator": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk",
+       "slack-gif-creator": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk",
+       "theme-factory": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk",
+       "web-artifacts-builder": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk",
+       "webapp-testing": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk",
+       "xlsx": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk"
+      },
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "agy": {
+     "covers": [],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {
+       "webapp-testing": "project/.agents/skills/webapp-testing/SKILL.md",
+       "algorithmic-art": "project/.agents/skills/algorithmic-art/SKILL.md",
+       "frontend-design": "project/.agents/skills/frontend-design/SKILL.md",
+       "brand-guidelines": "project/.agents/skills/brand-guidelines/SKILL.md",
+       "theme-factory": "project/.agents/skills/theme-factory/SKILL.md",
+       "canvas-design": "project/.agents/skills/canvas-design/SKILL.md",
+       "academy-guide": "project/.agents/skills/academy-guide/SKILL.md",
+       "slack-gif-creator": "project/.agents/skills/slack-gif-creator/SKILL.md",
+       "claude-api": "project/.agents/skills/claude-api/SKILL.md",
+       "mcp-builder": "project/.agents/skills/mcp-builder/SKILL.md",
+       "internal-comms": "project/.agents/skills/internal-comms/SKILL.md",
+       "web-artifacts-builder": "project/.agents/skills/web-artifacts-builder/SKILL.md",
+       "pptx": "project/.agents/skills/pptx/SKILL.md",
+       "doc-coauthoring": "project/.agents/skills/doc-coauthoring/SKILL.md",
+       "discernment-nudge": "project/.agents/skills/discernment-nudge/SKILL.md",
+       "docx": "project/.agents/skills/docx/SKILL.md",
+       "skill-creator": "project/.agents/skills/skill-creator/SKILL.md",
+       "pdf": "project/.agents/skills/pdf/SKILL.md",
+       "xlsx": "project/.agents/skills/xlsx/SKILL.md"
+      },
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    }
+   },
+   "cells": {
+    "claude": {
+     "skill": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "webapp-testing: listed by the agent (init.skills)"
+      ]
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "n/a",
+      "expected": 0
+     }
+    },
+    "codex": {
+     "skill": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "webapp-testing: listed by the agent (debug prompt-input)"
+      ]
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "n/a",
+      "expected": 0
+     }
+    },
+    "opencode": {
+     "skill": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "webapp-testing: listed by the agent (debug skill: ackage--bare-skill-webapp-testing/project/.agents/skills/webapp-testing/SKILL.md)"
+      ]
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "n/a",
+      "expected": 0
+     }
+    },
+    "cursor": {
+     "skill": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": [
+       "webapp-testing: file project/.claude/skills/webapp-testing/SKILL.md"
+      ]
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "n/a",
+      "expected": 0
+     }
+    },
+    "grok": {
+     "skill": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "webapp-testing: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk)"
+      ]
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "n/a",
+      "expected": 0
+     }
+    },
+    "agy": {
+     "skill": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": [
+       "webapp-testing: file project/.agents/skills/webapp-testing/SKILL.md"
+      ]
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "n/a",
+      "expected": 0
+     }
+    }
+   },
+   "probes": {
+    "claude": {
+     "listing": {
+      "skill": [
+       "academy-guide",
+       "algorithmic-art",
+       "brand-guidelines",
+       "canvas-design",
+       "discernment-nudge",
+       "doc-coauthoring",
+       "docx",
+       "frontend-design",
+       "internal-comms",
+       "mcp-builder",
+       "pdf",
+       "pptx",
+       "skill-creator",
+       "slack-gif-creator",
+       "theme-factory",
+       "web-artifacts-builder",
+       "webapp-testing",
+       "xlsx"
+      ]
+     },
+     "plugins": [
+      "cc-plugin-agents-md (cc-plugin-agents-md@builtin)",
+      "cc-plugin-plugin-authoring (cc-plugin-plugin-authoring@builtin)"
+     ],
+     "covers": [
+      "skill",
+      "command",
+      "agent"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "claude -p x --output-format stream-json --verbose --strict-mcp-config --settings {\"disableAllHooks\":true}",
+       "exit": 1,
+       "seconds": 1.9,
+       "stderr_tail": ""
+      },
+      {
+       "command": "claude plugin list --json",
+       "exit": 0,
+       "seconds": 0.6,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "codex": {
+     "listing": {
+      "skill": [
+       "academy-guide",
+       "algorithmic-art",
+       "brand-guidelines",
+       "canvas-design",
+       "claude-api",
+       "discernment-nudge",
+       "doc-coauthoring",
+       "docx",
+       "frontend-design",
+       "internal-comms",
+       "mcp-builder",
+       "pdf",
+       "pptx",
+       "slack-gif-creator",
+       "theme-factory",
+       "web-artifacts-builder",
+       "webapp-testing",
+       "xlsx"
+      ]
+     },
+     "covers": [
+      "skill",
+      "mcp"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "codex -c cli_auth_credentials_store=\"file\" -c cloud_skill_enabled=false debug prompt-input",
+       "exit": 0,
+       "seconds": 0.3,
+       "stderr_tail": ""
+      },
+      {
+       "command": "codex mcp list --json",
+       "exit": 0,
+       "seconds": 0.1,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "opencode": {
+     "listing": {
+      "skill": [
+       "academy-guide",
+       "algorithmic-art",
+       "brand-guidelines",
+       "canvas-design",
+       "claude-api",
+       "discernment-nudge",
+       "doc-coauthoring",
+       "docx",
+       "frontend-design",
+       "internal-comms",
+       "mcp-builder",
+       "pdf",
+       "pptx",
+       "skill-creator",
+       "slack-gif-creator",
+       "theme-factory",
+       "web-artifacts-builder",
+       "webapp-testing",
+       "xlsx"
+      ]
+     },
+     "plugin": [],
+     "instructions": null,
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "opencode debug config",
+       "exit": 0,
+       "seconds": 4.6,
+       "stderr_tail": ""
+      },
+      {
+       "command": "opencode debug skill",
+       "exit": 0,
+       "seconds": 4.0,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "cursor": {
+     "listing": {},
+     "covers": [
+      "mcp"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "cursor-agent mcp list",
+       "exit": 0,
+       "seconds": 3.7,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "grok": {
+     "listing": {
+      "skill": [
+       "academy-guide",
+       "algorithmic-art",
+       "brand-guidelines",
+       "canvas-design",
+       "claude-api",
+       "discernment-nudge",
+       "doc-coauthoring",
+       "docx",
+       "frontend-design",
+       "internal-comms",
+       "mcp-builder",
+       "pdf",
+       "pptx",
+       "skill-creator",
+       "slack-gif-creator",
+       "theme-factory",
+       "web-artifacts-builder",
+       "webapp-testing",
+       "xlsx"
+      ]
+     },
+     "plugins": [],
+     "projectInstructions": [],
+     "hooks": [],
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp",
+      "hook"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "grok inspect --json",
+       "exit": 0,
+       "seconds": 0.2,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "agy": {
+     "listing": {},
+     "plugin_list": "No plugins installed.",
+     "covers": [],
+     "plugin_validate": {},
+     "error": null,
+     "commands": [
+      {
+       "command": "agy plugin list",
+       "exit": 0,
+       "seconds": 0.4,
+       "stderr_tail": ""
+      }
+     ]
+    }
+   },
+   "lockfiles": [
+    {
+     "path": "project/.openpackage/openpackage.lock",
+     "bytes": 377,
+     "records_a_commit": false,
+     "records_the_pinned_commit": false,
+     "records_a_content_hash": false,
+     "mcp_package_lines": [],
+     "sha256": "0fed5a1cba417212f44f7b28b459612de593908ec04b21631a40820ce65bf141"
+    }
+   ],
+   "mcp_package_as_delivered": {},
+   "writes": {
+    "project_files": 2198,
+    "project_top_level": [
+     ".agent",
+     ".agents",
+     ".claude",
+     ".cursor",
+     ".opencode",
+     ".openpackage"
+    ],
+    "home_agent_config_files": 0,
+    "home_agent_config_dirs": [],
+    "home_other_files": 888,
+    "home_other_dirs": [
+     ".openpackage"
+    ],
+    "outside_project_and_home_files": 0,
+    "outside_dirs": []
+   },
+   "project_files_written": [
+    ".agent/skills/academy-guide/LICENSE.txt",
+    ".agent/skills/academy-guide/SKILL.md",
+    ".agent/skills/algorithmic-art/LICENSE.txt",
+    ".agent/skills/algorithmic-art/SKILL.md",
+    ".agent/skills/algorithmic-art/templates/generator_template.js",
+    ".agent/skills/algorithmic-art/templates/viewer.html",
+    ".agent/skills/brand-guidelines/LICENSE.txt",
+    ".agent/skills/brand-guidelines/SKILL.md",
+    ".agent/skills/canvas-design/LICENSE.txt",
+    ".agent/skills/canvas-design/SKILL.md",
+    ".agent/skills/canvas-design/canvas-fonts/ArsenalSC-OFL.txt",
+    ".agent/skills/canvas-design/canvas-fonts/ArsenalSC-Regular.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/BigShoulders-Bold.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/BigShoulders-OFL.txt",
+    ".agent/skills/canvas-design/canvas-fonts/BigShoulders-Regular.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/Boldonse-OFL.txt",
+    ".agent/skills/canvas-design/canvas-fonts/Boldonse-Regular.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/BricolageGrotesque-Bold.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/BricolageGrotesque-OFL.txt",
+    ".agent/skills/canvas-design/canvas-fonts/BricolageGrotesque-Regular.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/CrimsonPro-Bold.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/CrimsonPro-Italic.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/CrimsonPro-OFL.txt",
+    ".agent/skills/canvas-design/canvas-fonts/CrimsonPro-Regular.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/DMMono-OFL.txt",
+    ".agent/skills/canvas-design/canvas-fonts/DMMono-Regular.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/EricaOne-OFL.txt",
+    ".agent/skills/canvas-design/canvas-fonts/EricaOne-Regular.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/GeistMono-Bold.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/GeistMono-OFL.txt",
+    ".agent/skills/canvas-design/canvas-fonts/GeistMono-Regular.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/Gloock-OFL.txt",
+    ".agent/skills/canvas-design/canvas-fonts/Gloock-Regular.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/IBMPlexMono-Bold.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/IBMPlexMono-OFL.txt",
+    ".agent/skills/canvas-design/canvas-fonts/IBMPlexMono-Regular.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/IBMPlexSerif-Bold.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/IBMPlexSerif-BoldItalic.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/IBMPlexSerif-Italic.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/IBMPlexSerif-Regular.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/InstrumentSans-Bold.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/InstrumentSans-BoldItalic.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/InstrumentSans-Italic.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/InstrumentSans-OFL.txt",
+    ".agent/skills/canvas-design/canvas-fonts/InstrumentSans-Regular.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/InstrumentSerif-Italic.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/InstrumentSerif-Regular.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/Italiana-OFL.txt",
+    ".agent/skills/canvas-design/canvas-fonts/Italiana-Regular.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/JetBrainsMono-Bold.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/JetBrainsMono-OFL.txt",
+    ".agent/skills/canvas-design/canvas-fonts/JetBrainsMono-Regular.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/Jura-Light.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/Jura-Medium.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/Jura-OFL.txt",
+    ".agent/skills/canvas-design/canvas-fonts/LibreBaskerville-OFL.txt",
+    ".agent/skills/canvas-design/canvas-fonts/LibreBaskerville-Regular.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/Lora-Bold.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/Lora-BoldItalic.ttf",
+    ".agent/skills/canvas-design/canvas-fonts/Lora-Italic.ttf"
+   ],
+   "project_writes_at_launch": [
+    ".opencode/.gitignore"
+   ],
+   "writes_outside_run_root": null,
+   "agentpack_sha256": null
+  },
+  "openpackage--claude-plugin-hookify": {
+   "tool": "openpackage",
+   "input": "claude-plugin-hookify",
+   "run_root": "/tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/eco-opkg-t2/runs/openpackage--claude-plugin-hookify",
+   "github_token_passed_to_steps": true,
+   "invalid": null,
+   "steps_timed_out": [],
+   "rate_limit_notices_on_successful_steps": [],
+   "documented_usage": "README: opkg install <GitHub URL to a resource> [--plugins NAME] --platforms ...; no Grok platform",
+   "note": null,
+   "accepted_as_published": "yes",
+   "reason": null,
+   "native_per_agent": null,
+   "repackaging": null,
+   "needs_local_clone": false,
+   "steps": [
+    {
+     "argv": [
+      "/tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/eco-tools/opkg/node_modules/.bin/opkg",
+      "install",
+      "https://github.com/anthropics/claude-plugins-official/tree/f359d43b406057f1a8cdbc4ea93b827642c162e6/plugins/hookify",
+      "--platforms",
+      "claude",
+      "codex",
+      "opencode",
+      "cursor",
+      "antigravity"
+     ],
+     "exit": 0,
+     "seconds": 8.5,
+     "output_tail": "nfigure.md\n  \u251c\u2500\u2500 .cursor/commands/help.md\n  \u251c\u2500\u2500 .cursor/commands/hookify.md\n  \u251c\u2500\u2500 .cursor/commands/list.md\n  \u251c\u2500\u2500 .cursor/skills/writing-rules/SKILL.md\n  \u251c\u2500\u2500 .opencode/agents/conversation-analyzer.md\n  \u251c\u2500\u2500 .opencode/commands/configure.md\n  \u251c\u2500\u2500 .opencode/commands/help.md\n  \u251c\u2500\u2500 .opencode/commands/hookify.md\n  \u251c\u2500\u2500 .opencode/commands/list.md\n  \u2514\u2500\u2500 .opencode/skills/writing-rules/SKILL.md\n- Loading https://github.com/anthropics/claude-plugins-official/tree/f359d43b406057f1a8cdbc4ea93b827642c162e6/plugins/hookify\n\u2714 Loaded https://github.com/anthropics/claude-plugins-official/tree/f359d43b406057f1a8cdbc4ea93b827642c162e6/plugins/hookify\n- Installing gh@anthropics/claude-plugins-official/plugins/hookify\n\u2714 Prepared gh@anthropics/claude-plugins-official/plugins/hookify\n- Installing gh@anthropics/claude-plugins-official/plugins/hookify\n\u2714 Installed gh@anthropics/claude-plugins-official/plugins/hookify",
+     "optional": false
+    }
+   ],
+   "expected": {
+    "skill": [
+     "writing-rules"
+    ],
+    "command": [
+     "configure",
+     "help",
+     "hookify",
+     "list"
+    ],
+    "agent": [
+     "conversation-analyzer"
+    ],
+    "hook": [
+     "hooks"
+    ]
+   },
+   "expected_items": {
+    "skill": {
+     "writing-rules": {
+      "aliases": [
+       "writing-hookify-rules",
+       "writing-rules"
+      ],
+      "marker": "Hookify rules are markdown files with YAML frontmatter that define patterns to watch for and messages to show when those"
+     }
+    },
+    "command": {
+     "configure": {
+      "aliases": [
+       "configure"
+      ],
+      "marker": "- Use Edit tool to change `enabled: true` to `enabled: false` (or vice versa)"
+     },
+     "help": {
+      "aliases": [
+       "help"
+      ],
+      "marker": "The hookify plugin makes it easy to create custom hooks that prevent unwanted behaviors. Instead of editing `hooks.json`"
+     },
+     "hookify": {
+      "aliases": [
+       "hookify"
+      ],
+      "marker": "- **File location**: Create files in project's `.claude/` directory (current working directory), NOT the plugin's .claud"
+     },
+     "list": {
+      "aliases": [
+       "list"
+      ],
+      "marker": "**Message**: \"\u26a0\ufe0f **Dangerous rm command detected!** This command could delete...\""
+     }
+    },
+    "agent": {
+     "conversation-analyzer": {
+      "aliases": [
+       "conversation-analyzer"
+      ],
+      "marker": "- **Scenario A \u2014 `/hookify` invoked with no arguments.** Treat the bare `/hookify` invocation as a request to analyze th"
+     }
+    },
+    "rule": {},
+    "hook": {
+     "hooks": {
+      "aliases": [
+       "hooks"
+      ],
+      "events": [
+       "PostToolUse",
+       "PreToolUse",
+       "Stop",
+       "UserPromptSubmit"
+      ],
+      "scripts": [
+       "posttooluse.py",
+       "pretooluse.py",
+       "stop.py",
+       "userpromptsubmit.py"
+      ]
+     }
+    },
+    "mcp": {}
+   },
+   "evidence": {
+    "claude": {
+     "covers": [
+      "skill",
+      "command",
+      "agent"
+     ],
+     "listed": {
+      "skill": {
+       "writing-rules": "init.skills"
+      },
+      "command": {
+       "configure": "init.slash_commands",
+       "help": "init.slash_commands",
+       "hookify": "init.slash_commands",
+       "list": "init.slash_commands"
+      },
+      "agent": {
+       "conversation-analyzer": "init.agents"
+      },
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "codex": {
+     "covers": [
+      "skill",
+      "mcp"
+     ],
+     "listed": {
+      "skill": {
+       "writing-hookify-rules": "debug prompt-input"
+      },
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {
+       "conversation-analyzer": "project/.codex/agents/conversation-analyzer.toml"
+      },
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "opencode": {
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "cursor": {
+     "covers": [
+      "mcp"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {
+       "writing-rules": "project/.claude/skills/writing-rules/SKILL.md",
+       "writing-hookify-rules": "project/.claude/skills/writing-rules/SKILL.md"
+      },
+      "command": {
+       "list": "project/.cursor/commands/list.md",
+       "configure": "project/.cursor/commands/configure.md",
+       "hookify": "project/.cursor/commands/hookify.md",
+       "help": "project/.cursor/commands/help.md"
+      },
+      "agent": {
+       "conversation-analyzer": "project/.codex/agents/conversation-analyzer.toml"
+      },
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "grok": {
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp",
+      "hook"
+     ],
+     "listed": {
+      "skill": {
+       "writing-hookify-rules": "inspect: {\"type\": \"project\", \"path\": \"project/.claude/skills"
+      },
+      "command": {
+       "configure": "inspect: {\"type\": \"project\", \"path\": \"project/.claude/comman",
+       "help": "inspect: {\"type\": \"project\", \"path\": \"project/.claude/comman",
+       "hookify": "inspect: {\"type\": \"project\", \"path\": \"project/.claude/comman",
+       "list": "inspect: {\"type\": \"project\", \"path\": \"project/.claude/comman"
+      },
+      "agent": {
+       "conversation-analyzer": "inspect: {\"type\": \"project\", \"path\": \"project/.claude/agents"
+      },
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "agy": {
+     "covers": [],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {
+       "writing-rules": "project/.agents/skills/writing-rules/SKILL.md",
+       "writing-hookify-rules": "project/.agents/skills/writing-rules/SKILL.md"
+      },
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    }
+   },
+   "cells": {
+    "claude": {
+     "skill": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "writing-rules: listed by the agent (init.skills)"
+      ]
+     },
+     "command": {
+      "status": "native",
+      "expected": 4,
+      "delivered": 4,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "configure: listed by the agent (init.slash_commands)",
+       "help: listed by the agent (init.slash_commands)",
+       "hookify: listed by the agent (init.slash_commands)",
+       "list: listed by the agent (init.slash_commands)"
+      ]
+     },
+     "agent": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "conversation-analyzer: listed by the agent (init.agents)"
+      ]
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "mcp": {
+      "status": "n/a",
+      "expected": 0
+     }
+    },
+    "codex": {
+     "skill": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "writing-rules: listed by the agent (debug prompt-input)"
+      ]
+     },
+     "command": {
+      "status": "absent",
+      "expected": 4,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "agent": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": [
+       "conversation-analyzer: file project/.codex/agents/conversation-analyzer.toml"
+      ]
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "mcp": {
+      "status": "n/a",
+      "expected": 0
+     }
+    },
+    "opencode": {
+     "skill": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "command": {
+      "status": "absent",
+      "expected": 4,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "agent": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "mcp": {
+      "status": "n/a",
+      "expected": 0
+     }
+    },
+    "cursor": {
+     "skill": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": [
+       "writing-rules: file project/.claude/skills/writing-rules/SKILL.md"
+      ]
+     },
+     "command": {
+      "status": "native",
+      "expected": 4,
+      "delivered": 4,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": [
+       "configure: file project/.cursor/commands/configure.md",
+       "help: file project/.cursor/commands/help.md",
+       "hookify: file project/.cursor/commands/hookify.md",
+       "list: file project/.cursor/commands/list.md"
+      ]
+     },
+     "agent": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": [
+       "conversation-analyzer: file project/.codex/agents/conversation-analyzer.toml"
+      ]
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "mcp": {
+      "status": "n/a",
+      "expected": 0
+     }
+    },
+    "grok": {
+     "skill": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "writing-rules: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.claude/skills)"
+      ]
+     },
+     "command": {
+      "status": "native",
+      "expected": 4,
+      "delivered": 4,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "configure: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.claude/comman)",
+       "help: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.claude/comman)",
+       "hookify: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.claude/comman)",
+       "list: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.claude/comman)"
+      ]
+     },
+     "agent": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "conversation-analyzer: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.claude/agents)"
+      ]
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "mcp": {
+      "status": "n/a",
+      "expected": 0
+     }
+    },
+    "agy": {
+     "skill": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": [
+       "writing-rules: file project/.agents/skills/writing-rules/SKILL.md"
+      ]
+     },
+     "command": {
+      "status": "absent",
+      "expected": 4,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "agent": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "mcp": {
+      "status": "n/a",
+      "expected": 0
+     }
+    }
+   },
+   "probes": {
+    "claude": {
+     "listing": {
+      "skill": [
+       "writing-rules"
+      ],
+      "command": [
+       "configure",
+       "help",
+       "hookify",
+       "list"
+      ],
+      "agent": [
+       "conversation-analyzer"
+      ]
+     },
+     "plugins": [
+      "cc-plugin-agents-md (cc-plugin-agents-md@builtin)",
+      "cc-plugin-plugin-authoring (cc-plugin-plugin-authoring@builtin)"
+     ],
+     "covers": [
+      "skill",
+      "command",
+      "agent"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "claude -p x --output-format stream-json --verbose --strict-mcp-config --settings {\"disableAllHooks\":true}",
+       "exit": 1,
+       "seconds": 2.0,
+       "stderr_tail": ""
+      },
+      {
+       "command": "claude plugin list --json",
+       "exit": 0,
+       "seconds": 0.9,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "codex": {
+     "listing": {
+      "skill": [
+       "writing-hookify-rules"
+      ]
+     },
+     "covers": [
+      "skill",
+      "mcp"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "codex -c cli_auth_credentials_store=\"file\" -c cloud_skill_enabled=false debug prompt-input",
+       "exit": 0,
+       "seconds": 0.5,
+       "stderr_tail": ""
+      },
+      {
+       "command": "codex mcp list --json",
+       "exit": 0,
+       "seconds": 0.1,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "opencode": {
+     "listing": {},
+     "agent_error": "Error: Configuration is invalid at project/.opencode/agents/conversation-analyzer.md\n\u21b3 Expected a string matching the RegExp ^#[0-9a-fA-F]{6}$, got \"yellow\" color\n\u21b3 Expected \"primary\" | \"secondary\" | \"accent\" | \"success\" | \"warning\" | \"error\" | \"info\", got \"yellow\" color",
+     "plugin": null,
+     "instructions": null,
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "opencode debug config",
+       "exit": 1,
+       "seconds": 7.9,
+       "stderr_tail": "/scratchpad/eco-opkg-t2/runs/openpackage--claude-plugin-hookify/project/.opencode/agents/conversation-analyzer.md\n\u21b3 Expected a string matching the RegExp ^#[0-9a-fA-F]{6}$, got \"yellow\" color\n\u21b3 Expected \"primary\" | \"secondary\" | \"accent\" | \"success\" | \"warning\" | \"error\" | \"info\", got \"yellow\" color"
+      },
+      {
+       "command": "opencode debug skill",
+       "exit": 1,
+       "seconds": 4.2,
+       "stderr_tail": "/scratchpad/eco-opkg-t2/runs/openpackage--claude-plugin-hookify/project/.opencode/agents/conversation-analyzer.md\n\u21b3 Expected a string matching the RegExp ^#[0-9a-fA-F]{6}$, got \"yellow\" color\n\u21b3 Expected \"primary\" | \"secondary\" | \"accent\" | \"success\" | \"warning\" | \"error\" | \"info\", got \"yellow\" color"
+      }
+     ]
+    },
+    "cursor": {
+     "listing": {},
+     "covers": [
+      "mcp"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "cursor-agent mcp list",
+       "exit": 0,
+       "seconds": 4.3,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "grok": {
+     "listing": {
+      "skill": [
+       "writing-hookify-rules"
+      ],
+      "command": [
+       "configure",
+       "help",
+       "hookify",
+       "list"
+      ],
+      "agent": [
+       "conversation-analyzer"
+      ]
+     },
+     "plugins": [],
+     "projectInstructions": [],
+     "hooks": [],
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp",
+      "hook"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "grok inspect --json",
+       "exit": 0,
+       "seconds": 0.2,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "agy": {
+     "listing": {},
+     "plugin_list": "No plugins installed.",
+     "covers": [],
+     "plugin_validate": {},
+     "error": null,
+     "commands": [
+      {
+       "command": "agy plugin list",
+       "exit": 0,
+       "seconds": 0.9,
+       "stderr_tail": ""
+      }
+     ]
+    }
+   },
+   "lockfiles": [
+    {
+     "path": "project/.openpackage/openpackage.lock",
+     "bytes": 400,
+     "records_a_commit": false,
+     "records_the_pinned_commit": false,
+     "records_a_content_hash": false,
+     "mcp_package_lines": [],
+     "sha256": "388cb9f6fc7d9e7fec47ec6026b55eb6174fda4db9d04f29bd6846536a942da5"
+    }
+   ],
+   "mcp_package_as_delivered": {},
+   "writes": {
+    "project_files": 32,
+    "project_top_level": [
+     ".agent",
+     ".agents",
+     ".claude",
+     ".codex",
+     ".cursor",
+     ".opencode",
+     ".openpackage"
+    ],
+    "home_agent_config_files": 0,
+    "home_agent_config_dirs": [],
+    "home_other_files": 585,
+    "home_other_dirs": [
+     ".openpackage"
+    ],
+    "outside_project_and_home_files": 0,
+    "outside_dirs": []
+   },
+   "project_files_written": [
+    ".agent/skills/writing-rules/SKILL.md",
+    ".agent/workflows/configure.md",
+    ".agent/workflows/help.md",
+    ".agent/workflows/hookify.md",
+    ".agent/workflows/list.md",
+    ".agents/skills/writing-rules/SKILL.md",
+    ".claude/agents/conversation-analyzer.md",
+    ".claude/commands/configure.md",
+    ".claude/commands/help.md",
+    ".claude/commands/hookify.md",
+    ".claude/commands/list.md",
+    ".claude/skills/writing-rules/SKILL.md",
+    ".codex/agents/conversation-analyzer.toml",
+    ".codex/prompts/configure.md",
+    ".codex/prompts/help.md",
+    ".codex/prompts/hookify.md",
+    ".codex/prompts/list.md",
+    ".cursor/agents/conversation-analyzer.md",
+    ".cursor/commands/configure.md",
+    ".cursor/commands/help.md",
+    ".cursor/commands/hookify.md",
+    ".cursor/commands/list.md",
+    ".cursor/skills/writing-rules/SKILL.md",
+    ".opencode/agents/conversation-analyzer.md",
+    ".opencode/commands/configure.md",
+    ".opencode/commands/help.md",
+    ".opencode/commands/hookify.md",
+    ".opencode/commands/list.md",
+    ".opencode/skills/writing-rules/SKILL.md",
+    ".openpackage/openpackage.index.yml",
+    ".openpackage/openpackage.lock",
+    ".openpackage/openpackage.yml"
+   ],
+   "project_writes_at_launch": [
+    ".opencode/.gitignore"
+   ],
+   "writes_outside_run_root": null,
+   "agentpack_sha256": null
+  },
+  "openpackage--claude-plugin-playwright-mcp": {
+   "tool": "openpackage",
+   "input": "claude-plugin-playwright-mcp",
+   "run_root": "/tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/eco-opkg-t2/runs/openpackage--claude-plugin-playwright-mcp",
+   "github_token_passed_to_steps": true,
+   "invalid": null,
+   "steps_timed_out": [],
+   "rate_limit_notices_on_successful_steps": [],
+   "documented_usage": "README: opkg install <GitHub URL to a resource> [--plugins NAME] --platforms ...; no Grok platform",
+   "note": null,
+   "accepted_as_published": "yes",
+   "reason": null,
+   "native_per_agent": null,
+   "repackaging": null,
+   "needs_local_clone": false,
+   "steps": [
+    {
+     "argv": [
+      "/tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/eco-tools/opkg/node_modules/.bin/opkg",
+      "install",
+      "https://github.com/anthropics/claude-plugins-official/tree/f359d43b406057f1a8cdbc4ea93b827642c162e6/external_plugins/playwright",
+      "--platforms",
+      "claude",
+      "codex",
+      "opencode",
+      "cursor",
+      "antigravity"
+     ],
+     "exit": 0,
+     "seconds": 7.7,
+     "output_tail": "\u2713 Initialized workspace openpackage.yml in .openpackage/\n\u2713 Installed gh@anthropics/claude-plugins-official/external_plugins/playwright@0.0.0\n\u2713 Installed files: 4\n  \u251c\u2500\u2500 .codex/config.toml\n  \u251c\u2500\u2500 .cursor/mcp.json\n  \u251c\u2500\u2500 .mcp.json\n  \u2514\u2500\u2500 .opencode/opencode.json\n- Loading https://github.com/anthropics/claude-plugins-official/tree/f359d43b406057f1a8cdbc4ea93b827642c162e6/external_plugins/playwright\n\u2714 Loaded https://github.com/anthropics/claude-plugins-official/tree/f359d43b406057f1a8cdbc4ea93b827642c162e6/external_plugins/playwright\n- Installing gh@anthropics/claude-plugins-official/external_plugins/playwright\n\u2714 Prepared gh@anthropics/claude-plugins-official/external_plugins/playwright\n- Installing gh@anthropics/claude-plugins-official/external_plugins/playwright\n\u2714 Installed gh@anthropics/claude-plugins-official/external_plugins/playwright",
+     "optional": false
+    }
+   ],
+   "expected": {
+    "mcp": [
+     "playwright"
+    ]
+   },
+   "expected_items": {
+    "skill": {},
+    "command": {},
+    "agent": {},
+    "rule": {},
+    "hook": {},
+    "mcp": {
+     "playwright": {
+      "aliases": [
+       "playwright"
+      ],
+      "spec": {
+       "command": "npx",
+       "args": [
+        "@playwright/mcp@latest"
+       ]
+      },
+      "stdio": true
+     }
+    }
+   },
+   "evidence": {
+    "claude": {
+     "covers": [
+      "skill",
+      "command",
+      "agent"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "codex": {
+     "covers": [
+      "skill",
+      "mcp"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "opencode": {
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "cursor": {
+     "covers": [],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "grok": {
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp",
+      "hook"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "agy": {
+     "covers": [],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    }
+   },
+   "cells": {
+    "claude": {
+     "skill": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     }
+    },
+    "codex": {
+     "skill": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     }
+    },
+    "opencode": {
+     "skill": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     }
+    },
+    "cursor": {
+     "skill": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     }
+    },
+    "grok": {
+     "skill": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     }
+    },
+    "agy": {
+     "skill": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     }
+    }
+   },
+   "probes": {
+    "claude": {
+     "listing": {},
+     "plugins": [
+      "cc-plugin-agents-md (cc-plugin-agents-md@builtin)",
+      "cc-plugin-plugin-authoring (cc-plugin-plugin-authoring@builtin)"
+     ],
+     "covers": [
+      "skill",
+      "command",
+      "agent"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "claude -p x --output-format stream-json --verbose --strict-mcp-config --settings {\"disableAllHooks\":true}",
+       "exit": 1,
+       "seconds": 1.8,
+       "stderr_tail": ""
+      },
+      {
+       "command": "claude plugin list --json",
+       "exit": 0,
+       "seconds": 0.5,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "codex": {
+     "listing": {},
+     "covers": [
+      "skill",
+      "mcp"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "codex -c cli_auth_credentials_store=\"file\" -c cloud_skill_enabled=false debug prompt-input",
+       "exit": 0,
+       "seconds": 0.2,
+       "stderr_tail": ""
+      },
+      {
+       "command": "codex mcp list --json",
+       "exit": 0,
+       "seconds": 0.0,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "opencode": {
+     "listing": {},
+     "agent_error": "Error: Configuration is invalid at project/.opencode/opencode.json\n\u21b3 Unrecognized key: playwright",
+     "plugin": null,
+     "instructions": null,
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "opencode debug config",
+       "exit": 1,
+       "seconds": 7.0,
+       "stderr_tail": "Error: Configuration is invalid at project/.opencode/opencode.json\n\u21b3 Unrecognized key: playwright"
+      },
+      {
+       "command": "opencode debug skill",
+       "exit": 1,
+       "seconds": 6.4,
+       "stderr_tail": "Error: Configuration is invalid at project/.opencode/opencode.json\n\u21b3 Unrecognized key: playwright"
+      }
+     ]
+    },
+    "cursor": {
+     "listing": {},
+     "covers": [],
+     "error": null,
+     "commands": []
+    },
+    "grok": {
+     "listing": {},
+     "plugins": [],
+     "projectInstructions": [],
+     "hooks": [],
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp",
+      "hook"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "grok inspect --json",
+       "exit": 0,
+       "seconds": 0.2,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "agy": {
+     "listing": {},
+     "plugin_list": "No plugins installed.",
+     "covers": [],
+     "plugin_validate": {},
+     "error": null,
+     "commands": [
+      {
+       "command": "agy plugin list",
+       "exit": 0,
+       "seconds": 0.7,
+       "stderr_tail": ""
+      }
+     ]
+    }
+   },
+   "lockfiles": [
+    {
+     "path": "project/.openpackage/openpackage.lock",
+     "bytes": 431,
+     "records_a_commit": false,
+     "records_the_pinned_commit": false,
+     "records_a_content_hash": false,
+     "mcp_package_lines": [],
+     "sha256": "83864b8f976aad10214d3544c070750acc13731500c517e003708e3d405c3313"
+    }
+   ],
+   "mcp_package_as_delivered": {
+    "@playwright/mcp@latest": [
+     "project/.codex/config.toml",
+     "project/.cursor/mcp.json",
+     "project/.mcp.json",
+     "project/.opencode/opencode.json"
+    ]
+   },
+   "writes": {
+    "project_files": 7,
+    "project_top_level": [
+     ".codex",
+     ".cursor",
+     ".mcp.json",
+     ".opencode",
+     ".openpackage"
+    ],
+    "home_agent_config_files": 0,
+    "home_agent_config_dirs": [],
+    "home_other_files": 562,
+    "home_other_dirs": [
+     ".openpackage"
+    ],
+    "outside_project_and_home_files": 0,
+    "outside_dirs": []
+   },
+   "project_files_written": [
+    ".codex/config.toml",
+    ".cursor/mcp.json",
+    ".mcp.json",
+    ".opencode/opencode.json",
+    ".openpackage/openpackage.index.yml",
+    ".openpackage/openpackage.lock",
+    ".openpackage/openpackage.yml"
+   ],
+   "project_writes_at_launch": [],
+   "writes_outside_run_root": null,
+   "agentpack_sha256": null
+  },
+  "openpackage--claude-plugin-stripe": {
+   "tool": "openpackage",
+   "input": "claude-plugin-stripe",
+   "run_root": "/tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/eco-opkg-t2/runs/openpackage--claude-plugin-stripe",
+   "github_token_passed_to_steps": true,
+   "invalid": null,
+   "steps_timed_out": [],
+   "rate_limit_notices_on_successful_steps": [],
+   "documented_usage": "README: opkg install <GitHub URL to a resource> [--plugins NAME] --platforms ...; no Grok platform",
+   "note": null,
+   "accepted_as_published": "yes",
+   "reason": null,
+   "native_per_agent": null,
+   "repackaging": null,
+   "needs_local_clone": false,
+   "steps": [
+    {
+     "argv": [
+      "/tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/eco-tools/opkg/node_modules/.bin/opkg",
+      "install",
+      "https://github.com/stripe/ai/tree/97b2164821c378f246c3903852057b36a8bd0296/providers/claude/plugin",
+      "--platforms",
+      "claude",
+      "codex",
+      "opencode",
+      "cursor",
+      "antigravity"
+     ],
+     "exit": 0,
+     "seconds": 17.4,
+     "output_tail": "md\n  \u251c\u2500\u2500 .opencode/skills/stripe-best-practices/references/security.md\n  \u251c\u2500\u2500 .opencode/skills/stripe-best-practices/references/tax.md\n  \u251c\u2500\u2500 .opencode/skills/stripe-best-practices/references/treasury.md\n  \u251c\u2500\u2500 .opencode/skills/stripe-best-practices/SKILL.md\n  \u251c\u2500\u2500 .opencode/skills/stripe-directory/SKILL.md\n  \u251c\u2500\u2500 .opencode/skills/stripe-docs/SKILL.md\n  \u251c\u2500\u2500 .opencode/skills/stripe-pay/SKILL.md\n  \u251c\u2500\u2500 .opencode/skills/stripe-projects/SKILL.md\n  \u2514\u2500\u2500 .opencode/skills/upgrade-stripe/SKILL.md\n- Loading https://github.com/stripe/ai/tree/97b2164821c378f246c3903852057b36a8bd0296/providers/claude/plugin\n\u2714 Loaded https://github.com/stripe/ai/tree/97b2164821c378f246c3903852057b36a8bd0296/providers/claude/plugin\n- Installing gh@stripe/ai/providers/claude/plugin\n\u2714 Prepared gh@stripe/ai/providers/claude/plugin\n- Installing gh@stripe/ai/providers/claude/plugin\n\u2714 Installed gh@stripe/ai/providers/claude/plugin",
+     "optional": false
+    }
+   ],
+   "expected": {
+    "skill": [
+     "connect-recommend",
+     "connect-required-verification-information",
+     "metronome",
+     "stripe-apps",
+     "stripe-best-practices",
+     "stripe-directory",
+     "stripe-docs",
+     "stripe-pay",
+     "stripe-projects",
+     "upgrade-stripe"
+    ],
+    "command": [
+     "explain-error",
+     "test-cards"
+    ],
+    "agent": [
+     "company-researcher"
+    ],
+    "hook": [
+     "hooks"
+    ],
+    "mcp": [
+     "stripe"
+    ]
+   },
+   "expected_items": {
+    "skill": {
+     "connect-recommend": {
+      "aliases": [
+       "connect-recommend"
+      ],
+      "marker": "- A 2-3 sentence explanation of the MECHANISM of failure (for example, \u201cWith destination charges and a dispute, Stripe d"
+     },
+     "connect-required-verification-information": {
+      "aliases": [
+       "connect-required-verification-information"
+      ],
+      "marker": "- for example: `https://docs.stripe.com/_endpoint/get-requirements-for-setups?account-setup-A[platformCountry]=CA&accoun"
+     },
+     "metronome": {
+      "aliases": [
+       "metronome"
+      ],
+      "marker": "- *Always use batch ingestion* (`POST /v1/ingest` with a bare JSON array of 1 to 100 event objects as the request body, "
+     },
+     "stripe-apps": {
+      "aliases": [
+       "stripe-apps"
+      ],
+      "marker": "If you cannot access the docs, tell the user: \u201cI need to check the current Stripe Apps documentation to write correct co"
+     },
+     "stripe-best-practices": {
+      "aliases": [
+       "stripe-best-practices"
+      ],
+      "marker": "- *Never include `payment_method_types` in any Stripe API call*, with one exception: Terminal (in-person payments) integ"
+     },
+     "stripe-directory": {
+      "aliases": [
+       "stripe-directory"
+      ],
+      "marker": "2. **Interpret the results.** Use the returned results and linked documentation to explain which options best fit the us"
+     },
+     "stripe-docs": {
+      "aliases": [
+       "stripe-docs"
+      ],
+      "marker": "Use `stripe docs` instead of fetching [docs.stripe.com](https://docs.stripe.com/.md) content directly with `curl` or `We"
+     },
+     "stripe-pay": {
+      "aliases": [
+       "stripe-pay"
+      ],
+      "marker": "If the user needs details about financial accounts, read [Money Management](https://docs.stripe.com/money-management.md)"
+     },
+     "stripe-projects": {
+      "aliases": [
+       "stripe-projects"
+      ],
+      "marker": "If any check fails with `BROWSER_AUTH_REQUIRED`, `PROJECTS_SESSION_UNUSABLE`, or `ACCOUNT_NOT_ELIGIBLE`, stop here. Repo"
+     },
+     "upgrade-stripe": {
+      "aliases": [
+       "upgrade-stripe"
+      ],
+      "marker": "For SDKs that support explicit API version overrides, use the selected target in client configuration and per-request ov"
+     }
+    },
+    "command": {
+     "explain-error": {
+      "aliases": [
+       "explain-error"
+      ],
+      "marker": "Provide a comprehensive explanation of the given Stripe error code or error message:"
+     },
+     "test-cards": {
+      "aliases": [
+       "test-cards"
+      ],
+      "marker": "1. If a scenario argument is provided (e.g., \"declined\", \"3dsecure\", \"fraud\"), show relevant test cards for that scenari"
+     }
+    },
+    "agent": {
+     "company-researcher": {
+      "aliases": [
+       "company-researcher"
+      ],
+      "marker": "4. Use codebase signals to corroborate or strengthen web research findings. For example, if the homepage says \"marketpla"
+     }
+    },
+    "rule": {},
+    "hook": {
+     "hooks": {
+      "aliases": [
+       "hooks"
+      ],
+      "events": [
+       "PostToolBatch",
+       "PostToolUse",
+       "PostToolUseFailure",
+       "SessionStart",
+       "UserPromptSubmit"
+      ],
+      "scripts": [
+       "postToolBatch.mjs",
+       "postToolUse.mjs",
+       "postToolUseFailure.mjs",
+       "sessionStart.mjs",
+       "userPromptSubmit.mjs"
+      ]
+     }
+    },
+    "mcp": {
+     "stripe": {
+      "aliases": [
+       "stripe"
+      ],
+      "spec": {
+       "type": "http",
+       "url": "https://mcp.stripe.com"
+      },
+      "stdio": false
+     }
+    }
+   },
+   "evidence": {
+    "claude": {
+     "covers": [
+      "skill",
+      "command",
+      "agent"
+     ],
+     "listed": {
+      "skill": {
+       "stripe-apps": "init.skills",
+       "connect-recommend": "init.skills",
+       "stripe-best-practices": "init.skills",
+       "stripe-docs": "init.skills",
+       "connect-required-verification-information": "init.skills",
+       "upgrade-stripe": "init.skills",
+       "stripe-directory": "init.skills",
+       "metronome": "init.skills",
+       "stripe-projects": "init.skills",
+       "stripe-pay": "init.skills"
+      },
+      "command": {
+       "explain-error": "init.slash_commands",
+       "test-cards": "init.slash_commands"
+      },
+      "agent": {
+       "company-researcher": "init.agents"
+      },
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {
+       "stripe": "project/.mcp.json: {\"type\": \"http\", \"url\": \"https://mcp.stripe.com\"}"
+      }
+     }
+    },
+    "codex": {
+     "covers": [
+      "skill",
+      "mcp"
+     ],
+     "listed": {
+      "skill": {
+       "connect-recommend": "debug prompt-input",
+       "connect-required-verification-information": "debug prompt-input",
+       "metronome": "debug prompt-input",
+       "stripe-apps": "debug prompt-input",
+       "stripe-best-practices": "debug prompt-input",
+       "stripe-directory": "debug prompt-input",
+       "stripe-docs": "debug prompt-input",
+       "stripe-pay": "debug prompt-input",
+       "stripe-projects": "debug prompt-input",
+       "upgrade-stripe": "debug prompt-input"
+      },
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {
+       "stripe": "mcp list: {\"type\": \"streamable_http\", \"url\": \"https://mcp.stripe.com\", \"bearer_token_env_var\": null, \"http_headers\": null, \"env_http_headers\": null, \"http_headers_helper\": null}"
+      }
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {
+       "company-researcher": "project/.codex/agents/company-researcher.toml"
+      },
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "opencode": {
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "cursor": {
+     "covers": [
+      "mcp"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {
+       "stripe": "mcp list: not loaded (needs approval)"
+      }
+     },
+     "disk": {
+      "skill": {
+       "upgrade-stripe": "project/.claude/skills/upgrade-stripe/SKILL.md",
+       "connect-required-verification-information": "project/.claude/skills/connect-required-verification-information/SKILL.md",
+       "stripe-pay": "project/.claude/skills/stripe-pay/SKILL.md",
+       "stripe-directory": "project/.claude/skills/stripe-directory/SKILL.md",
+       "stripe-docs": "project/.claude/skills/stripe-docs/SKILL.md",
+       "connect-recommend": "project/.claude/skills/connect-recommend/SKILL.md",
+       "stripe-projects": "project/.claude/skills/stripe-projects/SKILL.md",
+       "stripe-best-practices": "project/.claude/skills/stripe-best-practices/SKILL.md",
+       "metronome": "project/.claude/skills/metronome/SKILL.md",
+       "stripe-apps": "project/.claude/skills/stripe-apps/SKILL.md"
+      },
+      "command": {
+       "test-cards": "project/.cursor/commands/test-cards.md",
+       "explain-error": "project/.cursor/commands/explain-error.md"
+      },
+      "agent": {
+       "company-researcher": "project/.codex/agents/company-researcher.toml",
+       "Company Researcher": "project/.cursor/agents/company-researcher.md"
+      },
+      "rule": {},
+      "hook": {},
+      "mcp": {
+       "stripe": "project/.cursor/mcp.json: {\"type\": \"http\", \"url\": \"https://mcp.stripe.com\"}"
+      }
+     }
+    },
+    "grok": {
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp",
+      "hook"
+     ],
+     "listed": {
+      "skill": {
+       "connect-recommend": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/skills/",
+       "connect-required-verification-information": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/skills/",
+       "metronome": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/skills/",
+       "stripe-apps": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/skills/",
+       "stripe-best-practices": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/skills/",
+       "stripe-directory": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/skills/",
+       "stripe-docs": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/skills/",
+       "stripe-pay": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/skills/",
+       "stripe-projects": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/skills/",
+       "upgrade-stripe": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/skills/"
+      },
+      "command": {
+       "explain-error": "inspect: {\"type\": \"project\", \"path\": \"project/.claude/command",
+       "test-cards": "inspect: {\"type\": \"project\", \"path\": \"project/.claude/command"
+      },
+      "agent": {
+       "company-researcher": "inspect: {\"type\": \"project\", \"path\": \"project/.claude/agents/"
+      },
+      "rule": {},
+      "hook": {},
+      "mcp": {
+       "stripe": "inspect: {\"transport\": \"http\", \"target\": \"https://mcp.stripe.com\", \"source\": {\"type\": \"mcpJson\", \"path\": \"home/.cursor/mcp.json\"}, \"vendor\": \"cursor\"}"
+      }
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "agy": {
+     "covers": [],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {
+       "upgrade-stripe": "project/.agents/skills/upgrade-stripe/SKILL.md",
+       "connect-required-verification-information": "project/.agents/skills/connect-required-verification-information/SKILL.md",
+       "stripe-pay": "project/.agents/skills/stripe-pay/SKILL.md",
+       "stripe-directory": "project/.agents/skills/stripe-directory/SKILL.md",
+       "stripe-docs": "project/.agents/skills/stripe-docs/SKILL.md",
+       "connect-recommend": "project/.agents/skills/connect-recommend/SKILL.md",
+       "stripe-projects": "project/.agents/skills/stripe-projects/SKILL.md",
+       "stripe-best-practices": "project/.agents/skills/stripe-best-practices/SKILL.md",
+       "metronome": "project/.agents/skills/metronome/SKILL.md",
+       "stripe-apps": "project/.agents/skills/stripe-apps/SKILL.md"
+      },
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    }
+   },
+   "cells": {
+    "claude": {
+     "skill": {
+      "status": "native",
+      "expected": 10,
+      "delivered": 10,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "connect-recommend: listed by the agent (init.skills)",
+       "connect-required-verification-information: listed by the agent (init.skills)",
+       "metronome: listed by the agent (init.skills)",
+       "stripe-apps: listed by the agent (init.skills)",
+       "stripe-best-practices: listed by the agent (init.skills)",
+       "stripe-directory: listed by the agent (init.skills)",
+       "stripe-docs: listed by the agent (init.skills)",
+       "stripe-pay: listed by the agent (init.skills)",
+       "stripe-projects: listed by the agent (init.skills)",
+       "upgrade-stripe: listed by the agent (init.skills)"
+      ]
+     },
+     "command": {
+      "status": "native",
+      "expected": 2,
+      "delivered": 2,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "explain-error: listed by the agent (init.slash_commands)",
+       "test-cards: listed by the agent (init.slash_commands)"
+      ]
+     },
+     "agent": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "company-researcher: listed by the agent (init.agents)"
+      ]
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "mcp": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": [
+       "stripe: file project/.mcp.json: {\"type\": \"http\", \"url\": \"https://mcp.stripe.com\"}"
+      ]
+     }
+    },
+    "codex": {
+     "skill": {
+      "status": "native",
+      "expected": 10,
+      "delivered": 10,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "connect-recommend: listed by the agent (debug prompt-input)",
+       "connect-required-verification-information: listed by the agent (debug prompt-input)",
+       "metronome: listed by the agent (debug prompt-input)",
+       "stripe-apps: listed by the agent (debug prompt-input)",
+       "stripe-best-practices: listed by the agent (debug prompt-input)",
+       "stripe-directory: listed by the agent (debug prompt-input)",
+       "stripe-docs: listed by the agent (debug prompt-input)",
+       "stripe-pay: listed by the agent (debug prompt-input)",
+       "stripe-projects: listed by the agent (debug prompt-input)",
+       "upgrade-stripe: listed by the agent (debug prompt-input)"
+      ]
+     },
+     "command": {
+      "status": "absent",
+      "expected": 2,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "agent": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": [
+       "company-researcher: file project/.codex/agents/company-researcher.toml"
+      ]
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "mcp": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "stripe: listed by the agent (mcp list: {\"type\": \"streamable_http\", \"url\": \"https://mcp.stripe.com\", \"bearer_token_env_var\": null, \"http_headers\": null, \"env_http_headers\": null, \"http_headers_helper\": null})"
+      ]
+     }
+    },
+    "opencode": {
+     "skill": {
+      "status": "absent",
+      "expected": 10,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "command": {
+      "status": "absent",
+      "expected": 2,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "agent": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "mcp": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     }
+    },
+    "cursor": {
+     "skill": {
+      "status": "native",
+      "expected": 10,
+      "delivered": 10,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": [
+       "connect-recommend: file project/.claude/skills/connect-recommend/SKILL.md",
+       "connect-required-verification-information: file project/.claude/skills/connect-required-verification-information/SKILL.md",
+       "metronome: file project/.claude/skills/metronome/SKILL.md",
+       "stripe-apps: file project/.claude/skills/stripe-apps/SKILL.md",
+       "stripe-best-practices: file project/.claude/skills/stripe-best-practices/SKILL.md",
+       "stripe-directory: file project/.claude/skills/stripe-directory/SKILL.md",
+       "stripe-docs: file project/.claude/skills/stripe-docs/SKILL.md",
+       "stripe-pay: file project/.claude/skills/stripe-pay/SKILL.md",
+       "stripe-projects: file project/.claude/skills/stripe-projects/SKILL.md",
+       "upgrade-stripe: file project/.claude/skills/upgrade-stripe/SKILL.md"
+      ]
+     },
+     "command": {
+      "status": "native",
+      "expected": 2,
+      "delivered": 2,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": [
+       "explain-error: file project/.cursor/commands/explain-error.md",
+       "test-cards: file project/.cursor/commands/test-cards.md"
+      ]
+     },
+     "agent": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": [
+       "company-researcher: file project/.codex/agents/company-researcher.toml"
+      ]
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "mcp": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "stripe: listed by the agent (mcp list: not loaded (needs approval)); file project/.cursor/mcp.json: {\"type\": \"http\", \"url\": \"https://mcp.stripe.com\"}"
+      ]
+     }
+    },
+    "grok": {
+     "skill": {
+      "status": "native",
+      "expected": 10,
+      "delivered": 10,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "connect-recommend: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.agents/skills/)",
+       "connect-required-verification-information: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.agents/skills/)",
+       "metronome: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.agents/skills/)",
+       "stripe-apps: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.agents/skills/)",
+       "stripe-best-practices: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.agents/skills/)",
+       "stripe-directory: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.agents/skills/)",
+       "stripe-docs: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.agents/skills/)",
+       "stripe-pay: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.agents/skills/)",
+       "stripe-projects: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.agents/skills/)",
+       "upgrade-stripe: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.agents/skills/)"
+      ]
+     },
+     "command": {
+      "status": "native",
+      "expected": 2,
+      "delivered": 2,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "explain-error: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.claude/command)",
+       "test-cards: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.claude/command)"
+      ]
+     },
+     "agent": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "company-researcher: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.claude/agents/)"
+      ]
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "mcp": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "stripe: listed by the agent (inspect: {\"transport\": \"http\", \"target\": \"https://mcp.stripe.com\", \"source\": {\"type\": \"mcpJson\", \"path\": \"home/.cursor/mcp.json\"}, \"vendor\": \"cursor\"})"
+      ]
+     }
+    },
+    "agy": {
+     "skill": {
+      "status": "native",
+      "expected": 10,
+      "delivered": 10,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": [
+       "connect-recommend: file project/.agents/skills/connect-recommend/SKILL.md",
+       "connect-required-verification-information: file project/.agents/skills/connect-required-verification-information/SKILL.md",
+       "metronome: file project/.agents/skills/metronome/SKILL.md",
+       "stripe-apps: file project/.agents/skills/stripe-apps/SKILL.md",
+       "stripe-best-practices: file project/.agents/skills/stripe-best-practices/SKILL.md",
+       "stripe-directory: file project/.agents/skills/stripe-directory/SKILL.md",
+       "stripe-docs: file project/.agents/skills/stripe-docs/SKILL.md",
+       "stripe-pay: file project/.agents/skills/stripe-pay/SKILL.md",
+       "stripe-projects: file project/.agents/skills/stripe-projects/SKILL.md",
+       "upgrade-stripe: file project/.agents/skills/upgrade-stripe/SKILL.md"
+      ]
+     },
+     "command": {
+      "status": "absent",
+      "expected": 2,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "agent": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "mcp": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     }
+    }
+   },
+   "probes": {
+    "claude": {
+     "listing": {
+      "skill": [
+       "connect-recommend",
+       "connect-required-verification-information",
+       "metronome",
+       "stripe-apps",
+       "stripe-best-practices",
+       "stripe-directory",
+       "stripe-docs",
+       "stripe-pay",
+       "stripe-projects",
+       "upgrade-stripe"
+      ],
+      "command": [
+       "explain-error",
+       "test-cards"
+      ],
+      "agent": [
+       "company-researcher"
+      ]
+     },
+     "plugins": [
+      "cc-plugin-agents-md (cc-plugin-agents-md@builtin)",
+      "cc-plugin-plugin-authoring (cc-plugin-plugin-authoring@builtin)"
+     ],
+     "covers": [
+      "skill",
+      "command",
+      "agent"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "claude -p x --output-format stream-json --verbose --strict-mcp-config --settings {\"disableAllHooks\":true}",
+       "exit": 1,
+       "seconds": 2.9,
+       "stderr_tail": ""
+      },
+      {
+       "command": "claude plugin list --json",
+       "exit": 0,
+       "seconds": 1.0,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "codex": {
+     "listing": {
+      "skill": [
+       "connect-recommend",
+       "connect-required-verification-information",
+       "metronome",
+       "stripe-apps",
+       "stripe-best-practices",
+       "stripe-directory",
+       "stripe-docs",
+       "stripe-pay",
+       "stripe-projects",
+       "upgrade-stripe"
+      ],
+      "mcp": [
+       "stripe"
+      ]
+     },
+     "covers": [
+      "skill",
+      "mcp"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "codex -c cli_auth_credentials_store=\"file\" -c cloud_skill_enabled=false debug prompt-input",
+       "exit": 0,
+       "seconds": 0.8,
+       "stderr_tail": ""
+      },
+      {
+       "command": "codex mcp list --json",
+       "exit": 0,
+       "seconds": 0.8,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "opencode": {
+     "listing": {},
+     "agent_error": "Error: Configuration is invalid at project/.opencode/opencode.json\n\u21b3 Expected { readonly \"type\": \"local\", ... } | { readonly \"type\": \"remote\", ... }, got {\"type\":\"http\",\"url\":\"https://mcp.stripe.com\"} mcp.stripe\n\u21b3 Missing key mcp.stripe.enabled",
+     "plugin": null,
+     "instructions": null,
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "opencode debug config",
+       "exit": 1,
+       "seconds": 6.1,
+       "stderr_tail": "-a237-4fd6-9b5c-5da59f900573/scratchpad/eco-opkg-t2/runs/openpackage--claude-plugin-stripe/project/.opencode/opencode.json\n\u21b3 Expected { readonly \"type\": \"local\", ... } | { readonly \"type\": \"remote\", ... }, got {\"type\":\"http\",\"url\":\"https://mcp.stripe.com\"} mcp.stripe\n\u21b3 Missing key mcp.stripe.enabled"
+      },
+      {
+       "command": "opencode debug skill",
+       "exit": 1,
+       "seconds": 4.6,
+       "stderr_tail": "-a237-4fd6-9b5c-5da59f900573/scratchpad/eco-opkg-t2/runs/openpackage--claude-plugin-stripe/project/.opencode/opencode.json\n\u21b3 Expected { readonly \"type\": \"local\", ... } | { readonly \"type\": \"remote\", ... }, got {\"type\":\"http\",\"url\":\"https://mcp.stripe.com\"} mcp.stripe\n\u21b3 Missing key mcp.stripe.enabled"
+      }
+     ]
+    },
+    "cursor": {
+     "listing": {
+      "mcp": [
+       "stripe"
+      ]
+     },
+     "covers": [
+      "mcp"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "cursor-agent mcp list",
+       "exit": 0,
+       "seconds": 7.1,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "grok": {
+     "listing": {
+      "skill": [
+       "connect-recommend",
+       "connect-required-verification-information",
+       "metronome",
+       "stripe-apps",
+       "stripe-best-practices",
+       "stripe-directory",
+       "stripe-docs",
+       "stripe-pay",
+       "stripe-projects",
+       "upgrade-stripe"
+      ],
+      "command": [
+       "explain-error",
+       "test-cards"
+      ],
+      "agent": [
+       "company-researcher"
+      ],
+      "mcp": [
+       "stripe"
+      ]
+     },
+     "plugins": [],
+     "projectInstructions": [],
+     "hooks": [],
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp",
+      "hook"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "grok inspect --json",
+       "exit": 0,
+       "seconds": 0.2,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "agy": {
+     "listing": {},
+     "plugin_list": "No plugins installed.",
+     "covers": [],
+     "plugin_validate": {},
+     "error": null,
+     "commands": [
+      {
+       "command": "agy plugin list",
+       "exit": 0,
+       "seconds": 0.8,
+       "stderr_tail": ""
+      }
+     ]
+    }
+   },
+   "lockfiles": [
+    {
+     "path": "project/.openpackage/openpackage.lock",
+     "bytes": 391,
+     "records_a_commit": false,
+     "records_the_pinned_commit": false,
+     "records_a_content_hash": false,
+     "mcp_package_lines": [],
+     "sha256": "8329bcc950062647d61a151332c35e9c7665df2bfcd0b61e851ea0eda766bc88"
+    }
+   ],
+   "mcp_package_as_delivered": {},
+   "writes": {
+    "project_files": 196,
+    "project_top_level": [
+     ".agent",
+     ".agents",
+     ".claude",
+     ".codex",
+     ".cursor",
+     ".mcp.json",
+     ".opencode",
+     ".openpackage"
+    ],
+    "home_agent_config_files": 0,
+    "home_agent_config_dirs": [],
+    "home_other_files": 1141,
+    "home_other_dirs": [
+     ".openpackage"
+    ],
+    "outside_project_and_home_files": 0,
+    "outside_dirs": []
+   },
+   "project_files_written": [
+    ".agent/skills/connect-recommend/SKILL.md",
+    ".agent/skills/connect-recommend/references/account-types.md",
+    ".agent/skills/connect-recommend/references/charge-patterns.md",
+    ".agent/skills/connect-recommend/references/company-researcher.md",
+    ".agent/skills/connect-recommend/references/compatibility-matrix.md",
+    ".agent/skills/connect-recommend/references/decision-matrix.md",
+    ".agent/skills/connect-recommend/references/discovery-questions.md",
+    ".agent/skills/connect-recommend/references/recommendation-template.md",
+    ".agent/skills/connect-recommend/references/terminology-rules.md",
+    ".agent/skills/connect-required-verification-information/SKILL.md",
+    ".agent/skills/metronome/SKILL.md",
+    ".agent/skills/stripe-apps/SKILL.md",
+    ".agent/skills/stripe-apps/references/authentication.md",
+    ".agent/skills/stripe-apps/references/backend.md",
+    ".agent/skills/stripe-apps/references/canonical-docs.md",
+    ".agent/skills/stripe-apps/references/discovery.md",
+    ".agent/skills/stripe-apps/references/extension-types.md",
+    ".agent/skills/stripe-apps/references/feedback.md",
+    ".agent/skills/stripe-apps/references/onboarding-ux.md",
+    ".agent/skills/stripe-apps/references/publishing.md",
+    ".agent/skills/stripe-apps/references/ui-extensions.md",
+    ".agent/skills/stripe-apps/references/webhooks.md",
+    ".agent/skills/stripe-apps/references/workflow.md",
+    ".agent/skills/stripe-best-practices/SKILL.md",
+    ".agent/skills/stripe-best-practices/references/billing.md",
+    ".agent/skills/stripe-best-practices/references/connect.md",
+    ".agent/skills/stripe-best-practices/references/payments.md",
+    ".agent/skills/stripe-best-practices/references/security.md",
+    ".agent/skills/stripe-best-practices/references/tax.md",
+    ".agent/skills/stripe-best-practices/references/treasury.md",
+    ".agent/skills/stripe-directory/SKILL.md",
+    ".agent/skills/stripe-docs/SKILL.md",
+    ".agent/skills/stripe-pay/SKILL.md",
+    ".agent/skills/stripe-projects/SKILL.md",
+    ".agent/skills/upgrade-stripe/SKILL.md",
+    ".agent/workflows/explain-error.md",
+    ".agent/workflows/test-cards.md",
+    ".agents/skills/connect-recommend/SKILL.md",
+    ".agents/skills/connect-recommend/references/account-types.md",
+    ".agents/skills/connect-recommend/references/charge-patterns.md",
+    ".agents/skills/connect-recommend/references/company-researcher.md",
+    ".agents/skills/connect-recommend/references/compatibility-matrix.md",
+    ".agents/skills/connect-recommend/references/decision-matrix.md",
+    ".agents/skills/connect-recommend/references/discovery-questions.md",
+    ".agents/skills/connect-recommend/references/recommendation-template.md",
+    ".agents/skills/connect-recommend/references/terminology-rules.md",
+    ".agents/skills/connect-required-verification-information/SKILL.md",
+    ".agents/skills/metronome/SKILL.md",
+    ".agents/skills/stripe-apps/SKILL.md",
+    ".agents/skills/stripe-apps/references/authentication.md",
+    ".agents/skills/stripe-apps/references/backend.md",
+    ".agents/skills/stripe-apps/references/canonical-docs.md",
+    ".agents/skills/stripe-apps/references/discovery.md",
+    ".agents/skills/stripe-apps/references/extension-types.md",
+    ".agents/skills/stripe-apps/references/feedback.md",
+    ".agents/skills/stripe-apps/references/onboarding-ux.md",
+    ".agents/skills/stripe-apps/references/publishing.md",
+    ".agents/skills/stripe-apps/references/ui-extensions.md",
+    ".agents/skills/stripe-apps/references/webhooks.md",
+    ".agents/skills/stripe-apps/references/workflow.md"
+   ],
+   "project_writes_at_launch": [],
+   "writes_outside_run_root": null,
+   "agentpack_sha256": null
+  },
+  "openpackage--codex-plugin-sentry": {
+   "tool": "openpackage",
+   "input": "codex-plugin-sentry",
+   "run_root": "/tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/eco-opkg-t2/runs/openpackage--codex-plugin-sentry",
+   "github_token_passed_to_steps": true,
+   "invalid": null,
+   "steps_timed_out": [],
+   "rate_limit_notices_on_successful_steps": [],
+   "documented_usage": "README: opkg install <GitHub URL to a resource> [--plugins NAME] --platforms ...; no Grok platform",
+   "note": null,
+   "accepted_as_published": "no",
+   "reason": "exit 1: ttps://github.com/openai/plugins/tree/0722921d5542fc593105c27bd52630babd8b8c2a/plugins/sentry\n\u2714 Loaded https://github.com/openai/plugins/tree/0722921d5542fc593105c27bd52630babd8b8c2a/plugins/sentry\nFailed to load package from git: https://github.com/openai/plugins.git#0722921d5542fc593105c27bd52630babd8b8c2a - Validation error: Cloned repository is not an OpenPackage or Claude Code plugin (missing openpackage.yml, .claude-plugin/plugin.json, or .claude-plugin/marketplace.json at repository root)",
+   "native_per_agent": null,
+   "repackaging": null,
+   "needs_local_clone": false,
+   "steps": [
+    {
+     "argv": [
+      "/tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/eco-tools/opkg/node_modules/.bin/opkg",
+      "install",
+      "https://github.com/openai/plugins/tree/0722921d5542fc593105c27bd52630babd8b8c2a/plugins/sentry",
+      "--platforms",
+      "claude",
+      "codex",
+      "opencode",
+      "cursor",
+      "antigravity"
+     ],
+     "exit": 1,
+     "seconds": 16.7,
+     "output_tail": "- Loading https://github.com/openai/plugins/tree/0722921d5542fc593105c27bd52630babd8b8c2a/plugins/sentry\n\u2714 Loaded https://github.com/openai/plugins/tree/0722921d5542fc593105c27bd52630babd8b8c2a/plugins/sentry\nFailed to load package from git: https://github.com/openai/plugins.git#0722921d5542fc593105c27bd52630babd8b8c2a - Validation error: Cloned repository is not an OpenPackage or Claude Code plugin (missing openpackage.yml, .claude-plugin/plugin.json, or .claude-plugin/marketplace.json at repository root)",
+     "optional": false
+    }
+   ],
+   "expected": {
+    "skill": [
+     "sentry"
+    ],
+    "mcp": [
+     "sentry"
+    ]
+   },
+   "expected_items": {
+    "skill": {
+     "sentry": {
+      "aliases": [
+       "sentry"
+      ],
+      "marker": "- If not already authenticated, ask the user to provide a valid `SENTRY_AUTH_TOKEN` (read-only scopes such as `project:r"
+     }
+    },
+    "command": {},
+    "agent": {},
+    "rule": {},
+    "hook": {},
+    "mcp": {
+     "sentry": {
+      "aliases": [
+       "sentry"
+      ],
+      "spec": {
+       "type": "http",
+       "url": "https://mcp.sentry.dev/mcp"
+      },
+      "stdio": false
+     }
+    }
+   },
+   "evidence": {
+    "claude": {
+     "covers": [
+      "skill",
+      "command",
+      "agent"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "codex": {
+     "covers": [
+      "skill",
+      "mcp"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "opencode": {
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "cursor": {
+     "covers": [
+      "mcp"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "grok": {
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp",
+      "hook"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "agy": {
+     "covers": [],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    }
+   },
+   "cells": {
+    "claude": {
+     "skill": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     }
+    },
+    "codex": {
+     "skill": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     }
+    },
+    "opencode": {
+     "skill": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     }
+    },
+    "cursor": {
+     "skill": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     }
+    },
+    "grok": {
+     "skill": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     }
+    },
+    "agy": {
+     "skill": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     }
+    }
+   },
+   "probes": {
+    "claude": {
+     "listing": {},
+     "plugins": [
+      "cc-plugin-agents-md (cc-plugin-agents-md@builtin)",
+      "cc-plugin-plugin-authoring (cc-plugin-plugin-authoring@builtin)"
+     ],
+     "covers": [
+      "skill",
+      "command",
+      "agent"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "claude -p x --output-format stream-json --verbose --strict-mcp-config --settings {\"disableAllHooks\":true}",
+       "exit": 1,
+       "seconds": 8.9,
+       "stderr_tail": ""
+      },
+      {
+       "command": "claude plugin list --json",
+       "exit": 0,
+       "seconds": 1.9,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "codex": {
+     "listing": {},
+     "covers": [
+      "skill",
+      "mcp"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "codex -c cli_auth_credentials_store=\"file\" -c cloud_skill_enabled=false debug prompt-input",
+       "exit": 0,
+       "seconds": 0.9,
+       "stderr_tail": ""
+      },
+      {
+       "command": "codex mcp list --json",
+       "exit": 0,
+       "seconds": 0.2,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "opencode": {
+     "listing": {},
+     "plugin": [],
+     "instructions": null,
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "opencode debug config",
+       "exit": 0,
+       "seconds": 14.7,
+       "stderr_tail": ""
+      },
+      {
+       "command": "opencode debug skill",
+       "exit": 0,
+       "seconds": 13.9,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "cursor": {
+     "listing": {},
+     "covers": [
+      "mcp"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "cursor-agent mcp list",
+       "exit": 0,
+       "seconds": 10.9,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "grok": {
+     "listing": {},
+     "plugins": [],
+     "projectInstructions": [],
+     "hooks": [],
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp",
+      "hook"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "grok inspect --json",
+       "exit": 0,
+       "seconds": 0.1,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "agy": {
+     "listing": {},
+     "plugin_list": "No plugins installed.",
+     "covers": [],
+     "plugin_validate": {},
+     "error": null,
+     "commands": [
+      {
+       "command": "agy plugin list",
+       "exit": 0,
+       "seconds": 1.7,
+       "stderr_tail": ""
+      }
+     ]
+    }
+   },
+   "lockfiles": [],
+   "mcp_package_as_delivered": {},
+   "writes": {
+    "project_files": 0,
+    "project_top_level": [],
+    "home_agent_config_files": 0,
+    "home_agent_config_dirs": [],
+    "home_other_files": 5410,
+    "home_other_dirs": [
+     ".openpackage"
+    ],
+    "outside_project_and_home_files": 0,
+    "outside_dirs": []
+   },
+   "project_files_written": [],
+   "project_writes_at_launch": [],
+   "writes_outside_run_root": null,
+   "agentpack_sha256": null
+  },
+  "openpackage--cursor-plugin-create-plugin": {
+   "tool": "openpackage",
+   "input": "cursor-plugin-create-plugin",
+   "run_root": "/tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/eco-opkg-t2/runs/openpackage--cursor-plugin-create-plugin",
+   "github_token_passed_to_steps": true,
+   "invalid": null,
+   "steps_timed_out": [],
+   "rate_limit_notices_on_successful_steps": [],
+   "documented_usage": "README: opkg install <GitHub URL to a resource> [--plugins NAME] --platforms ...; no Grok platform",
+   "note": null,
+   "accepted_as_published": "yes",
+   "reason": null,
+   "native_per_agent": null,
+   "repackaging": null,
+   "needs_local_clone": false,
+   "steps": [
+    {
+     "argv": [
+      "/tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/eco-tools/opkg/node_modules/.bin/opkg",
+      "install",
+      "https://github.com/cursor/plugins/tree/1dcc2bacde73ddd284803b7af28164d0436198fc/create-plugin",
+      "--platforms",
+      "claude",
+      "codex",
+      "opencode",
+      "cursor",
+      "antigravity"
+     ],
+     "exit": 0,
+     "seconds": 11.9,
+     "output_tail": "\u2713 Initialized workspace openpackage.yml in .openpackage/\n\u2713 Succeeded gh@cursor/plugins/create-plugin@0.0.0 with 0 installs\n  No files matched. The package directory may be empty or filters excluded all content.\n  The dependency has been recorded in your manifest.\n- Loading https://github.com/cursor/plugins/tree/1dcc2bacde73ddd284803b7af28164d0436198fc/create-plugin\n\u2714 Loaded https://github.com/cursor/plugins/tree/1dcc2bacde73ddd284803b7af28164d0436198fc/create-plugin\n- Installing gh@cursor/plugins/create-plugin\n\u2714 Prepared gh@cursor/plugins/create-plugin\n- Installing gh@cursor/plugins/create-plugin\n\u2714 Installed gh@cursor/plugins/create-plugin",
+     "optional": false
+    }
+   ],
+   "expected": {
+    "skill": [
+     "create-plugin-scaffold",
+     "review-plugin-submission"
+    ],
+    "agent": [
+     "plugin-architect"
+    ],
+    "rule": [
+     "plugin-quality-gates"
+    ]
+   },
+   "expected_items": {
+    "skill": {
+     "create-plugin-scaffold": {
+      "aliases": [
+       "create-plugin-scaffold"
+      ],
+      "marker": "This path makes the plugin immediately available to Cursor without any install step. If the user explicitly asks to crea"
+     },
+     "review-plugin-submission": {
+      "aliases": [
+       "review-plugin-submission"
+      ],
+      "marker": "A plugin is implemented and needs a final quality check before submission or release."
+     }
+    },
+    "command": {},
+    "agent": {
+     "plugin-architect": {
+      "aliases": [
+       "plugin-architect"
+      ],
+      "marker": "3. Propose directory layout and manifest shape. The default output location for new plugins is `~/.cursor/plugins/local/"
+     }
+    },
+    "rule": {
+     "plugin-quality-gates": {
+      "aliases": [
+       "plugin-quality-gates"
+      ],
+      "marker": "6. Save new plugins to `~/.cursor/plugins/local/<plugin-name>/` by default so they are immediately available to Cursor. "
+     }
+    },
+    "hook": {},
+    "mcp": {}
+   },
+   "evidence": {
+    "claude": {
+     "covers": [
+      "skill",
+      "command",
+      "agent"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "codex": {
+     "covers": [
+      "skill",
+      "mcp"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "opencode": {
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "cursor": {
+     "covers": [
+      "mcp"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "grok": {
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp",
+      "hook"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "agy": {
+     "covers": [],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    }
+   },
+   "cells": {
+    "claude": {
+     "skill": {
+      "status": "absent",
+      "expected": 2,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "rule": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "n/a",
+      "expected": 0
+     }
+    },
+    "codex": {
+     "skill": {
+      "status": "absent",
+      "expected": 2,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "rule": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "n/a",
+      "expected": 0
+     }
+    },
+    "opencode": {
+     "skill": {
+      "status": "absent",
+      "expected": 2,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "rule": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "n/a",
+      "expected": 0
+     }
+    },
+    "cursor": {
+     "skill": {
+      "status": "absent",
+      "expected": 2,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "rule": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "n/a",
+      "expected": 0
+     }
+    },
+    "grok": {
+     "skill": {
+      "status": "absent",
+      "expected": 2,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "rule": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "n/a",
+      "expected": 0
+     }
+    },
+    "agy": {
+     "skill": {
+      "status": "absent",
+      "expected": 2,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "rule": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "n/a",
+      "expected": 0
+     }
+    }
+   },
+   "probes": {
+    "claude": {
+     "listing": {},
+     "plugins": [
+      "cc-plugin-agents-md (cc-plugin-agents-md@builtin)",
+      "cc-plugin-plugin-authoring (cc-plugin-plugin-authoring@builtin)"
+     ],
+     "covers": [
+      "skill",
+      "command",
+      "agent"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "claude -p x --output-format stream-json --verbose --strict-mcp-config --settings {\"disableAllHooks\":true}",
+       "exit": 1,
+       "seconds": 2.8,
+       "stderr_tail": ""
+      },
+      {
+       "command": "claude plugin list --json",
+       "exit": 0,
+       "seconds": 0.9,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "codex": {
+     "listing": {},
+     "covers": [
+      "skill",
+      "mcp"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "codex -c cli_auth_credentials_store=\"file\" -c cloud_skill_enabled=false debug prompt-input",
+       "exit": 0,
+       "seconds": 0.3,
+       "stderr_tail": ""
+      },
+      {
+       "command": "codex mcp list --json",
+       "exit": 0,
+       "seconds": 0.1,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "opencode": {
+     "listing": {},
+     "plugin": [],
+     "instructions": null,
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "opencode debug config",
+       "exit": 0,
+       "seconds": 8.3,
+       "stderr_tail": ""
+      },
+      {
+       "command": "opencode debug skill",
+       "exit": 0,
+       "seconds": 19.4,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "cursor": {
+     "listing": {},
+     "covers": [
+      "mcp"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "cursor-agent mcp list",
+       "exit": 0,
+       "seconds": 11.4,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "grok": {
+     "listing": {},
+     "plugins": [],
+     "projectInstructions": [],
+     "hooks": [],
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp",
+      "hook"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "grok inspect --json",
+       "exit": 0,
+       "seconds": 0.2,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "agy": {
+     "listing": {},
+     "plugin_list": "No plugins installed.",
+     "covers": [],
+     "plugin_validate": {},
+     "error": null,
+     "commands": [
+      {
+       "command": "agy plugin list",
+       "exit": 0,
+       "seconds": 1.1,
+       "stderr_tail": ""
+      }
+     ]
+    }
+   },
+   "lockfiles": [
+    {
+     "path": "project/.openpackage/openpackage.lock",
+     "bytes": 382,
+     "records_a_commit": false,
+     "records_the_pinned_commit": false,
+     "records_a_content_hash": false,
+     "mcp_package_lines": [],
+     "sha256": "3caab908333d40b71e96fd1bcb2cc24845f2456acc857a2464367e2181384303"
+    }
+   ],
+   "mcp_package_as_delivered": {},
+   "writes": {
+    "project_files": 3,
+    "project_top_level": [
+     ".openpackage"
+    ],
+    "home_agent_config_files": 0,
+    "home_agent_config_dirs": [],
+    "home_other_files": 932,
+    "home_other_dirs": [
+     ".openpackage"
+    ],
+    "outside_project_and_home_files": 0,
+    "outside_dirs": []
+   },
+   "project_files_written": [
+    ".openpackage/openpackage.index.yml",
+    ".openpackage/openpackage.lock",
+    ".openpackage/openpackage.yml"
+   ],
+   "project_writes_at_launch": [],
+   "writes_outside_run_root": null,
+   "agentpack_sha256": null
+  },
+  "openpackage--cursor-plugin-playwright-mcp": {
+   "tool": "openpackage",
+   "input": "cursor-plugin-playwright-mcp",
+   "run_root": "/tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/eco-opkg-t2/runs/openpackage--cursor-plugin-playwright-mcp",
+   "github_token_passed_to_steps": true,
+   "invalid": null,
+   "steps_timed_out": [],
+   "rate_limit_notices_on_successful_steps": [],
+   "documented_usage": "README: opkg install <GitHub URL to a resource> [--plugins NAME] --platforms ...; no Grok platform",
+   "note": null,
+   "accepted_as_published": "no",
+   "reason": "exit 1:  install for gh@cursor/plugins/third_party/playwright: OpenPackageError: Invalid package: Failed to load package: OpenPackageError: Validation error: Directory '/tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/eco-opkg-t2/runs/openpackage--cursor-plugin-playwright-mcp/home/.openpackage/cache/git/a50d216def4c/1dcc2ba' is a Claude Code plugin marketplace. Marketplace installation requires plugin selection and should be handled by the install command.",
+   "native_per_agent": null,
+   "repackaging": null,
+   "needs_local_clone": false,
+   "steps": [
+    {
+     "argv": [
+      "/tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/eco-tools/opkg/node_modules/.bin/opkg",
+      "install",
+      "https://github.com/cursor/plugins/tree/1dcc2bacde73ddd284803b7af28164d0436198fc/third_party/playwright",
+      "--platforms",
+      "claude",
+      "codex",
+      "opencode",
+      "cursor",
+      "antigravity"
+     ],
+     "exit": 1,
+     "seconds": 10.6,
+     "output_tail": "-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/eco-opkg-t2/runs/openpackage--cursor-plugin-playwright-mcp/home/.openpackage/cache/git/a50d216def4c/1dcc2ba' is a Claude Code plugin marketplace. Marketplace installation requires plugin selection and should be handled by the install command.\nFailed to install gh@cursor/plugins/third_party/playwright: Failed root file install for gh@cursor/plugins/third_party/playwright: OpenPackageError: Invalid package: Failed to load package: OpenPackageError: Validation error: Directory '/tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/eco-opkg-t2/runs/openpackage--cursor-plugin-playwright-mcp/home/.openpackage/cache/git/a50d216def4c/1dcc2ba' is a Claude Code plugin marketplace. Marketplace installation requires plugin selection and should be handled by the install command.",
+     "optional": false
+    }
+   ],
+   "expected": {
+    "mcp": [
+     "playwright"
+    ]
+   },
+   "expected_items": {
+    "skill": {},
+    "command": {},
+    "agent": {},
+    "rule": {},
+    "hook": {},
+    "mcp": {
+     "playwright": {
+      "aliases": [
+       "playwright"
+      ],
+      "spec": {
+       "command": "npx",
+       "args": [
+        "-y",
+        "@playwright/mcp@latest"
+       ]
+      },
+      "stdio": true
+     }
+    }
+   },
+   "evidence": {
+    "claude": {
+     "covers": [
+      "skill",
+      "command",
+      "agent"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "codex": {
+     "covers": [
+      "skill",
+      "mcp"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "opencode": {
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "cursor": {
+     "covers": [],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "grok": {
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp",
+      "hook"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "agy": {
+     "covers": [],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    }
+   },
+   "cells": {
+    "claude": {
+     "skill": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     }
+    },
+    "codex": {
+     "skill": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     }
+    },
+    "opencode": {
+     "skill": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     }
+    },
+    "cursor": {
+     "skill": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     }
+    },
+    "grok": {
+     "skill": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     }
+    },
+    "agy": {
+     "skill": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "command": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "agent": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "mcp": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     }
+    }
+   },
+   "probes": {
+    "claude": {
+     "listing": {},
+     "plugins": [
+      "cc-plugin-agents-md (cc-plugin-agents-md@builtin)",
+      "cc-plugin-plugin-authoring (cc-plugin-plugin-authoring@builtin)"
+     ],
+     "covers": [
+      "skill",
+      "command",
+      "agent"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "claude -p x --output-format stream-json --verbose --strict-mcp-config --settings {\"disableAllHooks\":true}",
+       "exit": 1,
+       "seconds": 3.2,
+       "stderr_tail": ""
+      },
+      {
+       "command": "claude plugin list --json",
+       "exit": 0,
+       "seconds": 0.7,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "codex": {
+     "listing": {},
+     "covers": [
+      "skill",
+      "mcp"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "codex -c cli_auth_credentials_store=\"file\" -c cloud_skill_enabled=false debug prompt-input",
+       "exit": 0,
+       "seconds": 0.3,
+       "stderr_tail": ""
+      },
+      {
+       "command": "codex mcp list --json",
+       "exit": 0,
+       "seconds": 0.1,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "opencode": {
+     "listing": {},
+     "plugin": [],
+     "instructions": null,
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "opencode debug config",
+       "exit": 0,
+       "seconds": 16.9,
+       "stderr_tail": ""
+      },
+      {
+       "command": "opencode debug skill",
+       "exit": 0,
+       "seconds": 16.4,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "cursor": {
+     "listing": {},
+     "covers": [],
+     "error": null,
+     "commands": []
+    },
+    "grok": {
+     "listing": {},
+     "plugins": [],
+     "projectInstructions": [],
+     "hooks": [],
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp",
+      "hook"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "grok inspect --json",
+       "exit": 0,
+       "seconds": 0.4,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "agy": {
+     "listing": {},
+     "plugin_list": "No plugins installed.",
+     "covers": [],
+     "plugin_validate": {},
+     "error": null,
+     "commands": [
+      {
+       "command": "agy plugin list",
+       "exit": 0,
+       "seconds": 1.6,
+       "stderr_tail": ""
+      }
+     ]
+    }
+   },
+   "lockfiles": [
+    {
+     "path": "project/.openpackage/openpackage.lock",
+     "bytes": 401,
+     "records_a_commit": false,
+     "records_the_pinned_commit": false,
+     "records_a_content_hash": false,
+     "mcp_package_lines": [],
+     "sha256": "dfac2b5d3f9029fd22c10567231d7b52dfc01b7f4ebfd2ee95907b9e1ad8e1dd"
+    }
+   ],
+   "mcp_package_as_delivered": {},
+   "writes": {
+    "project_files": 3,
+    "project_top_level": [
+     ".openpackage"
+    ],
+    "home_agent_config_files": 0,
+    "home_agent_config_dirs": [],
+    "home_other_files": 932,
+    "home_other_dirs": [
+     ".openpackage"
+    ],
+    "outside_project_and_home_files": 0,
+    "outside_dirs": []
+   },
+   "project_files_written": [
+    ".openpackage/openpackage.index.yml",
+    ".openpackage/openpackage.lock",
+    ".openpackage/openpackage.yml"
+   ],
+   "project_writes_at_launch": [],
+   "writes_outside_run_root": null,
+   "agentpack_sha256": null
+  },
+  "openpackage--marketplace-catalog-stripe": {
+   "tool": "openpackage",
+   "input": "marketplace-catalog-stripe",
+   "run_root": "/tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/eco-opkg-t2/runs/openpackage--marketplace-catalog-stripe",
+   "github_token_passed_to_steps": true,
+   "invalid": null,
+   "steps_timed_out": [],
+   "rate_limit_notices_on_successful_steps": [],
+   "documented_usage": "README: opkg install <GitHub URL to a resource> [--plugins NAME] --platforms ...; no Grok platform",
+   "note": null,
+   "accepted_as_published": "no",
+   "reason": "exit 1: - Loading https://github.com/anthropics/claude-plugins-official/tree/f359d43b406057f1a8cdbc4ea93b827642c162e6\n\u2714 Loaded https://github.com/anthropics/claude-plugins-official/tree/f359d43b406057f1a8cdbc4ea93b827642c162e6\n- Loading marketplace\nValidation error: Plugin '42crunch-api-security-testing' has invalid source: Validation error: Plugin '42crunch-api-security-testing' has unsupported source type: 'git-subdir'. Supported types: 'github', 'url', or relative path string",
+   "native_per_agent": null,
+   "repackaging": null,
+   "needs_local_clone": false,
+   "steps": [
+    {
+     "argv": [
+      "/tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/eco-tools/opkg/node_modules/.bin/opkg",
+      "install",
+      "https://github.com/anthropics/claude-plugins-official/tree/f359d43b406057f1a8cdbc4ea93b827642c162e6",
+      "--plugins",
+      "stripe",
+      "--platforms",
+      "claude",
+      "codex",
+      "opencode",
+      "cursor",
+      "antigravity"
+     ],
+     "exit": 1,
+     "seconds": 12.6,
+     "output_tail": "- Loading https://github.com/anthropics/claude-plugins-official/tree/f359d43b406057f1a8cdbc4ea93b827642c162e6\n\u2714 Loaded https://github.com/anthropics/claude-plugins-official/tree/f359d43b406057f1a8cdbc4ea93b827642c162e6\n- Loading marketplace\nValidation error: Plugin '42crunch-api-security-testing' has invalid source: Validation error: Plugin '42crunch-api-security-testing' has unsupported source type: 'git-subdir'. Supported types: 'github', 'url', or relative path string",
+     "optional": false
+    }
+   ],
+   "expected": {
+    "skill": [
+     "connect-recommend",
+     "connect-required-verification-information",
+     "metronome",
+     "stripe-apps",
+     "stripe-best-practices",
+     "stripe-directory",
+     "stripe-docs",
+     "stripe-pay",
+     "stripe-projects",
+     "upgrade-stripe"
+    ],
+    "command": [
+     "explain-error",
+     "test-cards"
+    ],
+    "agent": [
+     "company-researcher"
+    ],
+    "hook": [
+     "hooks"
+    ],
+    "mcp": [
+     "stripe"
+    ]
+   },
+   "expected_items": {
+    "skill": {
+     "connect-recommend": {
+      "aliases": [
+       "connect-recommend"
+      ],
+      "marker": "- A 2-3 sentence explanation of the MECHANISM of failure (for example, \u201cWith destination charges and a dispute, Stripe d"
+     },
+     "connect-required-verification-information": {
+      "aliases": [
+       "connect-required-verification-information"
+      ],
+      "marker": "- for example: `https://docs.stripe.com/_endpoint/get-requirements-for-setups?account-setup-A[platformCountry]=CA&accoun"
+     },
+     "metronome": {
+      "aliases": [
+       "metronome"
+      ],
+      "marker": "- *Always use batch ingestion* (`POST /v1/ingest` with a bare JSON array of 1 to 100 event objects as the request body, "
+     },
+     "stripe-apps": {
+      "aliases": [
+       "stripe-apps"
+      ],
+      "marker": "If you cannot access the docs, tell the user: \u201cI need to check the current Stripe Apps documentation to write correct co"
+     },
+     "stripe-best-practices": {
+      "aliases": [
+       "stripe-best-practices"
+      ],
+      "marker": "- *Never include `payment_method_types` in any Stripe API call*, with one exception: Terminal (in-person payments) integ"
+     },
+     "stripe-directory": {
+      "aliases": [
+       "stripe-directory"
+      ],
+      "marker": "2. **Interpret the results.** Use the returned results and linked documentation to explain which options best fit the us"
+     },
+     "stripe-docs": {
+      "aliases": [
+       "stripe-docs"
+      ],
+      "marker": "Use `stripe docs` instead of fetching [docs.stripe.com](https://docs.stripe.com/.md) content directly with `curl` or `We"
+     },
+     "stripe-pay": {
+      "aliases": [
+       "stripe-pay"
+      ],
+      "marker": "If the user needs details about financial accounts, read [Money Management](https://docs.stripe.com/money-management.md)"
+     },
+     "stripe-projects": {
+      "aliases": [
+       "stripe-projects"
+      ],
+      "marker": "If any check fails with `BROWSER_AUTH_REQUIRED`, `PROJECTS_SESSION_UNUSABLE`, or `ACCOUNT_NOT_ELIGIBLE`, stop here. Repo"
+     },
+     "upgrade-stripe": {
+      "aliases": [
+       "upgrade-stripe"
+      ],
+      "marker": "For SDKs that support explicit API version overrides, use the selected target in client configuration and per-request ov"
+     }
+    },
+    "command": {
+     "explain-error": {
+      "aliases": [
+       "explain-error"
+      ],
+      "marker": "Provide a comprehensive explanation of the given Stripe error code or error message:"
+     },
+     "test-cards": {
+      "aliases": [
+       "test-cards"
+      ],
+      "marker": "1. If a scenario argument is provided (e.g., \"declined\", \"3dsecure\", \"fraud\"), show relevant test cards for that scenari"
+     }
+    },
+    "agent": {
+     "company-researcher": {
+      "aliases": [
+       "company-researcher"
+      ],
+      "marker": "4. Use codebase signals to corroborate or strengthen web research findings. For example, if the homepage says \"marketpla"
+     }
+    },
+    "rule": {},
+    "hook": {
+     "hooks": {
+      "aliases": [
+       "hooks"
+      ],
+      "events": [
+       "PostToolBatch",
+       "PostToolUse",
+       "PostToolUseFailure",
+       "SessionStart",
+       "UserPromptSubmit"
+      ],
+      "scripts": [
+       "postToolBatch.mjs",
+       "postToolUse.mjs",
+       "postToolUseFailure.mjs",
+       "sessionStart.mjs",
+       "userPromptSubmit.mjs"
+      ]
+     }
+    },
+    "mcp": {
+     "stripe": {
+      "aliases": [
+       "stripe"
+      ],
+      "spec": {
+       "type": "http",
+       "url": "https://mcp.stripe.com"
+      },
+      "stdio": false
+     }
+    }
+   },
+   "evidence": {
+    "claude": {
+     "covers": [
+      "skill",
+      "command",
+      "agent"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "codex": {
+     "covers": [
+      "skill",
+      "mcp"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "opencode": {
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "cursor": {
+     "covers": [
+      "mcp"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "grok": {
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp",
+      "hook"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "agy": {
+     "covers": [],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    }
+   },
+   "cells": {
+    "claude": {
+     "skill": {
+      "status": "absent",
+      "expected": 10,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "command": {
+      "status": "absent",
+      "expected": 2,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "agent": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "mcp": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     }
+    },
+    "codex": {
+     "skill": {
+      "status": "absent",
+      "expected": 10,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "command": {
+      "status": "absent",
+      "expected": 2,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "agent": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "mcp": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     }
+    },
+    "opencode": {
+     "skill": {
+      "status": "absent",
+      "expected": 10,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "command": {
+      "status": "absent",
+      "expected": 2,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "agent": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "mcp": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     }
+    },
+    "cursor": {
+     "skill": {
+      "status": "absent",
+      "expected": 10,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "command": {
+      "status": "absent",
+      "expected": 2,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "agent": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "mcp": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     }
+    },
+    "grok": {
+     "skill": {
+      "status": "absent",
+      "expected": 10,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "command": {
+      "status": "absent",
+      "expected": 2,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "agent": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "mcp": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     }
+    },
+    "agy": {
+     "skill": {
+      "status": "absent",
+      "expected": 10,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "command": {
+      "status": "absent",
+      "expected": 2,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "agent": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "mcp": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     }
+    }
+   },
+   "probes": {
+    "claude": {
+     "listing": {},
+     "plugins": [
+      "cc-plugin-agents-md (cc-plugin-agents-md@builtin)",
+      "cc-plugin-plugin-authoring (cc-plugin-plugin-authoring@builtin)"
+     ],
+     "covers": [
+      "skill",
+      "command",
+      "agent"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "claude -p x --output-format stream-json --verbose --strict-mcp-config --settings {\"disableAllHooks\":true}",
+       "exit": 1,
+       "seconds": 6.8,
+       "stderr_tail": ""
+      },
+      {
+       "command": "claude plugin list --json",
+       "exit": 0,
+       "seconds": 2.0,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "codex": {
+     "listing": {},
+     "covers": [
+      "skill",
+      "mcp"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "codex -c cli_auth_credentials_store=\"file\" -c cloud_skill_enabled=false debug prompt-input",
+       "exit": 0,
+       "seconds": 0.7,
+       "stderr_tail": ""
+      },
+      {
+       "command": "codex mcp list --json",
+       "exit": 0,
+       "seconds": 0.1,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "opencode": {
+     "listing": {},
+     "plugin": [],
+     "instructions": null,
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "opencode debug config",
+       "exit": 0,
+       "seconds": 11.1,
+       "stderr_tail": ""
+      },
+      {
+       "command": "opencode debug skill",
+       "exit": 0,
+       "seconds": 8.2,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "cursor": {
+     "listing": {},
+     "covers": [
+      "mcp"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "cursor-agent mcp list",
+       "exit": 0,
+       "seconds": 3.8,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "grok": {
+     "listing": {},
+     "plugins": [],
+     "projectInstructions": [],
+     "hooks": [],
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp",
+      "hook"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "grok inspect --json",
+       "exit": 0,
+       "seconds": 0.1,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "agy": {
+     "listing": {},
+     "plugin_list": "No plugins installed.",
+     "covers": [],
+     "plugin_validate": {},
+     "error": null,
+     "commands": [
+      {
+       "command": "agy plugin list",
+       "exit": 0,
+       "seconds": 0.6,
+       "stderr_tail": ""
+      }
+     ]
+    }
+   },
+   "lockfiles": [],
+   "mcp_package_as_delivered": {},
+   "writes": {
+    "project_files": 0,
+    "project_top_level": [],
+    "home_agent_config_files": 0,
+    "home_agent_config_dirs": [],
+    "home_other_files": 560,
+    "home_other_dirs": [
+     ".openpackage"
+    ],
+    "outside_project_and_home_files": 0,
+    "outside_dirs": []
+   },
+   "project_files_written": [],
+   "project_writes_at_launch": [],
+   "writes_outside_run_root": null,
+   "agentpack_sha256": null
+  },
+  "openpackage--marketplace-single-stripe": {
+   "tool": "openpackage",
+   "input": "marketplace-single-stripe",
+   "run_root": "/tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/eco-opkg-t2/runs/openpackage--marketplace-single-stripe",
+   "github_token_passed_to_steps": true,
+   "invalid": null,
+   "steps_timed_out": [],
+   "rate_limit_notices_on_successful_steps": [],
+   "documented_usage": "README: opkg install <GitHub URL to a resource> [--plugins NAME] --platforms ...; no Grok platform",
+   "note": null,
+   "accepted_as_published": "yes",
+   "reason": null,
+   "native_per_agent": null,
+   "repackaging": null,
+   "needs_local_clone": false,
+   "steps": [
+    {
+     "argv": [
+      "/tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/eco-tools/opkg/node_modules/.bin/opkg",
+      "install",
+      "https://github.com/stripe/ai/tree/97b2164821c378f246c3903852057b36a8bd0296",
+      "--plugins",
+      "stripe",
+      "--platforms",
+      "claude",
+      "codex",
+      "opencode",
+      "cursor",
+      "antigravity"
+     ],
+     "exit": 0,
+     "seconds": 32.5,
+     "output_tail": "ed root file install for gh@stripe/ai/providers/claude/plugin/: OpenPackageError: Validation error: Package name 'gh@stripe/ai/providers/claude/plugin/' cannot have empty segments (consecutive or trailing slashes)\n- Loading https://github.com/stripe/ai/tree/97b2164821c378f246c3903852057b36a8bd0296\n\u2714 Loaded https://github.com/stripe/ai/tree/97b2164821c378f246c3903852057b36a8bd0296\n- Loading marketplace\n\u2714 Marketplace: stripe\n- Installing package\n- Preparing gh@stripe/ai/providers/claude/plugin/\n\u2714 Prepared gh@stripe/ai/providers/claude/plugin/\n- Installing gh@stripe/ai/providers/claude/plugin/\n2026-10-17T00:34:38.720Z \u274c [ERROR] Failed root file install for gh@stripe/ai/providers/claude/plugin/: OpenPackageError: Validation error: Package name 'gh@stripe/ai/providers/claude/plugin/' cannot have empty segments (consecutive or trailing slashes)\n\u2714 Installed gh@stripe/ai/providers/claude/plugin/",
+     "optional": false
+    }
+   ],
+   "expected": {
+    "skill": [
+     "connect-recommend",
+     "connect-required-verification-information",
+     "metronome",
+     "stripe-apps",
+     "stripe-best-practices",
+     "stripe-directory",
+     "stripe-docs",
+     "stripe-pay",
+     "stripe-projects",
+     "upgrade-stripe"
+    ],
+    "command": [
+     "explain-error",
+     "test-cards"
+    ],
+    "agent": [
+     "company-researcher"
+    ],
+    "hook": [
+     "hooks"
+    ],
+    "mcp": [
+     "stripe"
+    ]
+   },
+   "expected_items": {
+    "skill": {
+     "connect-recommend": {
+      "aliases": [
+       "connect-recommend"
+      ],
+      "marker": "- A 2-3 sentence explanation of the MECHANISM of failure (for example, \u201cWith destination charges and a dispute, Stripe d"
+     },
+     "connect-required-verification-information": {
+      "aliases": [
+       "connect-required-verification-information"
+      ],
+      "marker": "- for example: `https://docs.stripe.com/_endpoint/get-requirements-for-setups?account-setup-A[platformCountry]=CA&accoun"
+     },
+     "metronome": {
+      "aliases": [
+       "metronome"
+      ],
+      "marker": "- *Always use batch ingestion* (`POST /v1/ingest` with a bare JSON array of 1 to 100 event objects as the request body, "
+     },
+     "stripe-apps": {
+      "aliases": [
+       "stripe-apps"
+      ],
+      "marker": "If you cannot access the docs, tell the user: \u201cI need to check the current Stripe Apps documentation to write correct co"
+     },
+     "stripe-best-practices": {
+      "aliases": [
+       "stripe-best-practices"
+      ],
+      "marker": "- *Never include `payment_method_types` in any Stripe API call*, with one exception: Terminal (in-person payments) integ"
+     },
+     "stripe-directory": {
+      "aliases": [
+       "stripe-directory"
+      ],
+      "marker": "2. **Interpret the results.** Use the returned results and linked documentation to explain which options best fit the us"
+     },
+     "stripe-docs": {
+      "aliases": [
+       "stripe-docs"
+      ],
+      "marker": "Use `stripe docs` instead of fetching [docs.stripe.com](https://docs.stripe.com/.md) content directly with `curl` or `We"
+     },
+     "stripe-pay": {
+      "aliases": [
+       "stripe-pay"
+      ],
+      "marker": "If the user needs details about financial accounts, read [Money Management](https://docs.stripe.com/money-management.md)"
+     },
+     "stripe-projects": {
+      "aliases": [
+       "stripe-projects"
+      ],
+      "marker": "If any check fails with `BROWSER_AUTH_REQUIRED`, `PROJECTS_SESSION_UNUSABLE`, or `ACCOUNT_NOT_ELIGIBLE`, stop here. Repo"
+     },
+     "upgrade-stripe": {
+      "aliases": [
+       "upgrade-stripe"
+      ],
+      "marker": "For SDKs that support explicit API version overrides, use the selected target in client configuration and per-request ov"
+     }
+    },
+    "command": {
+     "explain-error": {
+      "aliases": [
+       "explain-error"
+      ],
+      "marker": "Provide a comprehensive explanation of the given Stripe error code or error message:"
+     },
+     "test-cards": {
+      "aliases": [
+       "test-cards"
+      ],
+      "marker": "1. If a scenario argument is provided (e.g., \"declined\", \"3dsecure\", \"fraud\"), show relevant test cards for that scenari"
+     }
+    },
+    "agent": {
+     "company-researcher": {
+      "aliases": [
+       "company-researcher"
+      ],
+      "marker": "4. Use codebase signals to corroborate or strengthen web research findings. For example, if the homepage says \"marketpla"
+     }
+    },
+    "rule": {},
+    "hook": {
+     "hooks": {
+      "aliases": [
+       "hooks"
+      ],
+      "events": [
+       "PostToolBatch",
+       "PostToolUse",
+       "PostToolUseFailure",
+       "SessionStart",
+       "UserPromptSubmit"
+      ],
+      "scripts": [
+       "postToolBatch.mjs",
+       "postToolUse.mjs",
+       "postToolUseFailure.mjs",
+       "sessionStart.mjs",
+       "userPromptSubmit.mjs"
+      ]
+     }
+    },
+    "mcp": {
+     "stripe": {
+      "aliases": [
+       "stripe"
+      ],
+      "spec": {
+       "type": "http",
+       "url": "https://mcp.stripe.com"
+      },
+      "stdio": false
+     }
+    }
+   },
+   "evidence": {
+    "claude": {
+     "covers": [
+      "skill",
+      "command",
+      "agent"
+     ],
+     "listed": {
+      "skill": {
+       "stripe-apps": "init.skills",
+       "connect-recommend": "init.skills",
+       "stripe-best-practices": "init.skills",
+       "stripe-docs": "init.skills",
+       "connect-required-verification-information": "init.skills",
+       "upgrade-stripe": "init.skills",
+       "stripe-directory": "init.skills",
+       "metronome": "init.skills",
+       "stripe-projects": "init.skills",
+       "stripe-pay": "init.skills"
+      },
+      "command": {
+       "explain-error": "init.slash_commands",
+       "test-cards": "init.slash_commands"
+      },
+      "agent": {
+       "company-researcher": "init.agents"
+      },
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {
+       "stripe": "project/.mcp.json: {\"type\": \"http\", \"url\": \"https://mcp.stripe.com\"}"
+      }
+     }
+    },
+    "codex": {
+     "covers": [
+      "skill",
+      "mcp"
+     ],
+     "listed": {
+      "skill": {
+       "connect-recommend": "debug prompt-input",
+       "connect-required-verification-information": "debug prompt-input",
+       "metronome": "debug prompt-input",
+       "stripe-apps": "debug prompt-input",
+       "stripe-best-practices": "debug prompt-input",
+       "stripe-directory": "debug prompt-input",
+       "stripe-docs": "debug prompt-input",
+       "stripe-pay": "debug prompt-input",
+       "stripe-projects": "debug prompt-input",
+       "upgrade-stripe": "debug prompt-input"
+      },
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {
+       "stripe": "mcp list: {\"type\": \"streamable_http\", \"url\": \"https://mcp.stripe.com\", \"bearer_token_env_var\": null, \"http_headers\": null, \"env_http_headers\": null, \"http_headers_helper\": null}"
+      }
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {
+       "company-researcher": "project/.codex/agents/company-researcher.toml"
+      },
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "opencode": {
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "cursor": {
+     "covers": [
+      "mcp"
+     ],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {
+       "stripe": "mcp list: not loaded (needs approval)"
+      }
+     },
+     "disk": {
+      "skill": {
+       "upgrade-stripe": "project/.claude/skills/upgrade-stripe/SKILL.md",
+       "connect-required-verification-information": "project/.claude/skills/connect-required-verification-information/SKILL.md",
+       "stripe-pay": "project/.claude/skills/stripe-pay/SKILL.md",
+       "stripe-directory": "project/.claude/skills/stripe-directory/SKILL.md",
+       "stripe-docs": "project/.claude/skills/stripe-docs/SKILL.md",
+       "connect-recommend": "project/.claude/skills/connect-recommend/SKILL.md",
+       "stripe-projects": "project/.claude/skills/stripe-projects/SKILL.md",
+       "stripe-best-practices": "project/.claude/skills/stripe-best-practices/SKILL.md",
+       "metronome": "project/.claude/skills/metronome/SKILL.md",
+       "stripe-apps": "project/.claude/skills/stripe-apps/SKILL.md"
+      },
+      "command": {
+       "test-cards": "project/.cursor/commands/test-cards.md",
+       "explain-error": "project/.cursor/commands/explain-error.md"
+      },
+      "agent": {
+       "company-researcher": "project/.codex/agents/company-researcher.toml",
+       "Company Researcher": "project/.cursor/agents/company-researcher.md"
+      },
+      "rule": {},
+      "hook": {},
+      "mcp": {
+       "stripe": "project/.cursor/mcp.json: {\"type\": \"http\", \"url\": \"https://mcp.stripe.com\"}"
+      }
+     }
+    },
+    "grok": {
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp",
+      "hook"
+     ],
+     "listed": {
+      "skill": {
+       "connect-recommend": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk",
+       "connect-required-verification-information": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk",
+       "metronome": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk",
+       "stripe-apps": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk",
+       "stripe-best-practices": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk",
+       "stripe-directory": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk",
+       "stripe-docs": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk",
+       "stripe-pay": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk",
+       "stripe-projects": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk",
+       "upgrade-stripe": "inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk"
+      },
+      "command": {
+       "explain-error": "inspect: {\"type\": \"project\", \"path\": \"project/.claude/co",
+       "test-cards": "inspect: {\"type\": \"project\", \"path\": \"project/.claude/co"
+      },
+      "agent": {
+       "company-researcher": "inspect: {\"type\": \"project\", \"path\": \"project/.claude/ag"
+      },
+      "rule": {},
+      "hook": {},
+      "mcp": {
+       "stripe": "inspect: {\"transport\": \"http\", \"target\": \"https://mcp.stripe.com\", \"source\": {\"type\": \"mcpJson\", \"path\": \"home/.cursor/mcp.json\"}, \"vendor\": \"cursor\"}"
+      }
+     },
+     "disk": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    },
+    "agy": {
+     "covers": [],
+     "listed": {
+      "skill": {},
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     },
+     "disk": {
+      "skill": {
+       "upgrade-stripe": "project/.agents/skills/upgrade-stripe/SKILL.md",
+       "connect-required-verification-information": "project/.agents/skills/connect-required-verification-information/SKILL.md",
+       "stripe-pay": "project/.agents/skills/stripe-pay/SKILL.md",
+       "stripe-directory": "project/.agents/skills/stripe-directory/SKILL.md",
+       "stripe-docs": "project/.agents/skills/stripe-docs/SKILL.md",
+       "connect-recommend": "project/.agents/skills/connect-recommend/SKILL.md",
+       "stripe-projects": "project/.agents/skills/stripe-projects/SKILL.md",
+       "stripe-best-practices": "project/.agents/skills/stripe-best-practices/SKILL.md",
+       "metronome": "project/.agents/skills/metronome/SKILL.md",
+       "stripe-apps": "project/.agents/skills/stripe-apps/SKILL.md"
+      },
+      "command": {},
+      "agent": {},
+      "rule": {},
+      "hook": {},
+      "mcp": {}
+     }
+    }
+   },
+   "cells": {
+    "claude": {
+     "skill": {
+      "status": "native",
+      "expected": 10,
+      "delivered": 10,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "connect-recommend: listed by the agent (init.skills)",
+       "connect-required-verification-information: listed by the agent (init.skills)",
+       "metronome: listed by the agent (init.skills)",
+       "stripe-apps: listed by the agent (init.skills)",
+       "stripe-best-practices: listed by the agent (init.skills)",
+       "stripe-directory: listed by the agent (init.skills)",
+       "stripe-docs: listed by the agent (init.skills)",
+       "stripe-pay: listed by the agent (init.skills)",
+       "stripe-projects: listed by the agent (init.skills)",
+       "upgrade-stripe: listed by the agent (init.skills)"
+      ]
+     },
+     "command": {
+      "status": "native",
+      "expected": 2,
+      "delivered": 2,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "explain-error: listed by the agent (init.slash_commands)",
+       "test-cards: listed by the agent (init.slash_commands)"
+      ]
+     },
+     "agent": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "company-researcher: listed by the agent (init.agents)"
+      ]
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "mcp": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": [
+       "stripe: file project/.mcp.json: {\"type\": \"http\", \"url\": \"https://mcp.stripe.com\"}"
+      ]
+     }
+    },
+    "codex": {
+     "skill": {
+      "status": "native",
+      "expected": 10,
+      "delivered": 10,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "connect-recommend: listed by the agent (debug prompt-input)",
+       "connect-required-verification-information: listed by the agent (debug prompt-input)",
+       "metronome: listed by the agent (debug prompt-input)",
+       "stripe-apps: listed by the agent (debug prompt-input)",
+       "stripe-best-practices: listed by the agent (debug prompt-input)",
+       "stripe-directory: listed by the agent (debug prompt-input)",
+       "stripe-docs: listed by the agent (debug prompt-input)",
+       "stripe-pay: listed by the agent (debug prompt-input)",
+       "stripe-projects: listed by the agent (debug prompt-input)",
+       "upgrade-stripe: listed by the agent (debug prompt-input)"
+      ]
+     },
+     "command": {
+      "status": "absent",
+      "expected": 2,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "agent": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": [
+       "company-researcher: file project/.codex/agents/company-researcher.toml"
+      ]
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "mcp": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "stripe: listed by the agent (mcp list: {\"type\": \"streamable_http\", \"url\": \"https://mcp.stripe.com\", \"bearer_token_env_var\": null, \"http_headers\": null, \"env_http_headers\": null, \"http_headers_helper\": null})"
+      ]
+     }
+    },
+    "opencode": {
+     "skill": {
+      "status": "absent",
+      "expected": 10,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "command": {
+      "status": "absent",
+      "expected": 2,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "agent": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "mcp": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     }
+    },
+    "cursor": {
+     "skill": {
+      "status": "native",
+      "expected": 10,
+      "delivered": 10,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": [
+       "connect-recommend: file project/.claude/skills/connect-recommend/SKILL.md",
+       "connect-required-verification-information: file project/.claude/skills/connect-required-verification-information/SKILL.md",
+       "metronome: file project/.claude/skills/metronome/SKILL.md",
+       "stripe-apps: file project/.claude/skills/stripe-apps/SKILL.md",
+       "stripe-best-practices: file project/.claude/skills/stripe-best-practices/SKILL.md",
+       "stripe-directory: file project/.claude/skills/stripe-directory/SKILL.md",
+       "stripe-docs: file project/.claude/skills/stripe-docs/SKILL.md",
+       "stripe-pay: file project/.claude/skills/stripe-pay/SKILL.md",
+       "stripe-projects: file project/.claude/skills/stripe-projects/SKILL.md",
+       "upgrade-stripe: file project/.claude/skills/upgrade-stripe/SKILL.md"
+      ]
+     },
+     "command": {
+      "status": "native",
+      "expected": 2,
+      "delivered": 2,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": [
+       "explain-error: file project/.cursor/commands/explain-error.md",
+       "test-cards: file project/.cursor/commands/test-cards.md"
+      ]
+     },
+     "agent": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": [
+       "company-researcher: file project/.codex/agents/company-researcher.toml"
+      ]
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "mcp": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "stripe: listed by the agent (mcp list: not loaded (needs approval)); file project/.cursor/mcp.json: {\"type\": \"http\", \"url\": \"https://mcp.stripe.com\"}"
+      ]
+     }
+    },
+    "grok": {
+     "skill": {
+      "status": "native",
+      "expected": 10,
+      "delivered": 10,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "connect-recommend: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk)",
+       "connect-required-verification-information: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk)",
+       "metronome: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk)",
+       "stripe-apps: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk)",
+       "stripe-best-practices: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk)",
+       "stripe-directory: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk)",
+       "stripe-docs: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk)",
+       "stripe-pay: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk)",
+       "stripe-projects: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk)",
+       "upgrade-stripe: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.agents/sk)"
+      ]
+     },
+     "command": {
+      "status": "native",
+      "expected": 2,
+      "delivered": 2,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "explain-error: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.claude/co)",
+       "test-cards: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.claude/co)"
+      ]
+     },
+     "agent": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "company-researcher: listed by the agent (inspect: {\"type\": \"project\", \"path\": \"project/.claude/ag)"
+      ]
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": []
+     },
+     "mcp": {
+      "status": "native",
+      "expected": 1,
+      "delivered": 1,
+      "converted": 0,
+      "decided_by": "agent listing",
+      "evidence": [
+       "stripe: listed by the agent (inspect: {\"transport\": \"http\", \"target\": \"https://mcp.stripe.com\", \"source\": {\"type\": \"mcpJson\", \"path\": \"home/.cursor/mcp.json\"}, \"vendor\": \"cursor\"})"
+      ]
+     }
+    },
+    "agy": {
+     "skill": {
+      "status": "native",
+      "expected": 10,
+      "delivered": 10,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": [
+       "connect-recommend: file project/.agents/skills/connect-recommend/SKILL.md",
+       "connect-required-verification-information: file project/.agents/skills/connect-required-verification-information/SKILL.md",
+       "metronome: file project/.agents/skills/metronome/SKILL.md",
+       "stripe-apps: file project/.agents/skills/stripe-apps/SKILL.md",
+       "stripe-best-practices: file project/.agents/skills/stripe-best-practices/SKILL.md",
+       "stripe-directory: file project/.agents/skills/stripe-directory/SKILL.md",
+       "stripe-docs: file project/.agents/skills/stripe-docs/SKILL.md",
+       "stripe-pay: file project/.agents/skills/stripe-pay/SKILL.md",
+       "stripe-projects: file project/.agents/skills/stripe-projects/SKILL.md",
+       "upgrade-stripe: file project/.agents/skills/upgrade-stripe/SKILL.md"
+      ]
+     },
+     "command": {
+      "status": "absent",
+      "expected": 2,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "agent": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "rule": {
+      "status": "n/a",
+      "expected": 0
+     },
+     "hook": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     },
+     "mcp": {
+      "status": "absent",
+      "expected": 1,
+      "delivered": 0,
+      "converted": 0,
+      "decided_by": "files at documented locations",
+      "evidence": []
+     }
+    }
+   },
+   "probes": {
+    "claude": {
+     "listing": {
+      "skill": [
+       "connect-recommend",
+       "connect-required-verification-information",
+       "metronome",
+       "stripe-apps",
+       "stripe-best-practices",
+       "stripe-directory",
+       "stripe-docs",
+       "stripe-pay",
+       "stripe-projects",
+       "upgrade-stripe"
+      ],
+      "command": [
+       "explain-error",
+       "test-cards"
+      ],
+      "agent": [
+       "company-researcher"
+      ]
+     },
+     "plugins": [
+      "cc-plugin-agents-md (cc-plugin-agents-md@builtin)",
+      "cc-plugin-plugin-authoring (cc-plugin-plugin-authoring@builtin)"
+     ],
+     "covers": [
+      "skill",
+      "command",
+      "agent"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "claude -p x --output-format stream-json --verbose --strict-mcp-config --settings {\"disableAllHooks\":true}",
+       "exit": 1,
+       "seconds": 7.5,
+       "stderr_tail": ""
+      },
+      {
+       "command": "claude plugin list --json",
+       "exit": 0,
+       "seconds": 4.1,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "codex": {
+     "listing": {
+      "skill": [
+       "connect-recommend",
+       "connect-required-verification-information",
+       "metronome",
+       "stripe-apps",
+       "stripe-best-practices",
+       "stripe-directory",
+       "stripe-docs",
+       "stripe-pay",
+       "stripe-projects",
+       "upgrade-stripe"
+      ],
+      "mcp": [
+       "stripe"
+      ]
+     },
+     "covers": [
+      "skill",
+      "mcp"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "codex -c cli_auth_credentials_store=\"file\" -c cloud_skill_enabled=false debug prompt-input",
+       "exit": 0,
+       "seconds": 2.0,
+       "stderr_tail": ""
+      },
+      {
+       "command": "codex mcp list --json",
+       "exit": 0,
+       "seconds": 1.0,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "opencode": {
+     "listing": {},
+     "agent_error": "Error: Configuration is invalid at project/.opencode/opencode.json\n\u21b3 Expected { readonly \"type\": \"local\", ... } | { readonly \"type\": \"remote\", ... }, got {\"type\":\"http\",\"url\":\"https://mcp.stripe.com\"} mcp.stripe\n\u21b3 Missing key mcp.stripe.enabled",
+     "plugin": null,
+     "instructions": null,
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "opencode debug config",
+       "exit": 1,
+       "seconds": 18.6,
+       "stderr_tail": "-4fd6-9b5c-5da59f900573/scratchpad/eco-opkg-t2/runs/openpackage--marketplace-single-stripe/project/.opencode/opencode.json\n\u21b3 Expected { readonly \"type\": \"local\", ... } | { readonly \"type\": \"remote\", ... }, got {\"type\":\"http\",\"url\":\"https://mcp.stripe.com\"} mcp.stripe\n\u21b3 Missing key mcp.stripe.enabled"
+      },
+      {
+       "command": "opencode debug skill",
+       "exit": 1,
+       "seconds": 8.8,
+       "stderr_tail": "-4fd6-9b5c-5da59f900573/scratchpad/eco-opkg-t2/runs/openpackage--marketplace-single-stripe/project/.opencode/opencode.json\n\u21b3 Expected { readonly \"type\": \"local\", ... } | { readonly \"type\": \"remote\", ... }, got {\"type\":\"http\",\"url\":\"https://mcp.stripe.com\"} mcp.stripe\n\u21b3 Missing key mcp.stripe.enabled"
+      }
+     ]
+    },
+    "cursor": {
+     "listing": {
+      "mcp": [
+       "stripe"
+      ]
+     },
+     "covers": [
+      "mcp"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "cursor-agent mcp list",
+       "exit": 0,
+       "seconds": 8.3,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "grok": {
+     "listing": {
+      "skill": [
+       "connect-recommend",
+       "connect-required-verification-information",
+       "metronome",
+       "stripe-apps",
+       "stripe-best-practices",
+       "stripe-directory",
+       "stripe-docs",
+       "stripe-pay",
+       "stripe-projects",
+       "upgrade-stripe"
+      ],
+      "command": [
+       "explain-error",
+       "test-cards"
+      ],
+      "agent": [
+       "company-researcher"
+      ],
+      "mcp": [
+       "stripe"
+      ]
+     },
+     "plugins": [],
+     "projectInstructions": [],
+     "hooks": [],
+     "covers": [
+      "skill",
+      "command",
+      "agent",
+      "mcp",
+      "hook"
+     ],
+     "error": null,
+     "commands": [
+      {
+       "command": "grok inspect --json",
+       "exit": 0,
+       "seconds": 0.3,
+       "stderr_tail": ""
+      }
+     ]
+    },
+    "agy": {
+     "listing": {},
+     "plugin_list": "No plugins installed.",
+     "covers": [],
+     "plugin_validate": {},
+     "error": null,
+     "commands": [
+      {
+       "command": "agy plugin list",
+       "exit": 0,
+       "seconds": 1.1,
+       "stderr_tail": ""
+      }
+     ]
+    }
+   },
+   "lockfiles": [
+    {
+     "path": "project/.openpackage/openpackage.lock",
+     "bytes": 397,
+     "records_a_commit": false,
+     "records_the_pinned_commit": false,
+     "records_a_content_hash": false,
+     "mcp_package_lines": [],
+     "sha256": "374429e6c8d4496650bb47b95eee18fbdc5fb930f0c2d1d127f7717f287719b3"
+    }
+   ],
+   "mcp_package_as_delivered": {},
+   "writes": {
+    "project_files": 196,
+    "project_top_level": [
+     ".agent",
+     ".agents",
+     ".claude",
+     ".codex",
+     ".cursor",
+     ".mcp.json",
+     ".opencode",
+     ".openpackage"
+    ],
+    "home_agent_config_files": 0,
+    "home_agent_config_dirs": [],
+    "home_other_files": 1141,
+    "home_other_dirs": [
+     ".openpackage"
+    ],
+    "outside_project_and_home_files": 0,
+    "outside_dirs": []
+   },
+   "project_files_written": [
+    ".agent/skills/connect-recommend/SKILL.md",
+    ".agent/skills/connect-recommend/references/account-types.md",
+    ".agent/skills/connect-recommend/references/charge-patterns.md",
+    ".agent/skills/connect-recommend/references/company-researcher.md",
+    ".agent/skills/connect-recommend/references/compatibility-matrix.md",
+    ".agent/skills/connect-recommend/references/decision-matrix.md",
+    ".agent/skills/connect-recommend/references/discovery-questions.md",
+    ".agent/skills/connect-recommend/references/recommendation-template.md",
+    ".agent/skills/connect-recommend/references/terminology-rules.md",
+    ".agent/skills/connect-required-verification-information/SKILL.md",
+    ".agent/skills/metronome/SKILL.md",
+    ".agent/skills/stripe-apps/SKILL.md",
+    ".agent/skills/stripe-apps/references/authentication.md",
+    ".agent/skills/stripe-apps/references/backend.md",
+    ".agent/skills/stripe-apps/references/canonical-docs.md",
+    ".agent/skills/stripe-apps/references/discovery.md",
+    ".agent/skills/stripe-apps/references/extension-types.md",
+    ".agent/skills/stripe-apps/references/feedback.md",
+    ".agent/skills/stripe-apps/references/onboarding-ux.md",
+    ".agent/skills/stripe-apps/references/publishing.md",
+    ".agent/skills/stripe-apps/references/ui-extensions.md",
+    ".agent/skills/stripe-apps/references/webhooks.md",
+    ".agent/skills/stripe-apps/references/workflow.md",
+    ".agent/skills/stripe-best-practices/SKILL.md",
+    ".agent/skills/stripe-best-practices/references/billing.md",
+    ".agent/skills/stripe-best-practices/references/connect.md",
+    ".agent/skills/stripe-best-practices/references/payments.md",
+    ".agent/skills/stripe-best-practices/references/security.md",
+    ".agent/skills/stripe-best-practices/references/tax.md",
+    ".agent/skills/stripe-best-practices/references/treasury.md",
+    ".agent/skills/stripe-directory/SKILL.md",
+    ".agent/skills/stripe-docs/SKILL.md",
+    ".agent/skills/stripe-pay/SKILL.md",
+    ".agent/skills/stripe-projects/SKILL.md",
+    ".agent/skills/upgrade-stripe/SKILL.md",
+    ".agent/workflows/explain-error.md",
+    ".agent/workflows/test-cards.md",
+    ".agents/skills/connect-recommend/SKILL.md",
+    ".agents/skills/connect-recommend/references/account-types.md",
+    ".agents/skills/connect-recommend/references/charge-patterns.md",
+    ".agents/skills/connect-recommend/references/company-researcher.md",
+    ".agents/skills/connect-recommend/references/compatibility-matrix.md",
+    ".agents/skills/connect-recommend/references/decision-matrix.md",
+    ".agents/skills/connect-recommend/references/discovery-questions.md",
+    ".agents/skills/connect-recommend/references/recommendation-template.md",
+    ".agents/skills/connect-recommend/references/terminology-rules.md",
+    ".agents/skills/connect-required-verification-information/SKILL.md",
+    ".agents/skills/metronome/SKILL.md",
+    ".agents/skills/stripe-apps/SKILL.md",
+    ".agents/skills/stripe-apps/references/authentication.md",
+    ".agents/skills/stripe-apps/references/backend.md",
+    ".agents/skills/stripe-apps/references/canonical-docs.md",
+    ".agents/skills/stripe-apps/references/discovery.md",
+    ".agents/skills/stripe-apps/references/extension-types.md",
+    ".agents/skills/stripe-apps/references/feedback.md",
+    ".agents/skills/stripe-apps/references/onboarding-ux.md",
+    ".agents/skills/stripe-apps/references/publishing.md",
+    ".agents/skills/stripe-apps/references/ui-extensions.md",
+    ".agents/skills/stripe-apps/references/webhooks.md",
+    ".agents/skills/stripe-apps/references/workflow.md"
    ],
    "project_writes_at_launch": [],
    "writes_outside_run_root": null,

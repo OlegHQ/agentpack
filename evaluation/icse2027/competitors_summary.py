@@ -7,7 +7,7 @@
 
 A combination is one agent and one kind of content (skill, command, subagent, rule, hook, MCP server, language
 server where the agent has a language-server setting). It works when the agent answered with the item's token in
-at least 2 of its 3 runs (the hook: when the hook's line was written in at least 2 of 3 runs of any item). Runs
+at least 2 of its 3 runs (for the language server, the token its hover returns) (the hook: when the hook's line was written in at least 2 of 3 runs of any item). Runs
 whose transcript names the package source do not count. A later file's rows for a tool and agent replace an
 earlier file's (used to rerun OpenCode alone, which hung when five tools used one account at once).
 
@@ -39,7 +39,7 @@ def rescore(res, run_dir):
     for r in res['rows']:
         attempt = 1 if r['artifact'] == 'command' and r.get('invoked_as') == 'request' else 0
         f = run_dir / res['tool'] / 'transcripts' / f"{r['agent']}-{r['artifact']}-{r['run']}-{attempt}.jsonl"
-        if not f.is_file() or r['artifact'] == 'lsp':
+        if not f.is_file():
             continue
         text = f.read_text()
         touched = cm.read_source(text, str(run_dir / res['tool'] / 'repo'), res['tool'], r['agent'])

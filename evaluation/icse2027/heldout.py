@@ -20,6 +20,13 @@ a fixed rule, and excludes every package used before:
 
     uv run heldout.py --src DIR [--per-source 4] [--out heldout-inputs.json]
 
+A second draw (2026-10-17) targets the kinds the first one lacked: with --need hook agent only packages
+holding a hook or a subagent are eligible, --exclude-inputs drops the packages of an earlier draw, and
+--seed gives the draw its own order:
+
+    uv run heldout.py --src DIR --seed icse2027-heldout-kinds-2026-10-17 --need hook agent \
+        --exclude-inputs heldout-inputs.json --out heldout-kinds-inputs.json
+
 The output holds one ecosystem.py input per package (same fields as INPUTS) and the rule above.
 Run the comparison with:  uv run ecosystem.py run --inputs-file heldout-inputs.json --output heldout-results.json ...
 """
@@ -46,9 +53,15 @@ def main() -> int:
     ap.add_argument('--src', type=Path, required=True, help='directory for the pinned source checkouts (as ecosystem.py --work/src)')
     ap.add_argument('--per-source', type=int, default=4)
     ap.add_argument('--out', type=Path, default=HERE / 'heldout-inputs.json')
+    ap.add_argument('--seed', default=SEED)
+    ap.add_argument('--need', nargs='*', default=[], choices=['skill', 'command', 'agent', 'rule', 'hook', 'mcp'],
+                    help='eligible only if the package holds at least one of these kinds')
+    ap.add_argument('--exclude-inputs', type=Path, nargs='*', default=[], help='earlier draws whose packages are excluded')
     a = ap.parse_args()
     used = {(i.get('content', i)['repo'], i.get('content', i)['path']) for i in eco.INPUTS.values()}
     used |= {(p['repo'], p['path']) for p in json.loads((HERE / 'plugins-corpus.json').read_text())['packages']}
+    for f in a.exclude_inputs:
+        used |= {(i['repo'], i['path']) for i in json.loads(f.read_text())['inputs'].values()}
     inputs, log = {}, []
     for s in SOURCES:
         root = eco.checkout(a.src, s['repo'], s['commit'])
@@ -60,7 +73,7 @@ def main() -> int:
                 if (s['repo'], rel) in used:
                     continue
                 cands.append(rel)
-        cands.sort(key=lambda rel: hashlib.sha256(f"{SEED}|{s['repo']}|{rel}".encode()).hexdigest())
+        cands.sort(key=lambda rel: hashlib.sha256(f"{a.seed}|{s['repo']}|{rel}".encode()).hexdigest())
         taken = 0
         for rel in cands:
             if taken >= a.per_source:
@@ -70,13 +83,14 @@ def main() -> int:
                        plugin=name, marketplace=dict(repo=s['repo'], name=s['marketplace']))
             exp = eco.expected(a.src, inp)
             n = {k: len(v) for k, v in exp.items() if v}
-            log.append({'source': s['name'], 'path': rel, 'items': n, 'taken': bool(n)})
-            if not n:
+            ok = bool(n) and (not a.need or any(k in n for k in a.need))
+            log.append({'source': s['name'], 'path': rel, 'items': n, 'taken': ok})
+            if not ok:
                 continue
             inputs[f"heldout-{s['name']}-{eco.norm(Path(rel).name)}"] = inp
             taken += 1
         print(f"{s['name']}: {len(cands)} eligible directories after exclusions, {taken} taken", file=sys.stderr)
-    a.out.write_text(json.dumps({'rule': __doc__.split('    uv run')[0].strip(), 'seed': SEED, 'per_source': a.per_source,
+    a.out.write_text(json.dumps({'rule': __doc__.split('    uv run')[0].strip(), 'seed': a.seed, 'need': a.need, 'excluded_draws': [f.name for f in a.exclude_inputs], 'per_source': a.per_source,
                                  'drawn_in_order': log, 'inputs': inputs}, indent=1))
     for k, v in inputs.items():
         print(k, v['path'], file=sys.stderr)

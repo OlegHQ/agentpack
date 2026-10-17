@@ -161,6 +161,11 @@ TOOLS = {
                        commit='9dbf7ee6806a07391499a35c9d1c414b4f6e95cd (default branch head read; binary is tag v0.25.10)',
                        asset='skillshare_0.25.10_linux_arm64.tar.gz',
                        sha256='323544db97a37a59969f29c9c1a87fa0278939ae7d40c92e4e5f28c55ca10060', exe='skillshare/bin/skillshare'),
+    # added 2026-10-17: a package manager for agent configuration (rules, commands, agents, skills, MCP) for many platforms;
+    # installed in its own directory (TOOLS/opkg) at the exact npm version, integrity checked in setup()
+    'openpackage': dict(name='OpenPackage (opkg)', version='0.11.3', repo='enulus/openpackage', npm_separate='opkg',
+                        integrity='sha512-yxoFBHatB0dt1/2EhXseYA32DirWWcE5wbP4aLtLuiQqZFXSLdxZZ0Xu/N7ST9tmvMfFQ9gbUWdxCXFIcFC3mw==',
+                        exe='opkg/node_modules/.bin/opkg'),
     'native': dict(name="Each agent's own install command (no tool)", version='agent versions above'),
 }
 NODE_BIN = {'vercel-skills': 'skills', 'ruler': 'ruler', 'skills-lock': 'skills-lock', 'rulesync': 'rulesync', 'rulesync-claude-importer': 'rulesync',
@@ -283,6 +288,16 @@ def setup(tools):
         if 'npm' in t and got[f"node_modules/{t['npm']}"].get('integrity') != t['integrity']:
             sys.exit(f"{t['npm']}: npm integrity differs from the recorded one")
     print('node tools: integrity ok; lock at', node / 'package-lock.json')
+    for key, t in TOOLS.items():
+        if 'npm_separate' in t:
+            d = tools / t['npm_separate']
+            d.mkdir(exist_ok=True)
+            (d / 'package.json').write_text(json.dumps({'name': key + '-pin', 'private': True, 'dependencies': {t['npm_separate']: t['version']}}))
+            subprocess.run(['npm', 'install', '--ignore-scripts', '--no-audit', '--no-fund'], cwd=d, check=True)
+            got = json.loads((d / 'package-lock.json').read_text())['packages'][f"node_modules/{t['npm_separate']}"]
+            if got.get('integrity') != t['integrity'] or got.get('version') != t['version']:
+                sys.exit(f"{key}: npm version or integrity differs from the recorded one")
+            print(f"{key}: {t['version']} integrity ok")
 
 
 def tool_exe(tools, key):
@@ -535,6 +550,15 @@ def plan(tool, inp, exp, ctx):
         S([x, 'init'])
         r['prepare'] = ('ruler', src)
         S([x, 'apply', '--agents', 'claude,codex,opencode,cursor,antigravity', '--subagents'])
+    elif tool == 'openpackage':
+        r['doc'] = 'README: opkg install <GitHub URL to a resource> [--plugins NAME] --platforms ...; no Grok platform'
+        c = inp.get('content', inp)
+        if fmt == 'marketplace':
+            S([x, 'install', f"https://github.com/{repo}/tree/{commit}", '--plugins', inp['plugin'],
+               '--platforms', 'claude', 'codex', 'opencode', 'cursor', 'antigravity'])
+        else:
+            S([x, 'install', f"https://github.com/{repo}/tree/{commit}/{path}",
+               '--platforms', 'claude', 'codex', 'opencode', 'cursor', 'antigravity'])
     elif tool == 'native':
         r['doc'] = "each agent's own plugin commands (claude plugin, codex plugin, grok plugin, agy plugin, cursor-agent plugin)"
         m = inp['marketplace']

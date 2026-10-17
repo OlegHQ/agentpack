@@ -480,8 +480,10 @@ def agent_runs(tool, agent, root, ws, env, TOKENS, result, calls, mark, base):
                     if kind == 'mcp':
                         row['mcp_server_recorded_call'] = calls('calls.log') > mcp0
                     if kind == 'lsp':
+                        # the same rule as every item: the hover token in the final answer; whether the server logged the
+                        # agent's requests is kept as well (its log can sit in a plugin directory installed in place)
                         row['lsp_hover_token_in_answer'] = delivered
-                        delivered = calls('lsp-calls.log') > lsp0 and not touched
+                        row['lsp_server_logged_requests'] = calls('lsp-calls.log') > lsp0
                     row.update(delivered=delivered, read_source=touched, answer=answer.strip()[-200:], exit=r['exit'], seconds=r['seconds'], hook_ran=mark.exists(),
                                invoked_as='slash' if kind == 'command' and attempt == 0 else 'request',
                                answer_tail=r['out'].replace(str(base), '<tmp>').strip()[-200:])

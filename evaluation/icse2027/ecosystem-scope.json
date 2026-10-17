@@ -81,6 +81,16 @@
     42
    ]
   },
+  "openpackage": {
+   "skills_all_agents": [
+    21,
+    42
+   ],
+   "skills_own_targets": [
+    21,
+    42
+   ]
+  },
   "openskills": {
    "skills_all_agents": [
     8,

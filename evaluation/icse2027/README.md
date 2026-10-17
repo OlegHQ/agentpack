@@ -4,10 +4,10 @@ Scripts and recorded results for the paper's evaluation. Every Agentpack number 
 
 | Experiment | Script | Results | Calls a model |
 |---|---|---|---|
-| What 13 tools deliver from 9 pinned published inputs (Table II) | `ecosystem.py` | `ecosystem-results.json` | no |
-| The same on 12 packages drawn after the code was frozen | `heldout.py`, `ecosystem.py` | `heldout-inputs.json`, `heldout-results.json` | no |
+| What 14 tools deliver from 9 pinned published inputs (Table I of the paper) | `ecosystem.py` | `ecosystem-results.json` | no |
+| The same on 12 packages drawn after the code was frozen, and on 10 more that hold hooks or subagents | `heldout.py`, `ecosystem.py` | `heldout-inputs.json`, `heldout-results.json`, `heldout-kinds-inputs.json`, `heldout-kinds-results.json` | no |
 | Table II and the held-out sample on skills alone | `scope.py` | `ecosystem-scope.json`, `heldout-scope.json` | no |
-| One test package, installed by five tools, used by six agents (Table III) | `competitors_model.py`, `competitors_summary.py` | `competitors-model-results.json` | yes |
+| One test package, installed by five tools, used by six agents (Table III) | `competitors_model.py`, `competitors_summary.py` | `competitors-model-results.json` (Table II of the paper) | yes |
 | IDE front ends on an ejected project | `agentpack eject`, by hand | `ide-check.json` | yes |
 | How often the official catalogs' npx-started MCP servers change | `drift.py` | `drift-results.json` | no |
 | The commands of Fig. 1 | by hand | `fig1-0.6.1.txt` | no |
@@ -100,6 +100,41 @@ The 12 packages hold 90 cells: skills in 7 packages, MCP servers in 6, one comma
   - rulesync and Vercel skills wrote neither.
 - **Files written into the checkout:** Agentpack wrote `agentpack.toml` and `pack.lock` and nothing else. APM wrote up to 1,476 files, Vercel skills up to 538 and rulesync up to 71.
 
+## Second held-out draw: packages with hooks or subagents (`heldout.py --need hook agent`, 2026-10-17)
+
+The first draw held no hooks or subagents, the kinds where Agentpack's lead in Table II comes from. A second draw, from the same three repositories and commits, with its own seed and only packages that hold a hook or a subagent, excluding everything used before:
+
+```sh
+uv run heldout.py --src WORK/src --seed icse2027-heldout-kinds-2026-10-17 --need hook agent --exclude-inputs heldout-inputs.json --out heldout-kinds-inputs.json
+GITHUB_TOKEN=$(gh auth token) uv run ecosystem.py run --inputs-file heldout-kinds-inputs.json --output heldout-kinds-results.json --tools-dir TOOLS --agentpack bin/agentpack --agentpack-sha256 $SHA --work WORK5 --jobs 4
+```
+
+10 packages (4 Claude Code, 4 Cursor, 2 Codex) hold 156 cells: subagents in 8, skills in 7, hooks in 4, commands in 4, MCP servers in 2, a rule in 1.
+
+| Tool | Inputs accepted | Native | Converted | Partial | Absent |
+|---|---|---|---|---|---|
+| Agentpack 0.6.1 | 10 | 134 | 11 | 3 | 8 |
+| rulesync 33.0.0, Claude Code importer on every plugin (not documented) | 8 | 92 | 6 | 4 | 54 |
+| Ruler 0.3.44 (content copied in by hand) | 0 | 77 | 0 | 16 | 63 |
+| Microsoft APM 0.33.0 | 8 | 67 | 0 | 9 | 80 |
+| Each agent's own install command | 10 | 40 | 2 | 3 | 111 |
+| rulesync 33.0.0 | 9 | 34 | 4 | 0 | 118 |
+| skills-lock 0.1.0 | 6 | 36 | 0 | 18 | 102 |
+| Vercel skills 1.7.2 | 6 | 34 | 0 | 20 | 102 |
+| skillpm 4.0.0 | 6 | 28 | 0 | 12 | 116 |
+| OpenPackage 0.11.3 | 8 | 23 | 0 | 3 | 130 |
+| liqiongyu/agentpack 0.9.1 | 0 | 11 | 0 | 5 | 140 |
+| dotagents 3.3.0 | 10 | 5 | 0 | 4 | 147 |
+| retr0h/agentpack 1.1.0 | 10 | 0 | 0 | 0 | 156 |
+| openskills 1.5.0 | 0 | 0 | 0 | 0 | 156 |
+| skillshare 0.25.10 | 0 | 0 | 0 | 0 | 156 |
+
+- Agentpack's misses: the hook of `openai/plugins/plugins/figma`, kept in `hooks.json` at the plugin root and not declared in its manifest, which 0.6.1 did not read (6 cells; fixed in release 0.6.2, with which the hook reaches Claude Code, Codex, OpenCode and Cursor, and Grok and Antigravity do not list it); one hook event OpenCode lacks (`ralph-loop`, Claude Code and Cursor versions, 2 cells); two commands of `vercel` that share a name with a skill and arrive as skills on Claude Code and Grok (2 partial cells); Codex listing 50 of `pstack`'s 52 skills (1 partial cell, its skill-list budget).
+
+## OpenPackage (added 2026-10-17)
+
+OpenPackage (`opkg` 0.11.3, https://github.com/enulus/OpenPackage), a package manager for rules, commands, subagents, skills and MCP servers on many agents (no Grok platform), was added to every comparison after the first review round, with the command its README gives: `opkg install https://github.com/<repo>/tree/<commit>/<path> --platforms claude codex opencode cursor antigravity` (`--plugins NAME` for a catalog). `ecosystem.py setup` installs it into `TOOLS/opkg` at that version and checks its npm integrity. Table II: 50 of 162 (6 of 9 inputs accepted); first held-out draw: 29 of 90; second: 23 of 156. It records no commit or content hash, keeps `@latest`, and wrote up to 2,198 files into the checkout.
+
 ## Skills alone (`scope.py`)
 
 Every compared tool installs skills, so `scope.py` counts the skill cells only, over the six agents and over the agents each tool was given as targets. Table II: Agentpack, Ruler and rulesync's plugin importer 42 of 42, APM 41, skills-lock and Vercel skills 36 (skills-lock 30 of its 35). Held-out: Agentpack and Vercel skills 41 of 42, APM 35. Agentpack's lead in Table II comes from the other kinds on every agent.
@@ -108,18 +143,18 @@ Every compared tool installs skills, so `scope.py` counts the skill cells only, 
 
 The package of `delivery.py` (a skill, a slash command, a subagent, a rule, a prompt hook, a local MCP server and a language server, each answering with its own token) is put in a local marketplace repository and installed by Agentpack, APM, rulesync, Vercel skills and the agents' own install commands, each with its documented command for a local source, into an empty home and a fresh checkout. The agents are then started with real model calls, three runs per item; every tool gets its own random tokens, so a file of another tool's run cannot answer.
 
-Strict rule. Before each agent runs, every file that holds a token outside the locations that agent loads content from (`OWN` in the script) is made unreadable, and the package repository's git history is removed (an agent was seen reading a hidden file with `git show`). A run counts only when the token is in the agent's final answer (parsed from its JSON events) and the agent did not touch the package source. Agentpack reads a local package live at every launch, and Claude Code and Cursor load a plugin from a local marketplace in place, so for those the source stays readable; for Agentpack, a run that opens it is not counted. A combination works in at least 2 of 3 runs.
+Strict rule. Before each agent runs, every file that holds a token outside the locations that agent loads content from (`OWN` in the script) is made unreadable, and the package repository's git history is removed (an agent was seen reading a hidden file with `git show`). A run counts only when the token is in the agent's final answer (parsed from its JSON events; for the language server, the token its hover returns) and the agent did not touch the package source. Agentpack reads a local package live at every launch, and Claude Code and Cursor load a plugin from a local marketplace in place, so for those the source stays readable. For every tool, a run in which the agent opened or tried to open the package source counts as a failure: Agentpack 7 runs, APM 16, rulesync 10, Vercel skills 22, the agents' own commands 2 (in-place plugins of the agents' own commands are exempt, since their source is the installed copy). A combination works in at least 2 of 3 runs.
 
 | Installed by | Claude Code | Codex | OpenCode | Cursor | Grok | Antigravity | All |
 |---|---|---|---|---|---|---|---|
 | Agentpack 0.6.1 | 7/7 | 6/6 | 7/7 | 4/6 | 6/7 | 5/6 | 35/39 |
-| Agents' own commands | 6/7 | 5/6 | 0/7 | 5/6 | 4/7 | 2/6 | 22/39 |
+| Agents' own commands | 7/7 | 5/6 | 0/7 | 5/6 | 4/7 | 2/6 | 23/39 |
 | rulesync 33.0.0 | 4/7 | 4/6 | 4/7 | 3/6 | 0/7 | 3/6 | 18/39 |
 | APM 0.33.0 | 4/7 | 3/6 | 3/7 | 4/6 | 1/7 | 1/6 | 16/39 |
 | Vercel skills 1.7.2 | 0/7 | 1/6 | 1/7 | 1/6 | 0/7 | 1/6 | 4/39 |
 
 - Agentpack's misses: Cursor does not fire the prompt hook in non-interactive mode (https://forum.cursor.com/t/169059); Cursor and Antigravity found the rule's token, but in two of three runs by opening the package source; Grok answered the subagent item by reading the subagent's file instead of delegating, in two of three runs.
-- OpenCode hung at the model call when five tools used one ChatGPT account at once; its rows for Agentpack, rulesync and Vercel skills were run again alone and replace the hung ones (`sources` in the results). Native Claude Code and Cursor were run again after the source of an in-place plugin had been hidden from them by mistake.
+- OpenCode hung at the model call when five tools used one ChatGPT account at once; its rows for Agentpack, rulesync and Vercel skills were run again alone and replace the hung ones (`sources` in the results). Native Claude Code and Cursor were run again after the source of an in-place plugin had been hidden from them by mistake. The language server was first scored by its own request log; that log sits in the source directory for a plugin installed in place, which hid the native Claude Code server's requests, so every language-server run is now scored by the hover token in the answer, like the other items (`competitors_summary.py --rescore`).
 - Options every tool gets: Codex without its sandbox and with hook review skipped; Grok `--always-approve` for subagent and MCP items; Cursor `--force` and `--approve-mcps` for MCP; Claude Code project MCP servers enabled. Logins copied, and tokens refreshed during the run copied back.
 
 ## IDE front ends (`agentpack eject`, 2026-10-17)

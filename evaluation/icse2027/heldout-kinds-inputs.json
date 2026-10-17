@@ -1,0 +1,993 @@
+{
+ "rule": "Draw a held-out sample of published plugins for the comparison of ecosystem.py.\n\nThe nine inputs of ecosystem.py were chosen by the authors, and the 40 packages of plugins.py were\nused during development. This draw is made after the code was frozen (release 0.5.2, 2026-10-16) by\na fixed rule, and excludes every package used before:\n\n  - sources: the three official plugin repositories at the commits pinned in ecosystem.py\n    (Claude Code: plugins/ and external_plugins/; Cursor: top-level plugin directories and\n    third_party/; Codex: plugins/);\n  - eligible: a directory with the vendor's plugin manifest that holds at least one item of the six\n    kinds ecosystem.py counts (skill, command, subagent, rule, hook, MCP server), as found by\n    ecosystem.expected(); plugins with only a language server give no cell and are not eligible;\n  - excluded: the nine inputs of ecosystem.py and the 40 packages of plugins-corpus.json;\n  - order: sha256(SEED + repository + path), ascending; the first N per source are taken.",
+ "seed": "icse2027-heldout-kinds-2026-10-17",
+ "need": [
+  "hook",
+  "agent"
+ ],
+ "excluded_draws": [
+  "heldout-inputs.json"
+ ],
+ "per_source": 4,
+ "drawn_in_order": [
+  {
+   "source": "claude",
+   "path": "plugins/example-plugin",
+   "items": {
+    "skill": 2,
+    "command": 1,
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "claude",
+   "path": "plugins/skill-creator",
+   "items": {
+    "skill": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "claude",
+   "path": "plugins/code-simplifier",
+   "items": {
+    "agent": 1
+   },
+   "taken": true
+  },
+  {
+   "source": "claude",
+   "path": "plugins/math-olympiad",
+   "items": {
+    "skill": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "claude",
+   "path": "plugins/ralph-loop",
+   "items": {
+    "command": 3,
+    "hook": 1
+   },
+   "taken": true
+  },
+  {
+   "source": "claude",
+   "path": "plugins/code-review",
+   "items": {
+    "command": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "claude",
+   "path": "external_plugins/serena",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "claude",
+   "path": "plugins/pr-review-toolkit",
+   "items": {
+    "command": 1,
+    "agent": 6
+   },
+   "taken": true
+  },
+  {
+   "source": "claude",
+   "path": "plugins/claude-security",
+   "items": {
+    "skill": 1,
+    "agent": 9,
+    "hook": 1
+   },
+   "taken": true
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/circleback",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/docusign",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/brex",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/coinbase",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/coda",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/juicebox",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/google-sheets",
+   "items": {
+    "skill": 1,
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/mailerlite",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/gong",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/godaddy",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/amplemarket",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "agent-compatibility",
+   "items": {
+    "skill": 1,
+    "agent": 4
+   },
+   "taken": true
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/klaviyo",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/x-money",
+   "items": {
+    "skill": 1,
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/mem",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/google-docs",
+   "items": {
+    "skill": 1,
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/greenhouse",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/sp-global",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/buffer",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/semrush",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/todoist",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/wrike",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/workday",
+   "items": {},
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "ralph-loop",
+   "items": {
+    "skill": 3,
+    "hook": 1
+   },
+   "taken": true
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/jotform",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/github",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/outlook-calendar",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "cli-for-agent",
+   "items": {
+    "skill": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "grok-voice",
+   "items": {
+    "skill": 4
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/smartsheet",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/finance",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "cursor-team-kit",
+   "items": {
+    "skill": 18,
+    "agent": 2,
+    "rule": 2
+   },
+   "taken": true
+  },
+  {
+   "source": "cursor",
+   "path": "cursor-sdk",
+   "items": {
+    "skill": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/tinyfish",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "docs-canvas",
+   "items": {
+    "skill": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/interactive-brokers",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/fireflies",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/attio",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/square",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/statsig",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/salesforce",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "third_party/excalidraw",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "cursor",
+   "path": "pstack",
+   "items": {
+    "skill": 52,
+    "agent": 2
+   },
+   "taken": true
+  },
+  {
+   "source": "codex",
+   "path": "plugins/google-drive",
+   "items": {
+    "skill": 5,
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/data-analytics",
+   "items": {
+    "skill": 15,
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/plugin-eval",
+   "items": {
+    "skill": 5
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/atlassian-rovo",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/openai-ads-conversions",
+   "items": {
+    "skill": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/dropbox",
+   "items": {
+    "skill": 6,
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/posthog",
+   "items": {
+    "skill": 1,
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/sharepoint",
+   "items": {},
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/coderabbit",
+   "items": {
+    "skill": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/clickup",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/hyperframes",
+   "items": {
+    "skill": 5
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/vercel",
+   "items": {
+    "skill": 54,
+    "command": 6,
+    "agent": 3,
+    "mcp": 1
+   },
+   "taken": true
+  },
+  {
+   "source": "codex",
+   "path": "plugins/monday-com",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/chatcut",
+   "items": {
+    "skill": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/canva",
+   "items": {
+    "skill": 8,
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/teams",
+   "items": {},
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/airtable",
+   "items": {
+    "skill": 3,
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/consensus",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/notion",
+   "items": {
+    "skill": 4,
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/shopify",
+   "items": {
+    "skill": 20,
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/product-design",
+   "items": {
+    "skill": 10
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/figma",
+   "items": {
+    "skill": 12,
+    "command": 4,
+    "agent": 4,
+    "hook": 1,
+    "mcp": 1
+   },
+   "taken": true
+  },
+  {
+   "source": "codex",
+   "path": "plugins/supabase",
+   "items": {
+    "skill": 2,
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/higgsfield",
+   "items": {
+    "skill": 3,
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/creative-production",
+   "items": {
+    "skill": 2,
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/expo",
+   "items": {
+    "skill": 13,
+    "command": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/datadog",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/outlook-email",
+   "items": {},
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/game-studio",
+   "items": {
+    "skill": 9
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/codex-security",
+   "items": {
+    "skill": 15,
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/mixpanel-headless",
+   "items": {
+    "skill": 4
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/build-web-data-visualization",
+   "items": {
+    "skill": 18
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/granola",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/build-web-apps",
+   "items": {
+    "skill": 6
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/lovable",
+   "items": {},
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/twilio-developer-kit",
+   "items": {
+    "skill": 55
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/slack",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/superpowers",
+   "items": {
+    "skill": 14
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/remotion",
+   "items": {
+    "skill": 12
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/temporal",
+   "items": {
+    "skill": 4
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/magicpath",
+   "items": {
+    "skill": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/openai-developers",
+   "items": {
+    "skill": 5,
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/build-macos-apps",
+   "items": {
+    "skill": 11,
+    "command": 3
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/nvidia",
+   "items": {
+    "skill": 12
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/github",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/zotero",
+   "items": {
+    "skill": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/life-science-research",
+   "items": {
+    "skill": 50
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/google-calendar",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/stripe",
+   "items": {
+    "skill": 7,
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/test-android-apps",
+   "items": {
+    "skill": 2
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/linear",
+   "items": {
+    "mcp": 1
+   },
+   "taken": false
+  },
+  {
+   "source": "codex",
+   "path": "plugins/outlook-calendar",
+   "items": {},
+   "taken": false
+  }
+ ],
+ "inputs": {
+  "heldout-claude-code-simplifier": {
+   "what": "held-out claude-plugin plugins/code-simplifier",
+   "repo": "anthropics/claude-plugins-official",
+   "commit": "f359d43b406057f1a8cdbc4ea93b827642c162e6",
+   "path": "plugins/code-simplifier",
+   "format": "claude-plugin",
+   "plugin": "code-simplifier",
+   "marketplace": {
+    "repo": "anthropics/claude-plugins-official",
+    "name": "claude-plugins-official"
+   }
+  },
+  "heldout-claude-ralph-loop": {
+   "what": "held-out claude-plugin plugins/ralph-loop",
+   "repo": "anthropics/claude-plugins-official",
+   "commit": "f359d43b406057f1a8cdbc4ea93b827642c162e6",
+   "path": "plugins/ralph-loop",
+   "format": "claude-plugin",
+   "plugin": "ralph-loop",
+   "marketplace": {
+    "repo": "anthropics/claude-plugins-official",
+    "name": "claude-plugins-official"
+   }
+  },
+  "heldout-claude-pr-review-toolkit": {
+   "what": "held-out claude-plugin plugins/pr-review-toolkit",
+   "repo": "anthropics/claude-plugins-official",
+   "commit": "f359d43b406057f1a8cdbc4ea93b827642c162e6",
+   "path": "plugins/pr-review-toolkit",
+   "format": "claude-plugin",
+   "plugin": "pr-review-toolkit",
+   "marketplace": {
+    "repo": "anthropics/claude-plugins-official",
+    "name": "claude-plugins-official"
+   }
+  },
+  "heldout-claude-claude-security": {
+   "what": "held-out claude-plugin plugins/claude-security",
+   "repo": "anthropics/claude-plugins-official",
+   "commit": "f359d43b406057f1a8cdbc4ea93b827642c162e6",
+   "path": "plugins/claude-security",
+   "format": "claude-plugin",
+   "plugin": "claude-security",
+   "marketplace": {
+    "repo": "anthropics/claude-plugins-official",
+    "name": "claude-plugins-official"
+   }
+  },
+  "heldout-cursor-agent-compatibility": {
+   "what": "held-out cursor-plugin agent-compatibility",
+   "repo": "cursor/plugins",
+   "commit": "1dcc2bacde73ddd284803b7af28164d0436198fc",
+   "path": "agent-compatibility",
+   "format": "cursor-plugin",
+   "plugin": "agent-compatibility",
+   "marketplace": {
+    "repo": "cursor/plugins",
+    "name": "cursor-plugins"
+   }
+  },
+  "heldout-cursor-ralph-loop": {
+   "what": "held-out cursor-plugin ralph-loop",
+   "repo": "cursor/plugins",
+   "commit": "1dcc2bacde73ddd284803b7af28164d0436198fc",
+   "path": "ralph-loop",
+   "format": "cursor-plugin",
+   "plugin": "ralph-loop",
+   "marketplace": {
+    "repo": "cursor/plugins",
+    "name": "cursor-plugins"
+   }
+  },
+  "heldout-cursor-cursor-team-kit": {
+   "what": "held-out cursor-plugin cursor-team-kit",
+   "repo": "cursor/plugins",
+   "commit": "1dcc2bacde73ddd284803b7af28164d0436198fc",
+   "path": "cursor-team-kit",
+   "format": "cursor-plugin",
+   "plugin": "cursor-team-kit",
+   "marketplace": {
+    "repo": "cursor/plugins",
+    "name": "cursor-plugins"
+   }
+  },
+  "heldout-cursor-pstack": {
+   "what": "held-out cursor-plugin pstack",
+   "repo": "cursor/plugins",
+   "commit": "1dcc2bacde73ddd284803b7af28164d0436198fc",
+   "path": "pstack",
+   "format": "cursor-plugin",
+   "plugin": "pstack",
+   "marketplace": {
+    "repo": "cursor/plugins",
+    "name": "cursor-plugins"
+   }
+  },
+  "heldout-codex-vercel": {
+   "what": "held-out codex-plugin plugins/vercel",
+   "repo": "openai/plugins",
+   "commit": "0722921d5542fc593105c27bd52630babd8b8c2a",
+   "path": "plugins/vercel",
+   "format": "codex-plugin",
+   "plugin": "vercel",
+   "marketplace": {
+    "repo": "openai/plugins",
+    "name": "openai-curated"
+   }
+  },
+  "heldout-codex-figma": {
+   "what": "held-out codex-plugin plugins/figma",
+   "repo": "openai/plugins",
+   "commit": "0722921d5542fc593105c27bd52630babd8b8c2a",
+   "path": "plugins/figma",
+   "format": "codex-plugin",
+   "plugin": "figma",
+   "marketplace": {
+    "repo": "openai/plugins",
+    "name": "openai-curated"
+   }
+  }
+ }
+}
