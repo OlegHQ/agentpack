@@ -1,0 +1,69 @@
+{
+ "agentpack": "agentpack 0.7.2",
+ "steps": [
+  [
+   0,
+   "Initializing agentpack\u2026\nCreated /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/rs-bundle/project/agentpack.toml and /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/rs-bundle/project/pack.lock"
+  ],
+  [
+   0,
+   "Adding: ../plugin\nRecorded plugin in agentpack.toml and refreshed pack.lock."
+  ],
+  [
+   0,
+   "Wrote /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/rs-bundle/project/pack.lock (1 package(s))."
+  ]
+ ],
+ "servers": {
+  "playwright": {
+   "package": "@playwright/mcp",
+   "version": "0.0.83",
+   "baseline_lock": true
+  },
+  "firebase": {
+   "package": "firebase-tools",
+   "version": "15.34.0",
+   "baseline_lock": true
+  },
+  "xero": {
+   "package": "@xeroapi/xero-mcp-server",
+   "version": "0.0.17",
+   "baseline_lock": true
+  },
+  "xcodebuildmcp": {
+   "package": "xcodebuildmcp",
+   "version": "2.7.0",
+   "baseline_lock": true
+  },
+  "context7": {
+   "package": "@upstash/context7-mcp",
+   "version": "4.4.2",
+   "baseline_lock": true
+  },
+  "filesystem": {
+   "package": "@modelcontextprotocol/server-filesystem",
+   "version": "1.0.0",
+   "baseline_lock": true
+  },
+  "memory": {
+   "package": "@modelcontextprotocol/server-memory",
+   "version": "1.0.0",
+   "baseline_lock": true
+  },
+  "everything": {
+   "package": "@modelcontextprotocol/server-everything",
+   "version": "1.0.0",
+   "baseline_lock": true
+  },
+  "chrome-devtools": {
+   "package": "chrome-devtools-mcp",
+   "version": "1.11.0",
+   "baseline_lock": true
+  },
+  "sqlite": {
+   "package": "mcp-sqlite",
+   "version": "1.0.9",
+   "baseline_lock": true
+  }
+ }
+}

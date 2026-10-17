@@ -320,3 +320,22 @@ A probe package (a Claude Code plugin) holds four items whose behaviour a conver
 APM's runs on OpenCode could not start ("could not answer a plain prompt"), so OpenCode is left out of its row. The read-only probe is reported but is not in the paper's table: with nothing installed it passed on three agents, whose main agent declined to create the file. Agentpack's one read-only miss is Grok, whose main agent created the file itself.
 
 The probes found four faults in Agentpack, each fixed before the 0.7.2 measurements: Cursor applied no staged rule (0.7.0 links the rules into `.cursor/rules`); Antigravity denied every tool call while a `PreToolUse` hook was installed, because Agentpack answered without a `decision` (0.7.1 answers `"allow"`, which hands the call to the default policy); Antigravity discarded rules without a `trigger` (0.7.1 writes `trigger: always_on`, `glob`, `model_decision` or `manual`); Cursor ignored a subagent's `tools` list (0.7.2 stages a read-only Claude subagent with `readonly: true`). `semantics-results.json` holds every row used.
+
+## Real servers from one lockfile on two platforms (`realservers.py`, 2026-10-17)
+
+Ten npx-started MCP servers: the four npm packages the official plugin repositories start (`@playwright/mcp`, `firebase-tools`, `@xeroapi/xero-mcp-server`, `xcodebuildmcp`, with their declared arguments) and six popular ones (`@upstash/context7-mcp`, `@modelcontextprotocol/server-filesystem`, `-memory`, `-everything`, `chrome-devtools-mcp`, `mcp-sqlite`). `realservers.py lock` adds a plugin declaring them to a project with Agentpack 0.7.2 on Linux (1,528 packages locked; `pack.lock` 410 KB) and, as the baseline a team could commit instead, writes a `package-lock.json` per server with npm. `realservers.py start` takes that bundle as committed to another host, runs `agentpack sync`, and starts each server with the command its Claude Code configuration holds (`agentpack mcp-exec`) and, separately, with `npm ci` and the package's executable; each start gets `initialize` and `tools/list`.
+
+| Server | Linux, locked tree | Linux, npm ci | macOS, locked tree | macOS, npm ci |
+|---|---|---|---|---|
+| playwright | 25 tools | 25 | 25 | 25 |
+| firebase | 19 | 19 | 19 | 19 |
+| xero | 51 | 51 | 51 | 51 |
+| xcodebuildmcp | 24 | 24 | 24 | 24 |
+| context7 | 2 | 2 | 2 | 2 |
+| filesystem | 14 | 14 | 14 | 14 |
+| memory | 9 | 9 | 9 | 9 |
+| everything | 13 | 13 | 13 | 13 |
+| chrome-devtools | 32 | 32 | 32 | 32 |
+| sqlite | failed | 8 | failed | 8 |
+
+`mcp-sqlite` depends on `sqlite3`, whose native binding is built by an install script; the locked tree runs no package scripts, so the binding is missing and the server exits. `npm ci` runs install scripts by default. On macOS (arm64, node 24.19.0) the lockfile written on Linux (aarch64) was used unchanged; the ten trees installed there have exactly the locked digests. `sync` rewrites two lines of `pack.lock` in this experiment only, because the plugin is a local path dependency whose absolute `file://` URL and cache key move with the copied bundle; the MCP records are byte-identical. Results: `realservers-linux.json`, `realservers-macos.json`; the lock inputs and outputs: `realservers-bundle/`. Windows was not tested.

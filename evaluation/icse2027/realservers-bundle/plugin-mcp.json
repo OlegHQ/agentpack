@@ -1,0 +1,82 @@
+{
+ "mcpServers": {
+  "playwright": {
+   "command": "npx",
+   "args": [
+    "@playwright/mcp@latest",
+    "--headless"
+   ]
+  },
+  "firebase": {
+   "command": "npx",
+   "args": [
+    "-y",
+    "firebase-tools@latest",
+    "mcp"
+   ]
+  },
+  "xero": {
+   "command": "npx",
+   "args": [
+    "-y",
+    "@xeroapi/xero-mcp-server@latest"
+   ],
+   "env": {
+    "XERO_CLIENT_ID": "placeholder",
+    "XERO_CLIENT_SECRET": "placeholder"
+   }
+  },
+  "xcodebuildmcp": {
+   "command": "npx",
+   "args": [
+    "-y",
+    "xcodebuildmcp@latest",
+    "mcp"
+   ]
+  },
+  "context7": {
+   "command": "npx",
+   "args": [
+    "-y",
+    "@upstash/context7-mcp@latest"
+   ]
+  },
+  "filesystem": {
+   "command": "npx",
+   "args": [
+    "-y",
+    "@modelcontextprotocol/server-filesystem@latest",
+    "."
+   ]
+  },
+  "memory": {
+   "command": "npx",
+   "args": [
+    "-y",
+    "@modelcontextprotocol/server-memory@latest"
+   ]
+  },
+  "everything": {
+   "command": "npx",
+   "args": [
+    "-y",
+    "@modelcontextprotocol/server-everything@latest"
+   ]
+  },
+  "chrome-devtools": {
+   "command": "npx",
+   "args": [
+    "-y",
+    "chrome-devtools-mcp@latest"
+   ]
+  },
+  "sqlite": {
+   "command": "npx",
+   "args": [
+    "-y",
+    "mcp-sqlite@latest",
+    "probe.db"
+   ]
+  }
+ }
+}

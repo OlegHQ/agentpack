@@ -1,0 +1,346 @@
+{
+ "host": "macOS-27.0.1-arm64-arm-64bit",
+ "machine": "arm64",
+ "node": "v24.19.0",
+ "npm": "11.17.0",
+ "agentpack": "agentpack 0.7.2",
+ "agentpack_sha256": "5b86189f0334c36ab9f65e32ac8388cc63d54a7f42ae574bf885a32e45b0b8b0",
+ "pack_lock_sha256": "1498eaaea21e49f912b251633637599c02ac604b7fdb054c5d2f1bcb97b1a500",
+ "sync": [
+  0,
+  "Sync finished \u2014 0 skill(s), 1 plugin(s), 1 cache index entr(ies). One merged bundle: agentpack-bundle."
+ ],
+ "servers": {
+  "playwright": {
+   "staged_command": [
+    "/Users/snowbear/agentpack-demo/bin/agentpack",
+    "mcp-exec",
+    "--spec",
+    "/var/folders/lk/l8ypry253l3g36ty86b1y75c0000gn/T/rs-start-pb5nlmvx/staging/projects/3b60544faa89397e/modes/default/plugins/agentpack-bundle/mcp-trees/playwright.json"
+   ],
+   "locked_tree": {
+    "ok": true,
+    "tools": 25,
+    "server": {
+     "name": "Playwright",
+     "version": "1.64.0-alpha-1790635538000"
+    },
+    "seconds": 1.3,
+    "stderr_tail": ""
+   },
+   "npm_ci": {
+    "ok": true,
+    "tools": 25,
+    "server": {
+     "name": "Playwright",
+     "version": "1.64.0-alpha-1790635538000"
+    },
+    "seconds": 0.3,
+    "stderr_tail": ""
+   }
+  },
+  "firebase": {
+   "staged_command": [
+    "/Users/snowbear/agentpack-demo/bin/agentpack",
+    "mcp-exec",
+    "--spec",
+    "/var/folders/lk/l8ypry253l3g36ty86b1y75c0000gn/T/rs-start-pb5nlmvx/staging/projects/3b60544faa89397e/modes/default/plugins/agentpack-bundle/mcp-trees/firebase.json"
+   ],
+   "locked_tree": {
+    "ok": true,
+    "tools": 19,
+    "server": {
+     "name": "firebase",
+     "version": "0.3.0"
+    },
+    "seconds": 70.1,
+    "stderr_tail": ""
+   },
+   "npm_ci": {
+    "ok": true,
+    "tools": 19,
+    "server": {
+     "name": "firebase",
+     "version": "0.3.0"
+    },
+    "seconds": 2.4,
+    "stderr_tail": ""
+   }
+  },
+  "xero": {
+   "staged_command": [
+    "/Users/snowbear/agentpack-demo/bin/agentpack",
+    "mcp-exec",
+    "--spec",
+    "/var/folders/lk/l8ypry253l3g36ty86b1y75c0000gn/T/rs-start-pb5nlmvx/staging/projects/3b60544faa89397e/modes/default/plugins/agentpack-bundle/mcp-trees/xero.json"
+   ],
+   "locked_tree": {
+    "ok": true,
+    "tools": 51,
+    "server": {
+     "name": "Xero MCP Server",
+     "version": "1.0.0"
+    },
+    "seconds": 13.5,
+    "stderr_tail": ""
+   },
+   "npm_ci": {
+    "ok": true,
+    "tools": 51,
+    "server": {
+     "name": "Xero MCP Server",
+     "version": "1.0.0"
+    },
+    "seconds": 0.5,
+    "stderr_tail": ""
+   }
+  },
+  "xcodebuildmcp": {
+   "staged_command": [
+    "/Users/snowbear/agentpack-demo/bin/agentpack",
+    "mcp-exec",
+    "--spec",
+    "/var/folders/lk/l8ypry253l3g36ty86b1y75c0000gn/T/rs-start-pb5nlmvx/staging/projects/3b60544faa89397e/modes/default/plugins/agentpack-bundle/mcp-trees/xcodebuildmcp.json"
+   ],
+   "locked_tree": {
+    "ok": true,
+    "tools": 24,
+    "server": {
+     "name": "xcodebuildmcp",
+     "version": "2.7.0"
+    },
+    "seconds": 18.1,
+    "stderr_tail": "dmcp://simulators\n[2026-10-17T05:20:03.655Z] [INFO] Registered 4 resources\n[2026-10-17T05:20:03.655Z] [INFO] MCP idle shutdown disabled\n[2026-10-17T05:20:03.656Z] [INFO] XcodeBuildMCP Server running on stdio\n[2026-10-17T05:20:03.660Z] [INFO] XcodeBuildMCP server (version 2.7.0) started successfully\n"
+   },
+   "npm_ci": {
+    "ok": true,
+    "tools": 24,
+    "server": {
+     "name": "xcodebuildmcp",
+     "version": "2.7.0"
+    },
+    "seconds": 0.9,
+    "stderr_tail": "dmcp://simulators\n[2026-10-17T05:20:07.606Z] [INFO] Registered 4 resources\n[2026-10-17T05:20:07.606Z] [INFO] MCP idle shutdown disabled\n[2026-10-17T05:20:07.607Z] [INFO] XcodeBuildMCP Server running on stdio\n[2026-10-17T05:20:07.609Z] [INFO] XcodeBuildMCP server (version 2.7.0) started successfully\n"
+   }
+  },
+  "context7": {
+   "staged_command": [
+    "/Users/snowbear/agentpack-demo/bin/agentpack",
+    "mcp-exec",
+    "--spec",
+    "/var/folders/lk/l8ypry253l3g36ty86b1y75c0000gn/T/rs-start-pb5nlmvx/staging/projects/3b60544faa89397e/modes/default/plugins/agentpack-bundle/mcp-trees/context7.json"
+   ],
+   "locked_tree": {
+    "ok": true,
+    "tools": 2,
+    "server": {
+     "name": "Context7",
+     "title": "Context7",
+     "version": "4.4.2",
+     "websiteUrl": "https://context7.com",
+     "description": "Context7 provides up-to-date documentation and code examples for libraries and frameworks.",
+     "icons": [
+      {
+       "src": "https://context7.com/context7-icon-green.svg",
+       "mimeType": "image/svg+xml",
+       "sizes": [
+        "any"
+       ]
+      },
+      {
+       "src": "https://context7.com/context7-icon-green.png",
+       "mimeType": "image/png",
+       "sizes": [
+        "512x512"
+       ]
+      }
+     ]
+    },
+    "seconds": 8.0,
+    "stderr_tail": "Context7 Documentation MCP Server v4.4.2 running on stdio\n"
+   },
+   "npm_ci": {
+    "ok": true,
+    "tools": 2,
+    "server": {
+     "name": "Context7",
+     "title": "Context7",
+     "version": "4.4.2",
+     "websiteUrl": "https://context7.com",
+     "description": "Context7 provides up-to-date documentation and code examples for libraries and frameworks.",
+     "icons": [
+      {
+       "src": "https://context7.com/context7-icon-green.svg",
+       "mimeType": "image/svg+xml",
+       "sizes": [
+        "any"
+       ]
+      },
+      {
+       "src": "https://context7.com/context7-icon-green.png",
+       "mimeType": "image/png",
+       "sizes": [
+        "512x512"
+       ]
+      }
+     ]
+    },
+    "seconds": 0.3,
+    "stderr_tail": "Context7 Documentation MCP Server v4.4.2 running on stdio\n"
+   }
+  },
+  "filesystem": {
+   "staged_command": [
+    "/Users/snowbear/agentpack-demo/bin/agentpack",
+    "mcp-exec",
+    "--spec",
+    "/var/folders/lk/l8ypry253l3g36ty86b1y75c0000gn/T/rs-start-pb5nlmvx/staging/projects/3b60544faa89397e/modes/default/plugins/agentpack-bundle/mcp-trees/filesystem.json"
+   ],
+   "locked_tree": {
+    "ok": true,
+    "tools": 14,
+    "server": {
+     "name": "secure-filesystem-server",
+     "version": "1.0.0"
+    },
+    "seconds": 10.7,
+    "stderr_tail": "Secure MCP Filesystem Server running on stdio\nClient does not support MCP Roots, using allowed directories set from server args: [\n  '/private/var/folders/lk/l8ypry253l3g36ty86b1y75c0000gn/T/rs-start-pb5nlmvx/bundle/project'\n]\n"
+   },
+   "npm_ci": {
+    "ok": true,
+    "tools": 14,
+    "server": {
+     "name": "secure-filesystem-server",
+     "version": "1.0.0"
+    },
+    "seconds": 0.2,
+    "stderr_tail": "Secure MCP Filesystem Server running on stdio\nClient does not support MCP Roots, using allowed directories set from server args: [\n  '/private/var/folders/lk/l8ypry253l3g36ty86b1y75c0000gn/T/rs-start-pb5nlmvx/bundle/project'\n]\n"
+   }
+  },
+  "memory": {
+   "staged_command": [
+    "/Users/snowbear/agentpack-demo/bin/agentpack",
+    "mcp-exec",
+    "--spec",
+    "/var/folders/lk/l8ypry253l3g36ty86b1y75c0000gn/T/rs-start-pb5nlmvx/staging/projects/3b60544faa89397e/modes/default/plugins/agentpack-bundle/mcp-trees/memory.json"
+   ],
+   "locked_tree": {
+    "ok": true,
+    "tools": 9,
+    "server": {
+     "name": "memory-server",
+     "version": "1.0.0"
+    },
+    "seconds": 7.4,
+    "stderr_tail": "Knowledge Graph MCP Server running on stdio\n"
+   },
+   "npm_ci": {
+    "ok": true,
+    "tools": 9,
+    "server": {
+     "name": "memory-server",
+     "version": "1.0.0"
+    },
+    "seconds": 0.2,
+    "stderr_tail": "Knowledge Graph MCP Server running on stdio\n"
+   }
+  },
+  "everything": {
+   "staged_command": [
+    "/Users/snowbear/agentpack-demo/bin/agentpack",
+    "mcp-exec",
+    "--spec",
+    "/var/folders/lk/l8ypry253l3g36ty86b1y75c0000gn/T/rs-start-pb5nlmvx/staging/projects/3b60544faa89397e/modes/default/plugins/agentpack-bundle/mcp-trees/everything.json"
+   ],
+   "locked_tree": {
+    "ok": true,
+    "tools": 13,
+    "server": {
+     "name": "mcp-servers/everything",
+     "title": "Everything Reference Server",
+     "version": "1.0.0"
+    },
+    "seconds": 7.9,
+    "stderr_tail": "Starting default (STDIO) server...\n"
+   },
+   "npm_ci": {
+    "ok": true,
+    "tools": 13,
+    "server": {
+     "name": "mcp-servers/everything",
+     "title": "Everything Reference Server",
+     "version": "1.0.0"
+    },
+    "seconds": 0.2,
+    "stderr_tail": "Starting default (STDIO) server...\n"
+   }
+  },
+  "chrome-devtools": {
+   "staged_command": [
+    "/Users/snowbear/agentpack-demo/bin/agentpack",
+    "mcp-exec",
+    "--spec",
+    "/var/folders/lk/l8ypry253l3g36ty86b1y75c0000gn/T/rs-start-pb5nlmvx/staging/projects/3b60544faa89397e/modes/default/plugins/agentpack-bundle/mcp-trees/chrome-devtools.json"
+   ],
+   "locked_tree": {
+    "ok": true,
+    "tools": 32,
+    "server": {
+     "name": "chrome_devtools",
+     "title": "Chrome DevTools MCP server",
+     "version": "1.11.0"
+    },
+    "seconds": 1.8,
+    "stderr_tail": "ogle CrUX API to fetch real-user experience data. To disable, run with --no-performance-crux.\n\nGoogle collects usage statistics to improve Chrome DevTools MCP. To opt-out, run with --no-usage-statistics.\nFor more details, visit: https://github.com/ChromeDevTools/chrome-devtools-mcp#usage-statistics\n"
+   },
+   "npm_ci": {
+    "ok": true,
+    "tools": 32,
+    "server": {
+     "name": "chrome_devtools",
+     "title": "Chrome DevTools MCP server",
+     "version": "1.11.0"
+    },
+    "seconds": 0.5,
+    "stderr_tail": "ogle CrUX API to fetch real-user experience data. To disable, run with --no-performance-crux.\n\nGoogle collects usage statistics to improve Chrome DevTools MCP. To opt-out, run with --no-usage-statistics.\nFor more details, visit: https://github.com/ChromeDevTools/chrome-devtools-mcp#usage-statistics\n"
+   }
+  },
+  "sqlite": {
+   "staged_command": [
+    "/Users/snowbear/agentpack-demo/bin/agentpack",
+    "mcp-exec",
+    "--spec",
+    "/var/folders/lk/l8ypry253l3g36ty86b1y75c0000gn/T/rs-start-pb5nlmvx/staging/projects/3b60544faa89397e/modes/default/plugins/agentpack-bundle/mcp-trees/sqlite.json"
+   ],
+   "locked_tree": {
+    "ok": false,
+    "tools": null,
+    "server": null,
+    "seconds": 15.4,
+    "stderr_tail": "e_sqlite3.node',\n    '/private/var/folders/lk/l8ypry253l3g36ty86b1y75c0000gn/T/rs-start-pb5nlmvx/.local/share/agentpack/cache/npm-trees/b0fff793acc0026bf49810ed34ee54431a4fbec19f59b4e5c2a841c6e2052956/node_modules/sqlite3/lib/binding/node-v137-darwin-arm64/node_sqlite3.node'\n  ]\n}\n\nNode.js v24.19.0\n"
+   },
+   "npm_ci": {
+    "ok": true,
+    "tools": 8,
+    "server": {
+     "name": "mcp-sqlite-server",
+     "version": "1.0.0"
+    },
+    "seconds": 0.3,
+    "stderr_tail": ""
+   }
+  }
+ },
+ "trees_installed": [
+  "2feaf3d9ece7598beb2e3efaa6ac6c6402d82555234dadfe94c43402cac1a42d",
+  "3a12e5ff485013dbf0ca8d0d23edf3aac1b4ba7c48ba26c7114f2cbc18b2cd8c",
+  "6193d02fb3ee141b7ff0701921153198793ed68dd9ab78f2901b60a2a748c65d",
+  "6a4115a89fbeb4fd3c5901ec20e41b7a258e1e2031c807e3de18fcb5cd0c4524",
+  "7468242b50aaed5dde33b6324c2fa4e10952098a77579077e9b2099f9ba680b9",
+  "a8567236c23fa41ae25ac6acfe7052b7a30d81e11cc8e5bbb4ffc6e34676910f",
+  "b0fff793acc0026bf49810ed34ee54431a4fbec19f59b4e5c2a841c6e2052956",
+  "c7a3352ab1255f5405922ccf0ca156acb86df8144e2307ced8168e79ea43a799",
+  "d1af7f4932531984e066c4af432460466cdf1c3213de0b68abb0307e9862c51c",
+  "dd16b64bfa67dff131b5e1504e96ac93ee5b0f82296911fce474a730b3dceea6"
+ ]
+}
