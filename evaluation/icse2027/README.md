@@ -57,7 +57,7 @@ Nine inputs pinned by commit (three Claude Code plugins, two Cursor plugins, a C
 - Where files go: Agentpack writes `agentpack.toml` and `pack.lock` to the checkout and one link at launch; the rest is in its own home and staging directory, a Codex home under `/var/tmp/ap-c`, and an empty `~/.codex/history.jsonl`. APM writes up to 137 files into the checkout, rulesync up to 264.
 - Limits: hooks are one item per input (a hook file that names one of the input's scripts counts; events are not compared). Cursor skills, commands, subagents, rules and hooks, and Antigravity skills, subagents and rules, have no listing without a model and are decided by files. Cursor's own install command needs a login and was not run.
 
-## Held-out comparison (`heldout.py`, 2026-10-16)
+## Held-out comparison (`heldout.py`, drawn 2026-10-16; all 13 tools run again on 2026-10-17 with Agentpack 0.6.1 and Antigravity 1.4.0)
 
 The nine inputs above were chosen by the authors, and the 40 packages below were used during development. After the code was frozen (release 0.5.2, which prints `0.5.2`; sha256 of the linux arm64 binary `089f2dada14209c86ccf94f889bb5c27c4e0054bdcc74940455818d6882b34b1`), `heldout.py` drew 12 new packages by a fixed rule:
 - **Sources:** the official Claude Code, Cursor and Codex plugin repositories at the commits pinned in `ecosystem.py`.
@@ -69,18 +69,27 @@ The draw is in `heldout-inputs.json`. `ecosystem.py` ran them unchanged, with th
 
 ```sh
 uv run heldout.py --src WORK/src
-GITHUB_TOKEN=$(gh auth token) uv run ecosystem.py run --inputs-file heldout-inputs.json --output heldout-results.json --tools-dir TOOLS --agentpack bin/agentpack --agentpack-sha256 089f2dada14209c86ccf94f889bb5c27c4e0054bdcc74940455818d6882b34b1 --work WORK --tool agentpack --tool apm --tool rulesync --tool vercel-skills --tool native --jobs 4
+GITHUB_TOKEN=$(gh auth token) uv run ecosystem.py run --inputs-file heldout-inputs.json --output heldout-results.json --tools-dir TOOLS --agentpack bin/agentpack --agentpack-sha256 4bf10e9955ee46e10880c469af7efe428db39150ae99d01d10020abbf38e4fcf --work WORK --jobs 3      # every tool; add --tool T to run only T
 ```
 
 The 12 packages hold 90 cells: skills in 7 packages, MCP servers in 6, one command and one rule, and no hooks or subagents.
 
 | Tool | Inputs accepted | Native | Converted | Partial | Absent |
 |---|---|---|---|---|---|
-| Agentpack 0.5.2 | 12 | 85 | 4 | 1 | 0 |
+| Agentpack 0.6.1 (0.5.2 gave the same cells) | 12 | 85 | 4 | 1 | 0 |
+| Ruler 0.3.44 (content copied in by hand) | 0 | 74 | 0 | 1 | 15 |
 | Microsoft APM 0.33.0 | 11 | 69 | 0 | 1 | 20 |
+| rulesync 33.0.0, Claude Code importer on every plugin (not documented) | 12 | 63 | 2 | 1 | 24 |
 | Vercel skills 1.7.2 | 7 | 41 | 0 | 1 | 48 |
+| skills-lock 0.1.0 | 7 | 41 | 0 | 1 | 48 |
 | rulesync 33.0.0 | 12 (content delivered for 4) | 28 | 2 | 0 | 60 |
+| skillpm 4.0.0 | 6 | 29 | 0 | 1 | 60 |
 | Each agent's own install command | 12 | 27 | 1 | 0 | 62 |
+| liqiongyu/agentpack 0.9.1 (modules declared by hand) | 0 | 15 | 0 | 1 | 74 |
+| dotagents 3.3.0 | 12 | 7 | 0 | 0 | 83 |
+| retr0h/agentpack 1.1.0 | 12 | 0 | 0 | 0 | 90 |
+| openskills 1.5.0 | 0 | 0 | 0 | 0 | 90 |
+| skillshare 0.25.10 | 0 | 0 | 0 | 0 | 90 |
 
 - **Scoring:** a cell counts as delivered only when every item of it arrives (partial counts as not delivered).
 - **The partial cell** is the same for Agentpack, APM and Vercel skills: Codex lists 1 of the 23 skills of `public-equity-investing`, which is the skill-list budget Codex documents.
