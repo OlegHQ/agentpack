@@ -58,5 +58,11 @@
    "agent": null,
    "note": "prompts 2, 3, 5 asked"
   }
+ },
+ "final_build": {
+  "release": "0.6.2",
+  "linux_arm64_sha256": "b74a42b5556a1be341dfee08bc5ffaa2c0b3a60f27b09287f7b26641440f30f6",
+  "headless_cli_check_2026-10-17": "eject-headless-0.6.2.json: after agentpack eject with 0.6.2 and with staging and package source deleted, each agent CLI without the launcher delivered skill, command, subagent, rule and MCP server on Claude Code, Codex, Cursor and Antigravity (1 run each); hooks fired on Claude Code, Codex and Antigravity (5/5), not on Cursor (0/5; its non-interactive mode emits no prompt event).",
+  "mac_project": "~/agentpack-ide-test/project re-ejected with 0.6.2 (darwin arm64) at 03:00; owner recheck in VS Code + Claude Code and Cursor pending"
  }
 }
