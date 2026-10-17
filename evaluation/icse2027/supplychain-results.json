@@ -1,0 +1,406 @@
+{
+ "date": "2026-10-17",
+ "node": "v24.19.0",
+ "npm": "11.17.0",
+ "agentpack_top": "agentpack 0.6.2",
+ "agentpack_tree": "agentpack 0.7.2",
+ "agentpack_top_sha256": "b74a42b5556a1be341dfee08bc5ffaa2c0b3a60f27b09287f7b26641440f30f6",
+ "agentpack_tree_sha256": "bc84f06b2877f02203e9980dc21bd4681563ddb3c06cbb8678f5436f1ce8759d",
+ "runs": [
+  {
+   "scenario": "baseline",
+   "setup": "none",
+   "lock_steps": [],
+   "launch": {
+    "ran": "srv-1.0.0+dep-1.0.0"
+   },
+   "command": [
+    "npx",
+    "-y",
+    "approbe-srv-7f3c@latest"
+   ]
+  },
+  {
+   "scenario": "baseline",
+   "setup": "agentpack-top",
+   "lock_steps": [
+    {
+     "exit": 0,
+     "tail": "d /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/baseline/agentpack-top/project/agentpack.toml and /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/baseline/agentpack-top/project/pack.lock"
+    },
+    {
+     "exit": 0,
+     "tail": "Adding: /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/baseline/agentpack-top/plugin\nRecorded plugin in agentpack.toml and refreshed pack.lock."
+    },
+    {
+     "exit": 0,
+     "tail": "Wrote /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/baseline/agentpack-top/project/pack.lock (1 package(s))."
+    },
+    {
+     "exit": 0,
+     "tail": "Sync finished \u2014 0 skill(s), 1 plugin(s), 1 cache index entr(ies). One merged bundle: agentpack-bundle."
+    }
+   ],
+   "launch": {
+    "ran": "srv-1.0.0+dep-1.0.0"
+   },
+   "command": [
+    "npx",
+    "-y",
+    "approbe-srv-7f3c@1.0.0"
+   ]
+  },
+  {
+   "scenario": "baseline",
+   "setup": "agentpack-tree",
+   "lock_steps": [
+    {
+     "exit": 0,
+     "tail": "/tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/baseline/agentpack-tree/project/agentpack.toml and /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/baseline/agentpack-tree/project/pack.lock"
+    },
+    {
+     "exit": 0,
+     "tail": "Adding: /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/baseline/agentpack-tree/plugin\nRecorded plugin in agentpack.toml and refreshed pack.lock."
+    },
+    {
+     "exit": 0,
+     "tail": "Wrote /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/baseline/agentpack-tree/project/pack.lock (1 package(s))."
+    },
+    {
+     "exit": 0,
+     "tail": "Sync finished \u2014 0 skill(s), 1 plugin(s), 1 cache index entr(ies). One merged bundle: agentpack-bundle."
+    }
+   ],
+   "launch": {
+    "ran": "srv-1.0.0+dep-1.0.0"
+   },
+   "command": [
+    "/tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/rel072/agentpack",
+    "mcp-exec",
+    "--spec",
+    "<work>/baseline/agentpack-tree/staging/projects/46d34d06f5df6be6/modes/default/plugins/agentpack-bundle/mcp-trees/srv.json",
+    "--"
+   ]
+  },
+  {
+   "scenario": "drift",
+   "setup": "none",
+   "lock_steps": [],
+   "launch": {
+    "ran": "srv-1.0.0+dep-1.0.1"
+   },
+   "command": [
+    "npx",
+    "-y",
+    "approbe-srv-7f3c@latest"
+   ]
+  },
+  {
+   "scenario": "drift",
+   "setup": "agentpack-top",
+   "lock_steps": [
+    {
+     "exit": 0,
+     "tail": "Created /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/drift/agentpack-top/project/agentpack.toml and /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/drift/agentpack-top/project/pack.lock"
+    },
+    {
+     "exit": 0,
+     "tail": "Adding: /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/drift/agentpack-top/plugin\nRecorded plugin in agentpack.toml and refreshed pack.lock."
+    },
+    {
+     "exit": 0,
+     "tail": "Wrote /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/drift/agentpack-top/project/pack.lock (1 package(s))."
+    },
+    {
+     "exit": 0,
+     "tail": "Sync finished \u2014 0 skill(s), 1 plugin(s), 1 cache index entr(ies). One merged bundle: agentpack-bundle."
+    }
+   ],
+   "launch": {
+    "ran": "srv-1.0.0+dep-1.0.1"
+   },
+   "command": [
+    "npx",
+    "-y",
+    "approbe-srv-7f3c@1.0.0"
+   ]
+  },
+  {
+   "scenario": "drift",
+   "setup": "agentpack-tree",
+   "lock_steps": [
+    {
+     "exit": 0,
+     "tail": "eated /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/drift/agentpack-tree/project/agentpack.toml and /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/drift/agentpack-tree/project/pack.lock"
+    },
+    {
+     "exit": 0,
+     "tail": "Adding: /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/drift/agentpack-tree/plugin\nRecorded plugin in agentpack.toml and refreshed pack.lock."
+    },
+    {
+     "exit": 0,
+     "tail": "Wrote /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/drift/agentpack-tree/project/pack.lock (1 package(s))."
+    },
+    {
+     "exit": 0,
+     "tail": "Sync finished \u2014 0 skill(s), 1 plugin(s), 1 cache index entr(ies). One merged bundle: agentpack-bundle."
+    }
+   ],
+   "launch": {
+    "ran": "srv-1.0.0+dep-1.0.0"
+   },
+   "command": [
+    "/tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/rel072/agentpack",
+    "mcp-exec",
+    "--spec",
+    "<work>/drift/agentpack-tree/staging/projects/e7333f65e0326126/modes/default/plugins/agentpack-bundle/mcp-trees/srv.json",
+    "--"
+   ]
+  },
+  {
+   "scenario": "dep-replaced",
+   "setup": "none",
+   "lock_steps": [],
+   "launch": {
+    "ran": "srv-1.0.0+dep-1.0.0-REPLACED"
+   },
+   "command": [
+    "npx",
+    "-y",
+    "approbe-srv-7f3c@latest"
+   ]
+  },
+  {
+   "scenario": "dep-replaced",
+   "setup": "agentpack-top",
+   "lock_steps": [
+    {
+     "exit": 0,
+     "tail": "laude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/dep-replaced/agentpack-top/project/agentpack.toml and /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/dep-replaced/agentpack-top/project/pack.lock"
+    },
+    {
+     "exit": 0,
+     "tail": "Adding: /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/dep-replaced/agentpack-top/plugin\nRecorded plugin in agentpack.toml and refreshed pack.lock."
+    },
+    {
+     "exit": 0,
+     "tail": "Wrote /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/dep-replaced/agentpack-top/project/pack.lock (1 package(s))."
+    },
+    {
+     "exit": 0,
+     "tail": "Sync finished \u2014 0 skill(s), 1 plugin(s), 1 cache index entr(ies). One merged bundle: agentpack-bundle."
+    }
+   ],
+   "launch": {
+    "ran": "srv-1.0.0+dep-1.0.0-REPLACED"
+   },
+   "command": [
+    "npx",
+    "-y",
+    "approbe-srv-7f3c@1.0.0"
+   ]
+  },
+  {
+   "scenario": "dep-replaced",
+   "setup": "agentpack-tree",
+   "lock_steps": [
+    {
+     "exit": 0,
+     "tail": "ude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/dep-replaced/agentpack-tree/project/agentpack.toml and /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/dep-replaced/agentpack-tree/project/pack.lock"
+    },
+    {
+     "exit": 0,
+     "tail": "Adding: /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/dep-replaced/agentpack-tree/plugin\nRecorded plugin in agentpack.toml and refreshed pack.lock."
+    },
+    {
+     "exit": 0,
+     "tail": "Wrote /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/dep-replaced/agentpack-tree/project/pack.lock (1 package(s))."
+    },
+    {
+     "exit": 0,
+     "tail": "Sync finished \u2014 0 skill(s), 1 plugin(s), 1 cache index entr(ies). One merged bundle: agentpack-bundle."
+    }
+   ],
+   "launch": {
+    "ran": null,
+    "stopped": "ERROR  \n          \n  Mcp server \"srv\": node_modules/approbe-dep-7f3c@1.0.0: the downloaded tarball has integrity sha512-                 \n  p10yD6g2mMlqFqILXKy2Afdnw1GZOj3Ugh1X57Vbyq+w1PCiX5EC6kVUL/AOJ7c6dUv20SWbI3Oayj57F1zL7w==, but pack.lock records     \n  sha512-UhuQf5c7QQmfaX4+Mn7sbncJeC+75ciWvg83Kmq3aEoP9yplqj4MhMvJm3CwKA2xoRiwSKcF6nOo7+zQ/VDcWw==; nothing was run."
+   },
+   "command": [
+    "/tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/rel072/agentpack",
+    "mcp-exec",
+    "--spec",
+    "<work>/dep-replaced/agentpack-tree/staging/projects/1c0b38164fdd45f2/modes/default/plugins/agentpack-bundle/mcp-trees/srv.json",
+    "--"
+   ]
+  },
+  {
+   "scenario": "srv-replaced",
+   "setup": "none",
+   "lock_steps": [],
+   "launch": {
+    "ran": "srv-1.0.0-REPLACED+dep-1.0.0"
+   },
+   "command": [
+    "npx",
+    "-y",
+    "approbe-srv-7f3c@latest"
+   ]
+  },
+  {
+   "scenario": "srv-replaced",
+   "setup": "agentpack-top",
+   "lock_steps": [
+    {
+     "exit": 0,
+     "tail": "laude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/srv-replaced/agentpack-top/project/agentpack.toml and /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/srv-replaced/agentpack-top/project/pack.lock"
+    },
+    {
+     "exit": 0,
+     "tail": "Adding: /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/srv-replaced/agentpack-top/plugin\nRecorded plugin in agentpack.toml and refreshed pack.lock."
+    },
+    {
+     "exit": 0,
+     "tail": "Wrote /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/srv-replaced/agentpack-top/project/pack.lock (1 package(s))."
+    },
+    {
+     "exit": 0,
+     "tail": "Sync finished \u2014 0 skill(s), 1 plugin(s), 1 cache index entr(ies). One merged bundle: agentpack-bundle."
+    }
+   ],
+   "launch": {
+    "ran": "srv-1.0.0-REPLACED+dep-1.0.0"
+   },
+   "command": [
+    "npx",
+    "-y",
+    "approbe-srv-7f3c@1.0.0"
+   ]
+  },
+  {
+   "scenario": "srv-replaced",
+   "setup": "agentpack-tree",
+   "lock_steps": [
+    {
+     "exit": 0,
+     "tail": "ude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/srv-replaced/agentpack-tree/project/agentpack.toml and /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/srv-replaced/agentpack-tree/project/pack.lock"
+    },
+    {
+     "exit": 0,
+     "tail": "Adding: /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/srv-replaced/agentpack-tree/plugin\nRecorded plugin in agentpack.toml and refreshed pack.lock."
+    },
+    {
+     "exit": 0,
+     "tail": "Wrote /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/srv-replaced/agentpack-tree/project/pack.lock (1 package(s))."
+    },
+    {
+     "exit": 0,
+     "tail": "Sync finished \u2014 0 skill(s), 1 plugin(s), 1 cache index entr(ies). One merged bundle: agentpack-bundle."
+    }
+   ],
+   "launch": {
+    "ran": null,
+    "stopped": "ERROR  \n          \n  Mcp server \"srv\": node_modules/approbe-srv-7f3c@1.0.0: the downloaded tarball has integrity sha512-                 \n  /ISTSxupk0QkSyOwv181kAzi0sOM97TuF5q1y56u9mi/2w6L1stqiS3LDb+F3KNsTTchWD6oAZb/1CZFYL8DWQ==, but pack.lock records     \n  sha512-Jc5XmN2s9TQaJl3nzlt/dqf15Mz0WtXGBk6/N8CAgG4eUMMzUI1nd7a9zK8tCKZzQZI7eflrxcVFjRJ10QAukA==; nothing was run."
+   },
+   "command": [
+    "/tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/rel072/agentpack",
+    "mcp-exec",
+    "--spec",
+    "<work>/srv-replaced/agentpack-tree/staging/projects/004d7b2415526e99/modes/default/plugins/agentpack-bundle/mcp-trees/srv.json",
+    "--"
+   ]
+  },
+  {
+   "scenario": "cache-edited",
+   "setup": "none",
+   "lock_steps": [],
+   "first_launch": {
+    "ran": "srv-1.0.0+dep-1.0.0"
+   },
+   "edited": [
+    ".npm/_npx/a40b76953b36bc49/node_modules/approbe-dep-7f3c/index.js"
+   ],
+   "launch": {
+    "ran": "srv-1.0.0+dep-EDITED-IN-CACHE"
+   },
+   "command": [
+    "npx",
+    "-y",
+    "approbe-srv-7f3c@latest"
+   ]
+  },
+  {
+   "scenario": "cache-edited",
+   "setup": "agentpack-top",
+   "lock_steps": [
+    {
+     "exit": 0,
+     "tail": "laude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/cache-edited/agentpack-top/project/agentpack.toml and /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/cache-edited/agentpack-top/project/pack.lock"
+    },
+    {
+     "exit": 0,
+     "tail": "Adding: /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/cache-edited/agentpack-top/plugin\nRecorded plugin in agentpack.toml and refreshed pack.lock."
+    },
+    {
+     "exit": 0,
+     "tail": "Wrote /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/cache-edited/agentpack-top/project/pack.lock (1 package(s))."
+    },
+    {
+     "exit": 0,
+     "tail": "Sync finished \u2014 0 skill(s), 1 plugin(s), 1 cache index entr(ies). One merged bundle: agentpack-bundle."
+    }
+   ],
+   "first_launch": {
+    "ran": "srv-1.0.0+dep-1.0.0"
+   },
+   "edited": [
+    ".npm/_npx/95b09de7d78df74b/node_modules/approbe-dep-7f3c/index.js"
+   ],
+   "launch": {
+    "ran": "srv-1.0.0+dep-EDITED-IN-CACHE"
+   },
+   "command": [
+    "npx",
+    "-y",
+    "approbe-srv-7f3c@1.0.0"
+   ]
+  },
+  {
+   "scenario": "cache-edited",
+   "setup": "agentpack-tree",
+   "lock_steps": [
+    {
+     "exit": 0,
+     "tail": "ude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/cache-edited/agentpack-tree/project/agentpack.toml and /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/cache-edited/agentpack-tree/project/pack.lock"
+    },
+    {
+     "exit": 0,
+     "tail": "Adding: /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/cache-edited/agentpack-tree/plugin\nRecorded plugin in agentpack.toml and refreshed pack.lock."
+    },
+    {
+     "exit": 0,
+     "tail": "Wrote /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/sc-072/cache-edited/agentpack-tree/project/pack.lock (1 package(s))."
+    },
+    {
+     "exit": 0,
+     "tail": "Sync finished \u2014 0 skill(s), 1 plugin(s), 1 cache index entr(ies). One merged bundle: agentpack-bundle."
+    }
+   ],
+   "first_launch": {
+    "ran": "srv-1.0.0+dep-1.0.0"
+   },
+   "edited": [
+    ".local/share/agentpack/cache/npm-trees/59628279eab6903ed82c500fe4ffe2e9d0d8a11f9a0e4eb0a6b01e16166e0c1e/node_modules/approbe-dep-7f3c/index.js"
+   ],
+   "launch": {
+    "ran": "srv-1.0.0+dep-1.0.0"
+   },
+   "command": [
+    "/tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/rel072/agentpack",
+    "mcp-exec",
+    "--spec",
+    "<work>/cache-edited/agentpack-tree/staging/projects/5b559d70fe89fd22/modes/default/plugins/agentpack-bundle/mcp-trees/srv.json",
+    "--"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,121 @@
+{
+ "date": "2026-10-17",
+ "registry": "https://registry.npmjs.org",
+ "npm": "11.17.0",
+ "servers": [
+  {
+   "package": "@playwright/mcp",
+   "version": "0.0.83",
+   "released": "2026-09-28T23:19:13.609Z",
+   "tree_packages": 3,
+   "dependency_specs_that_are_ranges": 0,
+   "published_after_the_server_version": 0,
+   "examples": []
+  },
+  {
+   "package": "@xeroapi/xero-mcp-server",
+   "version": "0.0.17",
+   "released": "2026-05-26T05:07:15.624Z",
+   "tree_packages": 119,
+   "dependency_specs_that_are_ranges": 185,
+   "published_after_the_server_version": 29,
+   "examples": [
+    {
+     "package": "express-rate-limit",
+     "version": "8.7.1",
+     "published": "2026-10-06T02:04:46.635Z"
+    },
+    {
+     "package": "express",
+     "version": "5.3.0",
+     "published": "2026-10-09T12:56:54.505Z"
+    },
+    {
+     "package": "ip-address",
+     "version": "10.7.4",
+     "published": "2026-10-11T19:34:42.622Z"
+    },
+    {
+     "package": "@hono/node-server",
+     "version": "2.1.5",
+     "published": "2026-10-13T08:25:17.433Z"
+    },
+    {
+     "package": "qs",
+     "version": "6.16.1",
+     "published": "2026-10-14T22:06:17.002Z"
+    }
+   ]
+  },
+  {
+   "package": "firebase-tools",
+   "version": "15.34.0",
+   "released": "2026-10-14T23:01:04.746Z",
+   "tree_packages": 634,
+   "dependency_specs_that_are_ranges": 970,
+   "published_after_the_server_version": 9,
+   "examples": [
+    {
+     "package": "googleapis-common",
+     "version": "9.3.1",
+     "published": "2026-10-15T21:58:11.832Z"
+    },
+    {
+     "package": "gcp-metadata",
+     "version": "9.2.1",
+     "published": "2026-10-15T21:58:30.576Z"
+    },
+    {
+     "package": "gcp-metadata",
+     "version": "9.2.1",
+     "published": "2026-10-15T21:58:30.576Z"
+    },
+    {
+     "package": "gaxios",
+     "version": "8.3.1",
+     "published": "2026-10-15T22:00:20.134Z"
+    },
+    {
+     "package": "gaxios",
+     "version": "8.3.1",
+     "published": "2026-10-15T22:00:20.134Z"
+    }
+   ]
+  },
+  {
+   "package": "xcodebuildmcp",
+   "version": "2.7.0",
+   "released": "2026-07-23T14:07:49.017Z",
+   "tree_packages": 151,
+   "dependency_specs_that_are_ranges": 221,
+   "published_after_the_server_version": 38,
+   "examples": [
+    {
+     "package": "ip-address",
+     "version": "10.7.4",
+     "published": "2026-10-11T19:34:42.622Z"
+    },
+    {
+     "package": "zod",
+     "version": "4.6.7",
+     "published": "2026-10-12T16:29:37.778Z"
+    },
+    {
+     "package": "@hono/node-server",
+     "version": "2.1.5",
+     "published": "2026-10-13T08:25:17.433Z"
+    },
+    {
+     "package": "qs",
+     "version": "6.16.1",
+     "published": "2026-10-14T22:06:17.002Z"
+    },
+    {
+     "package": "es-module-lexer",
+     "version": "3.0.4",
+     "published": "2026-10-15T04:35:33.820Z"
+    }
+   ]
+  }
+ ]
+}

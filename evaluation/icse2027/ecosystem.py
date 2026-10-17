@@ -13,6 +13,7 @@ at the same empty home and no credentials, so no model is called. Where an agent
 for a kind of content, the cell is decided from files at the locations in LOCATIONS below.
 
     uv run ecosystem.py setup --tools-dir DIR            # download the pinned tools (network)
+    uv run ecosystem.py setup --tools-dir DIR --cargo-root CARGO [--tool nodus --tool mars]   # copy in and check the cargo-built tools
     uv run ecosystem.py run --tools-dir DIR --agentpack PATH --agentpack-sha256 HEX [--work DIR] [--tool T] [--input I] [--jobs N] [--resume]
                                                          # with --tool/--input only those runs are replaced in the results file
     uv run ecosystem.py rescore [--output FILE]          # recompute every cell and the summary from the stored evidence
@@ -166,6 +167,20 @@ TOOLS = {
     'openpackage': dict(name='OpenPackage (opkg)', version='0.11.3', repo='enulus/openpackage', npm_separate='opkg',
                         integrity='sha512-yxoFBHatB0dt1/2EhXseYA32DirWWcE5wbP4aLtLuiQqZFXSLdxZZ0Xu/N7ST9tmvMfFQ9gbUWdxCXFIcFC3mw==',
                         exe='opkg/node_modules/.bin/opkg'),
+    # added 2026-10-17 after a reviewer named them the closest tools (manifest + lockfile, many agents). Both are Rust
+    # crates with no Linux arm64 release binary; built with `cargo install --locked <crate> --version V` (rustc 1.96.0,
+    # aarch64-unknown-linux-gnu). A cargo build is not byte-reproducible across machines, so the crates.io checksum of
+    # the source crate is recorded next to the sha256 of the binary that was measured; setup() copies that binary in.
+    'nodus': dict(name='Nodus', version='0.17.0', repo='nodus-rs/nodus', crate='nodus', bin='nodus',
+                  crate_sha256='982449375cc106d8f28d9bfcd0091b9c1281e151b7682c664c0076aa7713e08e',
+                  binary_sha256='038c20a57ed26b060e842b251f27568ff54984ba47c00fedfa73a91fa78b8778',
+                  built_with='cargo install --locked nodus --version 0.17.0 (rustc 1.96.0, aarch64-unknown-linux-gnu)',
+                  exe='nodus/bin/nodus'),
+    'mars': dict(name='mars (mars-agents)', version='0.16.0', repo='haowjy/mars-agents', crate='mars-agents', bin='mars',
+                 crate_sha256='9e366682d3595f867ad6185c82f0f1da27575162f2df48e58e12104f7c2da134',
+                 binary_sha256='d14af508b9bd6956383f656a7ba6cd2dbfadc6349d272eac0b6e7716bf422930',
+                 built_with='cargo install --locked mars-agents --version 0.16.0 (rustc 1.96.0, aarch64-unknown-linux-gnu)',
+                 exe='mars/bin/mars'),
     'native': dict(name="Each agent's own install command (no tool)", version='agent versions above'),
 }
 NODE_BIN = {'vercel-skills': 'skills', 'ruler': 'ruler', 'skills-lock': 'skills-lock', 'rulesync': 'rulesync', 'rulesync-claude-importer': 'rulesync',
@@ -256,8 +271,40 @@ def tail(text, n=900):
 
 
 # ---------------------------------------------------------------- setup
-def setup(tools):
+def setup_cargo(tools, key, t, cargo_root):
+    """Copy a cargo-built binary into TOOLS/<key>/bin and check it is the binary that was measured."""
+    d = tools / key / 'bin'
+    d.mkdir(parents=True, exist_ok=True)
+    src = (cargo_root / 'bin' / t['bin']) if cargo_root else None
+    if not (d / t['bin']).exists():
+        if not src or not src.exists():
+            sys.exit(f"{key}: build it with `cargo install --locked --root DIR {t['crate']} --version {t['version']}` "
+                     f"and pass --cargo-root DIR")
+        shutil.copy(src, d / t['bin'])
+        (d / t['bin']).chmod(0o755)
+    # the source crate, as cargo downloaded it, against the crates.io checksum
+    crates = list((Path.home() / '.cargo/registry/cache').glob(f"*/{t['crate']}-{t['version']}.crate"))
+    crate_ok = [c for c in crates if sha(c) == t['crate_sha256']]
+    if crates and not crate_ok:
+        sys.exit(f"{key}: {crates[0]} does not have the crates.io checksum {t['crate_sha256']}")
+    got = sha(d / t['bin'])
+    if got != t['binary_sha256']:
+        sys.exit(f"{key}: binary sha256 {got} is not the measured {t['binary_sha256']} "
+                 f"(a cargo build on another machine differs; record its sha256 here if you rebuild)")
+    ver = subprocess.run([str(d / t['bin']), '--version'], capture_output=True, text=True, env=clean_env(tools / '_version-home')).stdout
+    if t['version'] not in ver:
+        sys.exit(f"{key}: --version printed {ver.strip()!r}, expected {t['version']}")
+    print(f"{key}: {t['crate']} {t['version']} binary sha256 ok; crate checksum "
+          + ('ok (' + str(crate_ok[0]) + ')' if crate_ok else 'not checked (crate not in the local cargo cache)'))
+
+
+def setup(tools, only=None, cargo_root=None):
     tools.mkdir(parents=True, exist_ok=True)
+    for key, t in TOOLS.items():
+        if 'crate' in t and (not only or key in only):
+            setup_cargo(tools, key, t, cargo_root)
+    if only and not any('npm' in TOOLS[k] or 'asset' in TOOLS[k] or 'npm_separate' in TOOLS[k] for k in only):
+        return
     for key, t in TOOLS.items():
         if 'asset' not in t:
             continue
@@ -559,6 +606,44 @@ def plan(tool, inp, exp, ctx):
         else:
             S([x, 'install', f"https://github.com/{repo}/tree/{commit}/{path}",
                '--platforms', 'claude', 'codex', 'opencode', 'cursor', 'antigravity'])
+    elif tool == 'nodus':
+        r['doc'] = ('README Quick Start and `nodus add --help`: nodus add <owner/repo> --revision <commit> --adapter ...; '
+                    'wrapper packages: `nodus members enable <package> <member>`; then nodus doctor')
+        r['note'] = ('nodus add takes a whole repository (owner/repo, a Git URL or a local path; the package page nodus.elata.ai/packages/ '
+                     'reduces a tree URL to owner/repo), so the input repository is added at the pinned commit. Where Nodus records it as a '
+                     'wrapper of several child packages, the input plugin is enabled with `nodus members enable`; where `nodus members list` '
+                     'reports no child packages to select, the step is not run and the whole repository is what Nodus installs. Adapters: '
+                     'claude, codex, cursor, opencode and agents (.agents/); Nodus has none for Grok or Antigravity, and copilot (.github/) '
+                     'is not one of the six agents.')
+        r['prepare'] = ('nodus-members',)
+        adapters = [a for t in ('claude', 'codex', 'cursor', 'opencode', 'agents') for a in ('--adapter', t)]
+        S([x, 'add', repo, '--revision', commit, *adapters])
+        S(['?', x, 'members', 'list'])
+        # Nodus's member ids are the marketplace plugin names normalised as its dependency aliases (normalize_dependency_alias)
+        S([x, 'members', 'enable', repo, re.sub(r'[^a-z0-9]+', '_', inp['plugin'].lower()).strip('_')])
+        S(['?', x, 'doctor'])
+    elif tool == 'mars':
+        r['doc'] = ('README Quick Start and docs/cli/commands.md: mars init; mars add <owner/repo[/path]> [--skills ...] [--agents ...]; '
+                    'mars link .claude, .codex, .opencode, .cursor')
+        r['note'] = ('mars resolves a ref with `git ls-remote <url> <ref>`, which finds branches and tags but not a commit ("reference ... '
+                     'not found"; docs/config/mars-toml.md says commit pins are fetched directly), and takes its first line, so `@main` '
+                     'resolved to refs/heads/daisy/caffeinate/main in anthropics/claude-plugins-official. The ref is therefore left out, '
+                     'which mars documents as "HEAD for untagged repos" (none of the input repositories has a tag): this row is not '
+                     'pinned to the commit the other rows use, and mars.lock records the commit it resolved. mars has targets for '
+                     'Claude Code, Codex, OpenCode and Cursor (and Pi), none for Grok or Antigravity; its generic .agents target is '
+                     'deprecated ("Run `mars unlink .agents` to remove it"). It installs agents/ and skills/; MCP servers and hooks only '
+                     'in its own mcp/<name>/mcp.toml and hooks/<name>/hook.toml layout. mars has no marketplace support, so a '
+                     'marketplace repository is given at its root with the input\'s skill and agent names as filters.')
+        S([x, 'init'])
+        argv = [x, 'add', repo + (f"/{path}" if path else '')]
+        if fmt == 'marketplace':
+            if exp['skill']:
+                argv += ['--skills', ','.join(sorted(exp['skill']))]
+            if exp['agent']:
+                argv += ['--agents', ','.join(sorted(exp['agent']))]
+        S(argv)
+        for t in ('.claude', '.codex', '.opencode', '.cursor'):
+            S([x, 'link', t])
     elif tool == 'native':
         r['doc'] = "each agent's own plugin commands (claude plugin, codex plugin, grok plugin, agy plugin, cursor-agent plugin)"
         m = inp['marketplace']
@@ -680,7 +765,7 @@ def listing(agent, env, cwd, wrap, exp, tmp, plugins=()):
             raw['prompt_text'] = text
             q = run([*wrap('codex'), 'mcp', 'list', '--json'], cwd, env, 60)
             for s in first_json(q['stdout'], '[') or []:
-                seen['mcp'][s['name']] = 'mcp list: ' + json.dumps(s.get('transport'))[:300]
+                seen['mcp'][s['name']] = 'mcp list: ' + json.dumps(s.get('transport'))[:300] + tree_note(s.get('transport'))
             raw['covers'] = ['skill', 'mcp']
         elif agent == 'opencode':
             # config first: on its first start in a checkout OpenCode installs what a written plugin needs, which can take minutes
@@ -699,7 +784,8 @@ def listing(agent, env, cwd, wrap, exp, tmp, plugins=()):
             for s in cfg.get('agent', {}):
                 seen['agent'][s] = 'debug config'
             for s, v in cfg.get('mcp', {}).items():
-                seen['mcp'][s] = 'debug config: ' + json.dumps(v)[:300]
+                seen['mcp'][s] = 'debug config: ' + json.dumps(v)[:300] + tree_note(
+                    {'args': v.get('command', [])[1:]} if isinstance(v, dict) and isinstance(v.get('command'), list) else v)
             raw.update({'plugin': cfg.get('plugin'), 'instructions': cfg.get('instructions'), 'covers': ['skill', 'command', 'agent', 'mcp']})
         elif agent == 'cursor':
             raw['covers'] = []
@@ -723,7 +809,8 @@ def listing(agent, env, cwd, wrap, exp, tmp, plugins=()):
                 if (s.get('source') or {}).get('type') != 'builtin':
                     seen['agent'][s['name']] = 'inspect: ' + json.dumps(s.get('source'))[:200]
             for s in d.get('mcpServers', []):
-                seen['mcp'][s['name']] = 'inspect: ' + json.dumps({k: s.get(k) for k in ('transport', 'target', 'source', 'vendor')})[:400]
+                seen['mcp'][s['name']] = 'inspect: ' + json.dumps({k: s.get(k) for k in ('transport', 'target', 'source', 'vendor')})[:400] + \
+                    grok_tree_note(s)
             if d.get('hooks'):
                 seen['hook']['hooks'] = 'inspect: ' + json.dumps(d['hooks'])[:600]
             raw = {'plugins': d.get('plugins'), 'projectInstructions': d.get('projectInstructions'), 'hooks': d.get('hooks'),
@@ -815,7 +902,7 @@ def on_disk(agent, roots, exp):
                     elif kind == 'mcp':
                         data, _ = load(p)
                         for name, spec in find_servers(data).items():
-                            found['mcp'][name] = f"{p}: {json.dumps(spec)[:300]}"
+                            found['mcp'][name] = f"{p}: {json.dumps(spec)[:300]}{tree_note(spec)}"
     return found
 
 
@@ -845,10 +932,47 @@ def agentpack_codex_home(root):
     return None
 
 
+def grok_tree_note(server):
+    """Grok's inspect output gives a stdio server's launcher but not its arguments; for a server started from a
+    locked tree, the arguments are read from the configuration file it names as its source."""
+    source = server.get('source') or {}
+    if not str(server.get('target', '')).endswith('agentpack') or source.get('type') != 'configToml':
+        return ''
+    try:
+        import tomllib
+        data = tomllib.loads(Path(source.get('path', '')).read_text())
+    except (OSError, ValueError):
+        return ' [mcp-exec spec unreadable]'
+    stack = [data]
+    while stack:
+        node = stack.pop()
+        if isinstance(node, dict):
+            entry = node.get(server.get('name'))
+            if isinstance(entry, dict) and 'args' in entry:
+                return tree_note(entry)
+            stack.extend(node.values())
+    return ''
+
+
+def tree_note(spec):
+    """For a server Agentpack starts from its locked npm tree (`agentpack mcp-exec --spec FILE`), the package that
+    tree starts, read from the spec file while it exists, so that the stored evidence names it."""
+    args = spec.get('args') if isinstance(spec, dict) else None
+    if not isinstance(args, list) or 'mcp-exec' not in args or '--spec' not in args:
+        return ''
+    try:
+        d = json.loads(Path(args[args.index('--spec') + 1]).read_text())
+    except (OSError, ValueError, IndexError):
+        return ' [mcp-exec spec unreadable]'
+    return f" [mcp-exec spec: package={d.get('package')} version={d.get('version')} tree={d.get('tree_digest', '')[-12:]}]"
+
+
 def mcp_same(spec, evidence):
     """A server with the right name counts only if it is the input's server: same launcher and package, or same URL."""
     if 'command' in spec:
         pkgs = [a.rsplit('@', 1)[0] if '@' in a[1:] else a for a in spec.get('args', []) if not a.startswith('-')]
+        if '[mcp-exec spec: ' in evidence:    # started from a locked tree: the tree must start the input's package
+            return spec['command'] == 'npx' and bool(pkgs) and f'package={pkgs[0]} ' in evidence
         if 'inspect: ' in evidence:       # Grok lists the launcher of a stdio server without its arguments
             return f'"target": "{spec["command"]}' in evidence
         return spec['command'] in evidence and all(p in evidence for p in pkgs[:1])
@@ -1078,6 +1202,11 @@ def one(tool, inp_id, inp, args, baseline):
         if failed and not optional:
             steps.append({'argv': [str(a) for a in argv], 'exit': 'skipped after failure'})
             continue
+        if pl.get('prepare') and pl['prepare'][0] == 'nodus-members' and argv[1:3] == ['members', 'enable'] \
+                and 'no dependencies expose selectable child packages' in steps[-1].get('output_tail', ''):
+            steps.append({'argv': [str(a) for a in argv], 'exit': 'not needed: nodus members list reports no child packages to select',
+                          'optional': optional})
+            continue
         s = run(argv, P, step_env, 900)
         s['output_tail'] = tail(s.pop('stdout') + '\n' + s.pop('stderr'))
         s['optional'] = optional
@@ -1188,6 +1317,7 @@ def main():
     ap.add_argument('--inputs-file', type=Path, help='replace the nine inputs with those in this file (heldout.py output)')
     ap.add_argument('--runs', type=Path, help='directory for the per-run homes and checkouts (default: WORK/runs)')
     ap.add_argument('--keep-runs', action='store_true', help='keep each run directory (about 50 MB each) instead of deleting it')
+    ap.add_argument('--cargo-root', type=Path, help='setup: the --root of `cargo install` that holds bin/nodus and bin/mars')
     args = ap.parse_args()
     if args.inputs_file:
         INPUTS.clear()
@@ -1212,7 +1342,7 @@ def main():
         ap.error('--tools-dir is required')
     args.tools_dir = args.tools_dir.resolve()
     if args.action == 'setup':
-        return setup(args.tools_dir)
+        return setup(args.tools_dir, args.tool, args.cargo_root and args.cargo_root.resolve())
     args.work = args.work.resolve()
     args.src = args.work / 'src'
     args.src.mkdir(parents=True, exist_ok=True)

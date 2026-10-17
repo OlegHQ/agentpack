@@ -1,0 +1,26 @@
+$ agentpack init
+Initializing agentpack…
+Created ~/team-app/agentpack.toml and ~/team-app/pack.lock
+$ agentpack add anthropics/claude-plugins-official/external_plugins/playwright@f359d43
+Adding: anthropics/claude-plugins-official/external_plugins/playwright@f359d43
+Recorded github.com/anthropics/claude-plugins-official/external_plugins/playwright in agentpack.toml and refreshed pack.lock.
+$ agentpack mcp list
+  playwright: npx @playwright/mcp@latest [from plugin] (pinned @playwright/mcp@0.0.83)
+$ agentpack codex mcp list
+Name        Command                                                                                                            Args                                                                                                                 Env  Cwd  Status   Auth       
+playwright  /tmp/claude-501/-home-snowbear-agents-researcher/3c607f53-a237-4fd6-9b5c-5da59f900573/scratchpad/rel072/agentpack  mcp-exec --spec /tmp/agentpack-853d0fecf3a94a3f/modes/default/plugins/agentpack-bundle/mcp-trees/playwright.json --  -    -    enabled  Unsupported
+$ git status --short
+?? agentpack.toml
+?? pack.lock
+$ grep -E "^(version|tree_digest|path) =" pack.lock
+5:version = '0.0.1'
+14:path = 'external_plugins/playwright'
+27:version = '0.0.83'
+31:tree_digest = 'sha256-npm-tree-v1:a8567236c23fa41ae25ac6acfe7052b7a30d81e11cc8e5bbb4ffc6e34676910f'
+34:path = 'node_modules/@playwright/mcp'
+35:version = '0.0.83'
+40:path = 'node_modules/playwright'
+41:version = '1.64.0-alpha-1790635538000'
+46:path = 'node_modules/playwright-core'
+47:version = '1.64.0-alpha-1790635538000'
+(agentpack 0.7.2, linux arm64 sha256 bc84f06b2877f02203e9980dc21bd4681563ddb3c06cbb8678f5436f1ce8759d, 2026-10-17)

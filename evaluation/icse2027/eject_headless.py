@@ -1,3 +1,4 @@
+#!/usr/bin/env -S uv run
 # /// script
 # requires-python = ">=3.11"
 # dependencies = []
@@ -8,15 +9,18 @@ Fresh project, delivery package with fresh tokens, `agentpack add` + `agentpack 
 directory and the package source are deleted, so only the ejected copy is left. Each agent runs in that
 project with a temporary HOME holding copied logins (owner-approved 2026-10-16). Before an agent runs,
 token files outside its own project locations are made unreadable.
+
+    uv run eject_headless.py AGENTPACK_BINARY [RUNS]     # writes eject-headless-<version>.json next to this script
 """
 import hashlib, json, os, re, shutil, stat, subprocess, sys, tempfile, time
 from pathlib import Path
 
-SP = Path(__file__).resolve().parent
-EVAL = Path('/home/snowbear/agents/researcher/pieces/agentpack-demo/submissions/2026-10-12/evaluation')
-AP = SP / 'rel062/agentpack'
+SP = EVAL = Path(__file__).resolve().parent
+if len(sys.argv) < 2:
+    sys.exit(__doc__)
+AP = Path(sys.argv[1]).resolve()
 REAL = Path.home()
-RUNS = int(sys.argv[1]) if len(sys.argv) > 1 else 2
+RUNS = int(sys.argv[2]) if len(sys.argv) > 2 else 2
 src = (EVAL / 'competitors_model.py').read_text()
 dsrc = (EVAL / 'delivery.py').read_text()
 ns = {'re': re, 'json': json, 'Path': Path, 'secrets': __import__('secrets'), 'subprocess': subprocess,
@@ -65,7 +69,7 @@ def run(argv, cwd, env, timeout=240):
         return fo.read(), code, round(time.time() - t, 1)
 
 
-base = Path(tempfile.mkdtemp(prefix='eject-headless-', dir=SP))
+base = Path(tempfile.mkdtemp(prefix='eject-headless-'))
 repo, proj, home, staging = base / 'repo', base / 'proj', base / 'home', base / 'staging'
 for d in (repo, proj, home):
     d.mkdir()
@@ -191,6 +195,6 @@ result = {'date': time.strftime('%Y-%m-%d'), 'agentpack': subprocess.check_outpu
           'setup': 'agentpack add + agentpack eject; staging and package source then deleted; agents started without agentpack, '
                    'temporary HOME with copied logins; token files outside the agent\'s own project locations unreadable',
           'tokens': TOKENS, 'matrix': matrix, 'rows': rows, 'credential_notes': notes, 'work': str(base)}
-(SP / 'eject-headless-0.6.2.json').write_text(json.dumps(result, indent=1) + '\n')
+(SP / f"eject-headless-{result['agentpack'].split()[-1]}.json").write_text(json.dumps(result, indent=1) + '\n')
 print(json.dumps(matrix, indent=1))
 print(notes)

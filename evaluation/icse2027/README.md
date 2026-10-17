@@ -1,20 +1,24 @@
 # Agentpack ICSE 2027 evaluation artifact
 
-Scripts and recorded results for the paper's evaluation. Every Agentpack number in the paper was measured with the released **Agentpack 0.6.1** (https://github.com/olegpustovit/agentpack/releases/tag/v0.6.1; linux arm64 binary sha256 `4bf10e9955ee46e10880c469af7efe428db39150ae99d01d10020abbf38e4fcf`) on 2026-10-17, on Linux 6.8 aarch64, with Claude Code 2.1.299, Codex 0.159.3, OpenCode 1.17.11, Cursor 2026.08.25-3e8eec8, Grok 1.0.44 and Antigravity 1.4.0. Claude Code 2.1.299 is put first on `PATH` with `DISABLE_AUTOUPDATER=1`. Antigravity updated itself from 1.3.5 to 1.4.0 on 2026-10-16; every tool's rows were run again with 1.4.0. The one exception to 0.6.1 is the Antigravity row of the model-call test (below), run with build `9952a1f`: the account's Antigravity quota was used up before the 0.6.1 rerun, and `9952a1f` differs from `v0.6.1` only in the `eject` command and the version string (`git diff 9952a1f v0.6.1 -- internal/ ':!internal/eject'`).
+Scripts and recorded results for the paper's evaluation. Every Agentpack number in the paper was measured with the released **Agentpack 0.7.2** (https://github.com/olegpustovit/agentpack/releases/tag/v0.7.2; linux arm64 binary sha256 `bc84f06b2877f02203e9980dc21bd4681563ddb3c06cbb8678f5436f1ce8759d`) on 2026-10-17, on Linux 6.8 aarch64, with Claude Code 2.1.299, Codex 0.159.3, OpenCode 1.17.11, Cursor 2026.08.25-3e8eec8, Grok 1.0.44 and Antigravity 1.4.0. Claude Code updated itself to 2.1.302 during the day; for the delivery tables 2.1.299 was installed into a private npm prefix and put first on `PATH`, so every tool's rows use the same agents. The supply-chain experiment also runs release 0.6.2 as the top-level-pin setup. The IDE check by hand used 0.6.0, whose `eject` differs from 0.7.2's in Windows paths, the locked npm tree of MCP servers and the Cursor and Antigravity rule, hook and subagent fixes; `eject_headless.py` repeats it on the agents' CLIs with 0.7.2 (`eject-headless-0.7.2.json`). Earlier results (0.5.x, 0.6.1) are kept under `history/`.
 
 | Experiment | Script | Results | Calls a model |
 |---|---|---|---|
-| What 14 tools deliver from 9 pinned published inputs (Table I of the paper) | `ecosystem.py` | `ecosystem-results.json` | no |
+| What 16 tools deliver from 9 pinned published inputs (Table I of the paper) | `ecosystem.py` | `ecosystem-results.json` | no |
 | The same on 12 packages drawn after the code was frozen, and on 10 more that hold hooks or subagents | `heldout.py`, `ecosystem.py` | `heldout-inputs.json`, `heldout-results.json`, `heldout-kinds-inputs.json`, `heldout-kinds-results.json` | no |
 | Table II and the held-out sample on skills alone | `scope.py` | `ecosystem-scope.json`, `heldout-scope.json` | no |
 | One test package, installed by five tools, used by six agents (Table III) | `competitors_model.py`, `competitors_summary.py` | `competitors-model-results.json` (Table II of the paper) | yes |
 | IDE front ends on an ejected project | `agentpack eject`, by hand; `eject_headless.py` for the agents' CLIs | `ide-check.json`, `eject-headless-0.6.2.json` | yes |
 | How often the official catalogs' npx-started MCP servers change | `drift.py` | `drift-results.json` | no |
+| How much of each of those servers' dependency tree a top-level pin leaves open | `treedrift.py` | `treedrift-results.json` | no |
+| What an npx-started server runs after the registry changes: no pin, a top-level pin (0.6.2), a locked tree (0.7.2) | `supplychain.py` | `supplychain-results.json` | no |
+| Whether converted items keep their behaviour: a command's argument, an always-apply rule, a hook that blocks, a read-only subagent | `semantics.py` | `semantics-results.json` | yes |
 | The commands of Fig. 1 | by hand | `fig1-0.6.1.txt` | no |
 
 ```sh
 SHA=4bf10e9955ee46e10880c469af7efe428db39150ae99d01d10020abbf38e4fcf
 uv run ecosystem.py setup --tools-dir TOOLS            # downloads the pinned tools
+uv run ecosystem.py setup --tools-dir TOOLS --cargo-root CARGO --tool nodus --tool mars   # copies in and checks the cargo-built Nodus and mars
 GITHUB_TOKEN=$(gh auth token) uv run ecosystem.py run --tools-dir TOOLS --agentpack bin/agentpack --agentpack-sha256 $SHA --work WORK --jobs 3
 GITHUB_TOKEN=$(gh auth token) uv run ecosystem.py run --inputs-file heldout-inputs.json --output heldout-results.json --tools-dir TOOLS --agentpack bin/agentpack --agentpack-sha256 $SHA --work WORK3 --jobs 3
 uv run ecosystem.py rescore                            # recomputes every cell and the summary from the stored evidence
@@ -36,15 +40,17 @@ Nine inputs pinned by commit (three Claude Code plugins, two Cursor plugins, a C
 
 | Tool | Inputs accepted (and something delivered) | Native | Converted | Absent |
 |---|---|---|---|---|
-| Agentpack 0.6.1 | 9 (9) | 148 | 14 | 0 |
+| Agentpack 0.7.2 | 9 (9) | 148 | 14 | 0 |
 | Microsoft APM 0.33.0 | 9 (8) | 124 | 0 | 38 |
 | rulesync 33.0.0 | 9 (5) | 99 | 9 | 54 |
 | Ruler 0.3.44 (content copied in by hand) | 0 | 81 | 0 | 81 |
 | Each agent's own install command | per agent | 58 | 4 | 100 |
+| mars 0.16.0 (not pinned: default-branch head) | 8 (6) | 43 | 0 | 119 |
 | Vercel skills 1.7.2 | 6 (6) | 36 | 0 | 126 |
 | skills-lock 0.1.0 | 6 (6) | 36 | 0 | 126 |
 | skillpm 4.0.0 | 5 (5) | 25 | 0 | 137 |
 | liqiongyu/agentpack 0.9.1 | 1 (1) | 22 | 0 | 140 |
+| Nodus 0.17.0 | 4 (3) | 15 | 0 | 147 |
 | openskills 1.5.0 | 3 (2) | 8 | 0 | 154 |
 | dotagents 3.3.0 | 8 (6) | 6 | 0 | 156 |
 | skillshare 0.25.10 | 1 (1) | 6 | 0 | 156 |
@@ -57,7 +63,7 @@ Nine inputs pinned by commit (three Claude Code plugins, two Cursor plugins, a C
 - Where files go: Agentpack writes `agentpack.toml` and `pack.lock` to the checkout and one link at launch; the rest is in its own home and staging directory, a Codex home under `/var/tmp/ap-c`, and an empty `~/.codex/history.jsonl`. APM writes up to 137 files into the checkout, rulesync up to 264.
 - Limits: hooks are one item per input (a hook file that names one of the input's scripts counts; events are not compared). Cursor skills, commands, subagents, rules and hooks, and Antigravity skills, subagents and rules, have no listing without a model and are decided by files. Cursor's own install command needs a login and was not run.
 
-## Held-out comparison (`heldout.py`, drawn 2026-10-16; all 13 tools run again on 2026-10-17 with Agentpack 0.6.1 and Antigravity 1.4.0)
+## Held-out comparison (`heldout.py`, drawn 2026-10-16; all tools run again on 2026-10-17; Agentpack row on 0.7.2)
 
 The nine inputs above were chosen by the authors, and the 40 packages below were used during development. After the code was frozen (release 0.5.2, which prints `0.5.2`; sha256 of the linux arm64 binary `089f2dada14209c86ccf94f889bb5c27c4e0054bdcc74940455818d6882b34b1`), `heldout.py` drew 12 new packages by a fixed rule:
 - **Sources:** the official Claude Code, Cursor and Codex plugin repositories at the commits pinned in `ecosystem.py`.
@@ -76,15 +82,17 @@ The 12 packages hold 90 cells: skills in 7 packages, MCP servers in 6, one comma
 
 | Tool | Inputs accepted | Native | Converted | Partial | Absent |
 |---|---|---|---|---|---|
-| Agentpack 0.6.1 (0.5.2 gave the same cells) | 12 | 85 | 4 | 1 | 0 |
+| Agentpack 0.7.2 (0.5.2 and 0.6.1 gave the same cells) | 12 | 85 | 4 | 1 | 0 |
 | Ruler 0.3.44 (content copied in by hand) | 0 | 74 | 0 | 1 | 15 |
 | Microsoft APM 0.33.0 | 11 | 69 | 0 | 1 | 20 |
 | rulesync 33.0.0, Claude Code importer on every plugin (not documented) | 12 | 63 | 2 | 1 | 24 |
 | Vercel skills 1.7.2 | 7 | 41 | 0 | 1 | 48 |
 | skills-lock 0.1.0 | 7 | 41 | 0 | 1 | 48 |
+| mars 0.16.0 (not pinned: default-branch head) | 12 (content delivered for 7) | 34 | 0 | 1 | 55 |
 | rulesync 33.0.0 | 12 (content delivered for 4) | 28 | 2 | 0 | 60 |
 | skillpm 4.0.0 | 6 | 29 | 0 | 1 | 60 |
 | Each agent's own install command | 12 | 27 | 1 | 0 | 62 |
+| Nodus 0.17.0 | 5 | 18 | 0 | 0 | 72 |
 | liqiongyu/agentpack 0.9.1 (modules declared by hand) | 0 | 15 | 0 | 1 | 74 |
 | dotagents 3.3.0 | 12 | 7 | 0 | 0 | 83 |
 | retr0h/agentpack 1.1.0 | 12 | 0 | 0 | 0 | 90 |
@@ -113,10 +121,11 @@ GITHUB_TOKEN=$(gh auth token) uv run ecosystem.py run --inputs-file heldout-kind
 
 | Tool | Inputs accepted | Native | Converted | Partial | Absent |
 |---|---|---|---|---|---|
-| Agentpack 0.6.1 | 10 | 134 | 11 | 3 | 8 |
+| Agentpack 0.7.2 (0.6.1: 134 native, 11 converted, 3 partial, 8 absent) | 10 | 137 | 12 | 3 | 4 |
 | rulesync 33.0.0, Claude Code importer on every plugin (not documented) | 8 | 92 | 6 | 4 | 54 |
 | Ruler 0.3.44 (content copied in by hand) | 0 | 77 | 0 | 16 | 63 |
 | Microsoft APM 0.33.0 | 8 | 67 | 0 | 9 | 80 |
+| mars 0.16.0 (not pinned: default-branch head) | 10 | 66 | 0 | 12 | 78 |
 | Each agent's own install command | 10 | 40 | 2 | 3 | 111 |
 | rulesync 33.0.0 | 9 | 34 | 4 | 0 | 118 |
 | skills-lock 0.1.0 | 6 | 36 | 0 | 18 | 102 |
@@ -124,16 +133,57 @@ GITHUB_TOKEN=$(gh auth token) uv run ecosystem.py run --inputs-file heldout-kind
 | skillpm 4.0.0 | 6 | 28 | 0 | 12 | 116 |
 | OpenPackage 0.11.3 | 8 | 23 | 0 | 3 | 130 |
 | liqiongyu/agentpack 0.9.1 | 0 | 11 | 0 | 5 | 140 |
+| Nodus 0.17.0 | 2 | 7 | 0 | 0 | 149 |
 | dotagents 3.3.0 | 10 | 5 | 0 | 4 | 147 |
 | retr0h/agentpack 1.1.0 | 10 | 0 | 0 | 0 | 156 |
 | openskills 1.5.0 | 0 | 0 | 0 | 0 | 156 |
 | skillshare 0.25.10 | 0 | 0 | 0 | 0 | 156 |
 
-- Agentpack's misses: the hook of `openai/plugins/plugins/figma`, kept in `hooks.json` at the plugin root and not declared in its manifest, which 0.6.1 did not read (6 cells; fixed in release 0.6.2, with which the hook reaches Claude Code, Codex, OpenCode and Cursor, and Grok and Antigravity do not list it); one hook event OpenCode lacks (`ralph-loop`, Claude Code and Cursor versions, 2 cells); two commands of `vercel` that share a name with a skill and arrive as skills on Claude Code and Grok (2 partial cells); Codex listing 50 of `pstack`'s 52 skills (1 partial cell, its skill-list budget).
+- Agentpack's misses with 0.7.2 (7 cells): one hook event OpenCode lacks (`ralph-loop`, Claude Code and Cursor versions, 2 cells); the hook of `openai/plugins/plugins/figma`, which Grok and Antigravity do not list (2 cells); two commands of `vercel` that share a name with a skill and arrive as skills on Claude Code and Grok (2 partial cells); Codex listing 50 of `pstack`'s 52 skills (1 partial cell, its skill-list budget). With 0.6.1 the figma hook, kept in `hooks.json` at the plugin root and not declared in its manifest, was missed on all six agents; release 0.6.2 reads that file.
 
 ## OpenPackage (added 2026-10-17)
 
 OpenPackage (`opkg` 0.11.3, https://github.com/enulus/OpenPackage), a package manager for rules, commands, subagents, skills and MCP servers on many agents (no Grok platform), was added to every comparison after the first review round, with the command its README gives: `opkg install https://github.com/<repo>/tree/<commit>/<path> --platforms claude codex opencode cursor antigravity` (`--plugins NAME` for a catalog). `ecosystem.py setup` installs it into `TOOLS/opkg` at that version and checks its npm integrity. Table II: 50 of 162 (6 of 9 inputs accepted); first held-out draw: 29 of 90; second: 23 of 156. It records no commit or content hash, keeps `@latest`, and wrote up to 2,198 files into the checkout.
+
+## Nodus and mars (added 2026-10-17)
+
+A reviewer named Nodus and mars as the tools closest to Agentpack (a manifest and a lockfile, several agents). Both are Rust crates without a Linux arm64 release binary, so each was built with `cargo install --locked` (rustc 1.96.0, aarch64-unknown-linux-gnu) and the measured binary is recorded in `TOOLS`:
+
+| Tool | Crate (crates.io checksum) | Binary sha256 |
+|---|---|---|
+| Nodus 0.17.0 (https://github.com/nodus-rs/nodus) | `nodus` 0.17.0 (`982449375cc106d8f28d9bfcd0091b9c1281e151b7682c664c0076aa7713e08e`) | `038c20a57ed26b060e842b251f27568ff54984ba47c00fedfa73a91fa78b8778` |
+| mars 0.16.0 (https://github.com/haowjy/mars-agents) | `mars-agents` 0.16.0 (`9e366682d3595f867ad6185c82f0f1da27575162f2df48e58e12104f7c2da134`) | `d14af508b9bd6956383f656a7ba6cd2dbfadc6349d272eac0b6e7716bf422930` |
+
+A cargo build is not byte-identical on another machine; `setup --cargo-root` copies the binary from a `cargo install --root` directory, refuses one with another sha256, and checks the crate in the local cargo cache against the crates.io checksum.
+
+Each tool was given every input with the commands its own documentation gives (`documented_usage` and `note` in each run):
+
+- **Nodus** (README Quick Start, `nodus add --help`): `nodus add <owner/repo> --revision <commit> --adapter claude --adapter codex --adapter cursor --adapter opencode --adapter agents`, then `nodus members enable <repo> <plugin>` where Nodus records the repository as a wrapper of several child packages, then `nodus doctor`. `nodus add` takes a whole repository (its package page reduces a tree URL to `owner/repo`); where `nodus members list` reports no child packages (`stripe/ai`, `anthropics/skills`) the whole repository is installed and the members step is not run. Nodus has no adapter for Grok or Antigravity; `copilot` (`.github/`) is not one of the six agents.
+- **mars** (README Quick Start, `docs/cli/commands.md`): `mars init`, `mars add <owner/repo/path>`, `mars link .claude`, `.codex`, `.opencode`, `.cursor`. mars cannot pin a commit: it resolves a ref with `git ls-remote <url> <ref>`, which finds no commit ("reference ... not found"), and takes its first line, so `@main` resolved to `refs/heads/daisy/caffeinate/main` in `anthropics/claude-plugins-official` in a first run (discarded). The ref is left out, which mars documents as "HEAD for untagged repos" (no input repository has a tag), so this row uses each repository's head on 2026-10-17, not the pinned commit. mars has no target for Grok or Antigravity (its generic `.agents` target is deprecated), installs agents and skills only, and has no marketplace support: a marketplace repository is given at its root with the input's skill and agent names (`--skills`, `--agents`).
+
+```sh
+uv run ecosystem.py setup --tools-dir TOOLS --cargo-root CARGO --tool nodus --tool mars
+GITHUB_TOKEN=$(gh auth token) uv run ecosystem.py run --tools-dir TOOLS --agentpack bin/agentpack --agentpack-sha256 $SHA --work WORK6 --tool nodus --tool mars --jobs 3
+GITHUB_TOKEN=$(gh auth token) uv run ecosystem.py run --tools-dir TOOLS --agentpack bin/agentpack --agentpack-sha256 $SHA --work WORK7 --tool nodus --tool mars --jobs 3 --inputs-file heldout-inputs.json --output heldout-results.json
+GITHUB_TOKEN=$(gh auth token) uv run ecosystem.py run --tools-dir TOOLS --agentpack bin/agentpack --agentpack-sha256 $SHA --work WORK8 --tool nodus --tool mars --jobs 3 --inputs-file heldout-kinds-inputs.json --output heldout-kinds-results.json
+uv run ecosystem.py rescore; uv run ecosystem.py rescore --output heldout-results.json; uv run ecosystem.py rescore --output heldout-kinds-results.json
+uv run table1.py; uv run table1.py --results heldout-results.json; uv run table1.py --results heldout-kinds-results.json
+```
+
+With `--tool`, only these two tools' runs were replaced; every other run in the three results files is unchanged (and the rescore changed no cell).
+
+| Inputs | Tool | Accepted | Delivered (native) | Lockfile: commit / hash | Most files in the checkout |
+|---|---|---|---|---|---|
+| Table I (162 cells) | Nodus 0.17.0 | 4 of 9 | 15 | 8 / 8 | 1,325 |
+| | mars 0.16.0 | 8 of 9 | 43 | 2 / 6 | 1,273 |
+| First held-out draw (90) | Nodus 0.17.0 | 5 of 12 | 18 | 8 / 8 | 26 |
+| | mars 0.16.0 | 12 of 12 | 34 | 4 / 7 | 3,024 |
+| Second held-out draw (156) | Nodus 0.17.0 | 2 of 10 | 7 | 8 / 8 | 24 |
+| | mars 0.16.0 | 10 of 10 | 66 | 2 / 9 | 1,435 |
+
+- **What Nodus did not accept:** Codex plugins (`openai/plugins` marketplace: "missing field `path` at line 801"); Cursor plugins (Nodus reads the repository's Claude Code marketplace, which lists only `origin-apps`: "does not expose child package ..."); Claude Code plugins with hooks and the Stripe plugin from the catalog ("multiple packages want to manage .../claude-plugin/.claude-plugin/plugin.json", with the `claude` adapter only). Its lockfile also counts for those inputs: `nodus add` locks the whole repository at the pinned commit before the member step fails.
+- **What Nodus delivers where it installs:** for Claude Code it writes `enabledPlugins` and `extraKnownMarketplaces` into `.claude/settings.json`; Claude Code lists no such plugin in a run without a person (it installs a project's marketplace plugins after the user trusts the folder), so no Claude Code cell counts. For Codex it enables `<plugin>@nodus` in `~/.codex/config.toml`, which `codex plugin list` reports as "not installed", so plugin MCP servers do not reach Codex. It writes the Playwright server to OpenCode as `playwright__playwright`, which the name rule does not match. It kept `@playwright/mcp@latest`.
+- **What mars did not accept:** the 315-plugin catalog (discovery collision: two plugins ship an agent `code-reviewer`). Its lockfile records the commit it resolved and a hash; the commit is the pinned one only where the repository head had not moved. It wrote no MCP server or hook into any agent's configuration: a plugin's MCP file is only copied, with `@latest`, into its own store `.mars/staging/`. Grok receives skills and subagents through the `.claude/` files; Antigravity nothing.
 
 ## Skills alone (`scope.py`)
 
@@ -143,11 +193,11 @@ Every compared tool installs skills, so `scope.py` counts the skill cells only, 
 
 The package of `delivery.py` (a skill, a slash command, a subagent, a rule, a prompt hook, a local MCP server and a language server, each answering with its own token) is put in a local marketplace repository and installed by Agentpack, APM, rulesync, Vercel skills and the agents' own install commands, each with its documented command for a local source, into an empty home and a fresh checkout. The agents are then started with real model calls, three runs per item; every tool gets its own random tokens, so a file of another tool's run cannot answer.
 
-Strict rule. Before each agent runs, every file that holds a token outside the locations that agent loads content from (`OWN` in the script) is made unreadable, and the package repository's git history is removed (an agent was seen reading a hidden file with `git show`). A run counts only when the token is in the agent's final answer (parsed from its JSON events; for the language server, the token its hover returns) and the agent did not touch the package source. Agentpack reads a local package live at every launch, and Claude Code and Cursor load a plugin from a local marketplace in place, so for those the source stays readable. For every tool, a run in which the agent opened or tried to open the package source counts as a failure: Agentpack 7 runs, APM 16, rulesync 10, Vercel skills 22, the agents' own commands 2 (in-place plugins of the agents' own commands are exempt, since their source is the installed copy). A combination works in at least 2 of 3 runs.
+Strict rule. Before each agent runs, every file that holds a token outside the locations that agent loads content from (`OWN` in the script) is made unreadable, and the package repository's git history is removed (an agent was seen reading a hidden file with `git show`). A run counts only when the token is in the agent's final answer (parsed from its JSON events; for the language server, the token its hover returns) and the agent did not touch the package source. Agentpack reads a local package live at every launch, and Claude Code and Cursor load a plugin from a local marketplace in place, so for those the source stays readable. For every tool, a run in which the agent opened or tried to open the package source counts as a failure: Agentpack 4 runs (0.7.2; 7 with 0.6.1), APM 16, rulesync 10, Vercel skills 22, the agents' own commands 2 (in-place plugins of the agents' own commands are exempt, since their source is the installed copy). A combination works in at least 2 of 3 runs.
 
 | Installed by | Claude Code | Codex | OpenCode | Cursor | Grok | Antigravity | All |
 |---|---|---|---|---|---|---|---|
-| Agentpack 0.6.1 | 7/7 | 6/6 | 7/7 | 4/6 | 6/7 | 5/6 | 35/39 |
+| Agentpack 0.7.2 | 7/7 | 6/6 | 7/7 | 5/6 | 6/7 | 6/6 | 37/39 |
 | Agents' own commands | 7/7 | 5/6 | 0/7 | 5/6 | 4/7 | 2/6 | 23/39 |
 | rulesync 33.0.0 | 4/7 | 4/6 | 4/7 | 3/6 | 0/7 | 3/6 | 18/39 |
 | APM 0.33.0 | 4/7 | 3/6 | 3/7 | 4/6 | 1/7 | 1/6 | 16/39 |
@@ -225,3 +275,48 @@ mcp-lock 0.1.0 (https://github.com/mcpguards/mcp-lock) pins npm-started MCP serv
 - `anthropics/claude-plugins-official@f359d43:external_plugins/playwright/.mcp.json` (bare form, no `mcpServers` key, as Claude Code plugins use): "No MCP servers found in any discovered config."
 
 It installs nothing for any agent; the pin stays in the file it was given.
+
+## The dependency tree a top-level pin leaves open (`treedrift.py`, 2026-10-17)
+
+For each of the four npm packages that the official catalogs start through npx (`drift-results.json`), `treedrift.py` resolves the version `latest` names today to its full dependency tree with npm (`install --package-lock-only --ignore-scripts`, as `agentpack lock` does) and compares each package's publish time with the server version's.
+
+| Server version | Released | Packages in its tree | Published after the server version | Dependency specs that are ranges |
+|---|---|---|---|---|
+| `@playwright/mcp` 0.0.83 | 2026-09-28 | 3 | 0 | 0 |
+| `@xeroapi/xero-mcp-server` 0.0.17 | 2026-05-26 | 119 | 29 | 185 |
+| `firebase-tools` 15.34.0 | 2026-10-14 | 634 | 9 | 970 |
+| `xcodebuildmcp` 2.7.0 | 2026-07-23 | 151 | 38 | 221 |
+
+A package published after the server version could not have been installed on the server's release day: a pin of the server alone leaves it to the day of installation. `@playwright/mcp` pins its two dependencies exactly.
+
+## What a locked server runs after the registry changes (`supplychain.py`, 2026-10-17)
+
+A local npm registry (in the script; nothing is published) serves a toy MCP server `approbe-srv-7f3c@1.0.0` that depends on `approbe-dep-7f3c@^1.0.0` and answers `initialize` with the marker of the dependency code it loaded. The names do not exist on registry.npmjs.org. Three setups are locked once against the original registry: the definition as plugins publish it (`npx -y srv@latest`), Agentpack 0.6.2 (the server pinned to 1.0.0 with its integrity, started by npx: the top-level pin), and Agentpack 0.7.2 (the server and its dependency locked, started by `agentpack mcp-exec`). Then one change is made at a time and the server is started as an agent would start it (the command its configuration holds), by a teammate with empty npm and Agentpack caches; for the edited cache, by the same user again.
+
+| Change | No pin | Top-level pin (0.6.2) | Locked tree (0.7.2) |
+|---|---|---|---|
+| none | dep 1.0.0 | dep 1.0.0 | dep 1.0.0 |
+| dep 1.0.1 published | dep 1.0.1 | dep 1.0.1 | dep 1.0.0 |
+| dep 1.0.0 republished with other code (registry integrity changed to match) | replaced code | replaced code | refused to start |
+| srv 1.0.0 republished with other code | replaced server | replaced server | refused to start |
+| installed dep code edited in the local cache | edited code | edited code | dep 1.0.0 (unpacked again from the verified tarballs) |
+
+mcp-lock 0.1.0 is not a setup: it reads only `https://registry.npmjs.org` (hard-coded in `dist/mcp-lock.js`), so it cannot be pointed at a test registry; by its README it records and pins the top-level package, as the 0.6.2 setup does. `uv run supplychain.py --agentpack-top AP062 --agentpack-tree AP072` reproduces the table in about 15 seconds with node and npm on PATH.
+
+## Does converted content keep its behaviour? (`semantics.py`, 2026-10-17)
+
+A probe package (a Claude Code plugin) holds four items whose behaviour a conversion could change. (1) `commands/delivery-args.md` takes an argument (`$ARGUMENTS`): invoked by name with a random word, the answer must hold the command's token joined to that word. (2) `rules/always-sign.mdc` (`alwaysApply: true`) asks for a closing line; the prompt is "What is 17 plus 25?". (3) A `PreToolUse` hook on `Bash` reads the event from stdin, records it, and exits 2 for a command naming a probe file; the agent is asked to `touch` that file, and the probe passes when the file is absent afterwards and the hook's record holds the command. (4) `agents/readonly-agent.md` (`tools: Read, Grep, Glob`) is asked through delegation to create a file. Each tool installs the package as in `competitors_model.py`, with the same logins, grants, hiding of token files and package-source rule; shell commands run with each agent's skip-permission flag, for every tool alike. Three runs per probe and agent; a cell passes in at least 2 of 3. A control with nothing installed runs each probe once per agent.
+
+`semantics_summary.py` merges the result files (a later file's tool replaces an earlier one's) and prints Table III: `uv run semantics_summary.py RUN1.json RUN071.json RUN072.json`. Agentpack's row is release 0.7.2; APM, rulesync, the agents' own commands and the control do not depend on the Agentpack build and come from the runs of the same day.
+
+| Installed by | Command argument | Rule applied unasked | Hook blocks | Read-only subagent |
+|---|---|---|---|---|
+| Agentpack 0.7.2 | 6 of 6 | 6 of 6 | 6 of 6 | 5 of 6 |
+| Microsoft APM 0.33.0 | 3 of 5 | 0 of 5 | 3 of 5 | 4 of 5 |
+| rulesync 33.0.0 | 6 of 6 | 0 of 6 | 0 of 6 | 5 of 6 |
+| Agents' own commands | 5 of 6 | 0 of 6 | 4 of 6 | 3 of 6 |
+| Nothing installed (runs) | 0 of 6 | 0 of 6 | 0 of 6 (file created on all six) | 3 of 6 |
+
+APM's runs on OpenCode could not start ("could not answer a plain prompt"), so OpenCode is left out of its row. The read-only probe is reported but is not in the paper's table: with nothing installed it passed on three agents, whose main agent declined to create the file. Agentpack's one read-only miss is Grok, whose main agent created the file itself.
+
+The probes found four faults in Agentpack, each fixed before the 0.7.2 measurements: Cursor applied no staged rule (0.7.0 links the rules into `.cursor/rules`); Antigravity denied every tool call while a `PreToolUse` hook was installed, because Agentpack answered without a `decision` (0.7.1 answers `"allow"`, which hands the call to the default policy); Antigravity discarded rules without a `trigger` (0.7.1 writes `trigger: always_on`, `glob`, `model_decision` or `manual`); Cursor ignored a subagent's `tools` list (0.7.2 stages a read-only Claude subagent with `readonly: true`). `semantics-results.json` holds every row used.
