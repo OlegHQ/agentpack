@@ -7,9 +7,15 @@ window.
 
 ## Unreleased
 
+## [0.7.0] - 2026-10-17
+
 ### Added
 
 - The dependency tree of an MCP server started with `npx` is locked. `agentpack lock` records every package npm would install for it (path, exact version, registry integrity, platform constraints; resolved with `npm install --package-lock-only --ignore-scripts`) in `pack.lock` under `[[mcp_servers.tree]]`, with a `tree_digest`. The server is staged to start through `agentpack mcp-exec`, which downloads each tarball once, checks it against the lock before writing anything, unpacks it into the cache without running package scripts, and starts the package's executable with `node`. Later starts check the unpacked files and unpack them again if they changed. A lock with a tree is `lockfile_version = 4`. Without `npm` at lock time, the server keeps its top-level pin, as before.
+
+### Fixed
+
+- Rules on Cursor. `cursor-agent` applies rules only from the project's `.cursor/rules`; rules staged in the Cursor plugin or under the launch home's `~/.cursor/rules` were never applied (an `alwaysApply` rule changed no answer). The Cursor launcher now links the staged rules into the workspace as `.cursor/rules`, as it already links `.cursor/agents`, and leaves a `.cursor/rules` folder the project owns alone.
 
 ## [0.6.2] - 2026-10-17
 

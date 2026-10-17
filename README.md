@@ -12,7 +12,7 @@
   <a href="https://olegpustovit.github.io/agentpack"><img alt="Documentation" src="https://img.shields.io/badge/docs-olegpustovit.github.io-1f6feb.svg"></a>
   <a href="https://olegpustovit.com/posts/agentpack/"><img alt="Writeup" src="https://img.shields.io/badge/writeup-olegpustovit.com-ff6b6b.svg"></a>
   <a href="https://github.com/olegpustovit/agentpack/blob/dev/LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
-  <a href="https://github.com/olegpustovit/agentpack/releases"><img alt="Version" src="https://img.shields.io/badge/version-v0.6.2-blue.svg"></a>
+  <a href="https://github.com/olegpustovit/agentpack/releases"><img alt="Version" src="https://img.shields.io/badge/version-v0.7.0-blue.svg"></a>
   <a href="https://github.com/olegpustovit/agentpack"><img alt="Built with Go" src="https://img.shields.io/badge/built_with-Go-00ADD8.svg"></a>
 </p>
 
@@ -199,7 +199,7 @@ disable = ["mcp:filesystem"]
 - **One manifest, six agents** — Write `agentpack.toml` once; launch Claude, Cursor, OpenCode, Codex, Grok, or Antigravity with the same skill set.
 - **Deterministic lockfile** — `pack.lock` pins every package, direct and transitive, to an exact commit and content hash, so resolution matches across machines and CI.
 - **Verified on every use** — The cache is re-hashed against the lock before anything is staged; a changed file stops `sync` and the launchers, and `sync --repair` re-fetches the pinned commit.
-- **MCP servers in the lock** — `npx`-style servers are resolved to an exact version and staged as that version; other launchers are recorded with an explicit `pinned` / `unpinned` / `unpinnable` status.
+- **MCP servers in the lock** — `npx`-style servers are resolved to an exact version; for `npx` servers every dependency is locked too, and the server starts from that tree with each tarball checked against the lock (`agentpack mcp-exec`). Other launchers are recorded with an explicit `pinned` / `unpinned` / `unpinnable` status.
 - **Whole marketplaces and language servers** — `agentpack add <marketplace>` adds every plugin a catalog lists (or one, with `--plugin`); a plugin's language servers are written for Claude Code, OpenCode and Grok.
 - **Transitive resolution** — A package can declare its own `agentpack.toml`; agentpack walks the full graph and resolves conflicts.
 - **Shared cache** — Each package is fetched once into `$AGENTPACK_HOME/cache/<cache_key>/`, keyed by repository, path and commit, and shared by every project on the machine.
